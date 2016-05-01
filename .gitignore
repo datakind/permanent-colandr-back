@@ -1,0 +1,9 @@
+# data dirs
+data/raw/*
+data/processed/*
+
+# OS
+.DS_Store
+
+# compiled code
+*.py[co]
