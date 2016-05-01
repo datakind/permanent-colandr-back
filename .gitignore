@@ -5,5 +5,6 @@ data/processed/*
 # OS
 .DS_Store
 
-# compiled code
+# python cruft
 *.py[co]
+.ipynb_checkpoints/
