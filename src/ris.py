@@ -1,4 +1,7 @@
 """
+Parse .RIS files from Scopus or Mendeley, as well as plaintext exports from
+Web of Science; return as a list of dictionaries, where each citation record
+is a dictionary whose keys are field names and values are field values.
 """
 import io
 import re
@@ -48,8 +51,8 @@ TAG_KEY_MAPPING = {
     'FN': 'file_name',  # ignore!
     'ID': 'reference_id',
     'IS': 'issue_number',
-    'J1': 'journal_name_user_abbr',
-    'J2': 'alternate_title',
+    'J1': 'journal_name_user_abbr_1',
+    'J2': 'journal_name_user_abbr_2',
     'JA': 'journal_name_abbr',
     'JF': 'journal_name',
     'JO': 'journal_name',
@@ -75,16 +78,18 @@ TAG_KEY_MAPPING = {
     'PY': 'publication_year',  # special: YYYY
     'RI': 'reviewed_item',
     'RN': 'research_notes',
-    'RP': 'reprint_edition',  # special: 'IN FILE', 'NOT IN FILE', or 'ON REQUEST (MM/DD/YY)'
+    'RP': 'reprint_status',  # special: 'IN FILE', 'NOT IN FILE', or 'ON REQUEST (MM/DD/YY)'
     'SE': 'section',
     'SN': 'issn',
     'SO': 'source_name',
     'SP': 'start_page',
     'ST': 'short_title',
+    'SU': 'supplement',
     'T1': 'primary_title',
     'T2': 'secondary_title',  # note: journal_title, if applicable
     'T3': 'tertiary_title',
     'TA': 'translated_author',
+    'TC': 'times_cited',
     'TI': 'title',
     'TT': 'translated_title',
     'TY': 'type_of_reference',  # special: must be key in REFERENCE_TYPES and first tag of record
@@ -161,27 +166,34 @@ REFERENCE_TYPES_MAPPING = {
     'VIDEO': 'video recording',
 }
 
-REPEATABLE_TAGS = {'A1', 'A2', 'A3', 'A4', 'AD', 'AU', 'KW', 'N1'}
+MULTI_TAGS = {'A1', 'A2', 'A3', 'A4', 'AD', 'AU', 'KW', 'N1'}
 IGNORE_TAGS = {'FN', 'VR', 'EF'}
 START_TAGS = {'TY', 'PT'}
 END_TAG = 'ER'
 
-TAG_RE = re.compile('^([A-Z][A-Z0-9])(  - | )|^(E[FR])($|  - | )')
+TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
+TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
 
 VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
-    'EP': lambda x: int(x),
     'PY': lambda x: int(x),
-    'SP': lambda x: int(x),
+    'TC': lambda x: int(x),
     'TY': lambda x: REFERENCE_TYPES_MAPPING.get(x, x),
     'Y1': lambda x: parse_date('-'.join(item if item else '01' for item in x[:-1].split('/'))),
-    'Y2': lambda x: parse_date('-'.join(item if item else '01' for item in x[:-1].split('/')))
+    'Y2': lambda x: min(parse_date(val) for val in x.split(' through ')),
     }
 
 
-def _add_tag(tag, line, match_end, record):
+def _add_tag_line(tag, line, start_idx, record):
+    """
+    Args:
+        tag (str)
+        line (str)
+        start_idx (int)
+        record (dict)
+    """
     key = TAG_KEY_MAPPING[tag]
-    value = line[match_end:].strip()
+    value = line[start_idx:].strip()
     # try to sanitize value, but don't sweat failure
     try:
         value = VALUE_SANITIZERS[tag](value)
@@ -189,31 +201,29 @@ def _add_tag(tag, line, match_end, record):
         pass
     except Exception:
         print('value sanitization error: key={}, value={}'.format(key, value))
-    if tag in REPEATABLE_TAGS:
+    # for multi-value tags, append to a list
+    if tag in MULTI_TAGS:
         try:
             record[key].append(value)
         except KeyError:
             record[key] = [value]
+    # otherwise, add key:value to record
     else:
         if key in record:
-            print('warning: key {} already included in record'.format(key))
-        else:
-            record[key] = value
+            print('duplicate key error: key={}, value={}'.format(key, value))
+        record[key] = value
 
 
-def _add_repeatable_tag_line(tag, line, record):
-    key = TAG_KEY_MAPPING[tag]
-    try:
-        record[key].append(line.strip())
-    except KeyError:
-        record[key] = [line.strip()]
-
-
-def parse_ris_file(fname):
-    with io.open(fname, mode='r') as f:
+def parse_file(path):
+    """
+    Args:
+        path (str)
+    """
+    with io.open(path, mode='r') as f:
 
         in_record = False
-        curr_tag = None
+        tag_re = None
+        prev_tag = None
         record = {}
         records = []
 
@@ -222,50 +232,69 @@ def parse_ris_file(fname):
             if not line.strip():
                 continue
 
-            tag_match = TAG_RE.match(line)
+            # automatically detect regex needed for this RIS file
+            if tag_re is None:
+                tag_re = (TAGv1_RE if TAGv1_RE.match(line)
+                          else TAGv2_RE if TAGv2_RE.match(line)
+                          else None)
+                if tag_re is None:
+                    raise IOError('file {} is not formatted as expected!'.format(path))
+
+            tag_match = tag_re.match(line)
             if tag_match:
-                tag = tag_match.group(1)
+
+                tag = tag_match.group('tag') or tag_match.group('endtag')
 
                 if tag in IGNORE_TAGS:
+                    prev_tag = tag
                     continue
 
                 elif tag == END_TAG:
                     if in_record is False:
-                        msg = 'end tag on line {}, but already out of a record?!'.format(i)
-                        raise Exception(msg)
+                        msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
+                        raise IOError(msg)
                     records.append(record)
-                    record = {}
-                    curr_tag = tag
                     in_record = False
+                    record = {}
+                    prev_tag = tag
                     continue
 
                 elif tag in START_TAGS:
                     if in_record is True:
-                        msg = 'start tag on line {}, but already in a record?!'.format(i)
-                        raise Exception(msg)
-                    curr_tag = tag
+                        msg = 'found start tag, but already in a record!\nline: {} {}'.format(i, line.strip())
+                        raise IOError(msg)
                     in_record = True
-                    _add_tag(tag, line, tag_match.end(), record)
+                    _add_tag_line(tag, line, tag_match.end(), record)
+                    prev_tag = tag
                     continue
 
                 if in_record is False:
-                    raise Exception('there has been a start/end tag mismatch?!')
+                    raise IOError('start/end tag mismatch!\nline: {} {}'.format(i, line.strip()))
 
                 if tag in TAG_KEY_MAPPING:
-                    curr_tag = tag
-                    _add_tag(tag, line, tag_match.end(), record)
-                elif curr_tag == 'N1':  # unfortunate reference formatting
-                    _add_repeatable_tag_line(curr_tag, line, record)
-                else:
-                    print('unknown tag:', line)
+                    _add_tag_line(tag, line, tag_match.end(), record)
+                    prev_tag = tag
+                    continue
 
-            elif curr_tag == 'AB':  # multi-line abstract
-                key = TAG_KEY_MAPPING[curr_tag]
+                # multi-value tag line happens to start with a tag-compliant string
+                if prev_tag in MULTI_TAGS:
+                    _add_tag_line(prev_tag, line, 0, record)
+                    continue
+
+                # no idea what this is, but might as well save it
+                print('unknown tag: tag={}, line={} "{}"'.format(tag, i, line.strip()))
+                record[tag] = line[tag_match.end():].strip()
+
+            elif prev_tag in MULTI_TAGS:
+                _add_tag_line(prev_tag, line, 0, record)
+                continue
+
+            # single-value tag split across multiple lines, ugh
+            elif line.startswith('   '):
+                key = TAG_KEY_MAPPING[prev_tag]
                 record[key] += ' ' + line.strip()
 
-            elif curr_tag in REPEATABLE_TAGS:
-                _add_repeatable_tag_line(curr_tag, line, record)
             else:
-                print('bad line: lineno={}, curr_tag={}, line={}'.format(i, curr_tag, line))
+                print('bad line: prev_tag={}, line={} "{}"'.format(prev_tag, i, line.strip()))
 
     return records
