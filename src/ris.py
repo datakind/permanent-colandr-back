@@ -1,15 +1,12 @@
-"""
-Parse .RIS files from Scopus or Mendeley, as well as plaintext exports from
-Web of Science; return as a list of dictionaries, where each citation record
-is a dictionary whose keys are field names and values are field values.
-"""
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import io
 import re
 
 from dateutil.parser import parse as parse_date
 
 
-TAG_KEY_MAPPING = {
+tag_key_map = {
     'A1': 'primary_authors',  # special: Lastname, Firstname, Suffix
     'A2': 'secondary_authors',  # special: Lastname, Firstname, Suffix
     'A3': 'tertiary_authors',  # special: Lastname, Firstname, Suffix
@@ -174,7 +171,7 @@ END_TAG = 'ER'
 TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
 TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
 
-VALUE_SANITIZERS = {
+TAG_VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
     'PY': lambda x: int(x),
     'TC': lambda x: int(x),
@@ -184,117 +181,152 @@ VALUE_SANITIZERS = {
     }
 
 
-def _add_tag_line(tag, line, start_idx, record):
+class RisFile(object):
     """
     Args:
-        tag (str)
-        line (str)
-        start_idx (int)
-        record (dict)
+        path (str): RIS file to be parsed
+        tag_key_map (dict): mapping of short RIS tags to human-readable keys
+        tag_value_sanitizers (dict): mapping of short RIS tags to functions that
+            sanitize their associated values
     """
-    key = TAG_KEY_MAPPING[tag]
-    value = line[start_idx:].strip()
-    # try to sanitize value, but don't sweat failure
-    try:
-        value = VALUE_SANITIZERS[tag](value)
-    except KeyError:
-        pass
-    except Exception:
-        print('value sanitization error: key={}, value={}'.format(key, value))
-    # for multi-value tags, append to a list
-    if tag in MULTI_TAGS:
+
+    def __init__(self, path,
+                 tag_key_map=None,
+                 tag_value_sanitizers=None):
+        self.path = path
+        self.tag_key_map = (tag_key_map if tag_key_map
+                                else tag_key_map)
+        self.tag_value_sanitizers = (tag_value_sanitizers if tag_value_sanitizers
+                                     else TAG_VALUE_SANITIZERS)
+        self.in_record = False
+        self.tag_re = None
+        self.prev_line_len = None
+        self.prev_tag = None
+        self.record = {}
+
+    def parse(self):
+        """
+        Yields:
+            dict: next complete citation record
+
+        Raises:
+            IOError
+        """
+        with io.open(self.path, mode='rt') as f:
+            for i, line in enumerate(f):
+
+                # skip empty lines
+                if not line.strip():
+                    continue
+
+                # automatically detect regex needed for this RIS file
+                if self.tag_re is None:
+                    if TAGv1_RE.match(line):
+                        self.tag_re = TAGv1_RE
+                    elif TAGv2_RE.match(line):
+                        self.tag_re = TAGv2_RE
+                    else:
+                        msg ='tags in file {} not formatted as expected!'.format(self.path)
+                        raise IOError(msg)
+
+                tag_match = self.tag_re.match(line)
+                # lines starts with a tag
+                if tag_match:
+
+                    tag = tag_match.group('tag') or tag_match.group('endtag')
+
+                    if tag in IGNORE_TAGS:
+                        self._stash_prev_info(tag, len(line))
+                        continue
+
+                    elif tag == END_TAG:
+                        if self.in_record is False:
+                            msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
+                            raise IOError(msg)
+
+                        yield self.record  # record is complete! spit it out here
+
+                        self.in_record = False
+                        self.record = {}
+                        self._stash_prev_info(tag, len(line))
+                        continue
+
+                    elif tag in START_TAGS:
+                        if self.in_record is True:
+                            msg = 'found start tag, but already in a record!\nline: {} {}'.format(i, line.strip())
+                            raise IOError(msg)
+                        self.in_record = True
+                        self._add_tag_line(tag, line, tag_match.end())
+                        self._stash_prev_info(tag, len(line))
+                        continue
+
+                    if self.in_record is False:
+                        msg = 'start/end tag mismatch!\nline: {} {}'.format(i, line.strip())
+                        raise IOError(msg)
+
+                    if tag in self.tag_key_map:
+                        self._add_tag_line(tag, line, tag_match.end())
+                        self._stash_prev_info(tag, len(line))
+                        continue
+
+                    # multi-value tag line happens to start with a tag-compliant string
+                    if self.prev_tag in MULTI_TAGS:
+                        self._add_tag_line(self.prev_tag, line, 0)
+                        continue
+
+                    # no idea what this is, but might as well save it
+                    print('unknown tag: tag={}, line={} "{}"'.format(tag, i, line.strip()))
+                    self.record[tag] = line[tag_match.end():].strip()
+                    self._stash_prev_info(tag, len(line))
+                    continue
+
+                # subsequent line belonging to a multi-value tag
+                elif self.prev_tag in MULTI_TAGS:
+                    self._add_tag_line(self.prev_tag, line, 0)
+                    continue
+
+                # single-value tag split across multiple lines, ugh
+                elif line.startswith('   ') or self.prev_line_len > 70:
+                    key = self.tag_key_map[self.prev_tag]
+                    self.record[key] += ' ' + line.strip()
+
+                else:
+                    print('bad line: prev_tag={}, line={} "{}"'.format(
+                        self.prev_tag, i, line.strip()))
+
+    def _add_tag_line(self, tag, line, start_idx):
+        """
+        Args:
+            tag (str)
+            line (str)
+            start_idx (int)
+        """
+        key = self.tag_key_map[tag]
+        value = line[start_idx:].strip()
+        # try to sanitize value, but don't sweat failure
         try:
-            record[key].append(value)
+            value = TAG_VALUE_SANITIZERS[tag](value)
         except KeyError:
-            record[key] = [value]
-    # otherwise, add key:value to record
-    else:
-        if key in record:
-            print('duplicate key error: key={}, value={}'.format(key, value))
-        record[key] = value
+            pass
+        except Exception:
+            print('value sanitization error: key={}, value={}'.format(key, value))
+        # for multi-value tags, append to a list
+        if tag in MULTI_TAGS:
+            try:
+                self.record[key].append(value)
+            except KeyError:
+                self.record[key] = [value]
+        # otherwise, add key:value to record
+        else:
+            if key in self.record:
+                print('duplicate key error: key={}, value={}'.format(key, value))
+            self.record[key] = value
 
-
-def parse_file(path):
-    """
-    Args:
-        path (str)
-    """
-    with io.open(path, mode='r') as f:
-
-        in_record = False
-        tag_re = None
-        prev_tag = None
-        record = {}
-        records = []
-
-        for i, line in enumerate(f):
-
-            if not line.strip():
-                continue
-
-            # automatically detect regex needed for this RIS file
-            if tag_re is None:
-                tag_re = (TAGv1_RE if TAGv1_RE.match(line)
-                          else TAGv2_RE if TAGv2_RE.match(line)
-                          else None)
-                if tag_re is None:
-                    raise IOError('file {} is not formatted as expected!'.format(path))
-
-            tag_match = tag_re.match(line)
-            if tag_match:
-
-                tag = tag_match.group('tag') or tag_match.group('endtag')
-
-                if tag in IGNORE_TAGS:
-                    prev_tag = tag
-                    continue
-
-                elif tag == END_TAG:
-                    if in_record is False:
-                        msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
-                        raise IOError(msg)
-                    records.append(record)
-                    in_record = False
-                    record = {}
-                    prev_tag = tag
-                    continue
-
-                elif tag in START_TAGS:
-                    if in_record is True:
-                        msg = 'found start tag, but already in a record!\nline: {} {}'.format(i, line.strip())
-                        raise IOError(msg)
-                    in_record = True
-                    _add_tag_line(tag, line, tag_match.end(), record)
-                    prev_tag = tag
-                    continue
-
-                if in_record is False:
-                    raise IOError('start/end tag mismatch!\nline: {} {}'.format(i, line.strip()))
-
-                if tag in TAG_KEY_MAPPING:
-                    _add_tag_line(tag, line, tag_match.end(), record)
-                    prev_tag = tag
-                    continue
-
-                # multi-value tag line happens to start with a tag-compliant string
-                if prev_tag in MULTI_TAGS:
-                    _add_tag_line(prev_tag, line, 0, record)
-                    continue
-
-                # no idea what this is, but might as well save it
-                print('unknown tag: tag={}, line={} "{}"'.format(tag, i, line.strip()))
-                record[tag] = line[tag_match.end():].strip()
-
-            elif prev_tag in MULTI_TAGS:
-                _add_tag_line(prev_tag, line, 0, record)
-                continue
-
-            # single-value tag split across multiple lines, ugh
-            elif line.startswith('   '):
-                key = TAG_KEY_MAPPING[prev_tag]
-                record[key] += ' ' + line.strip()
-
-            else:
-                print('bad line: prev_tag={}, line={} "{}"'.format(prev_tag, i, line.strip()))
-
-    return records
+    def _stash_prev_info(self, tag, line_len):
+        """
+        Args:
+            tag (str)
+            line_len (int)
+        """
+        self.prev_tag = tag
+        self.prev_line_len = line_len
