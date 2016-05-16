@@ -6,13 +6,13 @@ import re
 from dateutil.parser import parse as parse_date
 
 
-tag_key_map = {
+KEY_MAP = {
     'A1': 'primary_authors',  # special: Lastname, Firstname, Suffix
     'A2': 'secondary_authors',  # special: Lastname, Firstname, Suffix
     'A3': 'tertiary_authors',  # special: Lastname, Firstname, Suffix
     'A4': 'subsidiary_authors',  # special: Lastname, Firstname, Suffix
     'AB': 'abstract',
-    'AD': 'author_address',
+    'AD': 'author_addresses',
     'AN': 'accession_number',
     'AU': 'authors',  # special
     'AV': 'location_in_archives',
@@ -171,7 +171,7 @@ END_TAG = 'ER'
 TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
 TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
 
-TAG_VALUE_SANITIZERS = {
+VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
     'PY': lambda x: int(x),
     'TC': lambda x: int(x),
@@ -185,19 +185,25 @@ class RisFile(object):
     """
     Args:
         path (str): RIS file to be parsed
-        tag_key_map (dict): mapping of short RIS tags to human-readable keys
-        tag_value_sanitizers (dict): mapping of short RIS tags to functions that
-            sanitize their associated values
+        key_map (dict or bool): mapping of short RIS tags to to human-readable keys;
+            if None (default), default mapping is used; if False, no mapping will be done
+        value_sanitizers (dict or bool): mapping of short RIS tags to functions
+            that sanitize their associated values; if None (default), default
+            sanitizers will be used; if False, no sanitization will be performed
     """
 
     def __init__(self, path,
-                 tag_key_map=None,
-                 tag_value_sanitizers=None):
+                 key_map=None,
+                 value_sanitizers=None):
         self.path = path
-        self.tag_key_map = (tag_key_map if tag_key_map
-                                else tag_key_map)
-        self.tag_value_sanitizers = (tag_value_sanitizers if tag_value_sanitizers
-                                     else TAG_VALUE_SANITIZERS)
+        self.key_map = (key_map if key_map is not None
+                        else KEY_MAP)
+        self.value_sanitizers = (value_sanitizers if value_sanitizers is not None
+                                 else VALUE_SANITIZERS)
+        if self.key_map:
+            self.multi_keys = {self.key_map.get(tag, tag) for tag in MULTI_TAGS}
+        else:
+            self.multi_keys = MULTI_TAGS
         self.in_record = False
         self.tag_re = None
         self.prev_line_len = None
@@ -244,6 +250,7 @@ class RisFile(object):
                             msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
                             raise IOError(msg)
 
+                        self._sort_multi_values()
                         yield self.record  # record is complete! spit it out here
 
                         self.in_record = False
@@ -264,7 +271,7 @@ class RisFile(object):
                         msg = 'start/end tag mismatch!\nline: {} {}'.format(i, line.strip())
                         raise IOError(msg)
 
-                    if tag in self.tag_key_map:
+                    if self.key_map and tag in self.key_map:
                         self._add_tag_line(tag, line, tag_match.end())
                         self._stash_prev_info(tag, len(line))
                         continue
@@ -287,7 +294,8 @@ class RisFile(object):
 
                 # single-value tag split across multiple lines, ugh
                 elif line.startswith('   ') or self.prev_line_len > 70:
-                    key = self.tag_key_map[self.prev_tag]
+                    key = (self.key_map[self.prev_tag] if self.key_map
+                           else self.prev_tag)
                     self.record[key] += ' ' + line.strip()
 
                 else:
@@ -301,11 +309,12 @@ class RisFile(object):
             line (str)
             start_idx (int)
         """
-        key = self.tag_key_map[tag]
+        key = (self.key_map[tag] if self.key_map
+               else tag)
         value = line[start_idx:].strip()
         # try to sanitize value, but don't sweat failure
         try:
-            value = TAG_VALUE_SANITIZERS[tag](value)
+            value = self.value_sanitizers[tag](value)
         except KeyError:
             pass
         except Exception:
@@ -330,3 +339,12 @@ class RisFile(object):
         """
         self.prev_tag = tag
         self.prev_line_len = line_len
+
+    def _sort_multi_values(self):
+        for key in self.multi_keys:
+            try:
+                self.record[key] = tuple(sorted(self.record[key]))
+            except KeyError:
+                pass
+            except Exception:
+                print('multi-value sort error: key={}, value={}'.format(key, self.record[key]))
