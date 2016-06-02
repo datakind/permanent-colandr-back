@@ -17,7 +17,7 @@ KEY_MAP = {
     'month': 'publication_month',
     'note': 'notes',
     'number': 'issue_number',
-    'publisher': 'publisher_name',
+    #'publisher': 'publisher_name',
     'year': 'publication_year',
 }
 
