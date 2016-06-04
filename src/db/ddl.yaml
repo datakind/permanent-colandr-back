@@ -1,0 +1,31 @@
+---
+table_name: "citations"
+columns:
+    -
+        name: "id"
+        type: "SERIAL NOT NULL"
+    -
+        name: "project_id"
+        type: "INTEGER NOT NULL"
+    -
+        name: "user_id"
+        type: "INTEGER NOT NULL"
+    -
+        name: "insert_ts"
+        type: "TIMESTAMP(0) WITHOUT TIME ZONE"
+    -
+        name: "title"
+        type: "VARCHAR(250)"
+    -
+        name: "abstract"
+        type: "TEXT"
+    -
+        name: "authors"
+        type: "VARCHAR(100) ARRAY"
+    -
+        name: "publication_year"
+        type: "INTEGER"
+    -
+        name: "doi"
+        type: "VARCHAR(50)"
+...
