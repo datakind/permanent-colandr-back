@@ -12,7 +12,7 @@ columns:
         type: "INTEGER NOT NULL"
     -
         name: "insert_ts"
-        type: "TIMESTAMP(0) WITHOUT TIME ZONE"
+        type: "TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL"
     -
         name: "title"
         type: "VARCHAR(250)"

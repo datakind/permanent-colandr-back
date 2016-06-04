@@ -1,0 +1,2 @@
+create_table: "CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
+insert: "INSERT INTO {table_name}({columns}) VALUES ({values})"
