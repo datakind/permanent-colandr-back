@@ -17,6 +17,7 @@ KEY_MAP = {
     'AB': 'abstract',
     'AD': 'author_addresses',
     'AN': 'accession_number',
+    'AR': 'article_number',
     'AU': 'authors',  # special
     'AV': 'location_in_archives',
     'BN': 'isbn',
@@ -31,6 +32,7 @@ KEY_MAP = {
     'C7': 'custom_7',
     'C8': 'custom_8',
     'CA': 'caption',
+    'CL': 'conference_location',
     'CN': 'call_number',
     'CP': 'cp',
     'CT': 'title_of_unpublished_ref',
@@ -44,17 +46,24 @@ KEY_MAP = {
     'DT': 'document_type',
     'ED': 'editor',
     'EF': 'end_file',  # ignore!
+    'EI': 'electronic_intl_issn',
     'EM': 'email_address',
     'EP': 'end_page',
     'ER': 'end_of_reference',  # special: must be empty and last tag of record
     'ET': 'edition',
     'FN': 'file_name',  # ignore!
+    'FU': 'funding_agency_and_grants',
+    'FX': 'funding_text',
+    'GA': 'document_delivery_number',
+    'HO': 'conference_host',
     'ID': 'reference_id',
     'IS': 'issue_number',
     'J1': 'journal_name_user_abbr_1',
     'J2': 'journal_name_user_abbr_2',
+    'J9': 'source_abbr_29char',
     'JA': 'journal_name_abbr',
     'JF': 'journal_name',
+    'JI': 'source_abbr_iso',
     'JO': 'journal_name',
     'KW': 'keywords',  # special
     'L1': 'link_to_pdf',
@@ -69,10 +78,17 @@ KEY_MAP = {
     'M3': 'type_of_work',
     'N1': 'notes',
     'N2': 'abstract',
+    'NR': 'num_cited_references',
     'NV': 'number_of_volumes',
+    'OI': 'open_researcher_contributor_id',
     'OP': 'original_publication',
+    'PA': 'publisher_address',
     'PB': 'publisher',
     'PD': 'publication_date',
+    'PG': 'page_count',
+    'PI': 'publisher_city',
+    'PM': 'pubmed_id',
+    'PN': 'part_number',
     'PP': 'publishing_place',
     'PT': 'publication_type',
     'PY': 'publication_year',  # special: YYYY
@@ -80,7 +96,9 @@ KEY_MAP = {
     'RI': 'reviewed_item',
     'RN': 'research_notes',
     'RP': 'reprint_status',  # special: 'IN FILE', 'NOT IN FILE', or 'ON REQUEST (MM/DD/YY)'
+    'SC': 'subject_categories',
     'SE': 'section',
+    'SI': 'special_issue',
     'SN': 'issn',
     'SO': 'source_name',
     'SP': 'pages',
@@ -104,8 +122,10 @@ KEY_MAP = {
     'VL': 'volume',
     'VO': 'published_standard_number',
     'VR': 'version',  # ignore!
+    'WC': 'subject_categories_alt',
     'Y1': 'primary_date',  # special: YYYY/
     'Y2': 'access_date',
+    'Z9': 'num_times_cited',
 }
 
 REFERENCE_TYPES_MAPPING = {
@@ -177,9 +197,11 @@ TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
 
 VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
-    'PY': lambda x: int(x),
-    'TC': lambda x: int(x),
+    'PY': int,
+    'SC': lambda x: x.split('; '),
+    'TC': int,
     'TY': lambda x: REFERENCE_TYPES_MAPPING.get(x, x),
+    'WC': lambda x: x.split('; '),
     'Y1': lambda x: parse_date('-'.join(item if item else '01' for item in x[:-1].split('/'))),
     'Y2': lambda x: min(parse_date(val) for val in x.split(' through ')),
     }
