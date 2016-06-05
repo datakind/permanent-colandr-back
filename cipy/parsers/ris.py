@@ -1,10 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
+import logging
 import re
 
 from dateutil.parser import parse as parse_date
 
+
+LOGGER = logging.getLogger(__name__)
 
 KEY_MAP = {
     'A1': 'primary_authors',  # special: Lastname, Firstname, Suffix
@@ -73,13 +76,14 @@ KEY_MAP = {
     'PP': 'publishing_place',
     'PT': 'publication_type',
     'PY': 'publication_year',  # special: YYYY
+    'PU': 'publisher',
     'RI': 'reviewed_item',
     'RN': 'research_notes',
     'RP': 'reprint_status',  # special: 'IN FILE', 'NOT IN FILE', or 'ON REQUEST (MM/DD/YY)'
     'SE': 'section',
     'SN': 'issn',
     'SO': 'source_name',
-    'SP': 'start_page',
+    'SP': 'pages',
     'ST': 'short_title',
     'SU': 'supplement',
     'T1': 'primary_title',
@@ -221,6 +225,10 @@ class RisFile(object):
         with io.open(self.path, mode='rt') as f:
             for i, line in enumerate(f):
 
+                # get rid of byte order mark (BOM)
+                if i == 0 and line.startswith('\ufeff'):
+                    line = line[1:]
+
                 # skip empty lines
                 if not line.strip():
                     continue
@@ -232,7 +240,8 @@ class RisFile(object):
                     elif TAGv2_RE.match(line):
                         self.tag_re = TAGv2_RE
                     else:
-                        msg ='tags in file {} not formatted as expected!'.format(self.path)
+                        msg ='tags in file {}, lineno {}, line {} not formatted as expected!'.format(self.path, i, line)
+                        LOGGER.error(msg)
                         raise IOError(msg)
 
                 tag_match = self.tag_re.match(line)
@@ -248,6 +257,7 @@ class RisFile(object):
                     elif tag == END_TAG:
                         if self.in_record is False:
                             msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
+                            LOGGER.error(msg)
                             raise IOError(msg)
 
                         self._sort_multi_values()
@@ -261,6 +271,7 @@ class RisFile(object):
                     elif tag in START_TAGS:
                         if self.in_record is True:
                             msg = 'found start tag, but already in a record!\nline: {} {}'.format(i, line.strip())
+                            LOGGER.error(msg)
                             raise IOError(msg)
                         self.in_record = True
                         self._add_tag_line(tag, line, tag_match.end())
@@ -269,6 +280,7 @@ class RisFile(object):
 
                     if self.in_record is False:
                         msg = 'start/end tag mismatch!\nline: {} {}'.format(i, line.strip())
+                        LOGGER.error(msg)
                         raise IOError(msg)
 
                     if self.key_map and tag in self.key_map:
@@ -282,7 +294,7 @@ class RisFile(object):
                         continue
 
                     # no idea what this is, but might as well save it
-                    print('unknown tag: tag={}, line={} "{}"'.format(tag, i, line.strip()))
+                    LOGGER.debug('unknown tag: tag=%s, line=%s "%s"', tag, i, line.strip())
                     self.record[tag] = line[tag_match.end():].strip()
                     self._stash_prev_info(tag, len(line))
                     continue
@@ -294,13 +306,13 @@ class RisFile(object):
 
                 # single-value tag split across multiple lines, ugh
                 elif line.startswith('   ') or self.prev_line_len > 70:
-                    key = (self.key_map[self.prev_tag] if self.key_map
+                    key = (self.key_map.get(self.prev_tag, self.prev_tag) if self.key_map
                            else self.prev_tag)
                     self.record[key] += ' ' + line.strip()
 
                 else:
-                    print('bad line: prev_tag={}, line={} "{}"'.format(
-                        self.prev_tag, i, line.strip()))
+                    LOGGER.error('bad line: prev_tag=%s, line=%s "%s"',
+                        self.prev_tag, i, line.strip())
 
     def _add_tag_line(self, tag, line, start_idx):
         """
@@ -318,7 +330,8 @@ class RisFile(object):
         except KeyError:
             pass
         except Exception:
-            print('value sanitization error: key={}, value={}'.format(key, value))
+            LOGGER.exception('value sanitization error: key=%s, value=%s',
+                key, value)
         # for multi-value tags, append to a list
         if tag in MULTI_TAGS:
             try:
@@ -328,7 +341,7 @@ class RisFile(object):
         # otherwise, add key:value to record
         else:
             if key in self.record:
-                print('duplicate key error: key={}, value={}'.format(key, value))
+                LOGGER.error('duplicate key error: key=%s, value=%s', key, value)
             self.record[key] = value
 
     def _stash_prev_info(self, tag, line_len):
@@ -347,4 +360,5 @@ class RisFile(object):
             except KeyError:
                 pass
             except Exception:
-                print('multi-value sort error: key={}, value={}'.format(key, self.record[key]))
+                LOGGER.exception('multi-value sort error: key=%s, value=%s',
+                    key, self.record[key])

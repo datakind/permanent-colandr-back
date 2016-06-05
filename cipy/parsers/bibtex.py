@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
+import logging
 import re
 
 import bibtexparser
@@ -9,28 +10,23 @@ from bibtexparser.customization import convert_to_unicode, getnames
 
 # TODO: confirm that 'references' sanitization is correct
 
-KEY_MAP = {
-    'address': 'publisher_address',
-    'author': 'authors',
-    'keyword': 'keywords',
-    'journal': 'journal_name',
-    'month': 'publication_month',
-    'note': 'notes',
-    'number': 'issue_number',
-    #'publisher': 'publisher_name',
-    'year': 'publication_year',
-}
+LOGGER = logging.getLogger(__name__)
 
-VALUE_SANITIZERS = {
-    'author': lambda x: tuple(sorted(getnames([a.strip() for a in x.replace('\n', ' ').split(' and ')]))),
-    'keyword': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
-    'author_keywords': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
-    'month': lambda x: int(x),
-    'pages': lambda x: _sanitize_pages(x),
-    'references': lambda x: tuple(sorted(ref.strip() for ref in x.split('; ') if ref)),
-    'type': lambda x: x.lower(),
-    'year': lambda x: int(x),
-}
+_MONTH_MAP = {'spr': 3, 'sum': 6, 'fal': 9, 'win': 12,
+              'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+              'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+
+def _sanitize_month(value):
+    try:
+        return int(value)
+    except ValueError:
+        value = value.split(' ')[0].lower() if ' ' in value \
+                else value.split('-')[0].lower() if '-' in value \
+                else value.lower()
+        try:
+            return _MONTH_MAP[value]
+        except KeyError:
+            raise ValueError
 
 
 def _sanitize_pages(value):
@@ -42,7 +38,7 @@ def _sanitize_pages(value):
                      for i in value.split(sep)
                      if i]
             if len(pages) > 2:
-                print('unusual "pages" field value: {}', value)
+                LOGGER.debug('unusual "pages" field value: %s', value)
             else:
                 value = pages[0] + '--' + pages[-1]
                 break
@@ -55,6 +51,29 @@ def _sanitize_record(record):
               if value}
     record = convert_to_unicode(record)
     return record
+
+
+KEY_MAP = {
+    'address': 'publisher_address',
+    'author': 'authors',
+    'keyword': 'keywords',
+    'journal': 'journal_name',
+    'month': 'publication_month',
+    'note': 'notes',
+    'number': 'issue_number',
+    'year': 'publication_year',
+}
+
+VALUE_SANITIZERS = {
+    'author': lambda x: tuple(sorted(getnames([a.strip() for a in x.replace('\n', ' ').split(' and ')]))),
+    'keyword': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
+    'author_keywords': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
+    'month': _sanitize_month,
+    'pages': _sanitize_pages,
+    'references': lambda x: tuple(sorted(ref.strip() for ref in x.split('; ') if ref)),
+    'type': lambda x: x.lower(),
+    'year': int,
+}
 
 
 class BibTexFile(object):
@@ -93,8 +112,9 @@ class BibTexFile(object):
                         record[key] = self.value_sanitizers[key](value)
                     except KeyError:
                         pass
-                    except Exception:
-                        print('value sanitization error: key={}, value={}'.format(key, value))
+                    except TypeError:
+                        LOGGER.exception('value sanitization error: key=%s, value=%s',
+                            key, value)
             if self.key_map:
                 for key, rekey in self.key_map.items():
                     try:
