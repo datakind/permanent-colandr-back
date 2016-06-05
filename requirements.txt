@@ -1,3 +1,4 @@
 bibtexparser>=0.6.2
 pandas>=0.18.0
 python-dateutil>=2.5.3
+pyyaml>=3.11
