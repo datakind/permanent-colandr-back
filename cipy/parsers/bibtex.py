@@ -20,8 +20,8 @@ def _sanitize_month(value):
     try:
         return int(value)
     except ValueError:
-        value = value.split(' ')[0].lower() if ' ' in value \
-                else value.split('-')[0].lower() if '-' in value \
+        value = value.split(' ')[0].strip().lower() if ' ' in value \
+                else value.split('-')[0].strip().lower() if '-' in value \
                 else value.lower()
         try:
             return _MONTH_MAP[value]
@@ -54,6 +54,8 @@ def _sanitize_record(record):
 
 
 KEY_MAP = {
+    'ENTRYTYPE': 'type_of_work',
+    'ID': 'reference_id',
     'address': 'publisher_address',
     'author': 'authors',
     'keyword': 'keywords',

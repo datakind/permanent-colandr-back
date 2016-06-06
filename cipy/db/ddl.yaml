@@ -14,18 +14,42 @@ columns:
         name: "insert_ts"
         type: "TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL"
     -
+        name: "type_of_reference"
+        type: "VARCHAR(50)"
+    -
         name: "title"
         type: "VARCHAR(250)"
+    -
+        name: "publication_year"
+        type: "SMALLINT"
+    -
+        name: "publication_month"
+        type: "SMALLINT"
+    -
+        name: "authors"
+        type: "VARCHAR(50) ARRAY"
     -
         name: "abstract"
         type: "TEXT"
     -
-        name: "authors"
+        name: "language"
+        type: "VARCHAR(50)"
+    -
+        name: "keywords"
         type: "VARCHAR(100) ARRAY"
     -
-        name: "publication_year"
-        type: "INTEGER"
+        name: "type_of_reference"
+        type: "VARCHAR(50)"
+    -
+        name: "journal_name"
+        type: "VARCHAR(100)"
+    -
+        name: "volume"
+        type: "VARCHAR(10)"
     -
         name: "doi"
         type: "VARCHAR(50)"
+    -
+        name: "other"
+        type: "JSONB"
 ...

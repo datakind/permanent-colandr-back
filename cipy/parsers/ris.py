@@ -84,7 +84,7 @@ KEY_MAP = {
     'OP': 'original_publication',
     'PA': 'publisher_address',
     'PB': 'publisher',
-    'PD': 'publication_date',
+    'PD': 'publication_month',  # HACK: should actually be "publication_date"
     'PG': 'page_count',
     'PI': 'publisher_city',
     'PM': 'pubmed_id',
@@ -192,16 +192,35 @@ IGNORE_TAGS = {'FN', 'VR', 'EF'}
 START_TAGS = {'TY', 'PT'}
 END_TAG = 'ER'
 
+JOURNAL_TAGS = ('JF', 'JO', 'JA', 'JI', 'J1', 'J2', 'J9')
+AUTHOR_TAGS = ('AU', 'A1', 'A2', 'A3', 'A4', 'TA')
+
 TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
 TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
 
+_MONTH_MAP = {'spr': 3, 'sum': 6, 'fal': 9, 'win': 12,
+              'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+              'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
+
+def _sanitize_pd_tag(value):
+    try:
+        return int(value)
+    except ValueError:
+        value = value.split(' ')[0].strip().lower() if ' ' in value \
+                else value.split('-')[0].strip().lower() if '-' in value \
+                else value.lower()
+        try:
+            return _MONTH_MAP[value]
+        except KeyError:
+            raise ValueError
+
 VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
+    'PD': _sanitize_pd_tag,
+    'PM': int,
     'PY': int,
-    'SC': lambda x: x.split('; '),
     'TC': int,
     'TY': lambda x: REFERENCE_TYPES_MAPPING.get(x, x),
-    'WC': lambda x: x.split('; '),
     'Y1': lambda x: parse_date('-'.join(item if item else '01' for item in x[:-1].split('/'))),
     'Y2': lambda x: min(parse_date(val) for val in x.split(' through ')),
     }
@@ -228,8 +247,14 @@ class RisFile(object):
                                  else VALUE_SANITIZERS)
         if self.key_map:
             self.multi_keys = {self.key_map.get(tag, tag) for tag in MULTI_TAGS}
+            self.split_keys = {self.key_map.get(tag, tag) for tag in ('SC', 'WC')}
+            self.journal_keys = tuple(self.key_map.get(tag, tag) for tag in JOURNAL_TAGS)
+            self.author_keys = tuple(self.key_map.get(tag, tag) for tag in AUTHOR_TAGS)
         else:
             self.multi_keys = MULTI_TAGS
+            self.split_keys = {'SC', 'WC'}
+            self.journal_keys = JOURNAL_TAGS
+            self.author_keys = AUTHOR_TAGS
         self.in_record = False
         self.tag_re = None
         self.prev_line_len = None
@@ -283,6 +308,7 @@ class RisFile(object):
                             raise IOError(msg)
 
                         self._sort_multi_values()
+                        self._sanitize_record()
                         yield self.record  # record is complete! spit it out here
 
                         self.in_record = False
@@ -384,3 +410,27 @@ class RisFile(object):
             except Exception:
                 LOGGER.exception('multi-value sort error: key=%s, value=%s',
                     key, self.record[key])
+
+    def _sanitize_record(self):
+        for key in self.split_keys:
+            try:
+                self.record[key] = tuple(sorted(self.record[key].split('; ')))
+            except KeyError:
+                pass
+            except Exception:
+                LOGGER.exception('record sanitization error: key=%s, value=%s',
+                    key, self.record[key])
+        if not self.record.get('journal_name'):
+            for key in self.journal_keys:
+                try:
+                    self.record['journal_name'] = self.record[key]
+                    break
+                except KeyError:
+                    continue
+        if not self.record.get('authors'):
+            for key in self.author_keys:
+                try:
+                    self.record['authors'] = self.record[key]
+                    break
+                except KeyError:
+                    continue
