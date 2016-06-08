@@ -14,10 +14,13 @@ columns:
         name: "insert_ts"
         type: "TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL"
     -
-        name: "type_of_reference"
-        type: "VARCHAR(50)"
+        name: "type_of_work"
+        type: "VARCHAR(25)"
     -
         name: "title"
+        type: "VARCHAR(250)"
+    -
+        name: "secondary_title"
         type: "VARCHAR(250)"
     -
         name: "publication_year"
@@ -32,9 +35,6 @@ columns:
         name: "abstract"
         type: "TEXT"
     -
-        name: "language"
-        type: "VARCHAR(50)"
-    -
         name: "keywords"
         type: "VARCHAR(100) ARRAY"
     -
@@ -45,11 +45,23 @@ columns:
         type: "VARCHAR(100)"
     -
         name: "volume"
-        type: "VARCHAR(10)"
+        type: "VARCHAR(20)"
+    -
+        name: "issue_number"
+        type: "VARCHAR(20)"
     -
         name: "doi"
+        type: "VARCHAR(100)"
+    -
+        name: "issn"
+        type: "VARCHAR(20)"
+    -
+        name: "publisher"
+        type: "VARCHAR(100)"
+    -
+        name: "language"
         type: "VARCHAR(50)"
     -
-        name: "other"
+        name: "other_fields"
         type: "JSONB"
 ...

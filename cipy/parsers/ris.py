@@ -197,6 +197,7 @@ AUTHOR_TAGS = ('AU', 'A1', 'A2', 'A3', 'A4', 'TA')
 
 TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
 TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
+ISSN_RE = re.compile(r'^[\w-]+$|(?<=\b)([\w-]+)(?=\s\(ISSN\))', flags=re.IGNORECASE)
 
 _MONTH_MAP = {'spr': 3, 'sum': 6, 'fal': 9, 'win': 12,
               'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
@@ -214,11 +215,21 @@ def _sanitize_pd_tag(value):
         except KeyError:
             raise ValueError
 
+def _sanitize_sn_tag(value):
+    match = ISSN_RE.search(value)
+    if match:
+        return match.group(0)
+    else:
+        return None
+
+
 VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
     'PD': _sanitize_pd_tag,
+    'M3': lambda x: x.lower(),
     'PM': int,
     'PY': int,
+    'SN': _sanitize_sn_tag,
     'TC': int,
     'TY': lambda x: REFERENCE_TYPES_MAPPING.get(x, x),
     'Y1': lambda x: parse_date('-'.join(item if item else '01' for item in x[:-1].split('/'))),

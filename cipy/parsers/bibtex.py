@@ -54,7 +54,7 @@ def _sanitize_record(record):
 
 
 KEY_MAP = {
-    'ENTRYTYPE': 'type_of_work',
+    'document_type': 'type_of_work',
     'ID': 'reference_id',
     'address': 'publisher_address',
     'author': 'authors',
@@ -68,6 +68,7 @@ KEY_MAP = {
 
 VALUE_SANITIZERS = {
     'author': lambda x: tuple(sorted(getnames([a.strip() for a in x.replace('\n', ' ').split(' and ')]))),
+    'document_type': lambda x: x.lower(),
     'keyword': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
     'author_keywords': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
     'month': _sanitize_month,
