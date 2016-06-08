@@ -2,8 +2,8 @@
 table_name: "citations"
 columns:
     -
-        name: "id"
-        type: "SERIAL NOT NULL"
+        name: "record_id"
+        type: "BIGSERIAL NOT NULL"
     -
         name: "project_id"
         type: "INTEGER NOT NULL"
@@ -30,7 +30,7 @@ columns:
         type: "SMALLINT"
     -
         name: "authors"
-        type: "VARCHAR(50) ARRAY"
+        type: "VARCHAR(100) ARRAY"
     -
         name: "abstract"
         type: "TEXT"
