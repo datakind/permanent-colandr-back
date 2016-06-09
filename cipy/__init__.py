@@ -1,6 +1,7 @@
 import logging
 
 # subpackages
+from cipy import db
 from cipy import parsers
 # top-level modules
 # foo
