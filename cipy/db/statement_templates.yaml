@@ -1,3 +1,0 @@
-create_table: "CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
-drop_table: "DROP TABLE IF EXISTS {table_name}"
-insert: "INSERT INTO {table_name}({columns}) VALUES ({values})"
