@@ -42,6 +42,7 @@ class PostgresDB(object):
 
     def run_query(self, query, bindings=None, act=True):
         with self.conn.cursor() as cur:
-            print(cur.mogrify(query, bindings))
             if act is True:
                 cur.execute(query, bindings)
+            else:
+                print(cur.mogrify(query, bindings))
