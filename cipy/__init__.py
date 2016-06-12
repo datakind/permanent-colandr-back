@@ -4,7 +4,7 @@ import logging
 from cipy import db
 from cipy import parsers
 # top-level modules
-# foo
+from cipy import hack
 
 logger = logging.getLogger('cipy')
 if len(logger.handlers) == 0:  # to ensure reload() doesn't add another one

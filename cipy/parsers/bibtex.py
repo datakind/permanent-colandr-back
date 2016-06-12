@@ -74,6 +74,7 @@ VALUE_SANITIZERS = {
     'month': _sanitize_month,
     'pages': _sanitize_pages,
     'references': lambda x: tuple(sorted(ref.strip() for ref in x.split('; ') if ref)),
+    'title': lambda x: x.replace('\n', ' '),
     'type': lambda x: x.lower(),
     'year': int,
 }
