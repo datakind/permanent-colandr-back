@@ -26,6 +26,23 @@ case class PDFExtractedDataMore(filename : String, year : Int, title : String, a
     mapper.writeValueAsString(this)
   }
 }
+case class Triple(pdf : PDFExtractedDataMore, bib : BiblioItem, allFields : AllFieldsRecord) {
+    def toJson : String = {
+      val mapper = new ObjectMapper() with ScalaObjectMapper
+      mapper.registerModule(DefaultScalaModule)
+      mapper.writeValueAsString(this)
+    }
+}
+
+object Triple {
+  def load(file : String) : Seq[Triple] = {
+    Source.fromFile(file).getLines().map { line =>
+      val mapper = new ObjectMapper() with ScalaObjectMapper
+      mapper.registerModule(DefaultScalaModule)
+      mapper.readValue(line, classOf[Triple])
+    }.toSeq
+  }
+}
 case class Journal(name : String, volume : String, issue : String)
 
 object PDFExtractedData {

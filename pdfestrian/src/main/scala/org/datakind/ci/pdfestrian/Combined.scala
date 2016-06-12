@@ -1,6 +1,6 @@
 package org.datakind.ci.pdfestrian
 
-import java.io.{File, FileInputStream, InputStream}
+import java.io._
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -66,11 +66,11 @@ object AllFieldsMatch {
   def main(args: Array[String]) {
     val bib = args.head
     val pdfs = args(1)
-    val firstMatch = Matched.loadMatches(bib, pdfs)
+    val firstMatch = Matched.loadMatches(pdfs,bib)
     val dir = new File("dir").listFiles().filter(_.getAbsolutePath.endsWith("json"))
     val searcher = new SimpleSearchEngine[String]
     dir.foreach{ f =>
-      val source = Source.fromFile(f)
+      val source = Source.fromFile(f, "UTF-8")
       val json = source.getLines().mkString
       source.close()
       searcher.load(mapper.readValue[AllFieldsRecord](json).Title, mapper.readValue[AllFieldsRecord](json).Record_Number)
@@ -88,5 +88,10 @@ object AllFieldsMatch {
       }
     }
     println(matches.length.toDouble/firstMatch.length.toDouble)
+    val out = new BufferedWriter(new FileWriter("json/triple.json"))
+    for(m <- matches) {
+      out.write(Triple(m._2, m._1, m._3).toJson + "\n")
+    }
+    out.flush()
   }
 }
