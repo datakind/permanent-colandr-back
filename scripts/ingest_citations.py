@@ -27,21 +27,14 @@ if __name__ == '__main__':
     parser.add_argument(
         'citations', type=str, metavar='citations_file_path')
     parser.add_argument(
-        '--dbname', type=str, metavar='psql_database_name', default='appname')
+        '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL')
     parser.add_argument(
-        '--username', type=str, metavar='psql_user_name', default='app')
-    parser.add_argument(
-        '--host', type=str, metavar='psql_host', default='localhost')
-    parser.add_argument(
-        '--port', type=int, metavar='psql_port', default=5432)
-    parser.add_argument(
-        '--dry-run', action='store_true', default=False)
+        '--dryrun', action='store_true', default=False)
     args = parser.parse_args()
 
-    conn_creds = {'dbname': args.dbname, 'user': args.username,
-                  'host': args.host, 'port': args.port}
+    conn_creds = cipy.db.get_conn_creds(args.database_url)
     psql = cipy.db.PostgresDB(args.ddl, conn_creds)
-    if args.dry_run is False:
+    if args.dryrun is False:
         psql.create_table()
 
     if args.citations.endswith('.bib'):
@@ -72,14 +65,15 @@ if __name__ == '__main__':
         validated_record = c.to_primitive()
         validated_record['other_fields'] = json.dumps(validated_record['other_fields'])
 
-        if args.dry_run is True:
+        if args.dryrun is True:
             msg = 'valid record: {}, {}'.format(
                 validated_record.get('title'), validated_record.get('publication_year'))
             logger.info(msg)
         else:
             psql.insert_values(validated_record)
 
-    msg = '{} valid records inserted into {} db'.format(n_valid_records, args.dbname)
+    msg = '{} valid records inserted into {} db {}'.format(
+        n_valid_records, conn_creds['dbname'], '(DRY RUN)' if args.dryrun else '')
     logger.info(msg)
     if n_invalid_records > 0:
         msg = '{} invalid records skipped'.format(n_invalid_records)
