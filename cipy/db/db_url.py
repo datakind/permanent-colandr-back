@@ -1,3 +1,4 @@
+import logging
 import os
 
 try:
@@ -10,7 +11,7 @@ urlparse.uses_netloc.append('postgres')
 urlparse.uses_netloc.append('postgresql')
 urlparse.uses_netloc.append('pgsql')
 
-
+LOGGER = logging.getLogger(__name__)
 DEFAULT_ENV = 'DATABASE_URL'
 
 
@@ -33,7 +34,9 @@ def get_conn_creds(env_var=DEFAULT_ENV):
     """
     db_url = os.environ.get(env_var, None)
     if not db_url:
-        raise OSError('environment variable "{}" not found'.format(env_var))
+        msg = 'environment variable "{}" not found'.format(env_var)
+        LOGGER.error(msg)
+        raise OSError(msg)
     url = urlparse.urlparse(db_url)
 
     path = url.path[1:]
