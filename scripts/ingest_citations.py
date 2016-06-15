@@ -9,12 +9,12 @@ from schematics.exceptions import ModelValidationError
 
 import cipy
 
-logger = logging.getLogger('ingest_citations')
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+LOGGER = logging.getLogger('ingest_citations')
+LOGGER.setLevel(logging.INFO)
+_handler = logging.StreamHandler()
+_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_handler.setFormatter(_formatter)
+LOGGER.addHandler(_handler)
 
 
 if __name__ == '__main__':
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         except ModelValidationError:
             msg = 'invalid record: {}, {}'.format(
                 sanitized_record.get('title'), sanitized_record.get('publication_year'))
-            logger.exception(msg)
+            LOGGER.exception(msg)
             n_invalid_records += 1
             continue
 
@@ -68,13 +68,13 @@ if __name__ == '__main__':
         if args.dryrun is True:
             msg = 'valid record: {}, {}'.format(
                 validated_record.get('title'), validated_record.get('publication_year'))
-            logger.info(msg)
+            LOGGER.info(msg)
         else:
             psql.insert_values(validated_record)
 
     msg = '{} valid records inserted into {} db {}'.format(
         n_valid_records, conn_creds['dbname'], '(DRY RUN)' if args.dryrun else '')
-    logger.info(msg)
+    LOGGER.info(msg)
     if n_invalid_records > 0:
         msg = '{} invalid records skipped'.format(n_invalid_records)
-        logger.warning(msg)
+        LOGGER.warning(msg)
