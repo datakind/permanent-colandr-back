@@ -67,4 +67,7 @@ columns:
     -
         name: "is_duplicate"
         type: "BOOLEAN"
+    -
+        name: "duplicate_status_confirmed"
+        type: "BOOLEAN"
 ...

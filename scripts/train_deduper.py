@@ -31,13 +31,15 @@ if __name__ == '__main__':
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL')
     parser.add_argument(
+        '--update', action='store_true', default=False)
+    parser.add_argument(
         '--dryrun', action='store_true', default=False)
     args = parser.parse_args()
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     pgdb = cipy.db.PostgresDB(args.ddl, conn_creds)
 
-    if os.path.exists(args.settings):
+    if args.update is False and os.path.exists(args.settings):
         LOGGER.info('reading dedupe settings from %s', args.settings)
         with io.open(args.settings, mode='rb') as f:
             deduper = dedupe.StaticDedupe(f, num_cores=2)
@@ -74,10 +76,11 @@ if __name__ == '__main__':
         LOGGER.info('starting active labeling...')
         dedupe.consoleLabel(deduper)
 
-        deduper.train(maximum_comparisons=1000000, recall=0.9)
-
         with io.open(args.training, mode='wt') as f:
             deduper.writeTraining(f)
+
+        deduper.train(maximum_comparisons=1000000, recall=0.95)
+
         with io.open(args.settings, mode='wb') as f:
             deduper.writeSettings(f)
 

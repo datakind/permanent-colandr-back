@@ -11,7 +11,7 @@ from bibtexparser.customization import convert_to_unicode, getnames
 # TODO: confirm that 'references' sanitization is correct
 
 LOGGER = logging.getLogger(__name__)
-
+WHITESPACE_RE = re.compile(r'\s+')
 _MONTH_MAP = {'spr': 3, 'sum': 6, 'fal': 9, 'win': 12,
               'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
               'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
@@ -68,6 +68,7 @@ KEY_MAP = {
 
 VALUE_SANITIZERS = {
     'author': lambda x: tuple(sorted(getnames([a.strip() for a in x.replace('\n', ' ').split(' and ')]))),
+    'abstract': lambda x: WHITESPACE_RE.sub(' ', x),
     'document_type': lambda x: x.lower(),
     'keyword': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),
     'author_keywords': lambda x: tuple(sorted(kw.strip() for kw in re.split(r',|;', x.replace('\n', '')) if kw)),

@@ -75,3 +75,4 @@ class Citation(Model):
     language = StringType(max_length=50)
     other_fields = DictType(StringType)
     is_duplicate = BooleanType(default=None)
+    duplicate_status_confirmed = BooleanType(default=None)

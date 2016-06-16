@@ -24,28 +24,6 @@ class PostgresDB(object):
         self.conn = psycopg2.connect(**conn_creds)
         self.conn.autocommit = True
 
-    def create_table(self):
-        stmt = CREATE_TABLE_STMT.format(
-            table_name=self.ddl['table_name'],
-            columns=', '.join(column['name'] + ' ' + column['type']
-                              for column in self.ddl['columns'])
-        )
-        self.run_query(stmt)
-
-    def drop_table(self):
-        stmt = DROP_TABLE_STMT.format(table_name=self.ddl['table_name'])
-        self.run_query(stmt)
-
-    def insert_values(self, record):
-        columns = list(record.keys())
-        values = ', '.join('%({})s'.format(column) for column in columns)
-        stmt = INSERT_VALUES_STMT.format(
-            table_name=self.ddl['table_name'],
-            columns=', '.join(columns),
-            values=values
-        )
-        self.run_query(stmt, bindings=record)
-
     def run_query(self, query, bindings=None, act=True,
                   cursor_factory=RealDictCursor, itersize=5000):
         with self.conn as conn:
@@ -62,10 +40,36 @@ class PostgresDB(object):
                 cur.itersize = itersize
                 if act is True:
                     cur.execute(mogrified_query)
-                    for result in cur:
-                        yield result
+                    try:
+                        for result in cur:
+                            yield result
+                    except psycopg2.ProgrammingError:
+                        pass
                 else:
+                    print('(act=False)')
                     print(mogrified_query)
+
+    def create_table(self, act=True):
+        stmt = CREATE_TABLE_STMT.format(
+            table_name=self.ddl['table_name'],
+            columns=', '.join(column['name'] + ' ' + column['type']
+                              for column in self.ddl['columns'])
+        )
+        list(self.run_query(stmt, act=act))
+
+    def drop_table(self, act=True):
+        stmt = DROP_TABLE_STMT.format(table_name=self.ddl['table_name'])
+        list(self.run_query(stmt, act=act))
+
+    def insert_values(self, record, act=True):
+        columns = list(record.keys())
+        values = ', '.join('%({})s'.format(column) for column in columns)
+        stmt = INSERT_VALUES_STMT.format(
+            table_name=self.ddl['table_name'],
+            columns=', '.join(columns),
+            values=values
+        )
+        list(self.run_query(stmt, bindings=record, act=act))
 
     def get_tables(self, table_schema='public',
                    table_type='BASE TABLE',
@@ -133,11 +137,11 @@ class PostgresDB(object):
         results = self.run_query(query, bindings={'table_name': table_name},
                                  cursor_factory=None)
         columns = ('name', 'pos', 'type', 'nullable', 'max_length')
-        print('{0:<20} {1:>3} {2:<30} {3:<8} {4:<10}'.format(*columns))
-        print('-' * 75)
+        print('{0:<30} {1:>3} {2:<30} {3:<8} {4:<10}'.format(*columns))
+        print('-' * 85)
         for result in results:
             try:
-                print('{0:<20} {1:>3} {2:<30} {3:<8} {4:<10}'.format(*result))
+                print('{0:<30} {1:>3} {2:<30} {3:<8} {4:<10}'.format(*result))
             except TypeError:
-                print('{0:<20} {1:>3} {2:<30} {3:<8} {4:<10}'.format(
+                print('{0:<30} {1:>3} {2:<30} {3:<8} {4:<10}'.format(
                     *(value if value else '' for value in result)))
