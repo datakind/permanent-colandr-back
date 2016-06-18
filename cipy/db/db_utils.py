@@ -6,6 +6,8 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
+from cipy.db import DEFAULT_DDLS, DEFAULT_DDLS_PATH
+
 # register database schemes in URLs
 urlparse.uses_netloc.append('postgres')
 urlparse.uses_netloc.append('postgresql')
@@ -56,3 +58,22 @@ def get_conn_creds(env_var=DEFAULT_ENV):
             'password': urlparse.unquote(url.password or ''),
             'host': hostname,
             'port': url.port or ''}
+
+
+def get_ddl(table_name, ddls_path=DEFAULT_DDLS_PATH):
+    """
+    Get the contents of the `table_name` table's DDL yaml file.
+
+    Args:
+        table_name (str): name of table
+        ddls_path (str, optional): path on disk where DDL files are saved; by
+            default, this is '.../path/to/cipy/db/ddls'
+
+    Returns:
+        dict
+    """
+    if ddls_path == DEFAULT_DDLS_PATH:
+        ddls = DEFAULT_DDLS
+    else:
+        raise NotImplementedError('TODO: fix this!')
+    return ddls[table_name]

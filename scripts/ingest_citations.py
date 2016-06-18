@@ -34,9 +34,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
-    psql = cipy.db.PostgresDB(args.ddl, conn_creds)
+    citations_db = cipy.db.PostgresDB(args.ddl, conn_creds)
     if args.dryrun is False:
-        psql.create_table()
+        citations_db.create_table()
 
     n_valid_total = 0
     n_invalid_total = 0
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     validated_record.get('title'), validated_record.get('publication_year'))
                 LOGGER.info(msg)
             else:
-                psql.insert_values(validated_record)
+                citations_db.insert_values(validated_record)
 
         msg = '{} valid records inserted into {} db {}'.format(
             n_valid, conn_creds['dbname'], '(DRY RUN)' if args.dryrun else '')
