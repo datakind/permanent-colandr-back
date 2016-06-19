@@ -18,9 +18,12 @@ INSERT_VALUES_STMT = "INSERT INTO {table_name}({columns}) VALUES ({values})"
 
 class PostgresDB(object):
 
-    def __init__(self, ddl_path, conn_creds):
-        with io.open(ddl_path, mode='rt') as f:
-            self.ddl = yaml.load(f)
+    def __init__(self, ddl, conn_creds):
+        if not isinstance(ddl, dict):
+            with io.open(ddl, mode='rt') as f:
+                self.ddl = yaml.load(f)
+        else:
+            self.ddl = ddl
         self.conn = psycopg2.connect(**conn_creds)
         self.conn.autocommit = True
 

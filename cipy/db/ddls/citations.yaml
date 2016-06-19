@@ -2,7 +2,7 @@
 table_name: "citations"
 columns:
     -
-        name: "record_id"
+        name: "citation_id"
         type: "BIGSERIAL NOT NULL"
     -
         name: "project_id"

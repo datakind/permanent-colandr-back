@@ -24,7 +24,7 @@ if __name__ == '__main__':
         description="""Load, parse, normalize, transform, sanitize, and validate
                     a collection of citation records, then insert them into a db.""")
     parser.add_argument(
-        '--ddl', type=str, required=True, metavar='psql_ddl_file_path')
+        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH)
     parser.add_argument(
         '--citations', type=str, required=True, nargs='+', metavar='citations_file_path')
     parser.add_argument(
@@ -34,7 +34,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
-    citations_db = cipy.db.PostgresDB(args.ddl, conn_creds)
+    citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
+    citations_db = cipy.db.PostgresDB(citations_ddl, conn_creds)
     if args.dryrun is False:
         citations_db.create_table()
 
