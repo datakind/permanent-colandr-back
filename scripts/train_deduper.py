@@ -49,8 +49,7 @@ if __name__ == '__main__':
 
     if args.update is False and os.path.exists(args.settings):
         LOGGER.info('reading dedupe settings from %s', args.settings)
-        with io.open(args.settings, mode='rb') as f:
-            deduper = dedupe.StaticDedupe(f, num_cores=2)
+        deduper = cipy.db.get_deduper(args.settings, num_cores=2)
 
     else:
         variables = [
@@ -62,14 +61,12 @@ if __name__ == '__main__':
         ]
         deduper = dedupe.Dedupe(variables, num_cores=2)
 
-        data = {}
-        for row in citations_db.run_query(citations_query):
-            data[row['citation_id']] = {
-                'authors': tuple(row['authors'] if row['authors'] else []),
-                'title': row.get('title', None),
-                'abstract': row.get('abstract', None),
-                'publication_year': row.get('publication_year', None),
-                'doi': row.get('doi', None)}
+        data = {row['citation_id']: {'authors': tuple(row['authors'] if row['authors'] else []),
+                                     'title': row.get('title'),
+                                     'abstract': row.get('abstract'),
+                                     'publication_year': row.get('publication_year'),
+                                     'doi': row.get('doi')}
+                for row in citations_db.run_query(citations_query)}
         deduper.sample(data, 25000)
 
         if os.path.exists(args.training):

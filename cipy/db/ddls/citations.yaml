@@ -64,10 +64,4 @@ columns:
     -
         name: "other_fields"
         type: "JSONB"
-    -
-        name: "is_duplicate"
-        type: "BOOLEAN"
-    -
-        name: "duplicate_status_confirmed"
-        type: "BOOLEAN"
 ...

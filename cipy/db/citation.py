@@ -4,8 +4,7 @@ from datetime import datetime
 
 import arrow
 from schematics.models import Model
-from schematics.types import (BooleanType, DictType, IntType, ListType,
-                              StringType, UTCDateTimeType)
+from schematics.types import DictType, IntType, ListType, StringType, UTCDateTimeType
 
 from cipy.db.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
@@ -74,5 +73,3 @@ class Citation(Model):
     publisher = StringType(max_length=100)
     language = StringType(max_length=50)
     other_fields = DictType(StringType)
-    is_duplicate = BooleanType(default=None)
-    duplicate_status_confirmed = BooleanType(default=None)
