@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(citations_ddl, conn_creds)
+    citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
     if args.dryrun is False:
         citations_db.create_table()
 

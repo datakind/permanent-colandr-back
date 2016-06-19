@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(citations_ddl, conn_creds)
+    citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
     citations_query = """
         SELECT citation_id, authors, title, abstract, publication_year, doi
         FROM citations
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     LOGGER.info('creating blocking_map database...')
 
     blocking_map_ddl = cipy.db.get_ddl('blocking_map', ddls_path=args.ddls)
-    blocking_map_db = cipy.db.PostgresDB(blocking_map_ddl, conn_creds)
+    blocking_map_db = cipy.db.PostgresDB(conn_creds, blocking_map_ddl)
     blocking_map_db.drop_table()
     blocking_map_db.create_table()
 

@@ -18,14 +18,14 @@ INSERT_VALUES_STMT = "INSERT INTO {table_name}({columns}) VALUES ({values})"
 
 class PostgresDB(object):
 
-    def __init__(self, ddl, conn_creds):
-        if not isinstance(ddl, dict):
+    def __init__(self, conn_creds, ddl=None, autocommit=True):
+        if isinstance(ddl, str):
             with io.open(ddl, mode='rt') as f:
                 self.ddl = yaml.load(f)
         else:
             self.ddl = ddl
         self.conn = psycopg2.connect(**conn_creds)
-        self.conn.autocommit = True
+        self.conn.autocommit = autocommit
 
     def run_query(self, query, bindings=None, act=True,
                   cursor_factory=RealDictCursor, itersize=5000):
@@ -53,6 +53,9 @@ class PostgresDB(object):
                     print(mogrified_query)
 
     def create_table(self, act=True):
+        if not self.ddl:
+            msg = "unable to create table: database DDL not specified on instantiation"
+            raise TypeError(msg)
         stmt = CREATE_TABLE_STMT.format(
             table_name=self.ddl['table_name'],
             columns=', '.join(column['name'] + ' ' + column['type']
@@ -61,10 +64,16 @@ class PostgresDB(object):
         list(self.run_query(stmt, act=act))
 
     def drop_table(self, act=True):
+        if not self.ddl:
+            msg = "unable to drop table: database DDL not specified on instantiation"
+            raise TypeError(msg)
         stmt = DROP_TABLE_STMT.format(table_name=self.ddl['table_name'])
         list(self.run_query(stmt, act=act))
 
     def insert_values(self, record, act=True):
+        if not self.ddl:
+            msg = "unable to insert values: database DDL not specified on instantiation"
+            raise TypeError(msg)
         columns = list(record.keys())
         values = ', '.join('%({})s'.format(column) for column in columns)
         stmt = INSERT_VALUES_STMT.format(
