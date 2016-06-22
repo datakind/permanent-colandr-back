@@ -11,9 +11,6 @@ columns:
         name: "duplicate_score"
         type: "REAL NOT NULL"
     -
-        name: "project_id"
-        type: "INTEGER NOT NULL"
-    -
         name: "is_confirmed"
         type: "BOOLEAN"
 ...

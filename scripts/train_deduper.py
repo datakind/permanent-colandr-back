@@ -93,12 +93,15 @@ if __name__ == '__main__':
     # that contains blocking keys and record ids
     LOGGER.info('creating blocking_map database...')
 
-    blocking_map_ddl = cipy.db.get_ddl('blocking_map', ddls_path=args.ddls)
-    blocking_map_db = cipy.db.PostgresDB(conn_creds, blocking_map_ddl)
-    blocking_map_db.drop_table()
-    blocking_map_db.create_table()
+    with citations_db.conn.cursor() as cur:
+        cur.execute('DROP TABLE IF EXISTS dedupe_blocking_map')
+        cur.execute(
+            """
+            CREATE TABLE dedupe_blocking_map
+            (block_key VARCHAR NOT NULL, citation_id INTEGER NOT NULL)
+            """)
 
-    # If dedupe learned a Index Predicate, we have to take a pass through
+    # If dedupe learned an Index Predicate, we have to take a pass through
     # the data and create indices
 
     for field in deduper.blocker.index_fields:
@@ -137,8 +140,8 @@ if __name__ == '__main__':
 
     try:
         with io.open(csv_file.name, mode='rt') as f:
-            with blocking_map_db.conn.cursor() as cur:
-                cur.copy_expert('COPY blocking_map FROM STDIN CSV', f)
+            with citations_db.conn.cursor() as cur:
+                cur.copy_expert('COPY dedupe_blocking_map FROM STDIN CSV', f)
     except psycopg2.DataError:
         LOGGER.exception()
 
@@ -148,14 +151,17 @@ if __name__ == '__main__':
     # key and index blocking map
 
     LOGGER.info('preparing blocking table...')
-    blocking_map_db.run_query('CREATE INDEX blocking_map_key_idx ON blocking_map (block_key)')
+    citations_db.run_query(
+        """
+        CREATE INDEX blocking_map_key_idx ON dedupe_blocking_map (block_key)
+        """)
 
-    with blocking_map_db.conn.cursor() as cur:
+    with citations_db.conn.cursor() as cur:
 
-        cur.execute('DROP TABLE IF EXISTS plural_key')
-        cur.execute('DROP TABLE IF EXISTS plural_block')
-        cur.execute('DROP TABLE IF EXISTS covered_blocks')
-        cur.execute('DROP TABLE IF EXISTS smaller_coverage')
+        cur.execute('DROP TABLE IF EXISTS dedupe_plural_key')
+        cur.execute('DROP TABLE IF EXISTS dedupe_plural_block')
+        cur.execute('DROP TABLE IF EXISTS dedupe_covered_blocks')
+        cur.execute('DROP TABLE IF EXISTS dedupe_smaller_coverage')
 
         # Many block_keys will only form blocks that contain a single record
         # Since there are no comparisons possible withing such a singleton block
@@ -164,34 +170,38 @@ if __name__ == '__main__':
         LOGGER.info("calculating plural_key...")
         cur.execute(
             """
-            CREATE TABLE plural_key
+            CREATE TABLE dedupe_plural_key
             (block_key VARCHAR, block_id SERIAL PRIMARY KEY)
             """)
         cur.execute(
             """
-            INSERT INTO plural_key (block_key)
-            SELECT block_key FROM blocking_map
+            INSERT INTO dedupe_plural_key (block_key)
+            SELECT block_key FROM dedupe_blocking_map
             GROUP BY block_key HAVING COUNT(*) > 1
             """)
 
         LOGGER.info('creating block_key index...')
-        cur.execute('CREATE UNIQUE INDEX block_key_idx ON plural_key (block_key)')
+        cur.execute('CREATE UNIQUE INDEX block_key_idx ON dedupe_plural_key (block_key)')
 
         LOGGER.info("calculating plural_block...")
         cur.execute(
             """
-            CREATE TABLE plural_block
+            CREATE TABLE dedupe_plural_block
             AS (SELECT block_id, citation_id
-                FROM blocking_map INNER JOIN plural_key
+                FROM dedupe_blocking_map INNER JOIN dedupe_plural_key
                 USING (block_key))
             """)
 
         LOGGER.info('adding citation_id index and sorting index...')
-        cur.execute('CREATE INDEX plural_block_citation_id_idx ON plural_block (citation_id)')
+        cur.execute(
+            """
+            CREATE INDEX plural_block_citation_id_idx
+            ON dedupe_plural_block (citation_id)
+            """)
         cur.execute(
             """
             CREATE UNIQUE INDEX plural_block_block_id_citation_id_uniq
-            ON plural_block (block_id, citation_id)
+            ON dedupe_plural_block (block_id, citation_id)
             """)
 
         # To use Kolb, et. al's Redundant Free Comparison scheme, we need to
@@ -201,17 +211,17 @@ if __name__ == '__main__':
         LOGGER.info('creating covered_blocks...')
         cur.execute(
             """
-            CREATE TABLE covered_blocks AS
+            CREATE TABLE dedupe_covered_blocks AS
                 (SELECT
                      citation_id,
                      string_agg(CAST(block_id AS TEXT), ',' ORDER BY block_id) AS sorted_ids
-                 FROM plural_block
+                 FROM dedupe_plural_block
                  GROUP BY citation_id)
             """)
         cur.execute(
             """
             CREATE UNIQUE INDEX covered_blocks_citation_id_idx
-            ON covered_blocks (citation_id)
+            ON dedupe_covered_blocks (citation_id)
             """)
 
         # For every block of records, we need to keep track of a citation records's
@@ -220,12 +230,12 @@ if __name__ == '__main__':
         LOGGER.info("creating smaller_coverage...")
         cur.execute(
             """
-            CREATE TABLE smaller_coverage AS
+            CREATE TABLE dedupe_smaller_coverage AS
                 (SELECT
                      citation_id,
                      block_id,
                      TRIM(',' FROM split_part(sorted_ids, CAST(block_id AS TEXT), 1)) AS smaller_ids
-                 FROM plural_block
+                 FROM dedupe_plural_block
                  INNER JOIN covered_blocks
                  USING (citation_id))
             """)
