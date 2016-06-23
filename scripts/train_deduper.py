@@ -61,11 +61,7 @@ if __name__ == '__main__':
         ]
         deduper = dedupe.Dedupe(variables, num_cores=2)
 
-        data = {row['citation_id']: {'authors': tuple(row['authors'] if row['authors'] else []),
-                                     'title': row.get('title'),
-                                     'abstract': row.get('abstract'),
-                                     'publication_year': row.get('publication_year'),
-                                     'doi': row.get('doi')}
+        data = {row['citation_id']: cipy.db.make_immutable(row)
                 for row in citations_db.run_query(citations_query)}
         deduper.sample(data, 25000)
 
@@ -77,13 +73,19 @@ if __name__ == '__main__':
         LOGGER.info('starting active labeling...')
         dedupe.consoleLabel(deduper)
 
-        with io.open(args.training, mode='wt') as f:
-            deduper.writeTraining(f)
+        if args.dryrun is False:
+            with io.open(args.training, mode='wt') as f:
+                deduper.writeTraining(f)
+        else:
+            LOGGER.info('writing dedupe training data to %s (DRY RUN)', args.training)
 
         deduper.train(maximum_comparisons=1000000, recall=0.95)
 
-        with io.open(args.settings, mode='wb') as f:
-            deduper.writeSettings(f)
+        if args.dryrun is False:
+            with io.open(args.settings, mode='wb') as f:
+                deduper.writeSettings(f)
+        else:
+            LOGGER.info('writing dedupe settings data to %s (DRY RUN)', args.settings)
 
         deduper.cleanupTraining()
 
@@ -121,19 +123,15 @@ if __name__ == '__main__':
     # Now we are ready to write our blocking map table by creating a generator
     # that yields unique (block_key, citation_id) tuples
 
-    data = ((row['citation_id'],
-             {'citation_id': row['citation_id'],
-             'authors': tuple(row['authors'] if row['authors'] else []),
-             'title': row.get('title', None),
-             'abstract': row.get('abstract', None),
-             'publication_year': row.get('publication_year', None),
-             'doi': row.get('doi', None)})
+    data = ((row['citation_id'], cipy.db.make_immutable(row))
             for row in citations_db.run_query(citations_query))
     b_data = deduper.blocker(data)
 
     # Write out blocking map to CSV so we can quickly load in with Postgres COPY
 
-    csv_file = tempfile.NamedTemporaryFile(prefix='blocks_', delete=False, mode='wt')
+    csv_file = tempfile.NamedTemporaryFile(prefix='blocks_',
+                                           delete=False,
+                                           mode='wt')
     csv_writer = csv.writer(csv_file)
     csv_writer.writerows(b_data)
     csv_file.close()
@@ -153,7 +151,8 @@ if __name__ == '__main__':
     LOGGER.info('preparing blocking table...')
     citations_db.run_query(
         """
-        CREATE INDEX blocking_map_key_idx ON dedupe_blocking_map (block_key)
+        CREATE INDEX dedupe_blocking_map_key_idx
+        ON dedupe_blocking_map (block_key)
         """)
 
     with citations_db.conn.cursor() as cur:
@@ -181,7 +180,11 @@ if __name__ == '__main__':
             """)
 
         LOGGER.info('creating block_key index...')
-        cur.execute('CREATE UNIQUE INDEX block_key_idx ON dedupe_plural_key (block_key)')
+        cur.execute(
+            """
+            CREATE UNIQUE INDEX dedupe_block_key_idx
+            ON dedupe_plural_key (block_key)
+            """)
 
         LOGGER.info("calculating plural_block...")
         cur.execute(
@@ -195,12 +198,12 @@ if __name__ == '__main__':
         LOGGER.info('adding citation_id index and sorting index...')
         cur.execute(
             """
-            CREATE INDEX plural_block_citation_id_idx
+            CREATE INDEX dedupe_plural_block_citation_id_idx
             ON dedupe_plural_block (citation_id)
             """)
         cur.execute(
             """
-            CREATE UNIQUE INDEX plural_block_block_id_citation_id_uniq
+            CREATE UNIQUE INDEX dedupe_plural_block_block_id_citation_id_uniq
             ON dedupe_plural_block (block_id, citation_id)
             """)
 
@@ -220,7 +223,7 @@ if __name__ == '__main__':
             """)
         cur.execute(
             """
-            CREATE UNIQUE INDEX covered_blocks_citation_id_idx
+            CREATE UNIQUE INDEX dedupe_covered_blocks_citation_id_idx
             ON dedupe_covered_blocks (citation_id)
             """)
 
@@ -236,6 +239,6 @@ if __name__ == '__main__':
                      block_id,
                      TRIM(',' FROM split_part(sorted_ids, CAST(block_id AS TEXT), 1)) AS smaller_ids
                  FROM dedupe_plural_block
-                 INNER JOIN covered_blocks
+                 INNER JOIN dedupe_covered_blocks
                  USING (citation_id))
             """)

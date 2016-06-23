@@ -44,7 +44,7 @@ KEY_MAP = {
     'DO': 'doi',
     'DP': 'database_provider',
     'DT': 'document_type',
-    'ED': 'editor',
+    'ED': 'editors',
     'EF': 'end_file',  # ignore!
     'EI': 'electronic_intl_issn',
     'EM': 'email_address',
@@ -187,13 +187,14 @@ REFERENCE_TYPES_MAPPING = {
     'VIDEO': 'video recording',
 }
 
-MULTI_TAGS = {'A1', 'A2', 'A3', 'A4', 'AD', 'AU', 'KW', 'N1'}
+MULTI_TAGS = {'A1', 'A2', 'A3', 'A4', 'AD', 'AU', 'ED', 'KW', 'N1'}
 IGNORE_TAGS = {'FN', 'VR', 'EF'}
 START_TAGS = {'TY', 'PT'}
 END_TAG = 'ER'
 
 JOURNAL_TAGS = ('JF', 'JO', 'JA', 'JI', 'J1', 'J2', 'J9')
 AUTHOR_TAGS = ('AU', 'A1', 'A2', 'A3', 'A4', 'TA')
+TITLE_TAGS = ('T1', 'T2', 'T3', 'ST', 'TT')
 
 TAGv1_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])(  - )')
 TAGv2_RE = re.compile(r'^(?P<tag>[A-Z][A-Z0-9])( )|^(?P<endtag>E[FR])(\s?$)')
@@ -261,11 +262,13 @@ class RisFile(object):
             self.split_keys = {self.key_map.get(tag, tag) for tag in ('SC', 'WC')}
             self.journal_keys = tuple(self.key_map.get(tag, tag) for tag in JOURNAL_TAGS)
             self.author_keys = tuple(self.key_map.get(tag, tag) for tag in AUTHOR_TAGS)
+            self.title_keys = tuple(self.key_map.get(tag, tag) for tag in TITLE_TAGS)
         else:
             self.multi_keys = MULTI_TAGS
             self.split_keys = {'SC', 'WC'}
             self.journal_keys = JOURNAL_TAGS
             self.author_keys = AUTHOR_TAGS
+            self.title_keys = TITLE_TAGS
         self.in_record = False
         self.tag_re = None
         self.prev_line_len = None
@@ -442,6 +445,13 @@ class RisFile(object):
             for key in self.author_keys:
                 try:
                     self.record['authors'] = self.record[key]
+                    break
+                except KeyError:
+                    continue
+        if not self.record.get('title'):
+            for key in self.title_keys:
+                try:
+                    self.record['title'] = self.record[key]
                     break
                 except KeyError:
                     continue

@@ -58,6 +58,7 @@ KEY_MAP = {
     'ID': 'reference_id',
     'address': 'publisher_address',
     'author': 'authors',
+    'editor': 'editors',
     'keyword': 'keywords',
     'journal': 'journal_name',
     'month': 'publication_month',
