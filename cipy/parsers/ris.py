@@ -455,3 +455,11 @@ class RisFile(object):
                     break
                 except KeyError:
                     continue
+        if not self.record.get('publication_year'):
+            y1_key = self.key_map.get('Y1', 'Y1')
+            try:
+                if self.record.get(y1_key):
+                    self.record['publication_year'] = self.record[y1_key].year
+            except Exception:
+                LOGGER.exception('record sanitization error: key=%s, value=%s',
+                    y1_key, self.record[y1_key])

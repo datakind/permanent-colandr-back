@@ -74,6 +74,7 @@ if __name__ == '__main__':
         dedupe.consoleLabel(deduper)
 
         if args.dryrun is False:
+            LOGGER.info('writing dedupe training data to %s', args.training)
             with io.open(args.training, mode='wt') as f:
                 deduper.writeTraining(f)
         else:
@@ -82,6 +83,7 @@ if __name__ == '__main__':
         deduper.train(maximum_comparisons=1000000, recall=0.95)
 
         if args.dryrun is False:
+            LOGGER.info('writing dedupe settings data to %s', args.settings)
             with io.open(args.settings, mode='wb') as f:
                 deduper.writeSettings(f)
         else:
@@ -109,6 +111,7 @@ if __name__ == '__main__':
     for field in deduper.blocker.index_fields:
         query = 'SELECT DISTINCT {col} FROM {table}'.format(
             col=field, table=citations_db.ddl['table_name'])
+        print(query)
         results = citations_db.run_query(query)
 
         field_type = [column['type'] for column in citations_db.ddl['columns']
@@ -125,7 +128,13 @@ if __name__ == '__main__':
 
     data = ((row['citation_id'], cipy.db.make_immutable(row))
             for row in citations_db.run_query(citations_query))
+    # print('len(data) =', len(data))
+    # print('len(set(citation_id)) =', len(set(item[0] for item in data)))
+    # print([item for item in data if item[0] == 5765])
     b_data = deduper.blocker(data)
+    # b_data = list(b_data)
+    # print('len(b_data) =', len(b_data))
+    # print('len(set(b_data)) =', len(set(item for item in b_data)))
 
     # Write out blocking map to CSV so we can quickly load in with Postgres COPY
 
@@ -149,11 +158,12 @@ if __name__ == '__main__':
     # key and index blocking map
 
     LOGGER.info('preparing blocking table...')
-    citations_db.run_query(
-        """
-        CREATE INDEX dedupe_blocking_map_key_idx
-        ON dedupe_blocking_map (block_key)
-        """)
+    with citations_db.conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE INDEX dedupe_blocking_map_key_idx
+            ON dedupe_blocking_map (block_key)
+            """)
 
     with citations_db.conn.cursor() as cur:
 
@@ -190,9 +200,9 @@ if __name__ == '__main__':
         cur.execute(
             """
             CREATE TABLE dedupe_plural_block
-            AS (SELECT block_id, citation_id
-                FROM dedupe_blocking_map INNER JOIN dedupe_plural_key
-                USING (block_key))
+            AS (SELECT t1.block_id, t2.citation_id
+                FROM dedupe_plural_key AS t1, dedupe_blocking_map AS t2
+                WHERE t1.block_key = t2.block_key)
             """)
 
         LOGGER.info('adding citation_id index and sorting index...')
