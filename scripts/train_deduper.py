@@ -28,9 +28,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH)
     parser.add_argument(
-        '--settings', required=True, type=str, metavar='settings_file_path')
+        '--settings', type=str, required=True, metavar='settings_file_path')
     parser.add_argument(
-        '--training', required=True, type=str, metavar='training_file_path')
+        '--training', type=str, required=True, metavar='training_file_path')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL')
     parser.add_argument(

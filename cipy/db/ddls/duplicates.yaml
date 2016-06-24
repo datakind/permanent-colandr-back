@@ -13,4 +13,7 @@ columns:
     -
         name: "is_confirmed"
         type: "BOOLEAN"
+    -
+        name: "confirming_user_id"
+        type: "INTEGER"
 ...
