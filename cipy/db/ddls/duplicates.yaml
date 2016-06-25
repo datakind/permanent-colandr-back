@@ -3,7 +3,10 @@ table_name: "duplicates"
 columns:
     -
         name: "citation_id"
-        type: "INTEGER PRIMARY KEY"
+        type: "BIGINT PRIMARY KEY"
+    -
+        name: "project_id"
+        type: "INTEGER NOT NULL"
     -
         name: "canonical_citation_id"
         type: "INTEGER NOT NULL"
