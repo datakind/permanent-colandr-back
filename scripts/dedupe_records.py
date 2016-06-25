@@ -89,6 +89,12 @@ def main():
     duplicates_db = cipy.db.PostgresDB(conn_creds, duplicates_ddl)
 
     duplicates_db.create_table()
+    with duplicates_db.conn.cursor() as cur:
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS duplicates_canonical_citation_id_idx
+            ON duplicates (canonical_citation_id)
+            """)
 
     LOGGER.info('reading dedupe settings from %s', args.settings)
     deduper = cipy.db.get_deduper(args.settings, num_cores=2)
@@ -124,7 +130,8 @@ def main():
                                      for cid, score in zip(cids, scores)}
         canonical_citation = citations_db.run_query(
             cipy.db.queries.GET_DUPE_CLUSTER_CANONICAL_ID,
-            {'project_id': args.project_id, 'citation_ids': tuple(cids)})
+            {'project_id': args.project_id,
+            'citation_ids': tuple(int(cid) for cid in cids)})
         canonical_citation_id = tuple(canonical_citation)[0]['citation_id']
 
         for citation_id, duplicate_score in citation_duplicate_scores.items():

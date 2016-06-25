@@ -12,6 +12,6 @@ for fname in os.listdir(DEFAULT_DDLS_PATH):
             DEFAULT_DDLS[ddl['table_name']] = ddl
 
 from .citation import Citation, sanitize_citation
-from .db_utils import queries
+from . import queries
 from .db_utils import get_conn_creds, get_ddl, get_deduper, make_immutable
 from .postgres import PostgresDB

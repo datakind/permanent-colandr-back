@@ -15,7 +15,7 @@ columns:
         type: "REAL NOT NULL"
     -
         name: "is_confirmed"
-        type: "BOOLEAN"
+        type: "BOOLEAN NOT NULL"
     -
         name: "confirming_user_id"
         type: "INTEGER"

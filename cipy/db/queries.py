@@ -27,7 +27,7 @@ GET_SAMPLE_FOR_DUPE_THRESHOLD = """
     FROM citations
     WHERE project_id = %(project_id)s
     ORDER BY random()
-    LIMIT 10000
+    LIMIT 20000
     """
 
 
