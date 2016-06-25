@@ -30,22 +30,8 @@ def get_candidate_dupes(citation_db, project_id):
     Yields:
         list[tuple]
     """
-    query = """
-        SELECT
-            t1.citation_id, t1.authors, t1.title, t1.abstract, t1.publication_year, t1.doi,
-            t2.block_id, t2.smaller_ids
-        FROM
-            citations AS t1,
-            dedupe_smaller_coverage AS t2
-        WHERE
-            project_id = %(project_id)s
-            AND t1.citation_id = t2.citation_id
-            AND t1.citation_id NOT IN (SELECT citation_id
-                                       FROM duplicates
-                                       WHERE project_id = %(project_id)s)
-        ORDER BY t2.block_id
-    """
-    results = citation_db.run_query(query, {'project_id': project_id})
+    results = citation_db.run_query(cipy.db.queries.GET_CANDIDATE_DUPE_CLUSTERS,
+                                    {'project_id': project_id})
 
     block_id = None
     records = []
@@ -108,14 +94,9 @@ def main():
     deduper = cipy.db.get_deduper(args.settings, num_cores=2)
 
     if args.threshold == 'auto':
-        query = """
-            SELECT citation_id, authors, title, abstract, publication_year, doi
-            FROM citations
-            WHERE project_id = %(project_id)s
-            ORDER BY random()
-            LIMIT 10000
-            """
-        results = citations_db.run_query(query, {'project_id': args.project_id})
+        results = citations_db.run_query(
+            cipy.db.queries.GET_SAMPLE_FOR_DUPE_THRESHOLD,
+            {'project_id': args.project_id})
         dupe_threshold = deduper.threshold(
             {row['citation_id']: cipy.db.make_immutable(row) for row in results},
             recall_weight=0.5)
@@ -133,32 +114,6 @@ def main():
         threshold=dupe_threshold)
     LOGGER.info('found %s duplicate clusters', len(clustered_dupes))
 
-    query = """
-        SELECT
-            citation_id,
-            ((CASE WHEN authors IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN title IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN abstract IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN publication_year IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN doi IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN type_of_work IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN publication_month IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN keywords IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN journal_name IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN type_of_reference IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN volume IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN issue_number IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN issn IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN publisher IS NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN language IS NULL THEN 1 ELSE 0 END)) AS n_null_cols
-        FROM citations
-        WHERE
-            project_id = %(project_id)s
-            AND citation_id IN ({})
-        ORDER BY n_null_cols ASC
-        LIMIT 1
-        """
-
     csv_file = tempfile.NamedTemporaryFile(
         prefix='duplicates_', delete=False, mode='wt')
     csv_writer = csv.writer(csv_file)
@@ -168,8 +123,8 @@ def main():
         citation_duplicate_scores = {cid: score
                                      for cid, score in zip(cids, scores)}
         canonical_citation = citations_db.run_query(
-            query.format(','.join(str(cid) for cid in cids)),
-            {'project_id': args.project_id})
+            cipy.db.queries.GET_DUPE_CLUSTER_CANONICAL_ID,
+            {'project_id': args.project_id, 'citation_ids': tuple(cids)})
         canonical_citation_id = tuple(canonical_citation)[0]['citation_id']
 
         for citation_id, duplicate_score in citation_duplicate_scores.items():

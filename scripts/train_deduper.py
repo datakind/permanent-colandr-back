@@ -6,7 +6,9 @@ import csv
 import io
 import logging
 import os
+import sys
 import tempfile
+import warnings
 
 import dedupe
 import psycopg2
@@ -21,31 +23,35 @@ _handler.setFormatter(_formatter)
 LOGGER.addHandler(_handler)
 
 
-if __name__ == '__main__':
-
+def main():
     parser = argparse.ArgumentParser(
         description="""Train a model to deduplicate citation records.""")
     parser.add_argument(
-        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH)
+        '--settings', type=str, required=True, metavar='settings_file_path',
+        help='path to file on disk where dedupe model settings are saved')
     parser.add_argument(
-        '--settings', type=str, required=True, metavar='settings_file_path')
+        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH,
+        help='path to directory on disk where DDL files are saved')
     parser.add_argument(
         '--training', type=str, required=True, metavar='training_file_path')
     parser.add_argument(
-        '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL')
+        '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
+        help='environment variable to which Postgres connection credentials have been assigned')
     parser.add_argument(
         '--update', action='store_true', default=False)
     parser.add_argument(
-        '--dryrun', action='store_true', default=False)
+        '--dryrun', action='store_true', default=False,
+        help='flag to run script without modifying any data or models')
     args = parser.parse_args()
+
+    # HACK!
+    if args.update is True:
+        warnings.warn(
+            'updating a trained dedupe model does not appear to work', UserWarning)
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
     citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
-    citations_query = """
-        SELECT citation_id, authors, title, abstract, publication_year, doi
-        FROM citations
-    """
 
     if args.update is False and os.path.exists(args.settings):
         LOGGER.info('reading dedupe settings from %s', args.settings)
@@ -62,7 +68,7 @@ if __name__ == '__main__':
         deduper = dedupe.Dedupe(variables, num_cores=2)
 
         data = {row['citation_id']: cipy.db.make_immutable(row)
-                for row in citations_db.run_query(citations_query)}
+                for row in citations_db.run_query(cipy.db.queries.GET_CITATIONS_FOR_DEDUPE_TRAINING)}
         deduper.sample(data, 25000)
 
         if os.path.exists(args.training):
@@ -127,7 +133,7 @@ if __name__ == '__main__':
     # that yields unique (block_key, citation_id) tuples
 
     data = ((row['citation_id'], cipy.db.make_immutable(row))
-            for row in citations_db.run_query(citations_query))
+            for row in citations_db.run_query(cipy.db.queries.GET_CITATIONS_FOR_DEDUPE_TRAINING))
     # print('len(data) =', len(data))
     # print('len(set(citation_id)) =', len(set(item[0] for item in data)))
     # print([item for item in data if item[0] == 5765])
@@ -252,3 +258,7 @@ if __name__ == '__main__':
                  INNER JOIN dedupe_covered_blocks
                  USING (citation_id))
             """)
+
+
+if __name__ == '__main__':
+    sys.exit(main())
