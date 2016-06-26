@@ -5,6 +5,7 @@ import java.io.File
 import cc.factorie.app.nlp.Document
 import cc.factorie.app.nlp.segment.{DeterministicNormalizingTokenizer, DeterministicSentenceSegmenter}
 import cc.factorie.app.nlp.segment.PunktSentenceSegmenter.Punkt.PunktSentenceTokenizer
+import org.datakind.ci.pdfestrian.reformat.Reformat
 
 import scala.io.Source
 
@@ -30,17 +31,18 @@ object PDFToDocument {
     val docTxt = Source.fromFile(file).mkString
     val doc = new Document(docTxt).setName(name)
     val tokenized = DeterministicNormalizingTokenizer.process(doc)
-    DeterministicSentenceSegmenter.process(tokenized)
+    Reformat(DeterministicSentenceSegmenter.process(tokenized))
   }
 
   def main(args: Array[String]) {
-    val doc = apply("Zhang 2012")
+    val doc = apply("Vega 2013")
     doc match {
       case None => println("Couldn't find")
       case Some(d) =>
         println(d)
         for(sentence <- d.sentences) {
-          println(sentence)
+          println(sentence.tokens.map{_.string}.mkString(", "))
+          println()
         }
     }
   }
