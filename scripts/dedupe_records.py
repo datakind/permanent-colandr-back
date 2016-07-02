@@ -68,9 +68,6 @@ def main():
         '--settings', type=str, required=True, metavar='settings_file_path',
         help='path to file on disk where dedupe model settings are saved')
     parser.add_argument(
-        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH,
-        help='path to directory on disk where DDL files are saved')
-    parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
     parser.add_argument(
@@ -84,10 +81,8 @@ def main():
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
 
-    citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(conn_creds, ddl=citations_ddl)
-    duplicates_ddl = cipy.db.get_ddl('duplicates', ddls_path=args.ddls)
-    duplicates_db = cipy.db.PostgresDB(conn_creds, ddl=duplicates_ddl)
+    citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
+    duplicates_db = cipy.db.PostgresDB(conn_creds, ddl='duplicates')
 
     duplicates_db.create_table()
     with duplicates_db.conn.cursor() as cur:

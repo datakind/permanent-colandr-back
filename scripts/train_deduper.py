@@ -30,9 +30,6 @@ def main():
         '--settings', type=str, required=True, metavar='settings_file_path',
         help='path to file on disk where dedupe model settings are saved')
     parser.add_argument(
-        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH,
-        help='path to directory on disk where DDL files are saved')
-    parser.add_argument(
         '--training', type=str, required=True, metavar='training_file_path')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
@@ -50,8 +47,7 @@ def main():
             'updating a trained dedupe model does not appear to work', UserWarning)
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
-    citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(conn_creds, ddl=citations_ddl)
+    citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
 
     if args.update is False and os.path.exists(args.settings):
         LOGGER.info('reading dedupe settings from %s', args.settings)
@@ -68,7 +64,8 @@ def main():
         deduper = dedupe.Dedupe(variables, num_cores=2)
 
         data = {row['citation_id']: cipy.db.make_immutable(row)
-                for row in citations_db.run_query(cipy.db.queries.GET_CITATIONS_FOR_DEDUPE_TRAINING)}
+                for row in citations_db.run_query(
+                    citations_db.ddl['templates']['select_citations_for_dedupe_training'])}
         deduper.sample(data, 25000)
 
         if os.path.exists(args.training):
@@ -133,14 +130,9 @@ def main():
     # that yields unique (block_key, citation_id) tuples
 
     data = ((row['citation_id'], cipy.db.make_immutable(row))
-            for row in citations_db.run_query(cipy.db.queries.GET_CITATIONS_FOR_DEDUPE_TRAINING))
-    # print('len(data) =', len(data))
-    # print('len(set(citation_id)) =', len(set(item[0] for item in data)))
-    # print([item for item in data if item[0] == 5765])
+            for row in citations_db.run_query(
+                citations_db.ddl['templates']['select_citations_for_dedupe_training']))
     b_data = deduper.blocker(data)
-    # b_data = list(b_data)
-    # print('len(b_data) =', len(b_data))
-    # print('len(set(b_data)) =', len(set(item for item in b_data)))
 
     # Write out blocking map to CSV so we can quickly load in with Postgres COPY
 

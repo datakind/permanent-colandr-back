@@ -16,7 +16,7 @@ class PostgresDB(object):
 
     def __init__(self, conn_creds, ddl=None, autocommit=True):
         if isinstance(ddl, str):
-            self.ddl = cipy.db.DDL(ddl)
+            self.ddl = cipy.db.get_ddl(ddl)
         elif isinstance(ddl, cipy.db.DDL) or ddl is None:
             self.ddl = ddl
         else:

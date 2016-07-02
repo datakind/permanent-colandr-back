@@ -22,10 +22,15 @@ class DDL(object):
     """
 
     def __init__(self, path):
+        self.path = path
         with io.open(path, mode='rt') as f:
             self.data = yaml.load(f)
 
-    def _get_name(self, which, name_format_inputs):
+    def __repr__(self):
+        return "DDL(table_name='{}', path='{}')".format(
+            self.get_name(which='table'), self.path)
+
+    def get_name(self, which='table', name_format_inputs=None):
         full_name = '{}_name'.format(which)
         name = self.data['schema'].get(full_name) or self.data['schema']['name']
         if not name_format_inputs:
@@ -53,7 +58,7 @@ class DDL(object):
             str: create table statement, made by filling in template's values
         """
         template = self.data.get('templates', {}).get('create_table', CREATE_TABLE_STMT).strip()
-        table_name = self._get_name('table', name_format_inputs)
+        table_name = self.get_name(which='table', name_format_inputs=name_format_inputs)
         columns = [(column.get('column_name') or column['name'],
                     column['data_type'],
                     column.get('constraints', ''))
@@ -78,7 +83,7 @@ class DDL(object):
             str: create view statement, made by filling in template's values
         """
         template = self.data.get('templates', {}).get('create_view', CREATE_VIEW_STMT).strip()
-        view_name = self._get_name('view', name_format_inputs)
+        view_name = self.get_name(which='view', name_format_inputs=name_format_inputs)
         tables = ' UNION ALL '.join(tables)
         return template.format(view_name=view_name, tables=tables)
 
@@ -94,7 +99,7 @@ class DDL(object):
             str: drop table statement, made by filling in template's values
         """
         template = self.data.get('templates', {}).get('drop_table', DROP_TABLE_STMT).strip()
-        table_name = self._get_name('table', name_format_inputs)
+        table_name = self.get_name(which='table', name_format_inputs=name_format_inputs)
         return template.format(table_name=table_name)
 
     def insert_values_statement(self, named_args=True, columns=None,
@@ -114,7 +119,7 @@ class DDL(object):
             str: insert values statement, made by filling in template's values
         """
         template = self.data.get('templates', {}).get('insert_values', INSERT_VALUES_STMT).strip()
-        table_name = self._get_name('table', name_format_inputs)
+        table_name = self.get_name(which='table', name_format_inputs=name_format_inputs)
         if columns is None:
             columns = [column.get('column_name') or column['name']
                        for column in self.data['schema']['columns']]
@@ -140,5 +145,5 @@ class DDL(object):
             str: insert subquery statement, made by filling in template's values
         """
         template = self.data.get('templates', {}).get('insert_subquery', INSERT_SUBQUERY_STMT).strip()
-        table_name = self._get_name('table', name_format_inputs)
+        table_name = self.get_name(which='table', name_format_inputs=name_format_inputs)
         return template.format(table_name=table_name, subquery=subquery)

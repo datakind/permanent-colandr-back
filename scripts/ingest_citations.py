@@ -28,9 +28,6 @@ def main():
         help="""path to 1 or multiple files on disk containing citation records in
              BibTex or RIS format""")
     parser.add_argument(
-        '--ddls', type=str, metavar='psql_ddls_dir', default=cipy.db.DEFAULT_DDLS_PATH,
-        help='path to directory on disk where DDL files are saved')
-    parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
     parser.add_argument(
@@ -39,8 +36,7 @@ def main():
     args = parser.parse_args()
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
-    citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
+    citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
     if args.dryrun is False:
         citations_db.create_table()
 
