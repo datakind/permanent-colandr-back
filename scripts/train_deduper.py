@@ -51,7 +51,7 @@ def main():
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
+    citations_db = cipy.db.PostgresDB(conn_creds, ddl=citations_ddl)
 
     if args.update is False and os.path.exists(args.settings):
         LOGGER.info('reading dedupe settings from %s', args.settings)

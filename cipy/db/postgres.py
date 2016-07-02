@@ -81,12 +81,12 @@ class PostgresDB(object):
         stmt = self.ddl.drop_table_statement(**template_kwargs)
         self.execute(stmt, act=act)
 
-    def insert_values(self, records, named_args=True, columns=None,
+    def insert_values(self, record, named_args=True, columns=None,
                       act=True, **template_kwargs):
         self._check_ddl()
         stmt = self.ddl.insert_values_statement(
             named_args=named_args, columns=columns, **template_kwargs)
-        self.execute(stmt, bindings=records, act=act)
+        self.execute(stmt, bindings=record, act=act)
 
     def get_tables(self, table_schema='public',
                    table_type='BASE TABLE',

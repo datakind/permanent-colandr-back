@@ -21,7 +21,7 @@ _handler.setFormatter(_formatter)
 LOGGER.addHandler(_handler)
 
 
-def get_candidate_dupes(citation_db, project_id):
+def get_candidate_dupes(citations_db, project_id):
     """
     Args:
         citations_db (cipy.db.PostgresDB)
@@ -30,8 +30,9 @@ def get_candidate_dupes(citation_db, project_id):
     Yields:
         list[tuple]
     """
-    results = citation_db.run_query(cipy.db.queries.GET_CANDIDATE_DUPE_CLUSTERS,
-                                    {'project_id': project_id})
+    results = citations_db.run_query(
+        cipy.db.queries.GET_CANDIDATE_DUPE_CLUSTERS,
+        {'project_id': project_id})
 
     block_id = None
     records = []
@@ -84,9 +85,9 @@ def main():
     conn_creds = cipy.db.get_conn_creds(args.database_url)
 
     citations_ddl = cipy.db.get_ddl('citations', ddls_path=args.ddls)
-    citations_db = cipy.db.PostgresDB(conn_creds, citations_ddl)
+    citations_db = cipy.db.PostgresDB(conn_creds, ddl=citations_ddl)
     duplicates_ddl = cipy.db.get_ddl('duplicates', ddls_path=args.ddls)
-    duplicates_db = cipy.db.PostgresDB(conn_creds, duplicates_ddl)
+    duplicates_db = cipy.db.PostgresDB(conn_creds, ddl=duplicates_ddl)
 
     duplicates_db.create_table()
     with duplicates_db.conn.cursor() as cur:
@@ -101,7 +102,7 @@ def main():
 
     if args.threshold == 'auto':
         results = citations_db.run_query(
-            cipy.db.queries.GET_SAMPLE_FOR_DUPE_THRESHOLD,
+            citations_db.ddl['templates']['select_sample_for_dupe_threshold'],
             {'project_id': args.project_id})
         dupe_threshold = deduper.threshold(
             {row['citation_id']: cipy.db.make_immutable(row) for row in results},
@@ -129,9 +130,9 @@ def main():
         citation_duplicate_scores = {cid: score
                                      for cid, score in zip(cids, scores)}
         canonical_citation = citations_db.run_query(
-            cipy.db.queries.GET_DUPE_CLUSTER_CANONICAL_ID,
+            citations_db.ddl['templates']['select_dupe_cluster_canonical_id'],
             {'project_id': args.project_id,
-            'citation_ids': tuple(int(cid) for cid in cids)})
+             'citation_ids': tuple(int(cid) for cid in cids)})
         canonical_citation_id = tuple(canonical_citation)[0]['citation_id']
 
         for citation_id, duplicate_score in citation_duplicate_scores.items():
