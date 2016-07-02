@@ -1,37 +1,55 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
-import io
 import itertools
 import re
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import yaml
+
+import cipy
 
 LOGGER = logging.getLogger(__name__)
-
-CREATE_TABLE_STMT = "CREATE TABLE IF NOT EXISTS {table_name} ({columns})"
-DROP_TABLE_STMT = "DROP TABLE IF EXISTS {table_name}"
-INSERT_VALUES_STMT = "INSERT INTO {table_name}({columns}) VALUES ({values})"
 
 
 class PostgresDB(object):
 
     def __init__(self, conn_creds, ddl=None, autocommit=True):
         if isinstance(ddl, str):
-            with io.open(ddl, mode='rt') as f:
-                self.ddl = yaml.load(f)
-        else:
+            self.ddl = cipy.db.DDL(ddl)
+        elif isinstance(ddl, cipy.db.DDL) or ddl is None:
             self.ddl = ddl
+        else:
+            msg = 'ddl type "{}" invalid, must be str, ddl.DDL, or None'.format(type(ddl))
+            raise ValueError(msg)
         self.conn = psycopg2.connect(**conn_creds)
         self.conn.autocommit = autocommit
+
+    def _check_ddl(self):
+        if not self.ddl:
+            msg = 'DDL must be specified upon PostgresDB instantiation'
+            raise ValueError(msg)
+
+    def execute(self, statement, bindings=None, act=True):
+        with self.conn as conn:
+
+            with conn.cursor() as cur:
+                try:
+                    mogrified_stmt = cur.mogrify(statement, bindings)
+                except Exception as e:
+                    LOGGER.exception('malformed statement: %s', statement)
+                    raise e
+
+            if act is True:
+                with conn.cursor() as cur:
+                    cur.execute(mogrified_stmt)
+            else:
+                LOGGER.info('execute: %s', mogrified_stmt)
 
     def run_query(self, query, bindings=None, act=True,
                   cursor_factory=RealDictCursor, itersize=5000):
         with self.conn as conn:
 
-            # first check validity of query
             with conn.cursor() as cur:
                 try:
                     mogrified_query = cur.mogrify(query, bindings)
@@ -39,49 +57,36 @@ class PostgresDB(object):
                     LOGGER.exception('malformed query: %s', query)
                     raise e
 
-            with conn.cursor(cursor_factory=cursor_factory) as cur:
-                cur.itersize = itersize
-                if act is True:
+            if act is True:
+                with conn.cursor(cursor_factory=cursor_factory) as cur:
+                    cur.itersize = itersize
                     cur.execute(mogrified_query)
-                    try:
-                        for result in cur:
-                            yield result
-                    except psycopg2.ProgrammingError:
-                        pass
-                else:
-                    print('(act=False)')
-                    print(mogrified_query)
+                    for result in cur:
+                        yield result
+            else:
+                LOGGER.info('run_query: %s', mogrified_query)
 
-    def create_table(self, act=True):
-        if not self.ddl:
-            msg = "unable to create table: database DDL not specified on instantiation"
-            raise TypeError(msg)
-        stmt = CREATE_TABLE_STMT.format(
-            table_name=self.ddl['table_name'],
-            columns=', '.join(column['name'] + ' ' + column['type']
-                              for column in self.ddl['columns'])
-        )
-        list(self.run_query(stmt, act=act))
+    def create_table(self, act=True, **template_kwargs):
+        self._check_ddl()
+        stmt = self.ddl.create_table_statement(**template_kwargs)
+        self.execute(stmt, act=act)
 
-    def drop_table(self, act=True):
-        if not self.ddl:
-            msg = "unable to drop table: database DDL not specified on instantiation"
-            raise TypeError(msg)
-        stmt = DROP_TABLE_STMT.format(table_name=self.ddl['table_name'])
-        list(self.run_query(stmt, act=act))
+    def create_view(self, act=True, **template_kwargs):
+        self._check_ddl()
+        stmt = self.ddl.create_view_statement(**template_kwargs)
+        self.execute(stmt, act=act)
 
-    def insert_values(self, record, act=True):
-        if not self.ddl:
-            msg = "unable to insert values: database DDL not specified on instantiation"
-            raise TypeError(msg)
-        columns = list(record.keys())
-        values = ', '.join('%({})s'.format(column) for column in columns)
-        stmt = INSERT_VALUES_STMT.format(
-            table_name=self.ddl['table_name'],
-            columns=', '.join(columns),
-            values=values
-        )
-        list(self.run_query(stmt, bindings=record, act=act))
+    def drop_table(self, act=True, **template_kwargs):
+        self._check_ddl()
+        stmt = self.ddl.drop_table_statement(**template_kwargs)
+        self.execute(stmt, act=act)
+
+    def insert_values(self, records, named_args=True, columns=None,
+                      act=True, **template_kwargs):
+        self._check_ddl()
+        stmt = self.ddl.insert_values_statement(
+            named_args=named_args, columns=columns, **template_kwargs)
+        self.execute(stmt, bindings=records, act=act)
 
     def get_tables(self, table_schema='public',
                    table_type='BASE TABLE',
@@ -89,6 +94,7 @@ class PostgresDB(object):
                    include_views=True):
         """
         Get a list of tables (includes views, by default).
+
         Args:
             table_schema (str, optional): schema name the table belongs to
             table_type (str, optional): type of the table

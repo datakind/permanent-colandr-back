@@ -1,67 +1,106 @@
 ---
-table_name: "citations"
-columns:
-    -
-        name: "citation_id"
-        type: "BIGSERIAL PRIMARY KEY"
-    -
-        name: "project_id"
-        type: "INTEGER NOT NULL"
-    -
-        name: "user_id"
-        type: "INTEGER NOT NULL"
-    -
-        name: "insert_ts"
-        type: "TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL"
-    -
-        name: "type_of_work"
-        type: "VARCHAR(25)"
-    -
-        name: "title"
-        type: "VARCHAR(250)"
-    -
-        name: "secondary_title"
-        type: "VARCHAR(250)"
-    -
-        name: "publication_year"
-        type: "SMALLINT"
-    -
-        name: "publication_month"
-        type: "SMALLINT"
-    -
-        name: "authors"
-        type: "VARCHAR(100) ARRAY"
-    -
-        name: "abstract"
-        type: "TEXT"
-    -
-        name: "keywords"
-        type: "VARCHAR(100) ARRAY"
-    -
-        name: "type_of_reference"
-        type: "VARCHAR(50)"
-    -
-        name: "journal_name"
-        type: "VARCHAR(100)"
-    -
-        name: "volume"
-        type: "VARCHAR(20)"
-    -
-        name: "issue_number"
-        type: "VARCHAR(20)"
-    -
-        name: "doi"
-        type: "VARCHAR(100)"
-    -
-        name: "issn"
-        type: "VARCHAR(20)"
-    -
-        name: "publisher"
-        type: "VARCHAR(100)"
-    -
-        name: "language"
-        type: "VARCHAR(50)"
-    -
-        name: "other_fields"
-        type: "JSONB"
+schema:
+    table_name: "citations"
+    columns:
+        -
+            column_name: "citation_id"
+            data_type: "BIGSERIAL"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "project_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "user_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "insert_ts"
+            data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "type_of_work"
+            data_type: "VARCHAR(25)"
+        -
+            column_name: "title"
+            data_type: "VARCHAR(250)"
+        -
+            column_name: "secondary_title"
+            data_type: "VARCHAR(250)"
+        -
+            column_name: "publication_year"
+            data_type: "SMALLINT"
+        -
+            column_name: "publication_month"
+            data_type: "SMALLINT"
+        -
+            column_name: "authors"
+            data_type: "VARCHAR(100) ARRAY"
+        -
+            column_name: "abstract"
+            data_type: "TEXT"
+        -
+            column_name: "keywords"
+            data_type: "VARCHAR(100) ARRAY"
+        -
+            column_name: "type_of_reference"
+            data_type: "VARCHAR(50)"
+        -
+            column_name: "journal_column_name"
+            data_type: "VARCHAR(100)"
+        -
+            column_name: "volume"
+            data_type: "VARCHAR(20)"
+        -
+            column_name: "issue_number"
+            data_type: "VARCHAR(20)"
+        -
+            column_name: "doi"
+            data_type: "VARCHAR(100)"
+        -
+            column_name: "issn"
+            data_type: "VARCHAR(20)"
+        -
+            column_name: "publisher"
+            data_type: "VARCHAR(100)"
+        -
+            column_name: "language"
+            data_type: "VARCHAR(50)"
+        -
+            column_name: "other_fields"
+            data_type: "JSONB"
+templates:
+    select_citations_for_dedupe_training: >
+        SELECT citation_id, authors, title, abstract, publication_year, doi
+        FROM {table_name}
+    select_sample_for_dupe_threshold: >
+        SELECT citation_id, authors, title, abstract, publication_year, doi
+        FROM {table_name}
+        WHERE project_id = %(project_id)s
+        ORDER BY random()
+        LIMIT 20000
+    select_dupe_cluster_canonical_id: >
+        SELECT
+            citation_id,
+            ((CASE WHEN authors IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN title IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN abstract IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN publication_year IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN doi IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN type_of_work IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN publication_month IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN keywords IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN journal_name IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN type_of_reference IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN volume IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN issue_number IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN issn IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN publisher IS NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN language IS NULL THEN 1 ELSE 0 END)) AS n_null_cols
+        FROM {table_name}
+        WHERE
+            project_id = %(project_id)s
+            AND citation_id IN %(citation_ids)s
+        ORDER BY n_null_cols ASC
+        LIMIT 1
 ...
