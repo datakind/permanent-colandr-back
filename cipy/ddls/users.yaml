@@ -1,0 +1,29 @@
+---
+schema:
+    table_name: "users"
+    columns:
+        -
+            column_name: "user_id"
+            data_type: "SERIAL"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "joined_ts"
+            data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "name"
+            data_type: "VARCHAR(100)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "email"
+            data_type: "VARCHAR(100)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "password"
+            data_type: "VARCHAR"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "project_ids"
+            data_type: "INTEGER ARRAY"
+            column_constraints: "NOT NULL"
+...

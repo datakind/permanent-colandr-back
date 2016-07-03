@@ -1,0 +1,37 @@
+---
+schema:
+    table_name: "prescreening"
+    columns:
+        -
+            column_name: "citation_id"
+            data_type: "BIGINT"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "project_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "status"
+            data_type: "CHAR(8)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "prescreener_user_id_1"
+            data_type: "INTEGER"
+            column_constarints: "NOT NULL"
+        -
+            column_name: "prescreener_user_id_2"
+            data_type: "INTEGER"
+        -
+            column_name: "prescreener_user_id_2"
+            data_type: "INTEGER"
+        -
+            column_name: "status_1"
+            data_type: "CHAR(8)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "status_2"
+            data_type: "CHAR(8)"
+        -
+            column_name: "status_3"
+            data_type: "CHAR(8)"
+...

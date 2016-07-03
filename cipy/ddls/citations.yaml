@@ -15,7 +15,7 @@ schema:
             data_type: "INTEGER"
             column_constraints: "NOT NULL"
         -
-            column_name: "insert_ts"
+            column_name: "inserted_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
             column_constraints: "NOT NULL"
         -
@@ -69,6 +69,11 @@ schema:
         -
             column_name: "other_fields"
             data_type: "JSONB"
+    indexes:
+        -
+            index_name: citations_project_id_idx
+            column_name: project_id
+            unique: False
 templates:
     select_citations_for_dedupe_training: >
         SELECT citation_id, authors, title, abstract, publication_year, doi

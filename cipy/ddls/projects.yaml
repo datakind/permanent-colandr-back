@@ -1,0 +1,28 @@
+---
+schema:
+    table_name: "projects"
+    columns:
+        -
+            column_name: "project_id"
+            data_type: "SERIAL"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "created_ts"
+            data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "name"
+            data_type: "VARCHAR(500)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "description"
+            data_type: "TEXT"
+        -
+            column_name: "user_ids"
+            data_type: "INTEGER ARRAY"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "creator_user_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+...

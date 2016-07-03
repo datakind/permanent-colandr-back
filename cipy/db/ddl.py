@@ -1,12 +1,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
+import re
 
 import yaml
 
 
 CREATE_TABLE_STMT = 'CREATE TABLE IF NOT EXISTS {table_name} ({columns}) {table_constraints}'
 CREATE_VIEW_STMT = 'CREATE OR REPLACE {view_name} AS {tables}'
+CREATE_INDEX_STMT = 'CREATE {unique} INDEX IF NOT EXISTS {index_name} ON {table_name} USING {method} ({column_name})'
 DROP_TABLE_STMT = 'DROP TABLE IF EXISTS {table_name}'
 INSERT_VALUES_STMT = 'INSERT INTO {table_name} ({columns}) VALUES {values}'
 INSERT_SUBQUERY_STMT = 'INSERT INTO {table_name} ({subquery})'
@@ -29,6 +31,12 @@ class DDL(object):
     def __repr__(self):
         return "DDL(table_name='{}', path='{}')".format(
             self.get_name(which='table'), self.path)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def get(self, key, default=None):
+        return self.data.get(key, default)
 
     def get_name(self, which='table', name_format_inputs=None):
         full_name = '{}_name'.format(which)
@@ -86,6 +94,20 @@ class DDL(object):
         view_name = self.get_name(which='view', name_format_inputs=name_format_inputs)
         tables = ' UNION ALL '.join(tables)
         return template.format(view_name=view_name, tables=tables)
+
+    def create_index_statements(self, name_format_inputs=None):
+        template = self.data.get('templates', {}).get('create_index', CREATE_INDEX_STMT).strip()
+        statements = []
+        for index in self.data['schema'].get('indexes', []):
+            format_input = {
+                'unique': 'UNIQUE' if index.get('unique') else '',
+                'index_name': index.get('index_name') or index['name'],
+                'table_name': self.get_name(which='table', name_format_inputs=name_format_inputs),
+                'method': index.get('method', 'btree'),
+                'column_name': index['column_name'] if index.get('column_name') else '(' + index['expression'] + ')'}
+            statement = template.format(**format_input)
+            statements.append(re.sub(r' +', ' ', statement))
+        return statements
 
     def drop_table_statement(self, name_format_inputs=None):
         """
