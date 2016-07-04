@@ -76,6 +76,20 @@ class PostgresDB(object):
         stmt = self.ddl.create_view_statement(**template_kwargs)
         self.execute(stmt, act=act)
 
+    def create_indexes(self, act=True, index_name=None, **template_kwargs):
+        self._check_ddl()
+        stmts = self.ddl.create_index_statements(
+            index_name=index_name, **template_kwargs)
+        if not stmts:
+            if index_name:
+                msg = 'no indexes found with name "{}"'.format(index_name)
+            else:
+                msg = 'no indexes found'
+            LOGGER.warning(msg)
+        else:
+            for stmt in stmts:
+                self.execute(stmt, act=act)
+
     def drop_table(self, act=True, **template_kwargs):
         self._check_ddl()
         stmt = self.ddl.drop_table_statement(**template_kwargs)

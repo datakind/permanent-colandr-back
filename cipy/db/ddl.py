@@ -29,8 +29,7 @@ class DDL(object):
             self.data = yaml.load(f)
 
     def __repr__(self):
-        return "DDL(table_name='{}', path='{}')".format(
-            self.get_name(which='table'), self.path)
+        return "DDL(path='{}')".format(self.path)
 
     def __getitem__(self, key):
         return self.data[key]
@@ -95,16 +94,20 @@ class DDL(object):
         tables = ' UNION ALL '.join(tables)
         return template.format(view_name=view_name, tables=tables)
 
-    def create_index_statements(self, name_format_inputs=None):
+    def create_index_statements(self, index_name=None, name_format_inputs=None):
         template = self.data.get('templates', {}).get('create_index', CREATE_INDEX_STMT).strip()
         statements = []
         for index in self.data['schema'].get('indexes', []):
             format_input = {
                 'unique': 'UNIQUE' if index.get('unique') else '',
-                'index_name': index.get('index_name') or index['name'],
                 'table_name': self.get_name(which='table', name_format_inputs=name_format_inputs),
                 'method': index.get('method', 'btree'),
                 'column_name': index['column_name'] if index.get('column_name') else '(' + index['expression'] + ')'}
+            format_input['index_name'] = (
+                index.get('index_name') or index.get('name')
+                or format_input['table_name'] + '_' + format_input['column_name'] + '_idx')
+            if index_name and format_input['index_name'] != index_name:
+                continue
             statement = template.format(**format_input)
             statements.append(re.sub(r' +', ' ', statement))
         return statements

@@ -26,4 +26,7 @@ schema:
             column_name: "project_ids"
             data_type: "INTEGER ARRAY"
             column_constraints: "NOT NULL"
+        -
+            column_name: "created_project_ids"
+            data_type: "INTEGER ARRAY"
 ...

@@ -25,4 +25,9 @@ schema:
         -
             column_name: "confirming_user_id"
             data_type: "INTEGER"
+    indexes:
+        -
+            index_name: duplicates_project_id_idx
+            column_name: project_id
+            unique: False
 ...
