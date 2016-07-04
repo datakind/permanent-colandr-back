@@ -7,7 +7,7 @@ schema:
             data_type: "SERIAL"
             column_constraints: "PRIMARY KEY"
         -
-            column_name: "joined_ts"
+            column_name: "created_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
             column_constraints: "NOT NULL"
         -

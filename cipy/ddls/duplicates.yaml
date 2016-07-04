@@ -30,4 +30,8 @@ schema:
             index_name: duplicates_project_id_idx
             column_name: project_id
             unique: False
+        -
+            index_name: duplicates_canonical_citation_id_idx
+            column_name: canonical_citation_id
+            unique: False
 ...

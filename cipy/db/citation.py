@@ -10,7 +10,7 @@ from cipy.db.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
 
 FIELD_SANITIZERS = {
-    'inserted_ts': lambda x: sanitize_type(x, datetime),
+    'created_ts': lambda x: sanitize_type(x, datetime),
     'type_of_work': lambda x: sanitize_string(x, max_length=25),
     'title': lambda x: sanitize_string(x, max_length=250),
     'secondary_title': lambda x: sanitize_string(x, max_length=250),
@@ -54,8 +54,8 @@ class Citation(Model):
                          min_value=0, max_value=2147483647)
     user_id = IntType(required=True,
                       min_value=0, max_value=2147483647)
-    inserted_ts = UTCDateTimeType(default=arrow.utcnow().datetime,
-                                  convert_tz=True, drop_tzinfo=True)
+    created_ts = UTCDateTimeType(default=arrow.utcnow().datetime,
+                                 convert_tz=True, drop_tzinfo=True)
     type_of_work = StringType(max_length=25)
     title = StringType(max_length=250)
     secondary_title = StringType(max_length=250)

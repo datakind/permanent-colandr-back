@@ -15,7 +15,7 @@ schema:
             data_type: "INTEGER"
             column_constraints: "NOT NULL"
         -
-            column_name: "inserted_ts"
+            column_name: "created_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
             column_constraints: "NOT NULL"
         -
