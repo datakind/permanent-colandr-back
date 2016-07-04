@@ -75,7 +75,7 @@ schema:
             column_name: project_id
             unique: False
 templates:
-    select_citations_for_dedupe_training: >
+    select_citations_basic_info: >
         SELECT citation_id, authors, title, abstract, publication_year, doi
         FROM {table_name}
     select_sample_for_dupe_threshold: >

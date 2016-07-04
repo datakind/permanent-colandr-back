@@ -6,11 +6,13 @@ import arrow
 from schematics.models import Model
 from schematics.types import DictType, IntType, ListType, StringType, UTCDateTimeType
 
-from cipy.db.sanitizers import sanitize_integer, sanitize_string, sanitize_type
+from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
 
 FIELD_SANITIZERS = {
     'created_ts': lambda x: sanitize_type(x, datetime),
+    'project_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'user_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'type_of_work': lambda x: sanitize_string(x, max_length=25),
     'title': lambda x: sanitize_string(x, max_length=250),
     'secondary_title': lambda x: sanitize_string(x, max_length=250),
@@ -30,8 +32,9 @@ FIELD_SANITIZERS = {
 }
 
 
-def sanitize_citation(record):
-    """After parsing but before creating a `Citation` model, sanitize the values
+def sanitize(record):
+    """
+    After parsing but before creating a `Citation` model, sanitize the values
     in a citation `record` so that they'll pass validation.
 
     Args:

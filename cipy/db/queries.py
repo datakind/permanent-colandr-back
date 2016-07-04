@@ -15,12 +15,13 @@ GET_CANDIDATE_DUPE_CLUSTERS = """
     ORDER BY t2.block_id
 """
 
+# TODO: add project_id filter to these queries?
 DUPLICATE_CITATION_IDS = """
     ((SELECT citation_id FROM duplicates)
      EXCEPT (SELECT canonical_citation_id FROM duplicates))
 """
 
-GET_CITATION_TEXTS_SAMPLE = """
+GET_CITATION_TEXTS_SAMPLE = r"""
     SELECT
         citation_id,
         TRIM('\n' FROM CONCAT_WS('\n\n', COALESCE(title, ''),

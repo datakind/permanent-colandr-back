@@ -28,17 +28,24 @@ def main():
         help="""path to 1 or multiple files on disk containing citation records in
              BibTex or RIS format""")
     parser.add_argument(
+        '--user_id', type=int, required=True, metavar='user_id',
+        help='unique identifier of current user')
+    parser.add_argument(
+        '--project_id', type=int, required=True, metavar='project_id',
+        help='unique identifier of current systematic map project')
+    parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
     parser.add_argument(
-        '--dryrun', action='store_true', default=False,
+        '--test', action='store_true', default=False,
         help='flag to run script without modifying any data or models')
     args = parser.parse_args()
 
+    act = not args.test
+
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
-    if args.dryrun is False:
-        citations_db.create_table()
+    citations_db.create_table(act=act)
 
     n_valid_total = 0
     n_invalid_total = 0
@@ -58,11 +65,11 @@ def main():
         n_invalid = 0
         for record in citations_file.parse():
 
-            sanitized_record = cipy.db.sanitize_citation(record)
-            sanitized_record['project_id'] = cipy.hack.get_project_id()
-            sanitized_record['user_id'] = cipy.hack.get_user_id()
+            record['project_id'] = args.project_id
+            record['user_id'] = args.user_id
+            sanitized_record = cipy.validation.citation.sanitize(record)
 
-            c = cipy.db.Citation(sanitized_record)
+            c = cipy.validation.citation.Citation(sanitized_record)
             try:
                 c.validate()
             except ModelValidationError:
@@ -77,15 +84,15 @@ def main():
             validated_record = c.to_primitive()
             validated_record['other_fields'] = json.dumps(validated_record['other_fields'])
 
-            if args.dryrun is True:
+            if act is True:
+                citations_db.insert_values(validated_record, act=act)
+            else:
                 msg = 'valid record: {}, {}'.format(
                     validated_record.get('title'), validated_record.get('publication_year'))
                 LOGGER.info(msg)
-            else:
-                citations_db.insert_values(validated_record)
 
         msg = '{} valid records inserted into {} db {}'.format(
-            n_valid, conn_creds['dbname'], '(DRY RUN)' if args.dryrun else '')
+            n_valid, conn_creds['dbname'], '(TEST)' if args.test else '')
         LOGGER.info(msg)
         if n_invalid > 0:
             msg = '{} invalid records skipped'.format(n_invalid)
@@ -96,7 +103,7 @@ def main():
 
     if len(args.citations) > 1:
         msg = '{} total valid records inserted into {} db {}'.format(
-            n_valid_total, conn_creds['dbname'], '(DRY RUN)' if args.dryrun else '')
+            n_valid_total, conn_creds['dbname'], '(TEST)' if args.test else '')
         LOGGER.info(msg)
         if n_invalid_total > 0:
             msg = '{} total invalid records skipped'.format(n_invalid_total)

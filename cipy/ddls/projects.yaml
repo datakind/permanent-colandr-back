@@ -11,18 +11,18 @@ schema:
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
             column_constraints: "NOT NULL"
         -
+            column_name: "creator_user_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "user_ids"
+            data_type: "INTEGER ARRAY"
+            column_constraints: "NOT NULL"
+        -
             column_name: "name"
             data_type: "VARCHAR(500)"
             column_constraints: "NOT NULL"
         -
             column_name: "description"
             data_type: "TEXT"
-        -
-            column_name: "user_ids"
-            data_type: "INTEGER ARRAY"
-            column_constraints: "NOT NULL"
-        -
-            column_name: "creator_user_id"
-            data_type: "INTEGER"
-            column_constraints: "NOT NULL"
 ...

@@ -75,22 +75,17 @@ def main():
         help="""float value in [0.0, 1.0] above which duplicates are automatically
         assigned; if 'auto' (default), an ideal value will be computed from data""")
     parser.add_argument(
-        '--dryrun', action='store_true', default=False,
+        '--test', action='store_true', default=False,
         help='flag to run script without modifying any data or models')
     args = parser.parse_args()
 
-    conn_creds = cipy.db.get_conn_creds(args.database_url)
+    act = not args.test
 
+    conn_creds = cipy.db.get_conn_creds(args.database_url)
     citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
     duplicates_db = cipy.db.PostgresDB(conn_creds, ddl='duplicates')
-
-    duplicates_db.create_table()
-    with duplicates_db.conn.cursor() as cur:
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS duplicates_canonical_citation_id_idx
-            ON duplicates (canonical_citation_id)
-            """)
+    duplicates_db.create_table(act=act)
+    duplicates_db.create_indexes(act=act)
 
     LOGGER.info('reading dedupe settings from %s', args.settings)
     deduper = cipy.db.get_deduper(args.settings, num_cores=2)
@@ -139,11 +134,14 @@ def main():
     csv_file.close()
 
     try:
-        with io.open(csv_file.name, mode='rt') as f:
-            with duplicates_db.conn.cursor() as cur:
-                cur.copy_expert('COPY duplicates FROM STDIN CSV', f)
-        LOGGER.info('inserted %s records into %s db',
-                    n_records, duplicates_db.ddl['table_name'])
+        if act is True:
+            with io.open(csv_file.name, mode='rt') as f:
+                with duplicates_db.conn.cursor() as cur:
+                    cur.copy_expert('COPY duplicates FROM STDIN CSV', f)
+        LOGGER.info('inserted %s records into %s db %s',
+                    n_records,
+                    duplicates_db.ddl['table_name'],
+                    '(TEST)' if act is False else '')
     except psycopg2.DataError:
         LOGGER.exception()
 

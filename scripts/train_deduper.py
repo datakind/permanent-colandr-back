@@ -37,9 +37,11 @@ def main():
     parser.add_argument(
         '--update', action='store_true', default=False)
     parser.add_argument(
-        '--dryrun', action='store_true', default=False,
+        '--test', action='store_true', default=False,
         help='flag to run script without modifying any data or models')
     args = parser.parse_args()
+
+    act = not args.test
 
     # HACK!
     if args.update is True:
@@ -65,7 +67,7 @@ def main():
 
         data = {row['citation_id']: cipy.db.make_immutable(row)
                 for row in citations_db.run_query(
-                    citations_db.ddl['templates']['select_citations_for_dedupe_training'])}
+                    citations_db.ddl['templates']['select_citations_basic_info'])}
         deduper.sample(data, 25000)
 
         if os.path.exists(args.training):
@@ -76,21 +78,21 @@ def main():
         LOGGER.info('starting active labeling...')
         dedupe.consoleLabel(deduper)
 
-        if args.dryrun is False:
+        if act is True:
             LOGGER.info('writing dedupe training data to %s', args.training)
             with io.open(args.training, mode='wt') as f:
                 deduper.writeTraining(f)
         else:
-            LOGGER.info('writing dedupe training data to %s (DRY RUN)', args.training)
+            LOGGER.info('writing dedupe training data to %s (TEST)', args.training)
 
         deduper.train(maximum_comparisons=1000000, recall=0.95)
 
-        if args.dryrun is False:
+        if act is True:
             LOGGER.info('writing dedupe settings data to %s', args.settings)
             with io.open(args.settings, mode='wb') as f:
                 deduper.writeSettings(f)
         else:
-            LOGGER.info('writing dedupe settings data to %s (DRY RUN)', args.settings)
+            LOGGER.info('writing dedupe settings data to %s (TEST)', args.settings)
 
         deduper.cleanupTraining()
 
@@ -131,7 +133,7 @@ def main():
 
     data = ((row['citation_id'], cipy.db.make_immutable(row))
             for row in citations_db.run_query(
-                citations_db.ddl['templates']['select_citations_for_dedupe_training']))
+                citations_db.ddl['templates']['select_citations_basic_info']))
     b_data = deduper.blocker(data)
 
     # Write out blocking map to CSV so we can quickly load in with Postgres COPY
