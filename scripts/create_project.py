@@ -38,12 +38,12 @@ def main():
 
     name = input('Enter project name: ')
     description = input('Enter project description (optional): ')
-    creator_user_id = args.user_id
+    owner_user_id = args.user_id
     user_ids = [args.user_id]
 
     record = {'name': name,
               'description': description,
-              'creator_user_id': creator_user_id,
+              'owner_user_id': owner_user_id,
               'user_ids': user_ids}
     sanitized_record = cipy.validation.project.sanitize(record)
     project = cipy.validation.project.Project(sanitized_record)

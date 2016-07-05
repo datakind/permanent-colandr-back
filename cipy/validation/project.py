@@ -11,7 +11,7 @@ from cipy.validation.sanitizers import sanitize_integer, sanitize_string, saniti
 
 FIELD_SANITIZERS = {
     'created_ts': lambda x: sanitize_type(x, datetime),
-    'creator_user_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'owner_user_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'user_ids': lambda x: [sanitize_integer(item, min_value=0, max_value=2147483647)
                            for item in x],
     'name': lambda x: sanitize_string(x, max_length=500),
@@ -37,8 +37,8 @@ def sanitize(record):
 class Project(Model):
     created_ts = UTCDateTimeType(default=arrow.utcnow().datetime,
                                  convert_tz=True, drop_tzinfo=True)
-    creator_user_id = IntType(required=True,
-                              min_value=0, max_value=2147483647)
+    owner_user_id = IntType(required=True,
+                            min_value=0, max_value=2147483647)
     user_ids = ListType(IntType(min_value=0, max_value=2147483647),
                         required=True)
     name = StringType(required=True,

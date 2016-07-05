@@ -12,11 +12,11 @@ schema:
             column_constraints: "NOT NULL"
         -
             column_name: "name"
-            data_type: "VARCHAR(100)"
+            data_type: "VARCHAR(200)"
             column_constraints: "NOT NULL"
         -
             column_name: "email"
-            data_type: "VARCHAR(100)"
+            data_type: "VARCHAR(200)"
             column_constraints: "NOT NULL"
         -
             column_name: "password"
@@ -27,6 +27,6 @@ schema:
             data_type: "INTEGER ARRAY"
             column_constraints: "NOT NULL"
         -
-            column_name: "created_project_ids"
+            column_name: "owned_project_ids"
             data_type: "INTEGER ARRAY"
 ...
