@@ -15,10 +15,11 @@ import cipy
 
 LOGGER = logging.getLogger('dedupe_records')
 LOGGER.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-LOGGER.addHandler(_handler)
+if len(LOGGER.handlers) == 0:
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    _handler.setFormatter(_formatter)
+    LOGGER.addHandler(_handler)
 
 
 def get_candidate_dupes(citations_db, project_id):

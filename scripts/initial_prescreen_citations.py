@@ -12,10 +12,11 @@ import cipy
 
 LOGGER = logging.getLogger('prescreen_citations')
 LOGGER.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-LOGGER.addHandler(_handler)
+if len(LOGGER.handlers) == 0:
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    _handler.setFormatter(_formatter)
+    LOGGER.addHandler(_handler)
 
 
 def main():

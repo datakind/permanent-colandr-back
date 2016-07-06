@@ -28,4 +28,16 @@ schema:
         -
             column_name: "owned_project_ids"
             data_type: "INTEGER ARRAY"
+templates:
+    check_email_exists: >
+        SELECT true FROM users WHERE email = %(email)s
+    insert_values: >
+        INSERT INTO users (created_ts, name, email, password)
+        VALUES (%(created_ts)s, %(name)s, %(email)s, crypt(%(password)s, gen_salt('bf')))
+    user_login: >
+        SELECT user_id, name, project_ids, owned_project_ids
+        FROM users
+        WHERE
+            email = %(email)s
+            AND crypt(%(password)s, password) = password
 ...

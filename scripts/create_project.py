@@ -11,10 +11,11 @@ import cipy
 
 LOGGER = logging.getLogger('create_project')
 LOGGER.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-LOGGER.addHandler(_handler)
+if len(LOGGER.handlers) == 0:
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    _handler.setFormatter(_formatter)
+    LOGGER.addHandler(_handler)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -33,6 +34,7 @@ def main():
     act = not args.test
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
+    users_db = cipy.db.PostgresDB(conn_creds, ddl='users')
     projects_db = cipy.db.PostgresDB(conn_creds, ddl='projects')
     projects_db.create_table(act=act)
 

@@ -38,6 +38,19 @@ class DDL(object):
         return self.data.get(key, default)
 
     def get_name(self, which='table', name_format_inputs=None):
+        """
+        Get name of table or view for this DDL.
+
+        Args:
+            which ({'table', 'view'})
+            name_format_inputs (str, list[str], or dict): values to be passed into
+                a `.format()` str for the table name; str for a single value,
+                list[str] for an ordered sequence of values, and dict for a mapping
+                of field names to values
+
+        Returns
+            str: table or view name
+        """
         full_name = '{}_name'.format(which)
         name = self.data['schema'].get(full_name) or self.data['schema']['name']
         if not name_format_inputs:
@@ -95,6 +108,18 @@ class DDL(object):
         return template.format(view_name=view_name, tables=tables)
 
     def create_index_statements(self, index_name=None, name_format_inputs=None):
+        """
+        Args:
+            index_name (str): if a particular index statement is wanted, pass in
+                its name to filter specifically for it
+            name_format_inputs (str, list[str], or dict): values to be passed into
+                a `.format()` str for the table name; str for a single value,
+                list[str] for an ordered sequence of values, and dict for a mapping
+                of field names to values
+
+        Returns:
+            str: create index statement, made by filling in template's values
+        """
         template = self.data.get('templates', {}).get('create_index', CREATE_INDEX_STMT).strip()
         statements = []
         for index in self.data['schema'].get('indexes', []):

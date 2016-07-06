@@ -12,15 +12,25 @@ import cipy
 
 LOGGER = logging.getLogger('create_user')
 LOGGER.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-LOGGER.addHandler(_handler)
+if len(LOGGER.handlers) == 0:
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    _handler.setFormatter(_formatter)
+    LOGGER.addHandler(_handler)
+
+
+def email_exists(users_db, email):
+    check = list(users_db.run_query(
+        users_db.ddl['templates']['check_email_exists'],
+        bindings={'email': email}))
+    if check:
+        msg = 'user with email "{}" already exists'.format(email)
+        raise ValueError(msg)
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Create a new systematic map project.')
+        description='Create a new app user.')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
@@ -37,17 +47,17 @@ def main():
 
     name = input('Enter user name: ')
     email = input('Enter user email: ')
-    email_confirm = input('Re-enter user email: ')
+    email_confirm = input('Confirm user email: ')
     while email != email_confirm:
         LOGGER.warning('email mismatch, please try again...')
         email = input('Enter user email: ')
-        email_confirm = input('Re-enter user email: ')
+        email_confirm = input('Confirm user email: ')
     password = getpass.getpass(prompt='Enter password: ')
-    password_confirm = getpass.getpass(prompt='Re-enter password: ')
+    password_confirm = getpass.getpass(prompt='Confirm password: ')
     while password != password_confirm:
         LOGGER.warning('password mismatch, please try again...')
         password = getpass.getpass(prompt='Enter password: ')
-        password_confirm = getpass.getpass(prompt='Re-enter password: ')
+        password_confirm = getpass.getpass(prompt='Confirm password: ')
 
     record = {'name': name,
               'email': email,
@@ -63,8 +73,12 @@ def main():
     validated_record = user.to_primitive()
 
     if act is True:
-        users_db.insert_values(
-            validated_record, columns=list(sanitized_record.keys()), act=act)
+
+        email_exists(users_db, validated_record['email'])
+
+        users_db.execute(
+            users_db.ddl['templates']['insert_values'],
+            bindings=validated_record, act=act)
     else:
         msg = 'valid record: {}'.format(validated_record)
         LOGGER.info(msg)
