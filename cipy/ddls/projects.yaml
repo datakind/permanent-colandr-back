@@ -11,7 +11,7 @@ schema:
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
             column_constraints: "NOT NULL"
         -
-            column_name: "creator_user_id"
+            column_name: "owner_user_id"
             data_type: "INTEGER"
             column_constraints: "NOT NULL"
         -
@@ -25,4 +25,9 @@ schema:
         -
             column_name: "description"
             data_type: "TEXT"
+templates:
+    insert_values: >
+        INSERT INTO projects (created_ts, owner_user_id, user_ids, name, description)
+        VALUES (%(created_ts)s, %(owner_user_id)s, %(user_ids)s, %(name)s, %(description)s)
+        RETURNING project_id
 ...

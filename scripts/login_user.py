@@ -17,6 +17,23 @@ if len(LOGGER.handlers) == 0:
     LOGGER.addHandler(_handler)
 
 
+def get_user_login_info():
+    email = input('Enter email: ')
+    password = getpass.getpass(prompt='Enter password: ')
+    return {'email': email, 'password': password}
+
+
+def get_matching_user(users_db, user_login_info):
+    db_matches = list(users_db.run_query(
+        users_db.ddl['templates']['user_login'],
+        bindings=user_login_info))
+    if not db_matches:
+        raise ValueError('invalid email and/or password')
+    else:
+        assert len(db_matches) == 1
+        return db_matches[0]
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Log-in a user.')
@@ -28,19 +45,12 @@ def main():
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     users_db = cipy.db.PostgresDB(conn_creds, ddl='users')
 
-    email = input('Enter email: ')
-    password = getpass.getpass(prompt='Enter password: ')
+    # manually enter user login info
+    user_login_info = get_user_login_info()
 
-    login = {'email': email, 'password': password}
-
-    result = list(users_db.run_query(
-        users_db.ddl['templates']['user_login'],
-        bindings=login))
-    if not result:
-        raise ValueError('invalid email and/or password')
-    else:
-        user = result[0]
-        LOGGER.info('Welcome, %s!\n%s', user['name'], user)
+    # check if matching user exists in db, log a welcome
+    user = get_matching_user(users_db, user_login_info)
+    LOGGER.info('Welcome, %s!\n%s', user['name'], user)
 
 
 if __name__ == '__main__':

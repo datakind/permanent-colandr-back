@@ -19,7 +19,36 @@ if len(LOGGER.handlers) == 0:
     LOGGER.addHandler(_handler)
 
 
-def email_exists(users_db, email):
+def get_user_info():
+    name = input('Enter user name: ')
+    email = input('Enter user email: ')
+    email_confirm = input('Confirm user email: ')
+    while email != email_confirm:
+        LOGGER.warning('email mismatch, please try again...')
+        email = input('Enter user email: ')
+        email_confirm = input('Confirm user email: ')
+    password = getpass.getpass(prompt='Enter password: ')
+    password_confirm = getpass.getpass(prompt='Confirm password: ')
+    while password != password_confirm:
+        LOGGER.warning('password mismatch, please try again...')
+        password = getpass.getpass(prompt='Enter password: ')
+        password_confirm = getpass.getpass(prompt='Confirm password: ')
+
+    return {'name': name, 'email': email, 'password': password}
+
+
+def sanitize_and_validate_user_info(user_info):
+    sanitized_user_info = cipy.validation.user.sanitize(user_info)
+    user = cipy.validation.user.User(sanitized_user_info)
+    try:
+        user.validate()
+    except ModelValidationError:
+        msg = 'invalid record: {}'.format(sanitized_user_info)
+        LOGGER.exception(msg)
+    return user.to_primitive()
+
+
+def check_if_email_exists(users_db, email):
     check = list(users_db.run_query(
         users_db.ddl['templates']['check_email_exists'],
         bindings={'email': email}))
@@ -45,42 +74,17 @@ def main():
     users_db = cipy.db.PostgresDB(conn_creds, ddl='users')
     users_db.create_table(act=act)
 
-    name = input('Enter user name: ')
-    email = input('Enter user email: ')
-    email_confirm = input('Confirm user email: ')
-    while email != email_confirm:
-        LOGGER.warning('email mismatch, please try again...')
-        email = input('Enter user email: ')
-        email_confirm = input('Confirm user email: ')
-    password = getpass.getpass(prompt='Enter password: ')
-    password_confirm = getpass.getpass(prompt='Confirm password: ')
-    while password != password_confirm:
-        LOGGER.warning('password mismatch, please try again...')
-        password = getpass.getpass(prompt='Enter password: ')
-        password_confirm = getpass.getpass(prompt='Confirm password: ')
+    user_info = get_user_info()
+    validated_user_info = sanitize_and_validate_user_info(user_info)
 
-    record = {'name': name,
-              'email': email,
-              'password': password}
-    sanitized_record = cipy.validation.user.sanitize(record)
-    user = cipy.validation.user.User(sanitized_record)
-    try:
-        user.validate()
-    except ModelValidationError:
-        msg = 'invalid record: {}'.format(sanitized_record)
-        LOGGER.exception(msg)
-
-    validated_record = user.to_primitive()
-
+    # add new user to db if email not already used, or just log output
     if act is True:
-
-        email_exists(users_db, validated_record['email'])
-
+        check_if_email_exists(users_db, validated_user_info['email'])
         users_db.execute(
             users_db.ddl['templates']['insert_values'],
-            bindings=validated_record, act=act)
+            bindings=validated_user_info, act=act)
     else:
-        msg = 'valid record: {}'.format(validated_record)
+        msg = 'valid user: {}'.format(validated_user_info)
         LOGGER.info(msg)
 
 

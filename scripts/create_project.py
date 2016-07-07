@@ -17,6 +17,29 @@ if len(LOGGER.handlers) == 0:
     _handler.setFormatter(_formatter)
     LOGGER.addHandler(_handler)
 
+
+def get_project_info(user_id):
+    name = input('Enter project name: ')
+    description = input('Enter project description (optional): ')
+    owner_user_id = user_id
+    user_ids = [user_id]
+    return {'name': name,
+            'description': description,
+            'owner_user_id': owner_user_id,
+            'user_ids': user_ids}
+
+
+def sanitize_and_validate_project_info(project_info):
+    sanitized_project_info = cipy.validation.project.sanitize(project_info)
+    project = cipy.validation.project.Project(sanitized_project_info)
+    try:
+        project.validate()
+    except ModelValidationError:
+        msg = 'invalid record: {}'.format(sanitized_project_info)
+        LOGGER.exception(msg)
+    return project.to_primitive()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Create a new systematic map project.')
@@ -38,30 +61,20 @@ def main():
     projects_db = cipy.db.PostgresDB(conn_creds, ddl='projects')
     projects_db.create_table(act=act)
 
-    name = input('Enter project name: ')
-    description = input('Enter project description (optional): ')
-    owner_user_id = args.user_id
-    user_ids = [args.user_id]
-
-    record = {'name': name,
-              'description': description,
-              'owner_user_id': owner_user_id,
-              'user_ids': user_ids}
-    sanitized_record = cipy.validation.project.sanitize(record)
-    project = cipy.validation.project.Project(sanitized_record)
-    try:
-        project.validate()
-    except ModelValidationError:
-        msg = 'invalid record: {}'.format(sanitized_record)
-        LOGGER.exception(msg)
-
-    validated_record = project.to_primitive()
+    project_info = get_project_info(args.user_id)
+    validated_project_info = sanitize_and_validate_project_info(project_info)
 
     if act is True:
-        projects_db.insert_values(
-            validated_record, columns=list(sanitized_record.keys()), act=act)
+        created_project_id = list(projects_db.run_query(
+            projects_db.ddl['templates']['insert_values'],
+            validated_project_info,
+            act=act))[0]['project_id']
+        users_db.execute(
+            users_db.ddl['templates']['add_created_project'],
+            {'project_id': created_project_id, 'user_id': args.user_id},
+            act=act)
     else:
-        msg = 'valid record: {}'.format(validated_record)
+        msg = 'valid project: {}'.format(validated_project_info)
         LOGGER.info(msg)
 
 

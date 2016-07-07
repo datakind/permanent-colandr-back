@@ -40,4 +40,10 @@ templates:
         WHERE
             email = %(email)s
             AND crypt(%(password)s, password) = password
+    add_created_project: >
+        UPDATE users
+        SET
+            owned_project_ids = uniq(sort(array_append(owned_project_ids, %(project_id)s))),
+            project_ids = uniq(sort(array_append(project_ids, %(project_id)s)))
+        WHERE user_id = %(user_id)s
 ...
