@@ -26,8 +26,17 @@ schema:
             column_name: "description"
             data_type: "TEXT"
 templates:
-    insert_values: >
+    create_project: >
         INSERT INTO projects (created_ts, owner_user_id, user_ids, name, description)
         VALUES (%(created_ts)s, %(owner_user_id)s, %(user_ids)s, %(name)s, %(description)s)
         RETURNING project_id
+    delete_project: >
+        DELETE from projects
+        WHERE
+            project_id = %(project_id)s
+            AND owner_user_id = %(user_id)s
+        RETURNING project_id
+    get_owner_user_id: >
+        SELECT owner_user_id FROM projects
+        WHERE project_id = %(project_id)s
 ...

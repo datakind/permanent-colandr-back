@@ -65,17 +65,21 @@ def main():
     validated_project_info = sanitize_and_validate_project_info(project_info)
 
     if act is True:
+        # add project to projects table
         created_project_id = list(projects_db.run_query(
-            projects_db.ddl['templates']['insert_values'],
+            projects_db.ddl['templates']['create_project'],
             validated_project_info,
             act=act))[0]['project_id']
-        users_db.execute(
+        # update owner user in users table
+        updated_user_id = list(users_db.run_query(
             users_db.ddl['templates']['add_created_project'],
             {'project_id': created_project_id, 'user_id': args.user_id},
-            act=act)
+            act=act))[0]['user_id']
+        assert updated_user_id == args.user_id
+        LOGGER.info('created project id=%s: %s',
+            created_project_id, validated_project_info)
     else:
-        msg = 'valid project: {}'.format(validated_project_info)
-        LOGGER.info(msg)
+        LOGGER.info('created project (TEST): %s', validated_project_info)
 
 
 if __name__ == '__main__':

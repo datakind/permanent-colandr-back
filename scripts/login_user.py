@@ -25,7 +25,7 @@ def get_user_login_info():
 
 def get_matching_user(users_db, user_login_info):
     db_matches = list(users_db.run_query(
-        users_db.ddl['templates']['user_login'],
+        users_db.ddl['templates']['login_user'],
         bindings=user_login_info))
     if not db_matches:
         raise ValueError('invalid email and/or password')
@@ -50,7 +50,7 @@ def main():
 
     # check if matching user exists in db, log a welcome
     user = get_matching_user(users_db, user_login_info)
-    LOGGER.info('Welcome, %s!\n%s', user['name'], user)
+    LOGGER.info('Welcome, %s id=%s', user['name'], user['user_id'])
 
 
 if __name__ == '__main__':

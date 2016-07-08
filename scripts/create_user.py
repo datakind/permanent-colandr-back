@@ -77,15 +77,18 @@ def main():
     user_info = get_user_info()
     validated_user_info = sanitize_and_validate_user_info(user_info)
 
-    # add new user to db if email not already used, or just log output
+    # add new user to db if email not already used, or just log input
     if act is True:
         check_if_email_exists(users_db, validated_user_info['email'])
-        users_db.execute(
-            users_db.ddl['templates']['insert_values'],
-            bindings=validated_user_info, act=act)
+        created_user_id = list(users_db.run_query(
+            users_db.ddl['templates']['create_user'],
+            bindings=validated_user_info,
+            act=act))[0]['user_id']
+        LOGGER.info('created user id=%s: %s',
+            created_user_id,
+            {k: v for k, v in validated_user_info.items() if k != 'password'})
     else:
-        msg = 'valid user: {}'.format(validated_user_info)
-        LOGGER.info(msg)
+        LOGGER.info('created user (TEST): %s', validated_user_info)
 
 
 if __name__ == '__main__':
