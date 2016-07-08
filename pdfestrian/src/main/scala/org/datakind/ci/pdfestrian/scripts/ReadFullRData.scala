@@ -1,6 +1,6 @@
 package org.datakind.ci.pdfestrian.scripts
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io.{BufferedWriter, File, FileWriter}
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
@@ -42,6 +42,17 @@ case class Study(aid : Int, Study_obj_env : Int, Study_obj_soc : Int, Study_obj_
 case class Aid(index : Int, pdf : PDFExtractedDataMore, bib : BiblioItem, allFields : AllFieldsRecord, biome : Option[Biome],
                interv : Option[Interv], outcome: Option[Outcome], outcomeHWB : Option[OutcomeHWB], pathway : Option[Pathways],
                study : Option[Study]) extends JsonWriter
+
+object Aid {
+  val mapper = new ObjectMapper() with ScalaObjectMapper
+  mapper.registerModule(DefaultScalaModule)
+  def load(string : String) : Seq[Aid] = {
+    val source = Source.fromFile(new File(string))
+    source.getLines().map{ l =>
+      mapper.readValue[Aid](l)
+    }.toSeq
+  }
+}
 
 object ReadBiome {
   def main(args: Array[String]) {

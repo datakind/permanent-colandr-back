@@ -102,5 +102,23 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <artifactId>factorie_2.11</artifactId>
             <version>1.2</version>
         </dependency>
+        <dependency>
+            <groupId>cc.factorie.app.nlp</groupId>
+            <artifactId>all-models</artifactId>
+            <version>1.2</version>
+        </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>IESL Releases</id>
+            <name>IESL Repo</name>
+            <url>https://dev-iesl.cs.umass.edu/nexus/content/groups/public</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+    </repositories>
 </project>

@@ -14,7 +14,7 @@ object FindTopWords {
   val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().toSet
   def getDocuments(file : File) : Seq[Document]= {
     for(f <- file.listFiles(); if f.getAbsolutePath.endsWith("txt")) yield
-      PDFToDocument.fromFile(f)
+      PDFToDocument.fromFile(f) ._1
   }
 
   val counters = new mutable.HashMap[String, Int]() {
