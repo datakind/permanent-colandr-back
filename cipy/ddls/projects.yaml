@@ -34,8 +34,20 @@ templates:
         DELETE from projects
         WHERE
             project_id = %(project_id)s
-            AND owner_user_id = %(user_id)s
+            AND owner_user_id = %(owner_user_id)s
     add_invited_user: >
+        UPDATE projects
+        SET user_ids = uniq(sort(array_append(user_ids, %(user_id)s))
+        WHERE
+            project_id = %(project_id)s
+            AND owner_user_id = %(owner_user_id)s
+    remove_invited_user: >
+        UPDATE projects
+        SET user_ids = user_ids - %(user_id)s
+        WHERE
+            project_id = %(project_id)s
+            AND owner_user_id = %(owner_user_id)s
+    assign_new_owner: >
         TODO
     remove_deleted_user: >
         UPDATE projects

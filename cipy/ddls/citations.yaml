@@ -77,10 +77,10 @@ schema:
 templates:
     select_citations_basic_info: >
         SELECT citation_id, authors, title, abstract, publication_year, doi
-        FROM {table_name}
+        FROM citations
     select_sample_for_dupe_threshold: >
         SELECT citation_id, authors, title, abstract, publication_year, doi
-        FROM {table_name}
+        FROM citations
         WHERE project_id = %(project_id)s
         ORDER BY random()
         LIMIT 20000
@@ -102,7 +102,7 @@ templates:
             + (CASE WHEN issn IS NULL THEN 1 ELSE 0 END)
             + (CASE WHEN publisher IS NULL THEN 1 ELSE 0 END)
             + (CASE WHEN language IS NULL THEN 1 ELSE 0 END)) AS n_null_cols
-        FROM {table_name}
+        FROM citations
         WHERE
             project_id = %(project_id)s
             AND citation_id IN %(citation_ids)s

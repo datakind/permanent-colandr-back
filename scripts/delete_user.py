@@ -31,7 +31,7 @@ def delete_owned_projects(project_ids, user_id, projects_db, act):
     for project_id in project_ids:
         projects_db.execute(
             projects_db.ddl['templates']['delete_project'],
-            {'project_id': project_id, 'user_id': user_id},
+            {'project_id': project_id, 'owner_user_id': user_id},
             act=act)
         LOGGER.info('deleted owned project id=%s %s',
                     project_id, '' if act is True else '(TEST)')
@@ -69,7 +69,7 @@ def main():
     # delete owned projects, or bail out
     owned_projects = get_owned_projects(args.user_id, projects_db)
     if owned_projects:
-        msg_lines = [op['name'] + '(' + op['created_ts'] + ')'
+        msg_lines = [op['name'] + ' (' + op['created_ts'].strftime('%Y-%m-%d') + ')'
                      for op in owned_projects]
         msg = 'The following owned projects will also be deleted:\n{}'.format(
             '\n'.join(msg_lines))

@@ -141,7 +141,7 @@ def main():
                     cur.copy_expert('COPY duplicates FROM STDIN CSV', f)
         LOGGER.info('inserted %s records into %s db %s',
                     n_records,
-                    duplicates_db.ddl['table_name'],
+                    duplicates_db.ddl['schema']['table_name'],
                     '(TEST)' if act is False else '')
     except psycopg2.DataError:
         LOGGER.exception()

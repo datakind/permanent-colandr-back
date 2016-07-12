@@ -62,7 +62,7 @@ def main():
     # delete project from projects table
     projects_db.execute(
         projects_db.ddl['templates']['delete_project'],
-        {'project_id': args.project_id, 'user_id': owner_user_id},
+        {'project_id': args.project_id, 'owner_user_id': owner_user_id},
         act=act)
 
     # remove project from associated users in users table
