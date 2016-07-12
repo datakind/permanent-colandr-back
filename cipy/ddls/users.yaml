@@ -36,7 +36,6 @@ templates:
     delete_user: >
         DELETE from users
         WHERE user_id = %(user_id)s
-        RETURNING user_id
     login_user: >
         SELECT user_id, name, project_ids, owned_project_ids
         FROM users

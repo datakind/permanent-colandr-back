@@ -5,8 +5,6 @@ import argparse
 import logging
 import sys
 
-from schematics.exceptions import ModelValidationError
-
 import cipy
 
 LOGGER = logging.getLogger('delete_project')
@@ -58,26 +56,25 @@ def main():
     users_db = cipy.db.PostgresDB(conn_creds, ddl='users')
     projects_db = cipy.db.PostgresDB(conn_creds, ddl='projects')
 
+    owner_user_id = verify_user_is_project_owner(
+        args.user_id, args.project_id, projects_db)
+
+    # delete project from projects table
+    projects_db.execute(
+        projects_db.ddl['templates']['delete_project'],
+        {'project_id': args.project_id, 'user_id': owner_user_id},
+        act=act)
+
+    # remove project from associated users in users table
+    updated_users = users_db.run_query(
+        users_db.ddl['templates']['remove_deleted_project'],
+        {'project_id': args.project_id},
+        act=act)
+
     if act is True:
-
-        owner_user_id = verify_user_is_project_owner(
-            args.user_id, args.project_id, projects_db)
-
-        # delete project from projects table
-        deleted_project_id = list(projects_db.run_query(
-            projects_db.ddl['templates']['delete_project'],
-            {'project_id': args.project_id, 'user_id': owner_user_id},
-            act=True))[0]['project_id']
-
-        # remove project from associated users in users table
-        update_users = users_db.run_query(
-            users_db.ddl['templates']['remove_deleted_project'],
-            {'project_id': args.project_id},
-            act=True)
-        modified_user_ids = [user['user_id'] for user in update_users]
-        LOGGER.info('project id=%s removed from users ids=%s',
-                    deleted_project_id, modified_user_ids)
-
+        updated_user_ids = [user['user_id'] for user in updated_users]
+        LOGGER.info('project id=%s removed from user ids=%s',
+                    args.project_id, updated_user_ids)
     else:
         LOGGER.info('deleted project id=%s (TEST)', args.project_id)
 

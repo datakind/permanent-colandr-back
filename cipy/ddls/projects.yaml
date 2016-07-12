@@ -35,6 +35,12 @@ templates:
         WHERE
             project_id = %(project_id)s
             AND owner_user_id = %(user_id)s
+    add_invited_user: >
+        TODO
+    remove_deleted_user: >
+        UPDATE projects
+        SET user_ids = user_ids - %(user_id)s
+        WHERE %(user_id)s = ANY(user_ids)
         RETURNING project_id
     get_owner_user_id: >
         SELECT owner_user_id FROM projects
