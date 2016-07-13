@@ -1,13 +1,28 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from schematics.models import Model
-from schematics.types import (ModelType, DictType, IntType, ListType, StringType,
-                              URLType, UTCDateTimeType)
+from schematics.types import ModelType, DictType, IntType, ListType, StringType, URLType
 
 from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
-# TODO!
-FIELD_SANITIZERS = {}
+
+FIELD_SANITIZERS = {
+    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'objective': sanitize_string,
+    'pico': lambda x: {key: sanitize_string(val) for key, val in x.items()},
+    'label': lambda x: sanitize_string(x, max_length=25),
+    'question': lambda x: sanitize_string(x, max_length=500),
+    'rank': lambda x: sanitize_integer(x, min_value=0, max_value=25),
+    'term': lambda x: sanitize_string(x, max_length=100),
+    'synonyms': lambda x: [sanitize_string(item, max_length=100)
+                           for item in x],
+    'group': lambda x: sanitize_string(x, max_length=100),
+    'name': lambda x: sanitize_string(x, max_length=100),
+    'url': sanitize_string,
+    'notes': sanitize_string,
+    'label': lambda x: sanitize_string(x, max_length=25),
+    'explanation': sanitize_string,
+}
 
 
 def sanitize(record):
@@ -21,29 +36,38 @@ def sanitize(record):
     Returns:
         dict
     """
-    return {key: FIELD_SANITIZERS[key](value)
-            for key, value in record.items()}
+    list_keys = {'research_questions', 'keyterms', 'data_sources',
+                 'inclusion_criteria', 'exclusion_criteria'}
+    sanitized_record = {}
+    for key, value in record.items():
+        if key in list_keys:
+            sanitized_record[key] = [{subkey: FIELD_SANITIZERS[subkey](subvalue)
+                                      for subkey, subvalue in item.items()}
+                                     for item in value]
+        else:
+            sanitized_record[key] = FIELD_SANITIZERS[key](value)
+    return sanitized_record
 
 
 class ResearchQuestion(Model):
-    text = StringType(required=True)
-    rank = IntType(required=True)
+    question = StringType(required=True, max_length=500)
+    rank = IntType(required=True, min_value=0, max_value=25)
 
 
 class Keyterm(Model):
-    text = StringType(required=True)
-    synonyms = ListType(StringType)
-    group = StringType(required=True)
+    group = StringType(required=True, max_length=100)
+    term = StringType(required=True, max_length=100)
+    synonyms = ListType(StringType(max_length=100))
 
 
 class DataSource(Model):
-    name = StringType(required=True)
+    name = StringType(required=True, max_length=100)
     url = URLType(required=True)
     notes = StringType()
 
 
 class SelectionCriterion(Model):
-    label = StringType(required=True)
+    label = StringType(required=True, max_length=25)
     explanation = StringType()
 
 
@@ -52,7 +76,7 @@ class ReviewPlan(Model):
                         min_value=0, max_value=2147483647)
     objective = StringType()
     research_questions = ListType(ModelType(ResearchQuestion))
-    pico = DictType()
+    pico = DictType(StringType)
     keyterms = ListType(ModelType(Keyterm))
     data_sources = ListType(ModelType(DataSource))
     inclusion_criteria = ListType(ModelType(SelectionCriterion))
