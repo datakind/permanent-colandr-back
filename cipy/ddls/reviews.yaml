@@ -1,9 +1,9 @@
 ---
 schema:
-    table_name: "projects"
+    table_name: "reviews"
     columns:
         -
-            column_name: "project_id"
+            column_name: "review_id"
             data_type: "SERIAL"
             column_constraints: "PRIMARY KEY"
         -
@@ -26,35 +26,35 @@ schema:
             column_name: "description"
             data_type: "TEXT"
 templates:
-    create_project: >
-        INSERT INTO projects (created_ts, owner_user_id, user_ids, name, description)
+    create_review: >
+        INSERT INTO reviews (created_ts, owner_user_id, user_ids, name, description)
         VALUES (%(created_ts)s, %(owner_user_id)s, %(user_ids)s, %(name)s, %(description)s)
-        RETURNING project_id
-    delete_project: >
-        DELETE from projects
+        RETURNING review_id
+    delete_review: >
+        DELETE from reviews
         WHERE
-            project_id = %(project_id)s
+            review_id = %(review_id)s
             AND owner_user_id = %(owner_user_id)s
     add_invited_user: >
-        UPDATE projects
+        UPDATE reviews
         SET user_ids = uniq(sort(array_append(user_ids, %(user_id)s))
         WHERE
-            project_id = %(project_id)s
+            review_id = %(review_id)s
             AND owner_user_id = %(owner_user_id)s
     remove_invited_user: >
-        UPDATE projects
+        UPDATE reviews
         SET user_ids = user_ids - %(user_id)s
         WHERE
-            project_id = %(project_id)s
+            review_id = %(review_id)s
             AND owner_user_id = %(owner_user_id)s
     assign_new_owner: >
         TODO
     remove_deleted_user: >
-        UPDATE projects
+        UPDATE reviews
         SET user_ids = user_ids - %(user_id)s
         WHERE %(user_id)s = ANY(user_ids)
-        RETURNING project_id
+        RETURNING review_id
     get_owner_user_id: >
-        SELECT owner_user_id FROM projects
-        WHERE project_id = %(project_id)s
+        SELECT owner_user_id FROM reviews
+        WHERE review_id = %(review_id)s
 ...

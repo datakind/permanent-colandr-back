@@ -11,7 +11,7 @@ from cipy.validation.sanitizers import sanitize_integer, sanitize_string, saniti
 
 FIELD_SANITIZERS = {
     'created_ts': lambda x: sanitize_type(x, datetime),
-    'project_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'user_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'type_of_work': lambda x: sanitize_string(x, max_length=25),
     'title': lambda x: sanitize_string(x, max_length=250),
@@ -53,8 +53,8 @@ def sanitize(record):
 
 
 class Citation(Model):
-    project_id = IntType(required=True,
-                         min_value=0, max_value=2147483647)
+    review_id = IntType(required=True,
+                        min_value=0, max_value=2147483647)
     user_id = IntType(required=True,
                       min_value=0, max_value=2147483647)
     created_ts = UTCDateTimeType(default=arrow.utcnow().datetime,

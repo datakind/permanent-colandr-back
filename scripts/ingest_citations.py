@@ -32,8 +32,8 @@ def main():
         '--user_id', type=int, required=True, metavar='user_id',
         help='unique identifier of current user')
     parser.add_argument(
-        '--project_id', type=int, required=True, metavar='project_id',
-        help='unique identifier of current systematic map project')
+        '--review_id', type=int, required=True, metavar='review_id',
+        help='unique identifier of current systematic map review')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
@@ -66,7 +66,7 @@ def main():
         n_invalid = 0
         for record in citations_file.parse():
 
-            record['project_id'] = args.project_id
+            record['review_id'] = args.review_id
             record['user_id'] = args.user_id
             sanitized_record = cipy.validation.citation.sanitize(record)
 

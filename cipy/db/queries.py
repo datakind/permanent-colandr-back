@@ -7,15 +7,15 @@ GET_CANDIDATE_DUPE_CLUSTERS = """
         citations AS t1,
         dedupe_smaller_coverage AS t2
     WHERE
-        project_id = %(project_id)s
+        review_id = %(review_id)s
         AND t1.citation_id = t2.citation_id
         AND t1.citation_id NOT IN (SELECT citation_id
                                    FROM duplicates
-                                   WHERE project_id = %(project_id)s)
+                                   WHERE review_id = %(review_id)s)
     ORDER BY t2.block_id
 """
 
-# TODO: add project_id filter to these queries?
+# TODO: add review_id filter to these queries?
 DUPLICATE_CITATION_IDS = """
     ((SELECT citation_id FROM duplicates)
      EXCEPT (SELECT canonical_citation_id FROM duplicates))
@@ -29,7 +29,7 @@ GET_CITATION_TEXTS_SAMPLE = r"""
                        COALESCE(ARRAY_TO_STRING(keywords, ', '), ''))) AS citation_text
     FROM citations
     WHERE
-        project_id = %(project_id)s
+        review_id = %(review_id)s
         AND citation_id NOT IN {duplicate_citation_ids}
     ORDER BY random()
     LIMIT 1000

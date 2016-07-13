@@ -10,7 +10,7 @@ import pandas as pd
 
 import cipy
 
-LOGGER = logging.getLogger('prescreen_citations')
+LOGGER = logging.getLogger('initial_prescreen_citations')
 LOGGER.setLevel(logging.INFO)
 if len(LOGGER.handlers) == 0:
     _handler = logging.StreamHandler()
@@ -23,8 +23,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Pre-screen citation records!')
     parser.add_argument(
-        '--project_id', type=int, required=True, metavar='project_id',
-        help='unique identifier of current systematic map project')
+        '--review_id', type=int, required=True, metavar='review_id',
+        help='unique identifier of current systematic map review')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
@@ -42,13 +42,13 @@ def main():
     query = """
     SELECT COUNT(1) AS n
     FROM prescreening
-    WHERE project_id = %(project_id)s
+    WHERE review_id = %(review_id)s
     """
 
-    count = list(prescreening_db.run_query(query, {'project_id': args.project_id}))[0]['n']
+    count = list(prescreening_db.run_query(query, {'review_id': args.review_id}))[0]['n']
     if count > 0:
-        msg = 'project {} already has {} pre-screened citations'.format(
-            args.project_id, count)
+        msg = 'review {} already has {} pre-screened citations'.format(
+            args.review_id, count)
         warnings.warn(msg, UserWarning)
 
     n_iter = 0
@@ -59,7 +59,7 @@ def main():
 
         results = prescreening_db.run_query(
             cipy.db.queries.GET_CITATION_TEXTS_SAMPLE,
-            bindings={'project_id': args.project_id})
+            bindings={'review_id': args.review_id})
         df = pd.DataFrame(results)
 
         break

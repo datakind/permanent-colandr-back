@@ -1,3 +1,3 @@
 from . import citation
-from . import project
+from . import review
 from . import user

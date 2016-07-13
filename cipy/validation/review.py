@@ -21,8 +21,8 @@ FIELD_SANITIZERS = {
 
 def sanitize(record):
     """
-    After parsing but before creating a `Project` model, sanitize the values
-    in a project `record` so that they'll pass validation.
+    After parsing but before creating a `Review` model, sanitize the values
+    in a review `record` so that they'll pass validation.
 
     Args:
         record (dict)
@@ -34,7 +34,7 @@ def sanitize(record):
             for key, value in record.items()}
 
 
-class Project(Model):
+class Review(Model):
     created_ts = UTCDateTimeType(default=arrow.utcnow().datetime,
                                  convert_tz=True, drop_tzinfo=True)
     owner_user_id = IntType(required=True,

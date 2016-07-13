@@ -22,18 +22,18 @@ if len(LOGGER.handlers) == 0:
     LOGGER.addHandler(_handler)
 
 
-def get_candidate_dupes(citations_db, project_id):
+def get_candidate_dupes(citations_db, review_id):
     """
     Args:
         citations_db (cipy.db.PostgresDB)
-        project_id (int)
+        review_id (int)
 
     Yields:
         list[tuple]
     """
     results = citations_db.run_query(
         cipy.db.queries.GET_CANDIDATE_DUPE_CLUSTERS,
-        {'project_id': project_id})
+        {'review_id': review_id})
 
     block_id = None
     records = []
@@ -63,8 +63,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='De-duplicate citation records!')
     parser.add_argument(
-        '--project_id', type=int, required=True, metavar='project_id',
-        help='unique identifier of current systematic map project')
+        '--review_id', type=int, required=True, metavar='review_id',
+        help='unique identifier of current systematic map review')
     parser.add_argument(
         '--settings', type=str, required=True, metavar='settings_file_path',
         help='path to file on disk where dedupe model settings are saved')
@@ -94,7 +94,7 @@ def main():
     if args.threshold == 'auto':
         results = citations_db.run_query(
             citations_db.ddl['templates']['select_sample_for_dupe_threshold'],
-            {'project_id': args.project_id})
+            {'review_id': args.review_id})
         dupe_threshold = deduper.threshold(
             {row['citation_id']: cipy.db.make_immutable(row) for row in results},
             recall_weight=0.5)
@@ -108,7 +108,7 @@ def main():
     LOGGER.info('duplicate threshold = %s', dupe_threshold)
 
     clustered_dupes = deduper.matchBlocks(
-        get_candidate_dupes(citations_db, args.project_id),
+        get_candidate_dupes(citations_db, args.review_id),
         threshold=dupe_threshold)
     LOGGER.info('found %s duplicate clusters', len(clustered_dupes))
 
@@ -122,14 +122,14 @@ def main():
                                      for cid, score in zip(cids, scores)}
         canonical_citation = citations_db.run_query(
             citations_db.ddl['templates']['select_dupe_cluster_canonical_id'],
-            {'project_id': args.project_id,
+            {'review_id': args.review_id,
              'citation_ids': tuple(int(cid) for cid in cids)})
         canonical_citation_id = tuple(canonical_citation)[0]['citation_id']
 
         for citation_id, duplicate_score in citation_duplicate_scores.items():
             n_records += 1
             csv_writer.writerow(
-                (citation_id, args.project_id, canonical_citation_id,
+                (citation_id, args.review_id, canonical_citation_id,
                  duplicate_score, False, None))
 
     csv_file.close()

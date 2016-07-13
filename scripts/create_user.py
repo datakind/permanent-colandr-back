@@ -85,10 +85,11 @@ def main():
             bindings=validated_user_info,
             act=act))[0]['user_id']
         LOGGER.info('created user id=%s: %s',
-            created_user_id,
-            {k: v for k, v in validated_user_info.items() if k != 'password'})
+                    created_user_id,
+                    {k: v for k, v in validated_user_info.items() if k != 'password'})
     else:
-        LOGGER.info('created user (TEST): %s', validated_user_info)
+        LOGGER.info('created user (TEST): %s',
+                    {k: v for k, v in validated_user_info.items() if k != 'password'})
 
 
 if __name__ == '__main__':

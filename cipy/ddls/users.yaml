@@ -23,10 +23,10 @@ schema:
             data_type: "VARCHAR"
             column_constraints: "NOT NULL"
         -
-            column_name: "project_ids"
+            column_name: "review_ids"
             data_type: "INTEGER ARRAY"
         -
-            column_name: "owned_project_ids"
+            column_name: "owned_review_ids"
             data_type: "INTEGER ARRAY"
 templates:
     create_user: >
@@ -37,24 +37,24 @@ templates:
         DELETE from users
         WHERE user_id = %(user_id)s
     login_user: >
-        SELECT user_id, name, project_ids, owned_project_ids
+        SELECT user_id, name, review_ids, owned_review_ids
         FROM users
         WHERE
             email = %(email)s
             AND crypt(%(password)s, password) = password
-    add_created_project: >
+    add_created_review: >
         UPDATE users
         SET
-            owned_project_ids = uniq(sort(array_append(owned_project_ids, %(project_id)s))),
-            project_ids = uniq(sort(array_append(project_ids, %(project_id)s)))
+            owned_review_ids = uniq(sort(array_append(owned_review_ids, %(review_id)s))),
+            review_ids = uniq(sort(array_append(review_ids, %(review_id)s)))
         WHERE user_id = %(user_id)s
         RETURNING user_id
-    remove_deleted_project: >
+    remove_deleted_review: >
         UPDATE users
         SET
-            owned_project_ids = owned_project_ids - %(project_id)s,
-            project_ids = project_ids - %(project_id)s
-        WHERE %(project_id)s = ANY(project_ids)
+            owned_review_ids = owned_review_ids - %(review_id)s,
+            review_ids = review_ids - %(review_id)s
+        WHERE %(review_id)s = ANY(review_ids)
         RETURNING user_id
     check_email_exists: >
         SELECT true FROM users WHERE email = %(email)s

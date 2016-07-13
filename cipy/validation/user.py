@@ -18,10 +18,10 @@ FIELD_SANITIZERS = {
     'name': lambda x: sanitize_string(x, max_length=200),
     'email': lambda x: sanitize_string(x, max_length=200),
     'password': sanitize_string,
-    'project_ids': lambda x: [sanitize_integer(item, min_value=0, max_value=2147483647)
-                              for item in x],
-    'owned_project_ids': lambda x: [sanitize_integer(item, min_value=0, max_value=2147483647)
-                                    for item in x],
+    'review_ids': lambda x: [sanitize_integer(item, min_value=0, max_value=2147483647)
+                             for item in x],
+    'owned_review_ids': lambda x: [sanitize_integer(item, min_value=0, max_value=2147483647)
+                                   for item in x],
 }
 
 
@@ -55,5 +55,5 @@ class User(Model):
     email = StringType(required=True,
                        validators=[validate_email], max_length=200)
     password = StringType(required=True)
-    project_ids = ListType(IntType(min_value=0, max_value=2147483647))
-    owned_project_ids = ListType(IntType(min_value=0, max_value=2147483647))
+    review_ids = ListType(IntType(min_value=0, max_value=2147483647))
+    owned_review_ids = ListType(IntType(min_value=0, max_value=2147483647))

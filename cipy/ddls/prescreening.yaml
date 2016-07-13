@@ -7,7 +7,7 @@ schema:
             data_type: "BIGINT"
             column_constraints: "PRIMARY KEY"
         -
-            column_name: "project_id"
+            column_name: "review_id"
             data_type: "INTEGER"
             column_constraints: "NOT NULL"
         -
@@ -36,7 +36,7 @@ schema:
             data_type: "CHAR(8)"
     indexes:
         -
-            index_name: prescreening_project_id_idx
-            column_name: project_id
+            index_name: prescreening_review_id_idx
+            column_name: review_id
             unique: False
 ...

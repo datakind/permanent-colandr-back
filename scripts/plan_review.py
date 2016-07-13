@@ -9,7 +9,7 @@ from schematics.exceptions import ModelValidationError
 
 import cipy
 
-LOGGER = logging.getLogger('create_project')
+LOGGER = logging.getLogger('plan_review')
 LOGGER.setLevel(logging.INFO)
 if len(LOGGER.handlers) == 0:
     _handler = logging.StreamHandler()
@@ -43,13 +43,13 @@ def get_research_questions():
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Create a new systematic map project.')
+        description='Create a new systematic map review.')
     parser.add_argument(
         '--user_id', type=int, required=True, metavar='user_id',
         help='unique identifier of current user')
     parser.add_argument(
-        '--project_id', type=int, required=True, metavar='project_id',
-        help='unique identifier of current systematic map project')
+        '--review_id', type=int, required=True, metavar='review_id',
+        help='unique identifier of current systematic map review')
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
@@ -61,7 +61,7 @@ def main():
     act = not args.test
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
-    projects_db = cipy.db.PostgresDB(conn_creds, ddl='projects')
+    reviews_db = cipy.db.PostgresDB(conn_creds, ddl='reviews')
 
     objective = get_objective()
     research_questions = get_research_questions()
