@@ -1,0 +1,25 @@
+---
+schema:
+    table_name: "review_settings"
+    columns:
+        -
+            column_name: "review_id"
+            data_type: "INTEGER"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "num_prescreening_reviewers"
+            data_type: "INTEGER"
+            column_constraints: "DEFAULT 2"
+        -
+            column_name: "num_screening_reviewers"
+            data_type: "INTEGER"
+            column_constraints: "DEFAULT 2"
+        -
+            column_name: "required_prescreener_id"
+            data_type: "INTEGER"
+            column_constraints: "DEFAULT NULL"
+        -
+            column_name: "required_screener_id"
+            data_type: "INTEGER"
+            column_constraints: "DEFAULT NULL"
+...

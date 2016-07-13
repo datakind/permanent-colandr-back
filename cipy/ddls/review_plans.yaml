@@ -1,0 +1,30 @@
+---
+schema:
+    table_name: "review_plans"
+    columns:
+        -
+            column_name: "review_id"
+            data_type: "INTEGER"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "objective"
+            data_type: "TEXT"
+        -
+            column_name: "research_questions"
+            data_type: "JSONB"
+        -
+            column_name: "pico"
+            data_type: "JSONB"
+        -
+            column_name: "keyterms"
+            data_type: "JSONB"
+        -
+            column_name: "data_sources"
+            data_type: "JSONB"
+        -
+            column_name: "inclusion_criteria"
+            data_type: "JSONB"
+        -
+            column_name: "exclusion_criteria"
+            data_type: "JSONB"
+...
