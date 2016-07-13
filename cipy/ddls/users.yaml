@@ -56,6 +56,14 @@ templates:
             review_ids = review_ids - %(review_id)s
         WHERE %(review_id)s = ANY(review_ids)
         RETURNING user_id
+    add_review: >
+        UPDATE users
+        SET review_ids = uniq(sort(array_append(review_ids, %(review_id)s)))
+        WHERE user_id = %(user_id)s
+    remove_review: >
+        UPDATE users
+        SET review_ids = review_ids - %(review_id)s
+        WHERE user_id = %(user_id)s
     check_email_exists: >
         SELECT true FROM users WHERE email = %(email)s
 ...

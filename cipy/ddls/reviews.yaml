@@ -35,13 +35,13 @@ templates:
         WHERE
             review_id = %(review_id)s
             AND owner_user_id = %(owner_user_id)s
-    add_invited_user: >
+    add_collaborator: >
         UPDATE reviews
-        SET user_ids = uniq(sort(array_append(user_ids, %(user_id)s))
+        SET user_ids = uniq(sort(array_append(user_ids, %(user_id)s)))
         WHERE
             review_id = %(review_id)s
             AND owner_user_id = %(owner_user_id)s
-    remove_invited_user: >
+    remove_collaborator: >
         UPDATE reviews
         SET user_ids = user_ids - %(user_id)s
         WHERE
