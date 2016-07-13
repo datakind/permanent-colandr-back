@@ -1,6 +1,6 @@
 ---
 schema:
-    table_name: "review_planning"
+    table_name: "review_plans"
     columns:
         -
             column_name: "review_id"

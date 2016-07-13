@@ -19,7 +19,7 @@ if len(LOGGER.handlers) == 0:
 
 
 def get_objective():
-    objective = input('Enter review objective:\n')
+    objective = input('Review objective:\n')
     return objective
 
 
@@ -27,7 +27,7 @@ def get_research_questions():
     rqs = []
     idx = 0
     while True:
-        question = input('Enter research question:\n')
+        question = input('\nResearch question:\n')
         if question:
             rqs.append({'question': question, 'idx': idx})
             idx += 1
