@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 from schematics.models import Model
-from schematics.types import ModelType, DictType, IntType, ListType, StringType, URLType
+from schematics.types import ModelType, DictType, IntType, ListType, StringType
 
 from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
@@ -17,12 +17,9 @@ FIELD_SANITIZERS = {
     'synonyms': lambda x: [sanitize_string(item, max_length=100)
                            for item in x],
     'group': lambda x: sanitize_string(x, max_length=100),
-    'name': lambda x: sanitize_string(x, max_length=100),
-    'url': sanitize_string,
-    'notes': sanitize_string,
     'label': lambda x: sanitize_string(x, max_length=25),
-    'explanation': sanitize_string,
-}
+    'explanation': sanitize_string
+    }
 
 
 def sanitize(record):
@@ -36,15 +33,14 @@ def sanitize(record):
     Returns:
         dict
     """
-    list_keys = {'research_questions', 'keyterms', 'data_sources',
-                 'inclusion_criteria', 'exclusion_criteria'}
+    list_keys = {'research_questions', 'keyterms', 'selection_criteria'}
     sanitized_record = {}
     for key, value in record.items():
-        if key in list_keys:
+        if key in list_keys and value:
             sanitized_record[key] = [{subkey: FIELD_SANITIZERS[subkey](subvalue)
                                       for subkey, subvalue in item.items()}
                                      for item in value]
-        else:
+        elif value:
             sanitized_record[key] = FIELD_SANITIZERS[key](value)
     return sanitized_record
 
@@ -60,12 +56,6 @@ class Keyterm(Model):
     synonyms = ListType(StringType(max_length=100))
 
 
-class DataSource(Model):
-    name = StringType(required=True, max_length=100)
-    url = URLType(required=True)
-    notes = StringType()
-
-
 class SelectionCriterion(Model):
     label = StringType(required=True, max_length=25)
     explanation = StringType()
@@ -78,6 +68,4 @@ class ReviewPlan(Model):
     research_questions = ListType(ModelType(ResearchQuestion))
     pico = DictType(StringType)
     keyterms = ListType(ModelType(Keyterm))
-    data_sources = ListType(ModelType(DataSource))
-    inclusion_criteria = ListType(ModelType(SelectionCriterion))
-    exclusion_criteria = ListType(ModelType(SelectionCriterion))
+    selection_criteria = ListType(ModelType(SelectionCriterion))

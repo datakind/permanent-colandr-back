@@ -81,7 +81,7 @@ class DDL(object):
         table_name = self.get_name(which='table', name_format_inputs=name_format_inputs)
         columns = [(column.get('column_name') or column['name'],
                     column['data_type'],
-                    column.get('constraints', ''))
+                    column.get('column_constraints', ''))
                    for column in self.data['schema']['columns']]
         columns = ', '.join(' '.join(comp for comp in column if comp)
                             for column in columns)

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
+import json
 import logging
 import re
 import sys
@@ -21,18 +22,21 @@ if len(LOGGER.handlers) == 0:
 
 def present_review_plan(plan):
     print('\nPROJECT PLAN')
-    print('\nObjective: {}'.format(plan.get('objective')))
+    if plan.get('objective'):
+        print('\nObjective:\n{}'.format(plan.get('objective')))
+    else:
+        print('\nObjective: None')
 
     if plan.get('research_questions'):
         print('\nResearch Questions:\n{}'.format(
             '\n'.join('{0:>2} {1}'.format(rq['rank'], rq['question'])
                       for rq in plan['research_questions'])))
     else:
-        print('Research Questions: {}'.format(None))
+        print('Research Questions: None')
 
     if plan.get('pico'):
         print('\nPICO:\n{}'.format(
-            '\n'.join('\t{0:<14}: {1}'.format(key.title(), plan['pico'].get(key))
+            '\n'.join('- {0:<14}: {1}'.format(key.title(), plan['pico'].get(key))
                       for key in ('population', 'intervention', 'comparator', 'outcome'))))
     else:
         print('PICO: None')
@@ -41,17 +45,18 @@ def present_review_plan(plan):
         print('\nKeyterms:')
         groups = {kt['group'] for kt in plan['keyterms']}
         for group in groups:
-            print('\tGroup: {}'.format(group))
-            print('\n'.join('\t{} {}'.format(kt['term'], '(synonyms: {})'.format(kt['synonyms']) if kt.get('synonyms') else '')
+            print('- Group: {}'.format(group))
+            print('\n'.join('    - {} {}'.format(kt['term'], '(synonyms: {})'.format(kt['synonyms']) if kt.get('synonyms') else '')
                             for kt in plan['keyterms'] if kt['group'] == group))
     else:
         print('Keyterms: None')
 
-    if plan.get('data_sources'):
-        print('\nData Sources:\n{}'.format(
-            '\n'.join('{} {}'.format(ds['name'], ds['url']) for ds in plan['data_sources'])))
+    if plan.get('selection_criteria'):
+        print('\nSelection Criteria:\n{}'.format(
+            '\n'.join('- {}: {}'.format(sc['label'], sc['explanation'])
+                      for sc in plan['selection_criteria'])))
     else:
-        print('Data Sources: None')
+        print('Selection Criteria: None')
 
     print('')
 
@@ -62,7 +67,7 @@ def get_objective():
 
 
 def get_research_questions():
-    print('Research Questions')
+    print('\nResearch Questions')
     rqs = []
     rank = 0
     while True:
@@ -76,20 +81,20 @@ def get_research_questions():
 
 
 def get_pico():
-    print('PICO')
+    print('\nPICO')
     pico = {}
     for key in ('population', 'intervention', 'comparator', 'outcome'):
-        value = input('{}: '.format(key.title()))
+        value = input('{}:\n'.format(key.title()))
         if value:
             pico[key] = value
     return pico
 
 
 def get_keyterms():
-    print('Keyterms')
+    print('\nKeyterms')
     keyterms = []
     while True:
-        group = input('\nGroup: ')
+        group = input('\nGroup name: ')
         if not group:
             break
         while True:
@@ -106,22 +111,23 @@ def get_keyterms():
     return keyterms
 
 
-def get_data_sources():
-    print('Data Sources')
-    data_sources = []
+def get_selection_criteria():
+    print('\nSelection Criteria')
+    criteria = []
     while True:
-        name = input('\nName: ')
-        if not name:
+        label = input('\nCriterion label: ')
+        if not label:
             break
         while True:
-            url = input('URL: ')
-            if url:
+            explanation = input('"{}" explanation:\n'.format(label))
+            if explanation:
                 break
             else:
-                print('URL is required!')
-        notes = input('Notes, if any: ')
-        data_sources.append({'name': name, 'url': url, notes: notes})
-    return data_sources
+                sure = input('No explanation — are you sure (y/n)? ')
+                if sure == 'y':
+                    break
+        criteria.append({'label': label, 'explanation': explanation})
+    return criteria
 
 
 def sanitize_and_validate_plan(plan):
@@ -135,9 +141,17 @@ def sanitize_and_validate_plan(plan):
     return review_plan.to_primitive()
 
 
+def dump_json_fields_to_str(validated_plan):
+    list_keys = {'research_questions', 'pico', 'keyterms', 'selection_criteria'}
+    for key in list_keys:
+        if validated_plan.get(key):
+            validated_plan[key] = json.dumps(validated_plan[key])
+    return validated_plan
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description='Create a new systematic map review.')
+        description='Plan out a systematic review.')
     parser.add_argument(
         '--user_id', type=int, required=True, metavar='user_id',
         help='unique identifier of current user')
@@ -156,6 +170,7 @@ def main():
 
     conn_creds = cipy.db.get_conn_creds(args.database_url)
     plans_db = cipy.db.PostgresDB(conn_creds, ddl='review_plans')
+    plans_db.create_table()
 
     query = "SELECT * FROM review_plans WHERE review_id = %(review_id)s"
     try:
@@ -166,19 +181,27 @@ def main():
     present_review_plan(plan)
 
     print('\nUPDATES:')
-    updated_plan = {}
+    updated_plan = {'review_id': args.review_id}
     updated_plan['objective'] = get_objective()
     updated_plan['research_questions'] = get_research_questions()
     updated_plan['pico'] = get_pico()
     updated_plan['keyterms'] = get_keyterms()
-    updated_plan['data_sources'] = get_data_sources()
+    updated_plan['selection_criteria'] = get_selection_criteria()
 
     updated_plan = {key: value for key, value in updated_plan.items() if value}
     plan.update(updated_plan)
-    plan['review_id'] = args.review_id
 
     validated_plan = sanitize_and_validate_plan(plan)
     present_review_plan(validated_plan)
+    validated_plan = dump_json_fields_to_str(validated_plan)
+
+    plans_db.execute(
+        plans_db.ddl['templates']['upsert_values'], validated_plan, act=act)
+    msg = 'valid record: review_id={} with {}, {}'.format(
+        validated_plan['review_id'],
+        {k for k, v in validated_plan.items() if k != 'review_id' and v},
+        '' if act is True else '(TEST)')
+    LOGGER.info(msg)
 
 
 if __name__ == '__main__':
