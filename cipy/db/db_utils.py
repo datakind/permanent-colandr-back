@@ -106,11 +106,3 @@ def make_immutable(record):
         elif isinstance(val, set):
             record[key] = frozenset(val)
     return record
-
-
-def present_citation(record):
-    print('\nTITLE:    {}'.format(record.get('title')))
-    print('YEAR:     {}'.format(record.get('publication_year')))
-    print('AUTHORS:  {}'.format('; '.join(record.get('authors'))))
-    print('ABSTRACT: {}'.format(record.get('abstract')))
-    print('DOI:      {}'.format(record.get('doi')))
