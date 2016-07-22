@@ -14,7 +14,7 @@ from cipy import db
 from cipy import parsers
 from cipy import validation
 # top-level modules
-from cipy import present_data
+from cipy import utils
 
 logger = logging.getLogger('cipy')
 if len(logger.handlers) == 0:  # to ensure reload() doesn't add another one

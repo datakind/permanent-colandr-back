@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import itertools
+import re
 
 
 def present_citation(citation):
@@ -11,7 +12,7 @@ def present_citation(citation):
     print('DOI:      {}'.format(citation.get('doi')))
 
 
-def present_boolean_search_query(keyterms):
+def get_boolean_search_query(keyterms):
     return '\nAND\n'.join(_boolify_group_terms(group_terms)
                           for _, group_terms
                           in itertools.groupby(keyterms, key=lambda x: x['group']))
@@ -33,3 +34,12 @@ def _boolify_group_terms(group_terms):
     else:
         return ' OR '.join(_boolify_term_set(term_set)
                            for term_set in group_terms)
+
+
+def get_keyterms_regex(keyterms):
+    all_terms = [re.escape(term)
+                 for term_set in keyterms
+                 for term in [term_set['term']] + term_set.get('synonyms')]
+    keyterms_re = re.compile(r'(?<=^|\b)(' + '|'.join(all_terms) + r')(?=$|\b)',
+                             flags=re.IGNORECASE | re.UNICODE)
+    return keyterms_re
