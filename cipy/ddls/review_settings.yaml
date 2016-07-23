@@ -7,19 +7,19 @@ schema:
             data_type: "INTEGER"
             column_constraints: "PRIMARY KEY"
         -
-            column_name: "num_prescreening_reviewers"
+            column_name: "num_citation_screening_reviewers"
             data_type: "INTEGER"
             column_constraints: "DEFAULT 2"
         -
-            column_name: "num_screening_reviewers"
+            column_name: "num_fulltext_screening_reviewers"
             data_type: "INTEGER"
             column_constraints: "DEFAULT 2"
         -
-            column_name: "required_prescreener_id"
+            column_name: "required_citation_screener_id"
             data_type: "INTEGER"
             column_constraints: "DEFAULT NULL"
         -
-            column_name: "required_screener_id"
+            column_name: "required_fulltext_screener_id"
             data_type: "INTEGER"
             column_constraints: "DEFAULT NULL"
 ...

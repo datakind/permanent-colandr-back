@@ -1,6 +1,6 @@
 ---
 schema:
-    table_name: "prescreening"
+    table_name: "citation_screening"
     columns:
         -
             column_name: "citation_id"
@@ -36,7 +36,7 @@ schema:
             data_type: "CHAR(8)"
     indexes:
         -
-            index_name: prescreening_review_id_idx
+            index_name: citation_screening_review_id_idx
             column_name: review_id
             unique: False
 ...
