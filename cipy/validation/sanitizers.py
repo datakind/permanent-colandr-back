@@ -20,6 +20,16 @@ def sanitize_integer(value, min_value=None, max_value=None):
     return value
 
 
+def sanitize_float(value, min_value=None, max_value=None):
+    if not isinstance(value, float):
+        value = sanitize_type(value, float)
+    if value is not None and min_value is not None:
+        value = value if value >= min_value else None
+    if value is not None and max_value is not None:
+        value = value if value <= max_value else None
+    return value
+
+
 def sanitize_string(value, max_length=None, truncate=True):
     """Return `value` as a str with len(value) <= `max_length` or, if `truncate`
     is True, as value[:max_length]; None otherwise."""

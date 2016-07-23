@@ -1,0 +1,42 @@
+---
+schema:
+    table_name: "citation_status"
+    columns:
+        -
+            column_name: "citation_id"
+            data_type: "BIGINT"
+            column_constraints: "PRIMARY KEY"
+        -
+            column_name: "review_id"
+            data_type: "INTEGER"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "status"
+            data_type: "CHAR(8)"
+            column_constraints: "NOT NULL"
+        -
+            column_name: "deduplication"
+            data_type: "JSONB"
+            column_constraints: "DEFAULT NULL"
+        -
+            column_name: "screening_1"
+            data_type: "JSONB"
+            column_constraints: "DEFAULT NULL"
+        -
+            column_name: "screening_2"
+            data_type: "JSONB"
+            column_constraints: "DEFAULT NULL"
+        -
+            column_name: "screening_3"
+            data_type: "JSONB"
+            column_constraints: "DEFAULT NULL"
+    indexes:
+        -
+            index_name: citation_status_review_id_idx
+            column_name: review_id
+            unique: False
+        -
+            index_name: citation_status_status_idx
+            column_name: status
+            unique: False
+...
