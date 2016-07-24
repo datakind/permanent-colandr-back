@@ -3,6 +3,11 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import argparse
 import logging
+import math
+import time
+import sys
+
+import pandas as pd
 
 import cipy
 
@@ -13,6 +18,28 @@ if len(LOGGER.handlers) == 0:
     _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     _handler.setFormatter(_formatter)
     LOGGER.addHandler(_handler)
+
+
+def combine_citation_text(row):
+    title = row['title'] or ''
+    abstract = row['abstract'] or ''
+    keywords = '; '.join(row['keywords']) if row['keywords'] else ''
+    text = '\n\n'.join((title, abstract, keywords)).strip()
+    return text
+
+
+def get_keyterms_regex_match_score(citation_text, keyterms_regex):
+    full_len = len(citation_text)
+    if full_len == 0:
+        return 0.0
+    match_len = sum(
+        len(match.group()) for match in keyterms_regex.finditer(citation_text))
+    nonmatch_len = full_len - match_len
+    try:
+        return math.sqrt(full_len) * match_len / nonmatch_len
+    except ValueError:
+        LOGGER.exception('error: %s, %s, %s', match_len, nonmatch_len, full_len)
+        return 0.0
 
 
 def main():
@@ -38,12 +65,55 @@ def main():
 
     act = not args.test
 
+    conn_creds = cipy.db.get_conn_creds(args.database_url)
+    pgdb = cipy.db.PostgresDB(conn_creds)
+
+    # get review keyterms and build regex
+    query = "SELECT keyterms FROM review_plans WHERE review_id = %(review_id)s"
+    keyterms = list(pgdb.run_query(query, {'review_id': args.review_id}))[0]['keyterms']
+    keyterms_regex = cipy.utils.get_keyterms_regex(keyterms)
+
     if args.auto is True:
         selection_data = cipy.hacks.load_citation_selection_data()
 
-    while n_include < 10 and n_exclude < 10:
+    # download a sample of citations and their texts for regex matching
+    results = pgdb.run_query(
+        cipy.db.queries.SELECT_CITATIONS_TO_SCREEN,
+        bindings={'review_id': args.review_id, 'sample_size': 10000})
+    df = pd.DataFrame(results)
+    df['citation_text'] = df.apply(combine_citation_text, axis=1)
 
-        results = prescreening_db.run_query(
-            cipy.db.queries.SELECT_CITATIONS_TO_SCREEN,
-            bindings={'review_id': review_id, 'sample_size': 10000})
-        df = pd.DataFrame(results)
+    df['regex_match_score'] = df['citation_text'].map(
+        lambda x: get_keyterms_regex_match_score(x, keyterms_regex))
+    df['regex_match_pctrank'] = df['regex_match_score'].rank(pct=True, ascending=True)
+    df.sort_values('regex_match_pctrank', inplace=True, ascending=False)
+    df.reset_index(drop=True, inplace=True)
+
+    n_included = n_excluded = 0
+    for idx, row in df.iterrows():
+        if (row['citation_screening'] and
+                any(cs['screened_by'] == args.user_id
+                    for cs in row['citation_screening'])):
+            LOGGER.info('citation id=%s already screened by you!', row['citation_id'])
+            continue
+
+        cipy.utils.present_citation(row.to_dict())
+        if args.auto is True:
+            time.sleep(0.25)
+            decision = 'y' if selection_data[row['citation_id']] is True else 'n'
+            print('\nINCLUDE (y/n/u)?', decision)
+        else:
+            decision = input('\nINCLUDE (y/n/u)? ')
+
+        if decision == 'y':
+            n_included += 1
+        elif decision == 'n':
+            n_excluded += 1
+
+        LOGGER.info('%s/10 included, %s/10 excluded', n_included, n_excluded)
+        if n_included >= 10 and n_excluded >= 10:
+            break
+
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -20,11 +20,9 @@ DUPLICATE_CITATION_IDS = """
 
 SELECT_CITATIONS_TO_SCREEN = """
 SELECT
-    t1.citation_id,
-    TRIM('\n' FROM concat_ws('\n\n', COALESCE(title, ''),
-                             COALESCE(abstract, ''),
-                             COALESCE(array_to_string(keywords, ', '), ''))
-        ) AS citation_text
+    t1.citation_id, t1.title, t1.abstract, t1.keywords,
+    t1.publication_year, t1.authors, t1.doi,
+    t2.citation_screening
 FROM
     citations AS t1,
     citation_status AS t2,
