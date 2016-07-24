@@ -2,16 +2,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import argparse
-import csv
 import io
 import logging
 import os
 import sys
-import tempfile
 import warnings
 
 import dedupe
-import psycopg2
 
 import cipy
 
@@ -63,7 +60,7 @@ def main():
             {'field': 'abstract', 'type': 'Text', 'has missing': True},
             {'field': 'publication_year', 'type': 'Exact', 'has missing': True},
             {'field': 'doi', 'type': 'String', 'has missing': True}
-        ]
+            ]
         deduper = dedupe.Dedupe(variables, num_cores=2)
 
         data = {row['citation_id']: cipy.db.make_immutable(row)

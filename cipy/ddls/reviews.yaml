@@ -25,10 +25,15 @@ schema:
         -
             column_name: "description"
             data_type: "TEXT"
+        -
+            column_name: "settings"
+            data_type: "JSONB"
+            column_constraints: "NOT NULL"
 templates:
     create_review: >
-        INSERT INTO reviews (created_ts, owner_user_id, user_ids, name, description)
-        VALUES (%(created_ts)s, %(owner_user_id)s, %(user_ids)s, %(name)s, %(description)s)
+        INSERT INTO reviews
+        (created_ts, owner_user_id, user_ids, name, description, settings)
+        VALUES (%(created_ts)s, %(owner_user_id)s, %(user_ids)s, %(name)s, %(description)s, '%(settings)s')
         RETURNING review_id
     delete_review: >
         DELETE from reviews

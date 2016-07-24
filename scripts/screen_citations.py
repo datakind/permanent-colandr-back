@@ -27,6 +27,7 @@ def main():
     parser.add_argument(
         '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
         help='environment variable to which Postgres connection credentials have been assigned')
+    # TODO: remove this argument
     parser.add_argument(
         '--auto', action='store_true', default=False,
         help='HACK: automatically fill in known selection decisions for CI\'s map')
@@ -39,3 +40,10 @@ def main():
 
     if args.auto is True:
         selection_data = cipy.hacks.load_citation_selection_data()
+
+    while n_include < 10 and n_exclude < 10:
+
+        results = prescreening_db.run_query(
+            cipy.db.queries.SELECT_CITATIONS_TO_SCREEN,
+            bindings={'review_id': review_id, 'sample_size': 10000})
+        df = pd.DataFrame(results)
