@@ -13,7 +13,8 @@ FIELD_SANITIZERS = {
     'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'confirmed_by': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'screened_by': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
-    'status': lambda x: sanitize_string(x, max_length=8),
+    'status': lambda x: sanitize_string(x, max_length=15),
+    'exclude_reason': lambda x: sanitize_string(x, max_length=20),
     'is_duplicate': lambda x: sanitize_type(x, bool),
     'is_duplicate_of': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
     'duplicate_score': lambda x: sanitize_float(x, min_value=0.0, max_value=1.0),
@@ -32,12 +33,15 @@ def sanitize(record):
     Returns:
         dict
     """
-    model_keys = {'deduplication', 'screening_1', 'screening_2', 'screening_3'}
     sanitized_record = {}
     for key, value in record.items():
-        if key in model_keys and value:
+        if key == 'deduplication' and value:
             sanitized_record[key] = {subkey: FIELD_SANITIZERS[subkey](subvalue)
                                      for subkey, subvalue in value.items()}
+        elif key == 'citation_screening' and value:
+            sanitized_record[key] = [{subkey: FIELD_SANITIZERS[subkey](subvalue)
+                                     for subkey, subvalue in item.items()}
+                                     for item in value]
         elif value:
             sanitized_record[key] = FIELD_SANITIZERS[key](value)
     return sanitized_record
@@ -50,19 +54,16 @@ class Deduplication(Model):
     confirmed_by = IntType(min_value=0, max_value=2147483647)
 
 
-class Screening(Model):
-    status = StringType(required=True, max_length=8)
+class CitationScreening(Model):
+    status = StringType(required=True, max_length=15)
     labels = ListType(StringType(max_length=25))
     screened_by = IntType(required=True, min_value=0, max_value=2147483647)
 
 
 class CitationStatus(Model):
-    citation_id = IntType(
-        required=True, min_value=0, max_value=2147483647)
-    review_id = IntType(
-        required=True, min_value=0, max_value=2147483647)
-    status = StringType(required=True, max_length=8)
+    citation_id = IntType(required=True, min_value=0, max_value=2147483647)
+    review_id = IntType(required=True, min_value=0, max_value=2147483647)
+    status = StringType(required=True, max_length=15)
+    exclude_reason = StringType(max_length=20)
     deduplication = ModelType(Deduplication)
-    screening_1 = ModelType(Screening)
-    screening_2 = ModelType(Screening)
-    screening_3 = ModelType(Screening)
+    citation_screening = ListType(ModelType(CitationScreening))

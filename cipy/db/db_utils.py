@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import os
 try:
@@ -106,3 +107,16 @@ def make_immutable(record):
         elif isinstance(val, set):
             record[key] = frozenset(val)
     return record
+
+
+def dump_json_fields_to_str(record, json_keys):
+    """
+    Args:
+        record (dict)
+        json_keys (set[str])
+
+    Returns:
+        dict
+    """
+    return {key: json.dumps(value) if key in json_keys else value
+            for key, value in record.items()}

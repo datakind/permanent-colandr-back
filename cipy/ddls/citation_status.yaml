@@ -12,24 +12,17 @@ schema:
             column_constraints: "NOT NULL"
         -
             column_name: "status"
-            data_type: "CHAR(8)"
+            data_type: "VARCHAR(15)"
             column_constraints: "NOT NULL"
+        -
+            column_name: "exclude_reason"
+            data_type: "VARCHAR(20)"
         -
             column_name: "deduplication"
             data_type: "JSONB"
-            column_constraints: "DEFAULT NULL"
         -
-            column_name: "screening_1"
+            column_name: "citation_screening"
             data_type: "JSONB"
-            column_constraints: "DEFAULT NULL"
-        -
-            column_name: "screening_2"
-            data_type: "JSONB"
-            column_constraints: "DEFAULT NULL"
-        -
-            column_name: "screening_3"
-            data_type: "JSONB"
-            column_constraints: "DEFAULT NULL"
     indexes:
         -
             index_name: citation_status_review_id_idx
@@ -39,4 +32,28 @@ schema:
             index_name: citation_status_status_idx
             column_name: status
             unique: False
+templates:
+    upsert_duplicates: >
+        INSERT INTO citation_status
+        (citation_id, review_id, status, exclude_reason, deduplication)
+        VALUES (%(citation_id)s, %(review_id)s, %(status)s, %(exclude_reason)s, %(deduplication)s)
+        ON CONFLICT (citation_id) DO UPDATE
+        SET
+            status = %(status)s,
+            exclude_reason = %(exclude_reason)s,
+            deduplication = %(deduplication)s
+        WHERE citation_status.deduplication->'confirmed_by' IS NULL
+    upsert_nonduplicates: >
+        INSERT INTO citation_status
+        (citation_id, review_id, status, exclude_reason, deduplication)
+        VALUES (%(citation_id)s, %(review_id)s, %(status)s, %(exclude_reason)s, %(deduplication)s)
+        ON CONFLICT (citation_id) DO UPDATE
+        SET
+            status = %(status)s,
+            exclude_reason = %(exclude_reason)s,
+            deduplication = %(deduplication)s
+        WHERE
+            citation_status.deduplication->'confirmed_by' IS NULL
+            AND citation_status.exclude_reason = 'deduplication'
+
 ...

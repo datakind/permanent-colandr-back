@@ -26,8 +26,8 @@ templates:
         INSERT INTO review_plans
         (review_id, objective, research_questions, pico, keyterms, selection_criteria)
         VALUES (%(review_id)s, %(objective)s, %(research_questions)s, %(pico)s, %(keyterms)s, %(selection_criteria)s)
-        ON CONFLICT (review_id)
-        DO UPDATE SET
+        ON CONFLICT (review_id) DO UPDATE
+        SET
             objective = %(objective)s,
             research_questions = %(research_questions)s,
             pico = %(pico)s,

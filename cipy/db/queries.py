@@ -7,11 +7,8 @@ FROM
     citations AS t1,
     dedupe_smaller_coverage AS t2
 WHERE
-    review_id = %(review_id)s
+    t1.review_id = %(review_id)s
     AND t1.citation_id = t2.citation_id
-    AND t1.citation_id NOT IN (SELECT citation_id
-                               FROM duplicates
-                               WHERE review_id = %(review_id)s)
 ORDER BY t2.block_id
 """
 
