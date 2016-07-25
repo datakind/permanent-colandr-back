@@ -7,9 +7,9 @@ import re
 def present_citation(citation):
     print('\nTITLE:    {}'.format(citation.get('title')))
     print('YEAR:     {}'.format(citation.get('publication_year')))
-    print('AUTHORS:  {}'.format('; '.join(citation.get('authors', []))))
+    print('AUTHORS:  {}'.format('; '.join(citation.get('authors') or [])))
     print('ABSTRACT: {}'.format(citation.get('abstract')))
-    print('DOI:      {}'.format(citation.get('doi')))
+    print('KEYWORDS: {}'.format('; '.join(citation.get('keywords') or [])))
 
 
 def get_boolean_search_query(keyterms):

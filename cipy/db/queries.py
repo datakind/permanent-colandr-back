@@ -20,8 +20,7 @@ DUPLICATE_CITATION_IDS = """
 
 SELECT_CITATIONS_TO_SCREEN = """
 SELECT
-    t1.citation_id, t1.title, t1.abstract, t1.keywords,
-    t1.publication_year, t1.authors, t1.doi,
+    t1.citation_id, t1.title, t1.abstract, t1.keywords, t1.publication_year, t1.authors,
     t2.citation_screening
 FROM
     citations AS t1,

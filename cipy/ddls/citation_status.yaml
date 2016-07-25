@@ -55,5 +55,14 @@ templates:
         WHERE
             citation_status.deduplication->'confirmed_by' IS NULL
             AND citation_status.exclude_reason = 'deduplication'
+    select_citation_screening_status_counts: >
+        SELECT
+            (CASE WHEN status = 'included' AND citation_screening IS NOT NULL THEN 'included'
+             WHEN status = 'excluded' AND citation_screening IS NOT NULL THEN 'excluded'
+             ELSE NULL END) AS citation_screening_status,
+            COUNT(1)
+        FROM citation_status
+        WHERE review_id = %(review_id)s
+        GROUP BY 1
 
 ...
