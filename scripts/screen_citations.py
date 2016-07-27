@@ -4,10 +4,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import argparse
 import logging
 import math
+import re
 import time
 import sys
 
 import pandas as pd
+from schematics.exceptions import ModelValidationError
 
 import cipy
 
@@ -106,24 +108,71 @@ def main():
         df.reset_index(drop=True, inplace=True)
 
         for idx, row in df.iterrows():
-            if (row['citation_screening'] and
+
+            citation_screening = row['citation_screening'] or []
+            if (citation_screening and
                     any(cs['screened_by'] == args.user_id
-                        for cs in row['citation_screening'])):
+                        for cs in citation_screening)):
                 LOGGER.info('citation id=%s already screened by you!', row['citation_id'])
                 continue
 
             cipy.utils.present_citation(row.to_dict())
-            if args.auto is True:
-                time.sleep(0.25)
-                decision = 'y' if selection_data[row['citation_id']] is True else 'n'
-                print('\nINCLUDE (y/n/u)?', decision)
-            else:
-                decision = input('\nINCLUDE (y/n/u)? ')
 
-            if decision == 'y':
-                n_included += 1
-            elif decision == 'n':
-                n_excluded += 1
+            new_cs = {'screened_by': args.user_id}
+            while True:
+                if args.auto is True:
+                    time.sleep(0.25)
+                    status = 'y' if selection_data[row['citation_id']] is True else 'n'
+                    print('\nINCLUDE (y/n/u)?', status)
+                else:
+                    status = input('\nINCLUDE (y/n/u)? ')
+
+                if status == 'y':
+                    n_included += 1
+                    new_cs['status'] = 'included'
+                    break
+                elif status == 'n':
+                    n_excluded += 1
+                    new_cs['status'] = 'excluded'
+                    break
+                elif status == 'u':
+                    new_cs['status'] = None
+                    break
+                else:
+                    print('WARNING: Invalid response!')
+
+            if new_cs['status'] is None:
+                continue
+
+            if args.auto is True:
+                print('LABELS (separate labels with commas)? ')
+                new_cs['labels'] = ['']
+            else:
+                labels = input('LABELS (separate multiple labels with commas)? ')
+                new_cs['labels'] = re.split(r'\s*,\s*', labels)
+
+            cs_model = cipy.validation.citation_status.CitationScreening(new_cs)
+            try:
+                cs_model.validate()
+            except ModelValidationError:
+                LOGGER.exception('invalid citation screening input!')
+                continue
+            citation_screening.append(cs_model.to_native())
+
+            update = {'citation_id': row['citation_id'],
+                      'citation_screening': citation_screening}
+            if all(cs['status'] == 'included' for cs in citation_screening):
+                update['status'] = 'included'
+            elif all(cs['status'] == 'excluded' for cs in citation_screening):
+                update['status'] = 'excluded'
+            else:
+                update['status'] = 'in conflict'
+
+            update = cipy.db.dump_json_fields_to_str(update, {'citation_screening'})
+
+            status_db.execute(
+                status_db.ddl['templates']['update_citation_screening'],
+                bindings=update, act=act)
 
             LOGGER.info('%s/10 included, %s/10 excluded', n_included, n_excluded)
             if n_included >= 10 and n_excluded >= 10:

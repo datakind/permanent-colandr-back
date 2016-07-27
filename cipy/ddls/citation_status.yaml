@@ -64,5 +64,11 @@ templates:
         FROM citation_status
         WHERE review_id = %(review_id)s
         GROUP BY 1
+    update_citation_screening: >
+        UPDATE citation_status
+        SET
+            status = %(status)s,
+            citation_screening = %(citation_screening)s
+        WHERE citation_id = %(citation_id)s
 
 ...
