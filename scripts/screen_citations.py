@@ -117,6 +117,7 @@ def main():
                 continue
 
             cipy.utils.present_citation(row.to_dict())
+            # i = 0
 
             new_cs = {'screened_by': args.user_id}
             while True:
@@ -174,6 +175,8 @@ def main():
                 status_db.ddl['templates']['update_citation_screening'],
                 bindings=update, act=act)
 
+            # i += 1
+            # if i % 100 == 0:
             LOGGER.info('%s/10 included, %s/10 excluded', n_included, n_excluded)
             if n_included >= 10 and n_excluded >= 10:
                 break

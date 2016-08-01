@@ -1,7 +1,19 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import itertools
+import logging
 import re
+
+
+def get_logger(name):
+    LOGGER = logging.getLogger(name)
+    LOGGER.setLevel(logging.INFO)
+    if len(LOGGER.handlers) == 0:
+        _handler = logging.StreamHandler()
+        _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        _handler.setFormatter(_formatter)
+        LOGGER.addHandler(_handler)
+    return LOGGER
 
 
 def present_citation(citation):
