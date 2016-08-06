@@ -16,39 +16,55 @@ import scala.util.Random
   */
 class KMeans(val K : Int, dim : Int) {
   val rand = new Random
-  val clusters = Array.fill(K)(new DenseTensor1(dim))// (0 until dim).map{a => math.abs(rand.nextDouble())}.toArray))
-  val counts = Array.fill(K)(1)
+  val clusters = Array.fill(K)(new DenseTensor1((0 until dim).map{a => math.abs(rand.nextDouble())}.toArray))
+  val counts = Array.fill(K)(0)
 
-
-  def initialize(all : Seq[SparseTensor1]) : Unit = {
-    var current = 1
+  def initialize(all : Array[SparseTensor1]) : Unit = {
+    /*var current = 1
     clusters(0) = new DenseTensor1(all(rand.nextInt(all.length)).toArray)
     while (current < K) {
-      val next = all.map { st =>
+      val allDist  = all.map { st =>
         val d = new DenseTensor1(st.toArray)
-        (0 until current).map{ i => clusters(i).euclideanDistance(d) }.min
-      }.zipWithIndex.maxBy(_._1)._2
+        val distances = (0 until current).map{ i => clusters(i).cosineSimilarity(d) }
+        distances.max
+      }
+      val next = allDist.zipWithIndex.minBy(_._1)._2
       clusters(current) = new DenseTensor1(all(next).toArray)
       current += 1
-    }
+    }*/
     /*for(k <- clusters) {
       println(k.mkString(","))
     }*/
   }
 
-  def +=(st : SparseTensor1) : Int = {
+  /*def +=(st : SparseTensor1) : Int = {
     val d = new DenseTensor1(st.toArray)
-    val cluster = clusters.map{ _.euclideanDistance(d)}.zipWithIndex.minBy(_._1)._2
+    val clusterDist = clusters.map{ _.cosineSimilarity(d)}
+    val cluster = clusterDist.zipWithIndex.maxBy(_._1)._2
     val currentProb = counts(cluster).toDouble/(counts(cluster).toDouble + 1)
     val nextProb = 1.0/(counts(cluster).toDouble + 1)
     counts(cluster) += 1
     clusters(cluster) = ((clusters(cluster) * currentProb) + (d * nextProb)).asInstanceOf[DenseTensor1]
     cluster
+  }*/
+
+  def run(all : Array[SparseTensor1]) : Unit = {
+    val mappings = all.zipWithIndex.map{ case(st,i) =>
+      predict(st)._1 -> i
+    }.groupBy(_._1)
+    mappings.foreach{ map =>
+      val cluster = map._1
+      val sum = map._2.foldRight(new DenseTensor1(TfIdf.featureSize)){ case ((_,i),dt) =>
+        dt += all(i)
+        dt
+      }/map._2.length
+      clusters(cluster) = sum.asInstanceOf[DenseTensor1]
+    }
   }
 
   def predict(st : SparseTensor1) : (Int, Double) = {
     val d = new DenseTensor1(st.toArray)
-    clusters.map{ _.euclideanDistance(d)}.zipWithIndex.minBy(_._1).swap
+    clusters.map{ _.cosineSimilarity(d)}.zipWithIndex.maxBy(_._1).swap
   }
 }
 
@@ -70,19 +86,19 @@ object KMeans {
     val K = args.last.toInt
     val clusterer = new KMeans(K, TfIdf.featureSize)
 
-    clusterer.initialize(data.map{_._3})
-    for(i <- 0 until iter; d <- data) {
-      clusterer += d._3
+    clusterer.initialize(data.map{_._3}.toArray)
+    for(i <- 0 until iter) {
+      clusterer.run(data.map{_._3}.toArray)
     }
-    val clusters = Array.fill(K)(new ArrayBuffer[(String,String)]())
+    val clusters = Array.fill(K)(new ArrayBuffer[(String,String,String,Double)]())
     for(d <- data) {
-      val cluster = clusterer.predict(d._3)._1
-      val point = (d._1.pdf.filename, d._1.biome.getOrElse(Biome(0,"")).biome)
+      val (cluster, distance) = clusterer.predict(d._3)
+      val point = (d._1.pdf.filename, d._1.bib.Title, d._1.biome.getOrElse(Biome(0,"")).biome, distance)
       clusters(cluster) += point
     }
     for((c,i) <- clusters.zipWithIndex) {
       val out = new BufferedWriter(new FileWriter(s"cluster$i.txt"))
-      out.write(c.map{ a => a._1 + "\t" + a._2}.mkString("\n"))
+      out.write(c.sortBy(-_._4).map{ a => a._1 + "\t" + a._2 + "\t" + a._3 + "\t" + a._4}.mkString("\n"))
       out.flush()
       out.close()
     }
