@@ -2,13 +2,15 @@ package org.datakind.ci.pdfestrian.extraction
 
 import java.io.{BufferedWriter, FileWriter}
 
-import cc.factorie.Factorie._
-import cc.factorie.app.classify.{LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, SVMLinearVectorClassifierTrainer}
+import cc.factorie.Factorie.{DiscreteDomain, _}
+import cc.factorie.app.classify.{BatchOptimizingLinearVectorClassifierTrainer, LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, SVMLinearVectorClassifierTrainer}
 import cc.factorie.app.nlp.Document
-import cc.factorie.optimize.AdaGradRDA
-import cc.factorie.variable.{BinaryFeatureVectorVariable, CategoricalDomain, CategoricalLabeling, CategoricalVariable}
+import cc.factorie.la.SparseTensor1
+import cc.factorie.optimize.{AdaGradRDA, L2Regularization, LBFGS}
+import cc.factorie.variable.{CategoricalLabeling, VectorDomain, VectorVariable}
 import org.datakind.ci.pdfestrian.scripts.Aid
 
+import scala.io.Source
 import scala.util.Random
 
 /**
@@ -16,7 +18,7 @@ import scala.util.Random
   */
 class BiomeExtractor {
   implicit val rand = new Random()
-
+  val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
 
   object BiomeLabelDomain extends CategoricalDomain[String]
 
@@ -24,10 +26,13 @@ class BiomeExtractor {
     def domain = BiomeLabelDomain
   }
 
-  object BiomeFeaturesDomain extends CategoricalVectorDomain[String]
-  class BiomeFeatures() extends BinaryFeatureVectorVariable[String] {
+  object BiomeFeaturesDomain extends VectorDomain {
+    override type Value = SparseTensor1
+    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(TfIdf.featureSize)
+  }
+  class BiomeFeatures(st1 : SparseTensor1) extends VectorVariable(st1) {//BinaryFeatureVectorVariable[String] {
     def domain = BiomeFeaturesDomain
-    override def skipNonCategories = true
+   //override def skipNonCategories = true
   }
 
   def clean(string : String) : String = {
@@ -36,15 +41,17 @@ class BiomeExtractor {
   }
 
   def docToFeature(pl : Document, label : String) : BiomeLabel = {
-    val features = new BiomeFeatures()
+    /*val features = new BiomeFeatures()
     for(e <- pl.sentences; w <- e.tokens) {
       val current = clean(w.string)
-      features += "UNIGRAM="+current
-      if(w.hasNext) {
+      if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current))
+        features += "UNIGRAM="+current   // Convert to td-idf weight instead!
+      /*if(w.hasNext) {
         val next = clean(w.next.string)
         features += "BIGRAM=" + current + "+" + next
-      }
-    }
+      }*/
+    }*/
+    val features = new BiomeFeatures(TfIdf(pl))
     new BiomeLabel(label, features)
   }
 
@@ -88,7 +95,11 @@ class BiomeExtractor {
 
   def train(trainData : Seq[BiomeLabel], testData : Seq[BiomeLabel], l2 : Double) :
     LinearVectorClassifier[BiomeLabel, BiomeFeatures] = {
-    val trainer = new SVMLinearVectorClassifierTrainer(l2 = l2)
+    val optimizer = new LBFGS with L2Regularization {
+      variance = l2
+    }
+    val rda = new AdaGradRDA(l1 = l2)
+    val trainer = new OnlineOptimizingLinearVectorClassifierTrainer(optimizer = rda, maxIterations = 15)//(optimizer = optimizer)//(l2 = l2)
     val classifier = trainer.train(trainData, l2f)
     println("Train Acc: " + testAccuracy(trainData,classifier) )
     println("Test Acc: " + testAccuracy(testData,classifier) )
@@ -119,10 +130,12 @@ object BiomeExtractor {
     val testLength = data.length - trainLength
     val trainData = data.take(trainLength)
     val testData = data.takeRight(testLength)
-    for(d <- 0.1 until 20.0 by 0.1) {
+    extractor.train(trainData, testData, l2 = 0.5)
+
+    /*for(d <- 0.001 until 100.0 by 0.5) {
       println("l2=" + d)
       extractor.train(trainData, testData, l2 = d)
-    }
+    }             */
   }
 
 }
