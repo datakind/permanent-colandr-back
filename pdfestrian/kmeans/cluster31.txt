@@ -1,0 +1,6 @@
+Dahlquist et al. 2007	Incorporating livelihoods in biodiversity conservation: a case study of cacao agroforestry systems in Talamanca, Costa Rica	T_TSTMBF	0.6248962487965724
+Zambrano 2010	Social and environmental effects of ecotourism in the Osa Peninsula of Costa Rica: the Lapa Rios case	T_TSTMBF	0.5971719030837576
+Almeyda et al. 2010	Ecotourism impacts in the Nicoya Peninsula, Costa Rica	T_TSTMBF	0.5208470404614934
+Jose 2012	Agroforestry for conserving and enhancing biodiversity	T_TSTMBF	0.30575411852588946
+Sanginga 2007	Conflicts management, social capital and adoption of agroforestry technologies: Empirical findings from the highlands of southwestern Uganda	T_TSTMBF	0.27342013776811713
+Studsrod 1995	Park-People Relationships: The Case of Damage Caused by Park Animals Around the Royal Bardia National Park, Nepal	T_TSTGSS	0.2680441034755125

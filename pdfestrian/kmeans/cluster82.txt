@@ -1,0 +1,3 @@
+Shackleton 2007	Direct-use values of non-timber forest products from two areas on the transkei wild coast	T_TSTMBF	0.7025719853442708
+Selebatso 2008	Do farmers support cheetah Acinonyx jubatus conservation in Botswana despite livestock depredation?		0.62497813648111
+Rishi 2008	Analysis of hierarchy of needs and motivational strategies for eco-development planning in two national parks of India	T_TSTDBF	0.3551442297835215

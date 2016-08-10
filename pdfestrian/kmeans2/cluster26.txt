@@ -1,0 +1,14 @@
+Walton et al. 2006	Are mangroves worth replanting? The direct economic benefits of a community-based reforestation project		0.8048864849003046
+Ronnback et al. 2007	The return of ecosystem goods and services in replanted mangrove forests: perspectives from local communities in Kenya	T_M	0.7975345687744381
+Glaser 2003	Local vulnerability as an advantage: mangrove forest management in Para state, north Brazil, under conditions of illegality	T_M	0.775428680825173
+Warren-Rhodes et al. 2011	Mangrove ecosystem services and the potential for carbon revenue programmes in Solomon Islands	T_M	0.7590224001097369
+Hussain and Badola 2010	Valuing mangrove benefits: Contribution of mangrove forests to local livelihoods in Bhitarkanika Conservation Area, East Coast of India	T_M	0.6754041909498826
+Farley et al. 2010	Conserving mangrove ecosystems in the Philippines: Transcending disciplinary and institutional borders	T_M	0.6483001616503112
+Stone et al. 2008	Factors influencing community participation in mangroves restoration: A contingent valuation analysis		0.641518346279242
+Hussain and Badola 2008	Valuing mangrove ecosystem services: Linking nutrient retention function of mangrove forests to enhanced agroecosystem production	T_M	0.6402446391437627
+Maliao and Polohan 2008	Evaluating the Impacts of Mangrove Rehabilitation in Cogtong Bay, Philippines	T_M	0.5753091152519191
+Iftekhar and Takama 2008	Perceptions of biodiversity, environmental services, and conservation of planted mangroves: A case study on Nijhum Dwip Island, Bangladesh	T_M	0.5526360781830146
+Iftekhar and Islam 2004	Managing mangroves in Bangladesh: A strategy analysis	T_M	0.5360429465994736
+Marschke and Sinclair 2009	Learning for sustainability: Partipatory resource management in Cambodian fishing villages	T_TSTDBF	0.3256533264200736
+Getzner and Islam 2013	NATURAL RESOURCES, LIVELIHOODS, AND RESERVE MANAGEMENT: A CASE STUDY FROM SUNDARBANS MANGROVE FORESTS, BANGLADESH	T_M	0.3189387605315278
+Wells 2010	Lessons learnt from a collaborative management programme in coastal Tanzania		0.2609767392191318

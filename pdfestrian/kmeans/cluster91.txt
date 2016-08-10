@@ -1,0 +1,9 @@
+Hill et al. 2012	The Interaction between Seaweed Farming as an Alternative Occupation and Fisher Numbers in the Central Philippines	M_TRC	0.5565342416959697
+Virapongse et al. 2013	Value Chain Dynamics of an Emerging Palm Fiber Handicraft Market in Maranhao, Brazil	T_TSTMBF	0.3770553815441568
+Poungngamchuen 2012	People s participation in Dong Na Tham community forest management project, Ubon Ratchathani, Thailand	T_TSTDBF	0.35213162674757853
+Sultana and Thompson 2004	Methods of consensus building for community-based fisheries management in Bangladesh and the Mekong Delta	T_TSTMBF	0.3413412450751709
+Few 2001	Containment and counter-containment: planner/community relations in conservation planning	T_TSTMBF	0.3347936148368996
+Nuon and Gallardo 2011	Perceptions of the local community on the outcome of community fishery management in Krala Peah village, Cambodia	FW_LRD	0.32230569624644373
+Kaltenborn et al. 2011	The attitudes of tourists towards the environmental, social and managerial attributes of Serengeti National Park, Tanzania	T_TSTGSS	0.3157413800790118
+Grujcic 2008	Conflict management in protected areas: The Lazar Canyon natural monument, Eastern Serbia	T_TBMF	0.2977894849935057
+Schachenmann 2006	Spiritual values in Madagascar: The starting point for endogenous conservation initiatives	T_TSTMBF	0.1450332040666798

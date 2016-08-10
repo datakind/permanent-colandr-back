@@ -1,0 +1,9 @@
+Twyman 2001a	Natural resource use and livelihoods in Botswana's wildlife management areas		0.5198498175440077
+Roshetko 2013	Teak agroforestry systems for livelihood enhancement, industrial timber production, and environmental rehabilitation	T_TSTMBF	0.5050086699904279
+Bolaane 2004	The Impact of Game Reserve Policy on the River BaSarwa/Bushmen of Botswana	T_FGS	0.5027491060835306
+Kangalawe and Noe 2012	Biodiversity conservation and poverty alleviation in Namtumbo District, Tanzania	T_TSTGSS	0.3960401250376608
+Isager and Broge 2007	Combining remote sensing and anthropology to trace historical land-use changes and facilitate better landscape management in a sub-watershed in North Thailand	T_TSTMBF	0.3391571016908903
+Kidegbesbo et al. 2007	Factors influencing conservation attitudes of local people in Western Serengeti, Tanzania	T_TSTGSS	0.2752569553603
+Yasuda 2011	The impacts of sport hunting on the livelihoods of local people: A case study of B_nou_ National Park, Cameroon	T_TSTGSS	0.27517374444127146
+Gurung et al. 2013	Community-based forest management and its role in improving forest conditions in Nepal	T_TSTMBF	0.2710207447790169
+Brown et al. 2011	Poverty Alleviation and Environmental Restoration Using Clean Development Mechanism: A Case Study from Humbo, Ethiopia	T_TSTMBF	0.27049907378972343

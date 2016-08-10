@@ -1,0 +1,11 @@
+Maikhuri 2000	Promoting ecotourism in the buffer zone areas of Nanda Devi Biosphere Reserve: An option to resolve people-policy conflict	T_MGS	0.7581283116403481
+Singh 2004	On bringing people and park together through ecotourism: The Nanda Devi National Park, India	T_MGS	0.666027841023752
+Tiwari 2009	Resource utilization pattern and rural livelihood in Nanda Devi biosphere reserve buffer zone villages, Uttarakhand, Himalaya, India	T_MGS	0.6456652942643382
+Silori 2007	Perception of local people towards conservation of forest resources in Nanda Devi Biosphere Reserve, north-western Himalaya, India		0.6404100497911701
+Rao 2000	Management Conflicts in the Nanda devi Biosphere Reserve, India	T_MGS	0.6278027082540878
+Nautiyal Rao 2003	Transhumant pastoralism in the Nanda Devi biosphere reserve, India: A case study in the buffer zone	T_MGS	0.5891177815320727
+Maikhuri et al. 2001	Conservation policy-people conflicts: A case study from Nanda Devi Biosphere Reserve (a World Heritage Site), India	T_TBMF	0.5714455755244607
+Badola and Hussain 2003	Conflict in paradise: Women and protected areas in the Indian Himalayas		0.3058563715013088
+Saunders 2011	It's like herding monkeys into a conservation enclosure: The formation and establishment of the Jozani-Chwaka Bay National Park, Zanzibar, Tanzania		0.2848664970584109
+Hajjar et al. 2011	Framing community forestry challenges with a broader lens: Case studies from the Brazilian Amazon	T_TSTMBF	0.27458486696413104
+Vodouhe 2010	Community perception of biodiversity conservation within protected areas in Benin	T_TSTGSS	0.2314469872922293

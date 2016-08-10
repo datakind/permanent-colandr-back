@@ -1,0 +1,13 @@
+Green et al. 2011	Emerging marine protected area networks in the coral triangle: Lessons and way forward	M_TRC	0.7836191036054776
+Dalton et al. 2012	Participation, process quality, and performance of marine protected areas in the wider Caribbean	M_TRC	0.7657158226890511
+Garces et al. 2013	Evaluating the management effectiveness of three marine protected areas in the Calamianes Islands, Palawan Province, Philippines: Process, selected results and their implications for planning and management	T_M	0.7328296497328938
+Gjertsen 2005	Can Habitat Protection Lead to Improvements in Human Well-Being? Evidence from Marine Protected Areas in the Philippines	M_TRC	0.7015702777843936
+Stoze and Minnis 2007	Marine protected areas and the coral reefs of traditional settlements in the Exumas, Bahamas		0.624408849001795
+Camargo et al. 2009	Community involvement in management for maintaining coral reef resilience and biodiversity in southern Caribbean marine protected areas	M_TRC	0.5969326125508583
+Thomassin et al. 2010	Social acceptability of a marine protected area: The case of Reunion Island		0.5614183311593373
+Terk 2010	The role of SCUBA diver user fees as a source of sustainable funding for coral reef marine Protected areas	M_TRC	0.5244409404604122
+Muthiga 2009	Evaluating the effectiveness of management of the Malindi-Watamu marine protected area complex in Kenya	M_TRC	0.5144802386062883
+Petrosillo et al. 2007	Tourist perception of recreational environment and management in a marine protected area	T_DXS	0.5104522541863119
+Launio 2010	Perceptions of small-scale fishermen on the value of marine resources and protected areas: Case of Claveria, Northern Philippines	M_TRC	0.4750390386668797
+Weeks and Jupiter 2013	Adaptive Comanagement of a Marine Protected Area Network in Fiji	M_TRC	0.4211039759593656
+Leisher et al. 2012	Measuring the benefits and costs of community education and outreach in marine protected areas	M_TRC	0.4104293262993584

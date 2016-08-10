@@ -1,0 +1,8 @@
+Humphries and Kainer 2006	Local perceptions of forest certification for community-based enterprises	T_TSTMBF	0.5460596147763191
+To 2012	The Prospects for Payment for Ecosystem Services (PES) in Vietnam: A Look at Three Payment Schemes	T_TSTMBF	0.45071354913150036
+Holmes 2003	The influence of protected area outreach on conservation attitudes and resource use patterns: A case study from western Tanzania	T_TSTGSS	0.42934247673511455
+Marschke 2012	Do collective property rights make sense? insights from central Vietnam	T_TSTMBF	0.40912893707017517
+Fletcher 2012	Using the Master's Tools? Neoliberal Conservation and the Evasion of Inequality	T_TSTMBF	0.3536436232954876
+Horn et al. 2012	Ecological and socio-economic factors influencing aguaje (Mauritia flexuosa) resource management in two indigenous communities in the Peruvian Amazon	T_TSTMBF	0.27824392691330435
+Ansong 2011	Determinants of attitudes of primary stakeholders towards forest conservation management: a case study of Subri Forest Reserve, Ghana	T_TSTMBF	0.26551046214068336
+Shrestha 2006	Linking conservation and development: An analysis of local people's attitude towards Koshi Tappu Wildlife Reserve, Nepal	T_TSTGSS	0.26167355528243225

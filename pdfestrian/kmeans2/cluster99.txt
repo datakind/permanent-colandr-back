@@ -1,0 +1,13 @@
+Mulley 2004	The role of off-farm employment in tropical forest conservation: Labor, migration, and smallholder attitudes toward land in western Uganda	M_TRC	0.6643688851063683
+Ahmed et al. 2010	Increased market integration, value, and ecological knowledge of tea agroforests in the Akha highlands of Southwest China	M_TRC	0.6466834476200725
+Bhattacharjee 2013	Coexisting With Large Carnivores: A Case Study From Western Duars, India	T_TSTMBF	0.5114413045891202
+Lindstrom et al. 2012	Forest cover change in Sri Lanka: The role of small scale farmers	T_TSTDBF	0.389677959603137
+Johnson and Forsyth 2002	In the eyes of the state: Negotiating a "Rights-based approach" to forest conservation in Thailand	T_M	0.36881279636199793
+Neef 2003	Access to natural resources in Mainland Southeast Asia and implications for sustaining rural livelihoods - The case of Thailand	T_TSTMBF	0.35393094715497725
+Flaherty and Filipchuk 2013	Forest management in Northern Thailand: a rural Thai perspective	T_TSTMBF	0.33556314506286045
+Heinen and Shrivastava 2010	An analysis of conservation attitudes and awareness around Kaziranga National Park, Assam, India: Implications for conservation and development	T_TSTMBF	0.3096804375797305
+Roy 2013	Attitudes towards current and alternative management of the Sundarbans Mangrove Forest, Bangladesh to achieve sustainability	T_M	0.29739001105581203
+Roy et al. 2013	Sustainability through an alternative property-rights regime for Bangladesh's mangrove forest	T_M	0.2946741835042663
+Harada 2003	Attitudes of local people towards conservation and Gunung Halimun national park in west Java, Indonesia	T_TSTMBF	0.25900110107612073
+Chen et al. 2013b	Community forestry management and livelihood development in northwest China: integration of governance, project design, and community participation	T_TBMF	0.2509675327783058
+Derkyi et al. 2013	Emerging forest regimes and livelihoods in the Tano Offin Forest Reserve, Ghana: Implications for Social Safeguards	T_TSTMBF	0.24420775946254122

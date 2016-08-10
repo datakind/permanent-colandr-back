@@ -1,0 +1,12 @@
+Gadd 2005	Conservation outside of parks: Attitudes of local people in Laikipia, Kenya	T_TSTGSS	0.7235777384246723
+Fernando et al. 2005	Perceptions and patterns of human-elephant conflict in old and new settlements in Sri Lanka: Insights for mitigation and management	T_TSTDBF	0.7131626697251231
+Hill 1998	Conflicting attitudes towards elephants around the Budongo Forest Reserve, Uganda	T_TSTGSS	0.6841634760154439
+Sarkar 2010	Human-wildlife conflicts and management options in Bangladesh, with special reference to Asian elephants (Elephas maximus)	T_TSTMBF	0.6826354904598492
+Guerbois et al. 2012	Combining multi-scale socio-ecological approaches to understand the susceptibility of subsistence farmers to elephant crop raiding on the edge of a protected area	T_TSTGSS	0.6294777671995027
+Mamo 2013	Crop damage by African elephants assessment in kaftasheraro national park, Ethiopia	T_TSTGSS	0.5914314386623722
+Granados and Weladji 2012	Human-Elephant Conflict around Benoue National Park, Cameroon: Influence on Local Attitudes and Implications for Conservation	T_TSTMBF	0.5853595786692798
+He et al. 2011	Perception and Attitudes of Local Communities Towards Wild Elephant-related Problems and Conservation in Xishuangbanna, Southwestern China	T_TSTMBF	0.5687454109257086
+Kerley et al. 2003	Jumbos or bust: Do tourists' perceptions lead to an under-appreciation of biodiversity?	T_MFWS	0.35846270785714257
+Dolisca et al. 2006	Factors influencing farmers' participation in forestry management programs: A case study from Haiti	T_TSTCF	0.21456011997194155
+Dolisca et al. 2007	Farmers' perceptions towards forests: A case study from Haiti	T_TSTCF	0.21302159891555064
+Kisekka-Ntale 2009	Carnage In Paradise: Law and Decision-Making Rights In Protected Area Management In Western Kenya	T_TSTGSS	0.19582583292946804

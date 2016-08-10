@@ -1,0 +1,3 @@
+Kreb and Budiono 2005	Conservation management of small core areas: Key to survival of a Critically Endangered population of Irrawaddy river dolphins Orcaella brevirostris in Indonesia	FW_TSTCR	0.7471944548190019
+Nepstad et al. 2013	Responding to climate change and the global land crisis: REDD+, market transformation and low-emissions rural development	T_TSTMBF	0.5003929357020281
+Spiteri 2008a	Evaluating local benefits from conservation in Nepal's Annapurna Conservation Area	T_TBMF	0.4607076928695801

@@ -1,0 +1,18 @@
+Mahanty et al. 2013	Access and benefits in payments for environmental services and implications for REDD+: Lessons from seven PES schemes	T_TSTMBF	0.6835819534651748
+To 2012	The Prospects for Payment for Ecosystem Services (PES) in Vietnam: A Look at Three Payment Schemes	T_TSTMBF	0.6753106563703014
+Tacconi 2013	The Livelihood Impacts of Payments for Environmental Services and Implications for REDD+		0.6140777829064942
+Rodriguez 2013	Payment for Environmental Services and Unequal Resource Control in Pimampiro, Ecuador	T_TSTMBF	0.5919363963261796
+Nelson 2010	Payments for ecosystem services as a framework for community-based conservation in Northern Tanzania: Conservation practice and policy	M_TRC	0.44187576985021493
+Hayes 2012	Payment for ecosystem services, sustained behavioural change, and adaptive management: peasant perspectives in the Colombian Andes	T_TSTMBF	0.3995332202322549
+Clements et al. 2010	Payments for biodiversity conservation in the context of weak institutions: Comparison of three programs from Cambodia	T_TSTDBF	0.3610170821020675
+Lambini and Nguyen 2014	A comparative analysis of the effects of institutional property rights on forest livelihoods and forest conditions: Evidence from Ghana and Vietnam	T_TSTMBF	0.35912271259351275
+Bose 2011	Forest tenure Reform: Exclusion of Tribal Women's Rights in Semi-Arid Rajasthan, India	T_TSTDBF	0.31585474839980876
+Sarkar 2004	Social capital and joint forest management programme: A comparative study of female-headed and joint Forest Protection Committees in west Bengal	T_TSTDBF	0.23813340266662858
+German et al. 2010	Minimizing the livelihood trade-offs of natural resource management in the Eastern African Highlands: Policy Implications of a Project in "creative governance"	T_TSTMBF	0.2335601563298977
+Koli 2013	Community forest management addressing social vulnerability of forest communities in Bangladesh	T_M	0.23329255226195442
+Kitamura and Clapp 2013	Common property protected areas: Community control in forest conservation	T_TSTMBF	0.2329139227273038
+Koku and Gustafsson 2003	Local institutions and natural resource management in the South Tongu District of Ghana: A case study	T_TSTGSS	0.22736315149717135
+Akyeampong 2011	Pro-poor tourism: Residents' expectations, experiences and perceptions in the Kakum National Park area of Ghana	T_TSTMBF	0.1915195208615013
+Jackson et al. 2010	Biodiversity and agricultural sustainagility: From assessment to adaptive management	T_TSTMBF	0.19002340114253022
+Yuan 2009	Fengshui forest management by the Buyi ethnic minority in China	T_TSTMBF	0.17991176919252563
+Stocking 1992	CONSERVATION-WITH-DEVELOPMENT - AN APPLICATION OF THE CONCEPT IN THE USAMBARA MOUNTAINS, TANZANIA		0.17818043762904662

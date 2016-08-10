@@ -1,0 +1,7 @@
+Martini 2012	Sugar palm (Arenga pinnata (Wurmb) Merr.) for livelihoods and biodiversity conservation in the orangutan habitat of Batang Toru, North Sumatra, Indonesia: Mixed prospects for domestication	T_TSTMBF	0.6705603304169961
+Zambrano 2010	Social and environmental effects of ecotourism in the Osa Peninsula of Costa Rica: the Lapa Rios case	T_TSTMBF	0.4365578145369393
+Bose 2011	Forest tenure Reform: Exclusion of Tribal Women's Rights in Semi-Arid Rajasthan, India	T_TSTDBF	0.38179629521920483
+Antunes Zappes et al. 2012	The conflict between the southern right whale and coastal fisheries on the southern coast of Brazil	M_TSS	0.3635573049974491
+Naidu 2013	Legal exclusions, private wealth and livelihoods: An analysis of work time allocation in protected areas	T_TSTCF	0.2828251756621459
+Pomeroy et al. 1997	Evaluating factors contributing to the success of community-based coastal resource management: The Central Visayas Regional Project-1, Philippines	T_TSTMBF	0.22945790384396034
+Karki et al. 2005	Creating livelihoods and enhancing biodiversity-rich production systems based on medicinal and aromatic plants: Preliminary lessons from South Asia	T_TSTMBF	0.13144647856555802

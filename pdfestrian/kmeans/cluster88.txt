@@ -1,0 +1,3 @@
+Kijazi and Kant 2010	Forest stakeholders' value preferences in Mount Kilimanjaro, Tanzania	T_TSTMBF	0.7620096895053249
+Zuka et al. 2013	Myths and realities in community management of common pool resources in Malawi: social stratification as a negative side-effect of social capital	T_TSTGSS	0.5092581144521265
+Vincent 2002	Assessing community support and sustainability for ecotourism development		0.4525088726063353

@@ -1,0 +1,4 @@
+Torri 2011	Conservation, relocation and the social consequences of conservation policies in protected areas: Case study of the Sariska Tiger Reserve, India		0.6928814563923833
+Ahmed et al. 2010	Increased market integration, value, and ecological knowledge of tea agroforests in the Akha highlands of Southwest China	M_TRC	0.6124896481935954
+Hermann 2009	Changing forest conservation and management paradigms: Traditional ecological knowledge systems and sustainable forestry: Perspectives from Chile and India	T_TSTDBF	0.5566502727927917
+Torri 2010	Power, structure, gender relations and community-based conservation: The Cawswe study of the Sariska region, Rajasthan, India	T_TSTDBF	0.511524769752253

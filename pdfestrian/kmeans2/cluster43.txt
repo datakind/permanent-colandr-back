@@ -1,0 +1,10 @@
+Nagendra 2008b	Forest fragmentation and regrowth in an institutional mosaic of community, government and private ownership in Nepal	T_TSTGSS	0.48968708666829486
+Piotto 2004	Forest plantations in Costa Rica and Nicaragua: Performance of species and preferences of farmers	T_TSTMBF	0.4710359836065387
+Hafner et al. 1990	Farming the forest: Managing people and trees in reserved forests in Thailand	T_TSTDBF	0.3944455324775785
+Kitamura and Clapp 2013	Common property protected areas: Community control in forest conservation	T_TSTMBF	0.38599139532803967
+Hegde and Enters 2000	Forest products and household economy: a case study from Mudumalai Wildlife Sanctuary, Southern India	T_TSTMBF	0.3784862607128515
+Gaude 2005	Socio-economic situation and land use conflicts around Ag-Gel National Park (Azerbaijan)	T_DXS	0.35871948012084126
+Schelhas 2009	When global environmentalism meets local livelihoods: policy and management lessons		0.3573065383621853
+Saelemyr 2004	People, park and plant use: Perception and use of Andean 'nature' in the southern Ecuadorian Andes	T_TSTMBF	0.3466045725779912
+Ali et al. 2007a	Impact of participatory forest management on vulnerability and livelihood assets of forest-dependent communities in northern Pakistan	T_TBMF	0.28841876500386104
+Manan Ibrahim 2003	Community-based river management in Southeast Sulawesi, Indonesia: a case study of the Bau-Bau River	T_TSTMBF	0.2300657528471207

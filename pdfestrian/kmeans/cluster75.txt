@@ -1,0 +1,8 @@
+Liu 2014	The role of social capital in encouraging residents pro-environmental behaviors in community-based ecotourism	T_TSTMBF	0.525487603161375
+Snyman 2012	The role of tourism employment in poverty reduction and community perceptions of conservation and tourism in southern Africa		0.5017746425750075
+Snyman 2013	Household spending patterns and flow of ecotourism income into communities around Liwonde National Park, Malawi	T_TSTGSS	0.4581252689154932
+Ogra 2009	Attitudes toward resolution of human - Wildlife conflict among forest-dependent agriculturalists near Rajaji National Park, India	T_TSTMBF	0.39886429454142713
+Synder 2011	Tourism in maasai communities: A chance to improve livelihoods?	T_TSTMBF	0.3783939118691007
+Ghorbani et al. 2012	Diversity of Medicinal and Food Plants as Non-timber Forest Products in Naban River Watershed National Nature Reserve (China): Implications for Livelihood Improvement and Biodiversity Conservation	T_TSTMBF	0.3455362994155639
+Sarkar 2011	Beyond parks and reserves: The ethics and politics of conservation with a case study from Peru_	T_TSTMBF	0.3094300992215052
+Illukpitiya and Yanagida 2008	Role of income diversification in protecting natural forests: Evidence from rural households in forest margins of Sri Lanka	T_TSTMBF	0.2836882887875148

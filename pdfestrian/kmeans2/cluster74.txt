@@ -1,0 +1,11 @@
+Donoghue 2003	Contract NGOs in community-based forest management in the Philippines	T_TSTMBF	0.52836869272561
+Rantala 2012	Community-Based Forest Management: What Scope for Conservation and Livelihood Co-Benefits? Experience from the East Usambara Mountains, Tanzania	T_TSTMBF	0.4917560042646009
+Uberhuaga 2011	Indigenous forest management in Bolivia: Potentials for livelihood improvement		0.429389630521224
+Tran 2014	Ecotourism, gender and development in northern Vietnam	T_M	0.40598207490077953
+Pandit 2009	Community-based forest enterprises in Nepal: An analysis of their role in increasing income benefits to the poor	T_TSTMBF	0.39691579335661853
+Lescuyer 2013	Sustainable Forest Management at the Local Scale: A Comparative Analysis of Community Forests and Domestic Forests in Cameroon	T_TSTMBF	0.36437248828380975
+Oyono 2012	Beyond the decade of policy and community euphoria: The state of livelihoods under new local rights to forest in rural Cameroon	T_TSTMBF	0.35643265444464434
+Rijal 2010	The Chepang and forest conservation in the central mid-hills of Nepal	T_TSTMBF	0.3446629481415371
+Tieguhong 2012	Household dependence on forests around Lobeke National Park, Cameroon	T_TSTMBF	0.3382546745182407
+Krause and Zambonino 2013	More than just trees-Animal species diversity and participatory forest monitoring in the Ecuadorian Amazon	T_TSTMBF	0.31330260997632847
+Oonyu 2009	Conservation education and the attitudes of local communities living adjacent to Mt. elgon national park, Uganda	T_TSTMBF	0.2683817017404856

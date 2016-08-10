@@ -1,0 +1,10 @@
+Humphries and Kainer 2006	Local perceptions of forest certification for community-based enterprises	T_TSTMBF	0.7041335808889526
+Harada and Wiyono 2013	Certification of a Community-based Forest Enterprise for Improving Institutional Management and Household Income: A Case from Southeast Sulawesi, Indonesia	T_TSTMBF	0.6509874918725524
+Lewark 2011	Study of gender equality in community based forest certification programmes in Nepal	T_TBMF	0.6001361152475869
+Fernandez et al. 2000	Coastal area governance system in the Philippines	M_TRC	0.35570173540963707
+Bozmoski and Hultman 2010	Participant perceptions of risk and benefit in carbon forestry: Evidence from Central Tanzania	T_TSTGSS	0.35367212455386254
+Macura et al. 2011	Local community attitudes toward forests outside protected areas in India. Impact of legal awareness, trust, and participation	T_TSTMBF	0.29805684249577913
+Nino-Murcia 2006	Investing in natural capital: A financial assessment of social forestry in Northern India	FW_XFEB	0.2637714258595201
+Hansen 2013	New geographies of conservation and globalisation: the spatiality of development for conservation in the iSimangaliso Wetland Park, South Africa	T_TSTMBF	0.23493971636156813
+Torell 2012	Population, health, and environment situational analysis for the Saadani National Park Area, Tanzania		0.22417782815174003
+Ntshona 2010	From land rights to environmental entitlements: Community discontent in the 'successful' Dwesa-Cwebe land claim in South Africa	T_TSTGSS	0.16451078548438308

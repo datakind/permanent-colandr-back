@@ -1,0 +1,7 @@
+Hartter 2009	Attitudes of rural communities toward wetlands and forest fragments around Kibale national park, Uganda	T_TSTMBF	0.6655137197351509
+Hartter et al. 2011	Responses by households to resource scarcity and human-wildlife conflict: Issues of fortress conservation and the surrounding agricultural landscape		0.6623876749168853
+Hartter and Goldman 2009	Life on the edge: Balancing biodiversity, conservation, and sustaining rural livelihoods around Kibale National Park, Uganda	T_TSTMBF	0.6321090458325676
+Hartter and Goldman 2011	Local responses to a forest park in western Uganda: Alternate narratives on fortress conservation	T_TSTMBF	0.5864726450354415
+Karki 2013	Do protected areas and conservation incentives contribute to sustainable livelihoods? A case study of Bardia National Park, Nepal	T_TSTMBF	0.5677805379996645
+Thapa Karki 2013	Do protected areas and conservation incentives contribute to sustainable livelihoods? A case study of Bardia National Park, Nepal	T_TSTMBF	0.5677805379996645
+Muzaffar 2011	The endangered forests of Bangladesh: Why the process of implementation of the Convention on Biological Diversity is not working		0.32057177751773186

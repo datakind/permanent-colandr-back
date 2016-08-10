@@ -1,0 +1,8 @@
+Widayati 2010	Accessibility Factors and Conservation Forest Designation Affecting Rattan Cane Harvesting in Lambusango Forest, Buton, Indonesia	T_TSTMBF	0.546263211340906
+Tobey and Torell 2006	Coastal poverty and MPA management in mainland Tanzania and Zanzibar		0.5059153496658932
+Hewawasam 2000	Advancing knowledge: A key element of the World Bank's integrated coastal management strategic agenda in Sub-Saharan Africa	M_TSS	0.4711304734795123
+Wells 2010	Lessons learnt from a collaborative management programme in coastal Tanzania		0.41959019445895634
+Mulyoutami 2009	Local knowledge and management of simpuking (forest gardens) among the Dayak people in East Kalimantan, Indonesia	T_TSTMBF	0.37115098187359385
+Adeyemo et al. 2012	Lake Chad restoration: Communities attitude and expectations	FW_LL	0.33561938302108646
+Waylen 2009	Ecotourism positively affects awareness and attitudes but not conservation behaviours: A case study at Grande Riviere, Trinidad		0.2599266675487246
+Golden 2009	Bushmeat hunting and use in the Makira Forest, north-eastern Madagascar: A conservation and livelihoods issue	T_TSTMBF	0.2505868154576553

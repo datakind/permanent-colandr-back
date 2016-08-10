@@ -1,0 +1,2 @@
+Higgins-Zogib et al. 2010	Safety Net: Protected Areas Contributing to Human Well-being	T_TSTMBF	0.9984232945937925
+Garrard et al. 2012	Depicting community perspectives: Repeat photography and participatory research as tools for assessing environmental services in Sagarmatha National Park, Nepal	T_TCF	0.14786094518854803

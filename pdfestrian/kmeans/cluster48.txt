@@ -1,0 +1,4 @@
+Glen et al. 2013	Eradicating multiple invasive species on inhabited islands: The next big step in island restoration?		0.636570169872705
+Li and Huntsinger 2011	China's grassland contract policy and its impacts on herder ability to benefit in Inner Mongolia: Tragic feedbacks	T_TSTGSS	0.4773561907698004
+Hafner et al. 1990	Farming the forest: Managing people and trees in reserved forests in Thailand	T_TSTDBF	0.4544159800301633
+Nath Alauddin 2006	Sitakunda Botanical Garden and Eco-park, Chittagong, Bangladesh: Its impacts on a rural community		0.45163250167069735

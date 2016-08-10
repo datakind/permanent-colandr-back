@@ -1,0 +1,7 @@
+Vega 2013	Contrasts in Livelihoods and Protein Intake between Commercial and Subsistence Bushmeat Hunters in Two Villages on Bioko Island, Equatorial Guinea		0.5597245024572549
+Wandersee 2012	Perception and decisions in modeling coupled human and natural systems: A case study from Fanjingshan National Nature Reserve, China	T_TSTMBF	0.5248749465195183
+Horning 2005	The cost of ignoring rules: Forest conservation and rural livelihood outcomes in Madagascar	T_TSTMBF	0.4056278321936664
+Torri 2010	Power, structure, gender relations and community-based conservation: The Cawswe study of the Sariska region, Rajasthan, India	T_TSTDBF	0.3525474979516627
+Asquith et al. 2002	Can forest-protection carbon projects improve rural livelihoods? Analysis of the Noel Kempff Mercado Climate Action Project, Bolivia		0.3209292019819033
+Gubbi et al. 2009	Evaluating the legacy of an integrated conservation and development project around a tiger reserve in India	T_TSTMBF	0.3173133617395219
+Jose 2012	Agroforestry for conserving and enhancing biodiversity	T_TSTMBF	0.28191949144874995

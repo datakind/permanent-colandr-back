@@ -1,0 +1,3 @@
+von Essen et al. 2013	Attitudes and perceptions of villagers toward community-based mariculture in Minahasa, North Sulawesi, Indonesia	M_TRC	0.8058557910532709
+Brown 2011	Gender, climate change and REDD+ in the Congo Basin forests of Central Africa	T_TSTMBF	0.5110101483439021
+Dhanwatey 2013	Large carnivore attacks on humans in central India: A case study from the Tadoba-Andhari Tiger Reserve	T_TSTMBF	0.33122415840368247

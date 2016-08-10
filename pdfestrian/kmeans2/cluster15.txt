@@ -1,0 +1,13 @@
+Mbile et al 2005	Linking management and livelihood in environmental conservation: Case of the Korup National Park Cameroon	T_TSTMBF	0.5498470981021498
+Schmidt-Soltau 2004	The costs of rainforest conservation: Local responses towards integrated conservation and development projects in Cameroon		0.5394365209907164
+Ormsby Kaplin 2005	A framework for understanding community resident perceptions of Masoala National Park, Madagascar	T_TSTMBF	0.49072570549553646
+Ite and Adams 2000	Expectations, impacts and attitudes: Conservation and development in Cross River National Park, Nigeria	T_TSTMBF	0.48734071101534254
+Ite 1996	Community perceptions of the Cross River National Park, Nigeria	T_TSTMBF	0.4477202511242693
+Vodouhe 2010	Community perception of biodiversity conservation within protected areas in Benin	T_TSTGSS	0.4084557057953164
+Herrold-Menzies 2012	Spies in the Marsh or Post-Soviet Saviors? Crane Conservation and Community Outreach in the Russian Far East	T_TBMF	0.40648071124610574
+Bauer 2003	Local perceptions of Waza National Park, northern Cameroon	T_TSTGSS	0.3431324036144048
+Mannigel 2008	Integrating parks and people: How does participation work in protected area management?	T_TSTMBF	0.3418443772138995
+Aswani and Weiant 2004	Scientific Evaluation in Women's Participatory Management: Monitoring Marine Invertebrate Refugia in the Solomon Islands	M_TRC	0.3208016843211198
+Lian 2007	Farmer's perception and response towards land policy and eco-environment based on participatory rural appraisal: A case study in the Loess hilly area, China	T_TBMF	0.25622612733126987
+Mahanty 2002	High Stakes: Lessons from Stakeholder Groups in the Biodiversity Conservation Network	T_TSTMBF	0.2311313864126399
+Dougill et al. 2001	Impacts of community forestry on farming system sustainability in the middle hills of Nepal	T_TSTMBF	0.1120875399012033

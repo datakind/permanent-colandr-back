@@ -1,0 +1,6 @@
+Sinclair 2011	The role of participant learning in community conservation in the Arabuko-Sokoke Forest, Kenya		0.616219088264034
+Sims 2008	Learning through participatory resource management programs: Case studies from Costa Rica	T_TSTMBF	0.561919630934715
+Gomar et al. 2011	Moving Towards Sustainability? An Analysis of CITES' Conservation Policies		0.5098073156133874
+Tesfaye 2012	Attitudes of local people towards collective action for forest management: the case of participatory forest management in Dodola area in the Bale Mountains, Southern Ethiopia	T_MGS	0.47044287528148226
+Frost et al. 2007	In Search of Improved Rural Livelihoods in Semi-Arid Regions through Local Management of Natural Resources: Lessons from Case Studies in Zimbabwe	T_TSTGSS	0.330402924034915
+Benjamin 2010	Women in community forestry organizations: An empirical study in Thailand	T_TSTDBF	0.23765475942736505

@@ -1,0 +1,7 @@
+Dressler and Buscher 2008	Market triumphalism and the CBNRM 'crises' at the South African section of the Great Limpopo Transfrontier Park	T_TSTGSS	0.5841905137408401
+Cardozo 2011	Economic displacement and local attitude towards protected area establishment in the Peruvian Amazon	T_TSTMBF	0.4725678458092828
+Liu et al. 2008	Ecological and socioeconomic effects of China's policies for ecosystem services	T_TSTMBF	0.4444474688163809
+Virtanen 2005	Community-Based Natural Resource Management in Mozambique: A Critical Review of the Concepts Applicability at Local Level	T_TSTMBF	0.4183036580538349
+Hu 2006	Farmer's attitudes towards the Grain-for-Green programme in the Loess hilly area, China: A case study in two small catchments	T_TBMF	0.3797379279737887
+Howard 1998	Land conflict and Mayangna territorial rights in Nicaragua's Bosaws reserve	T_TSTMBF	0.37839309592178616
+Martino 2008	Gender and urban perceptions of nature and protected areas in Ba_ados del Este Biosphere Reserve		0.24232028879382017

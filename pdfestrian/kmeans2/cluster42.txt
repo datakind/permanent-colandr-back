@@ -1,0 +1,6 @@
+Zbinden 2005	Paying for Environmental Services: An analysis of participation in Costa Rica's PSA program	T_TSTMBF	0.5435542150638543
+Liu 2014	The role of social capital in encouraging residents pro-environmental behaviors in community-based ecotourism	T_TSTMBF	0.5315075649112395
+Mycoo and Gobin 2013	Coastal management, climate change adaptation and sustainability in small coastal communities: Leatherback turtles and beach loss	T_TSTMBF	0.4449714631305307
+Horowitz 2008	It's up to the clan to protect: Cultural heritage and the micropolitical ecology of conservation in New Caledonia	T_TSTMBF	0.3396489535785561
+Nath Alauddin 2006	Sitakunda Botanical Garden and Eco-park, Chittagong, Bangladesh: Its impacts on a rural community		0.3345934724434445
+Hack 2010	Payment schemes for hydrological ecosystem services as a political instrument for the sustainable management of natural resources and poverty reduction _ a case study from Belen, Nicaragua	T_TSTDBF	0.3296896607558846

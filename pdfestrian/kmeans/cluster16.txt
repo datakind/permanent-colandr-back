@@ -1,0 +1,5 @@
+Dressler 2006	Co-opting conservation: Migrant resource control and access to national park management in the Philippine uplands	T_TSTMBF	0.8151688051391377
+Dressler et al. 2006	The politics of decentralizing national parks management in the Philippines	T_TSTMBF	0.8044531326471347
+Dressler 2005	Disentangling Tagbanua lifeways, Swidden and conservation on Palawan Island	T_TSTMBF	0.72881042766859
+Novellino and Dressler 2010	The role of "hybrid" NGOs in the conservation and development of Palawan Island, The Philippines	T_TSTMBF	0.6738750448712567
+Dressler and Roth 2011	The Good, the Bad, and the Contradictory: Neoliberal Conservation Governance in Rural Southeast Asia	T_TSTMBF	0.6405424928688389

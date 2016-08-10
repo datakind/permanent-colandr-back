@@ -1,0 +1,5 @@
+Suyanto 2007	Poverty and environmental services: Case study in Way Besai Watershed, Lampung Province, Indonesia	T_TSTMBF	0.5430662961408153
+Suyanto 2005	Land tenure, agroforestry adoption, and reduction of fire hazard in a forest zone: A case study from Lampung, Sumatra, Indonesia		0.5337186853253171
+Stern 2010	Payoffs Versus Process: Expanding the Paradigm for Park/People Studies Beyond Economic Rationality	T_TSTMBF	0.4878027096518809
+Anand et al. 2012	Homestays at Korzok: Supplementing Rural Livelihoods and Supporting Green Tourism in the Indian Himalayas	T_MGS	0.45444419562471905
+Chowdhury et al. 2012	Patterns of co-operation in community based fishery management: A sociological study on the people of Hail Haor	FW_TSTFRW	0.4467367751767314

@@ -1,0 +1,4 @@
+Graham et al. 2011	From microbes to people: Tractable benefits of no-take areas for coral reefs	M_TRC	0.8659517143548722
+Heyman and Stronza 2011	South-South Exchanges Enhance Resource Management and Biodiversity Conservation at Various Scales	M_TSS	0.36131012292698766
+Kalame et al. 2011	Modified taungya system in Ghana: A win-win practice for forestry and adaptation to climate change?	T_TSTMBF	0.3266628511465043
+Richards 1996	Protected areas, people and incentives in the search for sustainable forest conservation in Honduras	T_TSTMBF	0.24740464068014253

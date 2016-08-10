@@ -1,0 +1,8 @@
+Fu et al. 2004	Entangling the complexity of protected area management: The case of Wolong Biosphere Reserve, southwestern China	T_TCF	0.6575828797189373
+Xu 2006	Local people's perceptions as decision support for protected area management in Wolong Biosphere Reserve, China	T_TCF	0.5976617858097275
+Sinu 2012	Forest resource use and perception of farmers on conservation of a usufruct forest (Soppinabetta) of Western Ghats, India	T_TSTMBF	0.45120620240568865
+Xu 2009b	Contribution of tourism development to protected area management: Local stakeholder perspectives	T_TCF	0.4305823027278718
+Gill et al. 2009	Moving beyond rhetoric: The need for participatory forest management with the Jakun of South-East Pahang, Malaysia	T_TSTMBF	0.3397278050127479
+Nagendra 2010	Beyond parks as monoliths: Spatially differentiating park-people relationships in the Tadoba Andhari Tiger Reserve in India	T_TSTDBF	0.30413751345841183
+Marchant 2013	Protected areas in northern colombia-on track to sustainable development?	T_TSTMBF	0.26633737645799205
+Geyer et al. 2009	Carpathian Biosphere Reserve (Ukraine): Towards Participatory Management	T_TCF	0.21560242399099633

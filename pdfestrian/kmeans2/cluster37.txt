@@ -1,0 +1,6 @@
+Sachedina 2010	Disconnected nature: The scaling up of African wildlife foundation and its impacts on biodiversity conservation and local livelihoods	T_TSTMBF	0.7063853082982277
+Kaltenborn et al. 2011	The attitudes of tourists towards the environmental, social and managerial attributes of Serengeti National Park, Tanzania	T_TSTGSS	0.3743481725919387
+Hogarth 2013	The link between smallholder bamboo shoot management, income, and livelihoods: A case study in southern China	T_TSTMBF	0.36880441418447923
+De Lopez 2003	Economics and stakeholders of Ream National Park, Cambodia	T_TSTMBF	0.3493156026318678
+Temudo 2012	the white men bought the forests: Conservation and contestation in Guinea-Bissau, Western Africa	T_TSTMBF	0.3184681992365478
+Few 2001	Containment and counter-containment: planner/community relations in conservation planning	T_TSTMBF	0.30075305214741865

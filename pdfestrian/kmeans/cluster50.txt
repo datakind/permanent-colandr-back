@@ -1,0 +1,8 @@
+Spiteri 2008a	Evaluating local benefits from conservation in Nepal's Annapurna Conservation Area	T_TBMF	0.6175238966234483
+Le et al. 2014	What drives the success of reforestation projects in tropical developing countries? The case of the Philippines	T_TSTMBF	0.5511316153207463
+Khadka and Nepal 2010	Local responses to participatory conservation in Annapurna Conservation Area, Nepal	T_TSTCF	0.5252122484855756
+Spiteri 2008b	Distributing conservation incentives in the buffer zone of Chitwan National Park, Nepal	T_TSTMBF	0.4766855840203968
+Nyaupane 2011	Linkages among biodiversity, livelihood, and tourism	T_TSTGSS	0.35191843116598914
+Harada 2003	Attitudes of local people towards conservation and Gunung Halimun national park in west Java, Indonesia	T_TSTMBF	0.31537484263920246
+Dolisca et al. 2006	Factors influencing farmers' participation in forestry management programs: A case study from Haiti	T_TSTCF	0.3083586196103316
+Dolisca et al. 2007	Farmers' perceptions towards forests: A case study from Haiti	T_TSTCF	0.3014582435874729

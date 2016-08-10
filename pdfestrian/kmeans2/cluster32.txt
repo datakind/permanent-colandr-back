@@ -1,0 +1,8 @@
+Baez 2011	Notes: The "right" redd framework: National laws that best protect indigenous rights in a global redd regime	T_TSTMBF	0.9405943301031235
+Evans et al. 2014	Global versus local narratives of REDD: A case study from Peru's Amazon	T_TSTMBF	0.8467428030849865
+Mustalahti 2012	Can REDD+ reconcile local priorities and needs with global mitigation benefits? Lessons from angai forest, Tanzania	M_TRC	0.8041958759062747
+Awono et al. 2014	Tenure and participation in local REDD+ projects: Insights from southern Cameroon	T_TSTMBF	0.7937936933721044
+Mustalahti 2012b	Analysis of three crucial elements of REDD+ in participatory forest management	T_TSTMBF	0.7763719490548476
+Dressler et al. 2012	REDD Policy Impacts on Indigenous Property Rights Regimes on Palawan Island, the Philippines	T_TSTMBF	0.7090490681000059
+Brown 2011	Gender, climate change and REDD+ in the Congo Basin forests of Central Africa	T_TSTMBF	0.5760526431052896
+Mahanty et al. 2013	Access and benefits in payments for environmental services and implications for REDD+: Lessons from seven PES schemes	T_TSTMBF	0.533355938932252

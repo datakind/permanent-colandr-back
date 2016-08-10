@@ -2,6 +2,7 @@ package org.datakind.ci.pdfestrian.extraction
 
 import cc.factorie.DenseTensor1
 import cc.factorie.app.nlp.Document
+import cc.factorie.app.strings.PorterStemmer
 import cc.factorie.la.SparseTensor1
 
 import scala.io.Source
@@ -31,7 +32,7 @@ object TfIdf {
   val featureSize = wordCounts.size + bigramCounts.size
 
   def clean(string : String) : String = {
-    val lower = string.toLowerCase()
+    val lower = PorterStemmer(string.toLowerCase())
     lower.filter(_.isLetterOrDigit)
   }
 
@@ -61,6 +62,7 @@ object TfIdf {
       }
     }
     tensor *= idf
+    //tensor /= tensor.twoNorm
     tensor
   }
 

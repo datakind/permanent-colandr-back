@@ -1,0 +1,9 @@
+Koelble 2011	Ecology, economy and empowerment: Eco-tourism and the game lodge industry in South Africa	T_TSTGSS	0.4731501298094505
+Lapeyre 2001	The grootberg lodge partnership in namibia:Towards poverty alleviation and empowerment for long-term sustainability	T_DXS	0.41892695465920665
+German et al. 2010	Minimizing the livelihood trade-offs of natural resource management in the Eastern African Highlands: Policy Implications of a Project in "creative governance"	T_TSTMBF	0.40981040678957403
+Beauchamp and Ingram 2011	Impacts of community forests on livelihoods in Cameroon: Lessons from two case studies		0.3995369766986392
+Karper and Lopes 2014	Punishment and compliance: Exploring scenarios to improve the legitimacy of small-scale fisheries management rules on the Brazilian coast	M_TRC	0.3659701793588824
+Luoga 2005	Land cover and use changes in relation to the institutional framework and tenure of land and resources in eastern Tanzania Miombo woodlands	T_TSTGSS	0.3534353029837925
+Harris et al. 2012	Integrating family planning service provision into community-based marine conservation	M_TRC	0.3359077205973994
+Roy et al. 2013a	Community perceptions of state forest ownership and management: A case study of the Sundarbans Mangrove Forest in Bangladesh	T_M	0.3306227956073937
+Halim et al. 2011	Engaging the local community in participatory resource management through learning: the experience from Langkawi Island, Malaysia	M_TRC	0.32727874208905344

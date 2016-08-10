@@ -1,0 +1,4 @@
+Khumsri 2010	Pre-existing Inland Fisheries Management in Thailand: The Case of the Lower Songkhram River Basin	FW_TSTUR	0.6172104127136014
+Lopez-Marrero 2010	An integrative approach to study and promote natural hazards adaptive capacity: a case study of two flood-prone communities in Puerto Rico	T_TSTDBF	0.5416708882374665
+Low_Sundaresan 2009	Partnering with local communities to identify conservation priorities for endangered Grevy's zebra	T_TSTMBF	0.4544151006865363
+Van Vliet 2012	The bushmeat market in Kisangani, Democratic Republic of Congo: Implications for conservation and food security		0.4009821262547118

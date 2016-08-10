@@ -1,0 +1,5 @@
+Linkie 2007	Patterns and perceptions of wildlife crop raiding in and around Kerinci Seblat National Park, Sumatra	T_TSTMBF	0.7299108615167349
+Kendall 2011	The spatial and agricultural basis of crop raiding by the Vulnerable common hippopotamus Hippopotamus amphibius around Ruaha National Park, Tanzania	T_TSTGSS	0.6773141816944405
+Campbell-Smith et al. 2012	Evaluating the effectiveness of human-orangutan conflict mitigation strategies in Sumatra	T_TSTMBF	0.614413351616529
+Sarkar 2011b	Human attitudes towards the conservation of protected areas: a case study from four protected areas in Bangladesh	T_TSTMBF	0.43585346711196526
+Tabuti 2009	Community attitudes and preferences towards woody species: Implications for conservation in Nawaikoke, Uganda	T_TSTGSS	0.31174347498671884

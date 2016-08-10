@@ -1,0 +1,8 @@
+Mullan 2009	Evaluation of the impact of the natural forest protection program on rural household livelihoods		0.6774962115688815
+Groom and Palmer 2012	REDD+ and rural livelihoods	T_TSTMBF	0.5234161358102475
+Cao 2011	Impact of China's large-scale ecological restoration program on the environment and society in arid and semiarid areas of China: Achievements, problems, synthesis, and applications	T_TSTMBF	0.49264956308782176
+Cao et al. 2010	Impacts of the Natural Forest Conservation Program on the livelihoods of residents of Northwestern China: Perceptions of residents affected by the program	T_TBMF	0.39914088859249425
+Islam 2013	People's participation in forest conservation and livelihoods improvement: Experience from a forestry project in Bangladesh		0.3961132441686305
+Hobbs et al. 1998	Inception of the Bedouin support programme in the St. Katherine Natural Protectorate, Sinai, Egypt	T_DXS	0.3302123509356617
+Torell 2012	Population, health, and environment situational analysis for the Saadani National Park Area, Tanzania		0.25798123508710435
+Oettle 2004	Community exchange and training in the Suid Bokkeveld: A UNCCD pilot project to enhance livelihoods and natural resource management	T_DXS	0.1819524236840651

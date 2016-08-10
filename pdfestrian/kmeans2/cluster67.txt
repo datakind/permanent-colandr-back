@@ -1,0 +1,11 @@
+Naughton Treves 1997	Farming the forest edge: Vulnerable places and people around Kibale National Park, Uganda	T_TSTGSS	0.6643302692752424
+Naughton Treves 1998	Predicting Patterns of Crop Damage by Wildlife around Kibale National Park, Uganda	T_TSTMBF	0.6640866781351717
+Hartter and Goldman 2009	Life on the edge: Balancing biodiversity, conservation, and sustaining rural livelihoods around Kibale National Park, Uganda	T_TSTMBF	0.5580623580269988
+Hartter and Goldman 2011	Local responses to a forest park in western Uganda: Alternate narratives on fortress conservation	T_TSTMBF	0.4625915206606487
+De Boer et al. 1998	Natural resource use, crop damage and attitudes of rural people in the vicinity of the Maputo Elephant Reserve, Mozambique	T_TSTMBF	0.4170225905966728
+Studsrod 1995	Park-People Relationships: The Case of Damage Caused by Park Animals Around the Royal Bardia National Park, Nepal	T_TSTGSS	0.4018213141694757
+Thompson et al. 2003	Lessons from community based management of floodplain fisheries in Bangladesh	FW_TSTFRW	0.3083320380222004
+McCarthy 2004	Cooperation, collective action and natural resources management in Burkina Faso	T_TSTGSS	0.2688001634579131
+Hermann 2009	Changing forest conservation and management paradigms: Traditional ecological knowledge systems and sustainable forestry: Perspectives from Chile and India	T_TSTDBF	0.24184899512367242
+Salim 2010	Trade-off between monsoon trawl ban and the livelihood of trawl labourers in Maharashtra	T_TSTMBF	0.22486077682235056
+Ruiz 2003	Self-management as the goal of regional conservation strategies		0.20716531924593434

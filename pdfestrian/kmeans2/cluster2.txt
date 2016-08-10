@@ -1,0 +1,6 @@
+Hauck and Gallardo-Fernandez 2013	Crises in the South African abalone and Chilean loco fisheries: Shared challenges and prospects	M_TU	0.6702224320627761
+Wadley 1997	Hunting Primates and Managing Forests: The Case of Iban Forest Farmers in Indonesian Borneo	T_TSTMBF	0.47070071841801886
+Mangan 2013	Estimating the recreational value of Pakistan's largest freshwater lake to support sustainable tourism management using a travel cost model	FW_TSTFRW	0.3752119045047072
+Koku and Gustafsson 2003	Local institutions and natural resource management in the South Tongu District of Ghana: A case study	T_TSTGSS	0.31669278009130397
+Hoehn 2009	Attitudes and perceptions of indigenous fishermen towards marine resource management in Kuna Yala, Panama	M_TRC	0.30709043109138506
+Gillingham and Lee 1999	The impact of wildlife-related benefits on the conservation attitudes of local people around the Selous Game Reserve, Tanzania	T_TSTGSS	0.28899912761092433

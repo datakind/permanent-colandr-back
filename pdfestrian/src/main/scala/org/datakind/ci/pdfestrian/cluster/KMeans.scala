@@ -78,7 +78,7 @@ object KMeans {
         None
     }
   }
-  var iter = 10
+  var iter = 100
   def main(args: Array[String]): Unit = {
     val data = Aid.load(args.head).flatMap { a =>
       getDocument(a)

@@ -1,0 +1,13 @@
+Lewark 2011	Study of gender equality in community based forest certification programmes in Nepal	T_TBMF	0.4651610507551991
+Gomiero et al. 2000	Vietnamese uplands: Environmental and socio-economic perspective of forest land allocation and deforestation process	T_TSTMBF	0.43556040345342056
+Pinyopusarerk 2014	Making community forest management work in northern Vietnam by pioneering participatory action	T_TSTMBF	0.43062823626038993
+Hazzah et al. 2013	The influence of park access during drought on attitudes toward wildlife and lion killing behaviour in Maasailand, Kenya	T_TSTGSS	0.4179926313831857
+Maskey 2006	Social and cultural determinants of collective management of community forest in Nepal	T_TSTCF	0.41418602051347714
+Manandhar Yong Shin 2013	How community-based forest management can improve rural livelihoods: A case of Kabhre district, Nepal	T_TSTMBF	0.35538697742303155
+Hill 1991	Zimbabwe's wildlife conservation regime: Rural farmers and the state	T_TSTGSS	0.3546189423923176
+Isaacs 2006	Small-scale fisheries reform: Expectations, hopes and dreams of "a better life for all"	M_TU	0.3379232006958333
+Muteshi 1995	COLLABORATIVE ALLIANCES - THE ENVIRONMENT, WOMEN AND THE AFRICA-2000-NETWORK	T_TSTMBF	0.3320738963995313
+Ogar 2010	Performance of forest management committees in Cross River state, Nigeria	T_TSTMBF	0.28949793523242884
+Agea et al. 2009	Efficacy of forestry conservation policy on rural livelihoods in Uganda: Evidence from Mabira forest reserve	T_TSTGSS	0.0
+Barham et al. 1999	Rain forest livelihoods: income generation, household wealth and forest use	T_TSTMBF	0.0
+Fujita 2003	Dealing with contradictions: Examining national forest reserves in Thailand	T_TSTMBF	0.0

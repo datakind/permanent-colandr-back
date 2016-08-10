@@ -1,0 +1,10 @@
+Ito et al. 2005	The influence of NGO involvement on local people's perception of forest management: A case study of community forestry in Nepal	T_TSTMBF	0.6010921517315518
+Dongol et al. 2002	Capital formation and sustainable community forestry in Nepal	T_TSTMBF	0.5467148582707674
+Rechlin 2002	Sharing the Wealth: A Comparative Study of the Distribution of Benefits from Community Forestry Management in Southern China and Nepal	T_TSTMBF	0.5307477610788568
+Adhikari et al. 2007	Local benefits from community forests in the middle hills of Nepal		0.44564427259694894
+Hobbs et al. 1998	Inception of the Bedouin support programme in the St. Katherine Natural Protectorate, Sinai, Egypt	T_DXS	0.34816127096636645
+Ogra 2008	Human-wildlife conflict and gender in protected area borderlands: A case study of costs, perceptions, and vulnerabilities from Uttarakhand (Uttaranchal), India	T_TSTMBF	0.34517892545347795
+Nepstad et al. 2013	Responding to climate change and the global land crisis: REDD+, market transformation and low-emissions rural development	T_TSTMBF	0.3163160237098698
+Capistrano and Charles 2012	Indigenous rights and coastal fisheries: A framework of livelihoods, rights and equity	M_TRC	0.28071571613717644
+Lian 2007	Farmer's perception and response towards land policy and eco-environment based on participatory rural appraisal: A case study in the Loess hilly area, China	T_TBMF	0.2635552203898098
+Crawford et al 2010	Small Scale Fisheries Management: Lessons from Cockle Harvesters in Nicaragua and Tanzania	M_TRC	0.16069947317617445

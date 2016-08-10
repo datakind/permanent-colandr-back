@@ -1,0 +1,8 @@
+Idinoba et al. 2009	Climate change and non-wood forest products: Vulnerability and adaptation in West Africa	T_TSTDBF	0.8552267293954026
+Bunce et al. 2010	Policy misfits, climate change and cross-scale vulnerability in coastal Africa: how development projects undermine resilience	FW_TSTCR	0.3832422334995277
+Cardozo 2011	Economic displacement and local attitude towards protected area establishment in the Peruvian Amazon	T_TSTMBF	0.3267338512457752
+Edmunds and Wollenburg 2001	Historical perspective on forest policy change in Asia		0.31912434874053947
+Schelhas 2005	Forest values of national park neighbors in Costa Rica		0.2715175226077592
+Lai 2003	Community participation in the management of nature reserves: Experiences and lessons from China	T_TSTMBF	0.2642745993679604
+Budhathoki 2004	Linking communities with conservation in developing countries: buffer zone management initiatives In Nepal	T_TSTMBF	0.24991527503101202
+Gockel and Gray 2009	Integrating conservation and development in the Peruvian Amazon	T_TSTMBF	0.22317503048833887

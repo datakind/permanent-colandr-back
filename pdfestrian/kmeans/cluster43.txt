@@ -1,0 +1,10 @@
+Newton 2012a	Consequences of actor level livelihood heterogeneity for additionality in a tropical forest payment for environmental services programme with an undifferentiated reward structure	T_TSTMBF	0.5302964795496382
+Fisher 2012	No pay, no care? A case study exploring motivations for participation in payments for ecosystem services in Uganda	T_TSTMBF	0.4295521626881671
+Weladji 2003	Stakeholder attitudes towards wildlife policy and the B_nou_ Wildlife Conservation Area, North Cameroon		0.40296916822310386
+Parker 2011	Distribution of benefits based on household participation roles in decentralized conservation within Kanchenjunga Conservation Area Project, Nepal	M_TRC	0.3764359083857475
+Tabuti 2009	Community attitudes and preferences towards woody species: Implications for conservation in Nawaikoke, Uganda	T_TSTGSS	0.35104473411896037
+Pandit 2011	Social Heterogeneity and Community Forestry Processes: Reflections from Forest Users of Dhading District, Nepal	T_TSTMBF	0.34675251279308983
+Ndoye 2004	Forest resources and rural livelihoods: The conflict between timber and non-timber forest products in the Congo Basin	T_TSTMBF	0.3228197600377835
+Owino 2012	Socio-economics and wildlife conservation of a peri-urban national park in central Kenya	T_TSTGSS	0.2892771511575328
+Khan and Bhagwat 2010	Protected Areas: A Resource or Constraint for Local People?	T_MGS	0.2818719354164725
+Wadley 2010	The 'Social Life' of conservation: Lessons from Danau Sentarum	T_TSTMBF	0.22055084705148664

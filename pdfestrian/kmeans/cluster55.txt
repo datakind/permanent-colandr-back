@@ -1,0 +1,8 @@
+Quaedvlieg 2014	Is Amazon nut certification a solution for increased smallholder empowerment in peruvian amazonia?	T_TSTMBF	0.6208729096967562
+Nunan 2014	Wealth and welfare? Can fisheries management succeed in achieving multiple objectives? A case study of Lake Victoria, East Africa	FW_LL	0.4951545521012519
+Lopes et al. 2011	Extractive and sustainable development reserves in Brazil: Resilient alternatives to fisheries?	M_TRC	0.41024037337083213
+Walmsley et al. 2006	The role of small-scale fisheries management in the poverty reduction strategies in the Western Indian Ocean region		0.37998777673391815
+Martini 2012	Sugar palm (Arenga pinnata (Wurmb) Merr.) for livelihoods and biodiversity conservation in the orangutan habitat of Batang Toru, North Sumatra, Indonesia: Mixed prospects for domestication	T_TSTMBF	0.29162255785318913
+Tomicevic 2010b	DEVELOPING LOCAL CAPACITY FOR PARTICIPATORY MANAGEMENT OF PROTECTED AREAS: THE CASE OF TARA NATIONAL PARK		0.29156006213223584
+Mycoo and Gobin 2013	Coastal management, climate change adaptation and sustainability in small coastal communities: Leatherback turtles and beach loss	T_TSTMBF	0.29039412082636784
+Tesfaye 2012	Attitudes of local people towards collective action for forest management: the case of participatory forest management in Dodola area in the Bale Mountains, Southern Ethiopia	T_MGS	0.27261553190420906

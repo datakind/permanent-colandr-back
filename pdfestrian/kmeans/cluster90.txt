@@ -1,0 +1,11 @@
+Donoghue 2003	Contract NGOs in community-based forest management in the Philippines	T_TSTMBF	0.5884341763770493
+Suh 2012	The past and future of community-based forest management in the Philippines	T_TSTMBF	0.539406698844247
+Rantala 2012	Community-Based Forest Management: What Scope for Conservation and Livelihood Co-Benefits? Experience from the East Usambara Mountains, Tanzania	T_TSTMBF	0.5049692468456345
+Sikor 2007	Why May Forest Devolution Not Benefit the Rural Poor? Forest Entitlements in Vietnam's Central Highlands	T_TSTMBF	0.4061038675176428
+Hagos and Holden 2006	Tenure security, resource poverty, public programs, and household plot-level conservation investments in the highlands of northern Ethiopia	T_TSTMBF	0.3929784385931039
+Lopez-Marrero 2010	An integrative approach to study and promote natural hazards adaptive capacity: a case study of two flood-prone communities in Puerto Rico	T_TSTDBF	0.35714967334648856
+Kangalawe and Noe 2012	Biodiversity conservation and poverty alleviation in Namtumbo District, Tanzania	T_TSTGSS	0.2855743010087762
+Phuc 2009	Why did the forest conservation policy fail in the Vietnamese uplands? Forest conflicts in Ba Vi National Park in Northern Region	T_TSTMBF	0.24929689313759404
+Hayakumura 2006	The significance of social capital in local forest management in Laos: Overcoming latent conflict between local people and local forestry officials	T_TSTGSS	0.24429859529892142
+Tomicevic 2010	Socio-economic impacts on the attitudes towards conservation of natural resources: Case study from Serbia		0.2394068610366824
+Mannigel 2008	Integrating parks and people: How does participation work in protected area management?	T_TSTMBF	0.21386470589422454

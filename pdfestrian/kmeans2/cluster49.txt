@@ -1,0 +1,5 @@
+Hewawasam 2000	Advancing knowledge: A key element of the World Bank's integrated coastal management strategic agenda in Sub-Saharan Africa	M_TSS	0.7939046539453035
+Jorge 1997	Developing capacity for coastal management in the absence of the government: A case study in the Dominican Republic	M_TRC	0.5486431583810526
+Dollacker and Rhodes 2007	Integrating crop productivity and biodiversity conservation pilot initiatives developed by Bayer CropScience	T_TSTMBF	0.5484556713652404
+Bayala et al. 2014	Parklands for buffering climate risk and sustaining agricultural production in the Sahel of West Africa	T_TSTGSS	0.3322183765595763
+Mbereko 2007	An analysis of institutions associated with wetlands use, access and management in communal areas of Zimbabwe: A case study of Zungwi vlei, Zvishavane	T_TSTGSS	0.28511925406373195

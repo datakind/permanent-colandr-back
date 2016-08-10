@@ -1,0 +1,10 @@
+Gobeze et al. 2009	Participatory forest management and its impacts on livelihoods and forest status: The case of bonga forest in Ethiopia	T_MGS	0.8511314780632578
+Ameha et al. 2014	Impacts of access and benefit sharing on livelihoods and forest: Case of participatory forest management in Ethiopia	T_TSTMBF	0.7951411911393975
+Matiku 2013	The impact of participatory forest management on local community livelihoods in the Arabuko-Sokoke forest, Kenya	T_TSTMBF	0.730385954299661
+Vyamana 2009	Participatory forest management in the eastern arc mountains of tanzania: Who benefits?		0.7113625720835863
+Robertson 2005	User perceptions of conservation and participatory management of iGxalingenwa forest, South Africa	T_MGS	0.5588278671365114
+Mustalahti 2006	How to handle the stick: Positive processes and crucial barriers of participatory forest management	T_TSTMBF	0.5116094451832792
+Salam 2006	Factors affecting participating farmers' willingness-to-pay for the Tree Farming Fund: A study in a participatory forest in Bangladesh	T_TSTMBF	0.48737735796909104
+Tesfaye 2012b	Factors Associated with the Performance of User Groups in a Participatory Forest Management around Dodola Forest in the Bale Mountains, Southern Ethiopia	T_MGS	0.36537668130609136
+Johannes 2002	The renaissance of community-based marine resource management in Oceania	M_TRC	0.2738574835150741
+Muzaffar 2011	The endangered forests of Bangladesh: Why the process of implementation of the Convention on Biological Diversity is not working		0.17226139450314615

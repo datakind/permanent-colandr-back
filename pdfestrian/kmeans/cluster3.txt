@@ -1,0 +1,7 @@
+Nautiyal 2011	Can conservation and development interventions in the Indian Central Himalaya ensure environmental sustainability? A socioecological evaluation	T_TSTCF	0.5823038675479648
+Nautiya Rajan 2005	Interaction of Biodiversity and Economic Welfare - A Case Study from the Himalayas of India	T_TSTGSS	0.495010429709419
+Dar et al. 2009	Predicting the patterns, perceptions and causes of human-carnivore conflict in and around Machiara National Park, Pakistan	T_TSTCF	0.4617217125893895
+Rao 1996	Minor forest products' management: Problems and prospects in remote high altitude villages of Central Himalaya	T_TSTMBF	0.4443158755765244
+Isla 2005	Conservation as enclosure: An ecofeminist perspective on sustainable development and biopiracy in Costa Rica	T_TSTMBF	0.41245474287903383
+king 2007	Conservation and community in the new South Africa: A case study of the Mahushe Shongwe Game Reserve	T_MGS	0.367991556480083
+Karki et al. 2005	Creating livelihoods and enhancing biodiversity-rich production systems based on medicinal and aromatic plants: Preliminary lessons from South Asia	T_TSTMBF	0.2981992678929965

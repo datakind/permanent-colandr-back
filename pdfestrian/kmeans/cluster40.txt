@@ -1,0 +1,16 @@
+Liu et al. 2008	Ecological and socioeconomic effects of China's policies for ecosystem services	T_TSTMBF	0.5217326641219441
+Mullan 2009	Evaluation of the impact of the natural forest protection program on rural household livelihoods		0.489132051935173
+Cao et al. 2010	Impacts of the Natural Forest Conservation Program on the livelihoods of residents of Northwestern China: Perceptions of residents affected by the program	T_TBMF	0.4161514299777012
+Fletcher 2012	Using the Master's Tools? Neoliberal Conservation and the Evasion of Inequality	T_TSTMBF	0.4071874196108182
+Horton 2009	Buying up nature: Economic and social impacts of Costa Rica's ecotourism boom	T_TSTMBF	0.40519992788105763
+Pomeroy 2007	Fish wars: Conflict and collaboration in fisheries management in Southeast Asia	M_TRC	0.4027479952522347
+Pomeroy et al. 2007	Fish wars: Conflict and collaboration in fisheries management in Southeast Asia	M_TRC	0.4027479952522347
+Jim and Xu 2002	Stifled stakeholders and subdued participation: Interpreting local responses toward Shimentai nature reserve in South China	T_TSTMBF	0.32866284422691594
+Kemp et al. 2013	Innovative grassland management systems for environmental and livelihood benefits	T_TGSS	0.3007799055678494
+Campbell 1998	Use them or lose them? Conservation and the consumptive use of marine turtle eggs at Ostional, Costa Rica	T_TSTMBF	0.28584374626912024
+Koelble 2011	Ecology, economy and empowerment: Eco-tourism and the game lodge industry in South Africa	T_TSTGSS	0.26763879177994276
+Spenceley 2007	Nature-based tourism and poverty alleviation: Impacts of private sector and parastatal enterprises in and around Kruger National Park, South Africa		0.2534716991363319
+Ma 2009	Rural households' attitude and economic strategies toward the conversion of cropland to forest and grassland program (CCFG): A case study in qira, china	T_MGS	0.23596765558445595
+Hirst et al. 2010	Developing and implementing an innovative biodiversity management strategy for a large energy project at Balhaf, Yemen	T_DXS	0.23425908440571858
+Schelhas 2002	Linking community and national park development: A case from the Dominican Republic	T_TSTMBF	0.2111308493941118
+Azman et al. 2010	Public education in heritage conservation for geopark community	T_TSTMBF	0.13295158330091447

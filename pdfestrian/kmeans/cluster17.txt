@@ -1,0 +1,6 @@
+Leach et al. 2011	Baobab (Adansonia digitata L.) and Tamarind (Tamarindus indica L.) Management Strategies in the Midst of Conflict and Change: A Dogon Case Study from Mali	T_TSTGSS	0.5321804648734293
+De Boer et al. 1998	Natural resource use, crop damage and attitudes of rural people in the vicinity of the Maputo Elephant Reserve, Mozambique	T_TSTMBF	0.5042102796976687
+Njana 2013	Are miombo woodlands vital to livelihoods of rural households? Evidence from Urumwa and surrounding communities, Tabora, Tanzania	T_TSTMBF	0.4123411158411033
+Allendorf 2013	Gender and Attitudes toward Protected Areas in Myanmar	T_TSTMBF	0.3759431229432438
+Mulder 2007	The role of research in evaluating conservation strategies in Tanzania: The case of the Katavi-Rukwa ecosystem	T_TSTMBF	0.3700895086881849
+Cinner et al. 2009	Exploring Social Resilience in Madagascar's Marine Protected Areas	M_TRC	0.3528377758997596

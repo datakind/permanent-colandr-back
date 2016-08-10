@@ -1,0 +1,8 @@
+Taylor 2009	Community based natural resource management in Zimbabwe: the experience of CAMPFIRE	T_TSTGSS	0.6189302986690562
+Derman 1995	Environmental NGOs, Dispossession, and the State: The Ideology and Praxis of African Nature and Development	T_TSTGSS	0.5886694597070695
+Mutandwa 2007	Impact of community-based approaches to wildlife management: Case study of the CAMPFIRE programme in Zimbabwe	T_MGS	0.576998586336972
+Child 1996	The role of community-based wild resource management in Zimbabwe	T_TSTGSS	0.5049910455208811
+Hill 1991	Zimbabwe's wildlife conservation regime: Rural farmers and the state	T_TSTGSS	0.4870495978765998
+Heubach et al. 2013	Local Values, Social Differentiation and Conservation Efforts: The Impact of Ethnic Affiliation on the Valuation of NTFP-Species in Northern Benin, West Africa	T_TSTGSS	0.42101064692579265
+Hazzah et al. 2013	The influence of park access during drought on attitudes toward wildlife and lion killing behaviour in Maasailand, Kenya	T_TSTGSS	0.36144405973983007
+Luo 2008	The new environmental paradigm and nature-based tourism motivation	T_TSTMBF	0.33528320639253295

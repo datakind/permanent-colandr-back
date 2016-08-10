@@ -1,0 +1,3 @@
+Bruyere et al. 2009	Differences in Perceptions of Communication, Tourism Benefits, and Management Issues in a Protected Area of Rural Kenya	T_TSTGSS	0.6934747652195574
+Lai 2003	Community participation in the management of nature reserves: Experiences and lessons from China	T_TSTMBF	0.6235922226963431
+Shahbaz 2012	Perceived impact of participation in forest management on natural and social capitals in mansehra district of Pakistan	T_TBMF	0.4821766598971937

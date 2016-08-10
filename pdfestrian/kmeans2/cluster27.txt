@@ -1,0 +1,4 @@
+Jacobson and Robles 1992	ECOTOURISM, SUSTAINABLE DEVELOPMENT, AND CONSERVATION EDUCATION - DEVELOPMENT OF A TOUR GUIDE TRAINING-PROGRAM IN TORTUGUERO, COSTA-RICA	T_TSTMBF	0.7231863212324375
+Allendorf 2013	Gender and Attitudes toward Protected Areas in Myanmar	T_TSTMBF	0.5135262686106934
+Allendorf et al. 2006	Community attitudes toward three protected areas in Upper Myanmar (Burma)		0.46577856825492797
+Nagendra 2010	Beyond parks as monoliths: Spatially differentiating park-people relationships in the Tadoba Andhari Tiger Reserve in India	T_TSTDBF	0.42932916239004637

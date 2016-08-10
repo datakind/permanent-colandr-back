@@ -1,0 +1,10 @@
+Twyman 2000a	Livelihood opportunity and diversity in Kalahari Wildlife management areas, Botswana: Rethinking community resource management		0.6168231229317737
+Twyman 2000b	Participatory conservation? Community-based natural resource management in Botswana	T_TSTGSS	0.4945706540219227
+Sinu 2012	Forest resource use and perception of farmers on conservation of a usufruct forest (Soppinabetta) of Western Ghats, India	T_TSTMBF	0.47691382929401793
+Pfund et al. 2011	Understanding and integrating local perceptions of trees and forests into incentives for sustainable landscape management		0.351820707191105
+Sheppard 2010	Ten years of adaptive community-governed conservation: Evaluating biodiversity protection and poverty alleviation in a West African hippopotamus reserve	T_TSTGSS	0.3403717792867567
+McCall Minang 2005	Assessing participatory GIS for community-based natural resource management: claiming community forests in Cameroon	T_TSTMBF	0.32031050740435746
+Brannlund et al. 2009	Participation to forest conservation in National Kabore Tambi Park in Southern Burkina Faso	T_TSTGSS	0.30708732700658614
+Wadley 2010	The 'Social Life' of conservation: Lessons from Danau Sentarum	T_TSTMBF	0.22289837282905575
+Schachenmann 2006	Spiritual values in Madagascar: The starting point for endogenous conservation initiatives	T_TSTMBF	0.1853656764550148
+Hoffman 2007	The Sajama National Park in Bolivia: A model for cooperation among state and local authorities and the indigenous population	T_MGS	0.16474756029236368

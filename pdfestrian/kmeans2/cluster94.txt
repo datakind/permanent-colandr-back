@@ -1,0 +1,12 @@
+Ito et al. 2005	The influence of NGO involvement on local people's perception of forest management: A case study of community forestry in Nepal	T_TSTMBF	0.6744088423170789
+Dongol et al. 2002	Capital formation and sustainable community forestry in Nepal	T_TSTMBF	0.6483979158863113
+Rechlin 2002	Sharing the Wealth: A Comparative Study of the Distribution of Benefits from Community Forestry Management in Southern China and Nepal	T_TSTMBF	0.6452888363813537
+Pandit 2011	Social Heterogeneity and Community Forestry Processes: Reflections from Forest Users of Dhading District, Nepal	T_TSTMBF	0.6068001244672241
+Adhikari et al. 2007	Local benefits from community forests in the middle hills of Nepal		0.535998804240117
+Pandit Bevilacqua 2011	Forest users and environmental impacts of community forestry in the hills of Nepal	T_TSTMBF	0.4253449868450903
+Maryudi 2012	Back to basics: Considerations in evaluating the outcomes of community forestry	T_TSTMBF	0.35164383585268816
+Leach et al. 2011	Baobab (Adansonia digitata L.) and Tamarind (Tamarindus indica L.) Management Strategies in the Midst of Conflict and Change: A Dogon Case Study from Mali	T_TSTGSS	0.2905441274591752
+Kijazi and Kant 2010	Forest stakeholders' value preferences in Mount Kilimanjaro, Tanzania	T_TSTMBF	0.28916929639535366
+Reddy 2004	Participatory watershed development in India: Can it sustain rural livelihoods?	T_TSTMBF	0.2511025043275165
+Syakur et al. 2012	Ensuring local stakeholder support for marine conservation: Establishing a locally-managed marine area network in Aceh		0.22720700463261717
+Illukpitiya and Yanagida 2008	Role of income diversification in protecting natural forests: Evidence from rural households in forest margins of Sri Lanka	T_TSTMBF	0.19854865326810064

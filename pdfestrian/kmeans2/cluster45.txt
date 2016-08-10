@@ -1,0 +1,6 @@
+Henson et al. 2009	The Heartland Conservation Process: Enhancing biodiversity conservation and livelihoods through landscape-scale conservation planning in Africa	T_TSTMBF	0.5824438838525812
+Scholte 2006	Protected area managers' perceptions of community conservation training in West and Central Africa		0.4990874451207517
+Musumali 2007	An impasse in community based natural resource management implementation: The case of Zambia and Botswana	T_TSTGSS	0.4836075043935806
+Rishi 2004	PLURALISM IN PROTECTED AREA MANAGEMENT: A CASE STUDY ON KEOLADEO NATIONAL PARK IN INDIA	T_TSTMBF	0.37156580582127735
+Ogutu 2002	The impact of ecotourism on livelihood and natural resource management in eselenkei, amboseli ecosystem, Kenya	T_TSTGSS	0.3397270869520172
+Khanal 2007	Local-level natural resource management networks in Nepal: An additional burden or agents of change ensuring environmental governance and sustainable livelihoods?	T_TSTMBF	0.21735773226247343

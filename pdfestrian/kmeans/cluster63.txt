@@ -1,0 +1,6 @@
+Ho et al. 2012	Perceived barriers to effective multilevel governance of human-natural systems: An analysis of marine protected areas in Vietnam	M_TRC	0.5750059446170203
+Vicente and Cerezo 2010	The socio-economic contributions of marine protected areas to the fisherfolk of Lingayen Gulf, Northwestern Philippines		0.4699431851009518
+Newton 2012b	Determinants of livelihood strategy variation in two extractive reserves in Amazonian flooded and unflooded forests	T_TSTMBF	0.400684885612649
+Oyono 2012	Beyond the decade of policy and community euphoria: The state of livelihoods under new local rights to forest in rural Cameroon	T_TSTMBF	0.3986494950051624
+Derkyi et al. 2013	Emerging forest regimes and livelihoods in the Tano Offin Forest Reserve, Ghana: Implications for Social Safeguards	T_TSTMBF	0.3899548312282015
+Hegde and Bull 2011	Performance of an agro-forestry based Payments-for-Environmental-Services project in Mozambique: A household level analysis	T_TSTGSS	0.37323586327838987

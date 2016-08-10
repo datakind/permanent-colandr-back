@@ -1,0 +1,6 @@
+de La Torre et al. 2011	Legal and Administrative Regulation of Palms and Other NTFPs in Colombia, Ecuador, Peru and Bolivia	T_TSTMBF	0.6631730203984479
+Isaacs and Hara 2008	Transformation in the South African fishing industry and its ability to redistribute fishing rights	M_TU	0.45425513038774473
+Gerhardt and Nemarundwe 2006	Participatory planting and management of indigenous trees: Lessons from Chivi District, Zimbabwe	T_TSTGSS	0.4196923944442391
+Oonyu 2009	Conservation education and the attitudes of local communities living adjacent to Mt. elgon national park, Uganda	T_TSTMBF	0.37134778423471393
+Ruiz 2003	Self-management as the goal of regional conservation strategies		0.3664228561992513
+Schelhas 2009	When global environmentalism meets local livelihoods: policy and management lessons		0.25421850088110454

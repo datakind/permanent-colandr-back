@@ -1,0 +1,3 @@
+Jagger and Pender 2003	The role of trees for sustainable management of less-favored lands: The case of eucalyptus in Ethiopia	T_TSTMBF	0.8545788128439729
+Duchelle 2014	Is Certification Associated with Better Forest Management and Socioeconomic Benefits? A Comparative Analysis of Three Certification Schemes Applied to Brazil Nuts in Western Amazonia	T_TSTMBF	0.3975674591174364
+Warner and Pomeroy 2012	Paths of influence: The direct and indirect determinants of marine managed area success		0.35592139975541054

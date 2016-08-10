@@ -1,0 +1,10 @@
+Lopes 2013	Suggestions for fixing top-down coastal fisheries management through participatory approaches	T_TSTMBF	0.6093206028970258
+Lopes et al. 2013	Suggestions for fixing top-down coastal fisheries management through participatory approaches	T_TSTMBF	0.6093206028970258
+Zulu 2008	Community forest management in Southern Malawi: Solution or part of the problem?	T_TSTGSS	0.4858568286088378
+Kellert et al. 2000	Community Natural Resource Management: Promise, Rhetoric, and Reality	T_TSTCF	0.43553900698164383
+Thompson et al. 2003	Lessons from community based management of floodplain fisheries in Bangladesh	FW_TSTFRW	0.34155191710447663
+Gruby and Basurto 2013	Multi-level governance for large marine commons: Politics and polycentricity in Palau's protected area network	M_TRC	0.3392092276196901
+Fu et al. 2009	The role of non-timber forest products during agroecosystem shift in Xishuangbanna, southwestern China	T_TSTMBF	0.31260201330573395
+Karper and Lopes 2014	Punishment and compliance: Exploring scenarios to improve the legitimacy of small-scale fisheries management rules on the Brazilian coast	M_TRC	0.29544085720870616
+De Lopez 2003	Economics and stakeholders of Ream National Park, Cambodia	T_TSTMBF	0.28237521744801924
+McCall Minang 2005	Assessing participatory GIS for community-based natural resource management: claiming community forests in Cameroon	T_TSTMBF	0.265002271700519

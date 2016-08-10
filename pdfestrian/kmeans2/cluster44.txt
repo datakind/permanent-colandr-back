@@ -1,0 +1,7 @@
+Nath Inoue 2009b	Forest-based settlement project and its impacts on community livelihood in the chittagong hill tracts, Bangladesh	T_TSTMBF	0.4811693075818038
+Hayakumura 2006	The significance of social capital in local forest management in Laos: Overcoming latent conflict between local people and local forestry officials	T_TSTGSS	0.4728238638674956
+Jones 2005	Transboundary conservation: Development implications for communities in KwaZulu-Natal, South Africa	T_TSTMBF	0.4719585977749582
+Hyakumura 2010	'Slippage' in the implementation of forest policy by local officials: A case study of a protected area management in Lao PDR	T_TSTMBF	0.45718793340106956
+Ormsby Mannle 2006	Ecotourism benefits and the role of local guides at Masoala National Park, Madagascar	T_TSTMBF	0.4157488707473778
+Spenceley 2007	Nature-based tourism and poverty alleviation: Impacts of private sector and parastatal enterprises in and around Kruger National Park, South Africa		0.41386092902866356
+Gerhardt and Nemarundwe 2006	Participatory planting and management of indigenous trees: Lessons from Chivi District, Zimbabwe	T_TSTGSS	0.33063022595426245

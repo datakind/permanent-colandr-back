@@ -1,0 +1,25 @@
+Peterson 2011	Rule breaking and livelihood options in marine protected areas	M_TRC	0.7068756236363606
+Peterson and Stead 2011	Rule breaking and livelihood options in marine protected areas	M_TRC	0.7068756236363606
+Barley Kincaid 2014	Fisher's perception of a multiple-use marine protected area: Why communities and gear users differ at Mafia Island, Tanzania	M_TRC	0.6984822049783944
+Kincaid et al. 2013	Fisher's perception of a multiple-use marine protected area: Why communities and gear users differ at Mafia Island, Tanzania	M_TRC	0.6984822049783944
+Trimble and Johnson 2013	Artisanal fishing as an undesirable way of life? The implications for governance of fishers' wellbeing aspirations in coastal Uruguay and southeastern Brazil	M_TSS	0.6592110156335962
+Aldon et al. 2011	Socio-cultural context of fishers' participation in coastal resources management in Anini-y, Antique in west central Philippines	M_TRC	0.6559931220561268
+Dimech et al. 2009	Fishers' perception of a 35-year old exclusive Fisheries Management Zone		0.6452232963911698
+Leleu et al. 2011	Fishers' perceptions as indicators of the performance of Marine Protected Areas (MPAs)	FW_TSTFRW	0.6021911439362436
+Gunawan and Visser 2012	Permeable Boundaries: Outsiders and Access to Fishing Grounds in the Berau Marine Protected Area	M_TRC	0.5943888099433723
+Gelcich et al. 2009a	Artisanal fishers' perceptions regarding coastal co-management policies in Chile and their potentials to scale-up marine biodiversity conservation		0.5779077062746639
+Castello et al. 2009	Lessons from integrating fishers of arapaima in small-scale fisheries management at the mamirau reserve, amazon	FW_TSTFRW	0.5673387035848196
+Marshall et al. 2010	The links between resource dependency and attitude of commercial fishers to coral reef conservation in the red sea	M_TRC	0.5669685864361951
+Jones et al. 2010	Small-scale fishing: Perceptions and threats to conserving a livelihood in the province of Phang-nga, Thailand	M_TRC	0.5650826408984222
+Lunn 2006	Fishers' needs in marine protected area zoning: A case study from Thailand	M_TRC	0.551497189942783
+Sakset and Gallardo 2013	Socio-economic assessment and fishers' perceptions of fisheries management in the freshwater fishing area of the Pak Phanang River basin (PPRB), Nakhon Si thammarat province, Thailand	T_TBMF	0.5219293090399189
+Gelcich et al. 2006	Co-management Policy Can Reduce Resilience in Traditionally Managed Marine Ecosystems		0.5151361800769265
+Elliott et al. 2001	Community Participation in Marine Protected Area Management: Wakatobi National Park, Sulawesi, Indonesia	M_TRC	0.5011012230475829
+McClanahan et al. 2005a	Factors influencing resource users and managers' perceptions towards marine protected area management in Kenya	M_TRC	0.49071169847800267
+Kundu et al. 2010	Difficulties of fishing at lake Naivasha, Kenya: Is community participation in management the solution?	FW_XFEB	0.4812397066919716
+Gelcich et al. 2008	Engagement in co-management of marine benthic resources influences environmetal perceptions of artisanal fishers		0.46467962003166435
+Stern 2012	Assessing policies promoting poverty alleviation and marine resources		0.4266988740819817
+Solomon et al. 2012	Fishing for a solution: Can collaborative resource management reduce poverty and support conservation?		0.3940350594834768
+da Silva 2004	From common property to co-management: lessons from Brazil's first maritime extractive reserve	M_TSS	0.3672457224818004
+Hicks et al. 2009	Trade-Offs in Values Assigned to Ecological Goods and Services Associated with Different Coral Reef Management Strategies	M_TRC	0.3398008377722799
+Hara 2013	Efficacy of rights-based management of small pelagic fish within an ecosystems approach to fisheries in South Africa	M_TU	0.3314812984511444

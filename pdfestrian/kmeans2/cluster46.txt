@@ -1,0 +1,5 @@
+Hartter 2009	Attitudes of rural communities toward wetlands and forest fragments around Kibale national park, Uganda	T_TSTMBF	0.6280549454865231
+Hartter et al. 2011	Responses by households to resource scarcity and human-wildlife conflict: Issues of fortress conservation and the surrounding agricultural landscape		0.6010431792200935
+Saayman 2009	The socio-economic impact of the Karoo National Park	T_TCF	0.4686195848553231
+Huang 2013	Public Perception of Ocean Governance and Marine Resources Management in Taiwan	M_TRC	0.4608986534076165
+Nath Inoue 2005	Small-scale agroforestry for upland community development: A case study from Chittagong Hill Tracts, Bangladesh	FW_LL	0.400185908056585

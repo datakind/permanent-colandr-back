@@ -1,0 +1,7 @@
+Jones 2007	Tigers, trees and Tharu: An analysis of community forestry in the buffer zone of the Royal Chitwan National Park, Nepal		0.699357156094616
+king 2007	Conservation and community in the new South Africa: A case study of the Mahushe Shongwe Game Reserve	T_MGS	0.6104631357350252
+Westermann et al. 2005	Gender and social capital: The importance of gender differences for the maturity and effectiveness of natural resource management groups		0.41578427450414257
+Hares 2009	Forest conflict in Thailand: Northern minorities in focus	T_TSTMBF	0.37645350235835695
+Kibria et al. 2013	Effects of participatory forest management on livelihood capitals of the community in Cox's Bazar, Bangladesh	T_TSTMBF	0.3299887251338126
+Hansen 2013	New geographies of conservation and globalisation: the spatiality of development for conservation in the iSimangaliso Wetland Park, South Africa	T_TSTMBF	0.3297066199990822
+Thaworn 2010	Can biodiversity conservation go hand in hand with local livelihoods? A case of conflict resolution in Thailand		0.020879308654412385

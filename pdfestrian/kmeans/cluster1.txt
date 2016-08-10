@@ -1,0 +1,8 @@
+HUghes 2013	Exploring Children's Perceptions of Cheetahs through Storytelling: Implications for Cheetah Conservation	T_TSTGSS	0.4547946849423652
+Gusset et al. 2008	Conflicting human interests over the re-introduction of endangered wild dogs in South Africa	T_TSTMBF	0.43365759859806813
+Weber et al. 2011	Do ICDPs work? An empirical evaluation of forest-based microenterprises in the Brazilian Amazon		0.4150123733969645
+Nunan 2006	Empowerment and institutions: Managing fisheries in Uganda	FW_LL	0.4016048072262984
+Dahal et al. 2013	Examining Marginalized Communities and Local Conservation Institutions: The Case of Nepal's Annapurna Conservation Area	T_TSTMBF	0.3657206683694528
+Aswani and Weiant 2004	Scientific Evaluation in Women's Participatory Management: Monitoring Marine Invertebrate Refugia in the Solomon Islands	M_TRC	0.3370529529521709
+Pfund et al. 2011	Understanding and integrating local perceptions of trees and forests into incentives for sustainable landscape management		0.33072904420120175
+Tesfaye 2011	Livelihood strategies and the role of forest income in participatory-managed forests of Dodola area in the bale highlands, southern Ethiopia		0.27778358131647896

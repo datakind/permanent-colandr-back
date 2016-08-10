@@ -1,0 +1,5 @@
+Hajjar et al. 2011	Framing community forestry challenges with a broader lens: Case studies from the Brazilian Amazon	T_TSTMBF	0.5555551765514756
+Karnad et al. 2013	Perceptions matter: how fishermen's perceptions affect trends of sustainability in Indian fisheries	M_TRC	0.5474203980606192
+Hajjar et al. 2012	Is decentralization leading to "real" decision-making power for forest-dependent communities? Case studies from mexico and Brazil	T_TSTMBF	0.52887866626251
+Espirito-Santo et al. 2009	Sustainability of tropical dry forests: Two case studies in southeastern and central Brazil	T_TSTMBF	0.46248163690328237
+Clements et al. 2010	Payments for biodiversity conservation in the context of weak institutions: Comparison of three programs from Cambodia	T_TSTDBF	0.3653895165191274

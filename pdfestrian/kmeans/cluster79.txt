@@ -1,0 +1,9 @@
+Bullock and King 2011	Evaluating China's Slope Land Conversion Program as sustainable management in Tianquan and Wuqi Counties	T_TBMF	0.7378349503076025
+Li et al. 2011	Rural household income and inequality under the sloping land conversion program in Western China	T_TBMF	0.7336364402808043
+Groom and Palmer 2012	REDD+ and rural livelihoods	T_TSTMBF	0.6765208784981999
+Weyerhaeuser 2005	Local impacts and responses to regional forest conservation and rehabilitation programs in China's northwest Yunnan province		0.6620643472015406
+He et al. 2009	Participatory technology development for incorporating non-timber forest products into forest restoration in Yunnan, Southwest China	T_TSTMBF	0.5934101749447905
+Mulley 2004	The role of off-farm employment in tropical forest conservation: Labor, migration, and smallholder attitudes toward land in western Uganda	M_TRC	0.34875237331720493
+Bhattacharjee 2013	Coexisting With Large Carnivores: A Case Study From Western Duars, India	T_TSTMBF	0.2981860301614507
+Chhangani et al. 2008	Crop Raiding and Livestock Predation at Kumbhalgarh Wildlife Sanctuary, Rajasthan India	T_TSTDBF	0.1844226755600452
+Suyanto 2005	Land tenure, agroforestry adoption, and reduction of fire hazard in a forest zone: A case study from Lampung, Sumatra, Indonesia		0.1833380585176316

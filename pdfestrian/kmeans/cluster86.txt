@@ -1,0 +1,4 @@
+Sills 2010	Subsidies for rubber: Conserving rainforests while sustaining livelihoods in the Amazon?	T_TSTMBF	0.7971178549526821
+Sitorus	Linking Conservation of Biodiversity and Community Livelihood in Komodo National Park, Indonesia	T_TSTDBF	0.39541893332491923
+Campbell-Smith et al. 2012	Evaluating the effectiveness of human-orangutan conflict mitigation strategies in Sumatra	T_TSTMBF	0.38710172470857784
+Baral and Heinen 2007	Resources use, conservation attitudes, management intervention and park-people relations in the Western Terai landscape of Nepal	T_TSTMBF	0.2981296890489238

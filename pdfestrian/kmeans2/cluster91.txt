@@ -1,0 +1,14 @@
+Dolins et al. 2010(2)	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.7825362085672714
+Dolins et al. 2010(3)	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.7825362085672714
+Dolins et al. 2010	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.7825362085672714
+Golden 2009	Bushmeat hunting and use in the Makira Forest, north-eastern Madagascar: A conservation and livelihoods issue	T_TSTMBF	0.42990425632817864
+Toiller 2011	Livelihood strategies and land use changes in response to conservation: Pitfalls of community-based forest management in madagascar	T_TSTMBF	0.3528831725709323
+Baral and Stern 2011b	Capital Stocks and Organizational Resilience in the Annapurna Conservation Area, Nepal	T_TSTCF	0.3093377444098875
+Thompson 2002	Entrepreneurs, elites, and exclusion in Maasailand: Trends in wildlife conservation and pastoralist development	T_TSTGSS	0.28904597729957565
+Ambinakudige 2011	National parks, coffee and NTFPs: The livelihood capabilities of Adivasis in Kodagu, India		0.27890399098040747
+Baral and Stern 2011a	A comparative study of two community-based conservation models in Nepal	T_TSTCF	0.27127389841096733
+Clement and Amezaga 2009	Afforestation and forestry land allocation in northern Vietnam: Analysing the gap between policy intentions and outcomes	T_TSTMBF	0.23914206230870666
+Mulder 2009	Knowledge and attitudes of children of the Rupununi: Implications for conservation in Guyana	T_TSTMBF	0.2278311214151486
+Aymoz et al. 2013	Community management of natural resources: A case study from Ankarafantsika National Park, Madagascar	T_TSTDBF	0.21941424289811137
+King and Peralvo 2010	Coupling community heterogeneity and perceptions of conservation in rural South Africa	T_MGS	0.19769234256818238
+Chen et al. 2013	Measurement and evaluation of livelihood assets in sustainable forest commons governance	T_TBMF	0.18779769374439617

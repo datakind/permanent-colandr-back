@@ -1,0 +1,5 @@
+Chen et al. 2013b	Community forestry management and livelihood development in northwest China: integration of governance, project design, and community participation	T_TBMF	0.943276809173757
+Ting 2012	A survey-based evaluation of community-based co-management of forest resources: a case study of Baishuijiang National Natural Reserve in China	T_TBMF	0.9355738298488283
+Chen et al. 2012	Livelihood sustainability and community based co-management of forest resources in China: Changes and improvement	T_TBMF	0.9113326552920218
+Chen et al. 2013	Measurement and evaluation of livelihood assets in sustainable forest commons governance	T_TBMF	0.8409125738205782
+Gu et al. 2012	Strengthening the socio-ecological resilience of forest-dependent communities: The case of the Hani Rice Terraces in Yunnan, China	T_TSTMBF	0.21996659920518508

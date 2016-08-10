@@ -1,0 +1,14 @@
+Walmsley and White 2003	Influence of social, management and enforcement factors on the long-term ecological effects of marine sanctuaries	M_TRC	0.6227072803249553
+Svensson et al. 2009	The perceptions of local fishermen towards a hotel managed marine reserve in Vietnam		0.3874466582878373
+Wunder 2008	When donors get cold feet: The community conservation concession in Setulang (Kalimantan, Indonesia) that never happened	T_TSTMBF	0.32170170680828647
+Pandit Bevilacqua 2011	Forest users and environmental impacts of community forestry in the hills of Nepal	T_TSTMBF	0.3078577831406787
+Chowdhury et al. 2012	Patterns of co-operation in community based fishery management: A sociological study on the people of Hail Haor	FW_TSTFRW	0.3076783835671173
+Halim et al. 2011	Engaging the local community in participatory resource management through learning: the experience from Langkawi Island, Malaysia	M_TRC	0.2747024929243248
+Howard 1998	Land conflict and Mayangna territorial rights in Nicaragua's Bosaws reserve	T_TSTMBF	0.2683137333102738
+Scholte 2006	Protected area managers' perceptions of community conservation training in West and Central Africa		0.2663243112448958
+De Groote et al. 2003	Economic impact of biological control of water hyacinth in Southern Benin	T_TSTGSS	0.26387305658634685
+Sodhi 2010	Local people value environmental services provided by forested parks		0.2553353109902964
+Maskey 2006	Social and cultural determinants of collective management of community forest in Nepal	T_TSTCF	0.2532462464329061
+Flaherty and Filipchuk 2013	Forest management in Northern Thailand: a rural Thai perspective	T_TSTMBF	0.2482927204384096
+Dougill et al. 2001	Impacts of community forestry on farming system sustainability in the middle hills of Nepal	T_TSTMBF	0.19240951402272588
+Logan and Moseley 2002	The political ecology of poverty alleviation in Zimbabwe's Communal Areas Management Programme for Indigenous Resources (CAMPFIRE)	T_TSTGSS	0.057594129650041515

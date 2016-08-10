@@ -1,0 +1,16 @@
+Lund 2008	Are We Getting There? Evidence of Decentralized Forest Management from the Tanzanian Miombo Woodlands	T_TSTMBF	0.48883538820568084
+Coulibaly-Lingani et al. 2011	Factors influencing people's participation in the forest management program in Burkina Faso, West Africa	T_TSTGSS	0.3881003713609077
+Cerutti et al. 2010	The challenges of redistributing forest-related monetary benefits to local governments: A decade of logging area fees in cameroon	T_TSTMBF	0.38322634240034903
+Rijal 2011	Non-timber forest product dependency in the Central Himalayan foot hills	T_TSTGSS	0.37439814256073667
+Obua et al. 1998	Attitudes of local communities towards forest management practices in Uganda: The case of Budongo forest reserve	T_TSTMBF	0.36611325378004644
+Zulu 2008	Community forest management in Southern Malawi: Solution or part of the problem?	T_TSTGSS	0.3618155650967567
+Zommers 2012	Protected Areas as Frontiers for Human Migration	T_TSTGSS	0.3387576753737294
+Bozmoski and Hultman 2010	Participant perceptions of risk and benefit in carbon forestry: Evidence from Central Tanzania	T_TSTGSS	0.33661384675909994
+Kalaba et al. 2013	Contribution of forest provisioning ecosystem services to rural livelihoods in the Miombo woodlands of Zambia	T_TSTGSS	0.3236405341298444
+Grundy 2004	Participatory forest management in conservation areas: The case of Cwebe, South Africa	T_TSTMBF	0.3066996233918753
+Ostwald 2003	Local forest protection, gender and caste - Dhani Hill, Orissa, India	T_TSTGSS	0.30255737512097464
+Nyaupane 2011	Linkages among biodiversity, livelihood, and tourism	T_TSTGSS	0.26733222349446245
+Geyer et al. 2009	Carpathian Biosphere Reserve (Ukraine): Towards Participatory Management	T_TCF	0.1921742347159359
+Gelcich et al. 2009	Marine ecosystem-based management in the Southern Cone of South America: Stakeholder perceptions and lessons for implementation	M_TSS	0.18918797833192982
+Jackson et al. 2010	Biodiversity and agricultural sustainagility: From assessment to adaptive management	T_TSTMBF	0.17212849429167804
+Dollo et al. 2010	Conservation of the orange-bellied Himalayan squirrel Dremomys lokriah using a traditional knowledge system: A case study from Arunachal Pradesh, India	T_TBMF	0.1431883879290299

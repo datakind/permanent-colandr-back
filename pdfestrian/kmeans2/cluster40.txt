@@ -1,0 +1,13 @@
+Kar and Jacobsen 2012	NTFP income contribution to household economy and related socio-economic factors: Lessons from Bangladesh	T_TSTMBF	0.7847864071089767
+Heubach et al. 2011	The economic importance of non-timber forest products (NTFPs) for livelihood maintenance of rural west African communities: A case study from northern Benin	T_TSTGSS	0.7185613052906108
+Pandit 2003	A tragedy of non-timber forest resources in the mountain commons of Nepal	T_M	0.6928936844618678
+Ambrose-Oji 2003	The contribution of NTFPs to the livelihoods of the 'forest poor': Evidence from the tropical forest zone of south-west Cameroon	T_TSTMBF	0.6863700816790819
+Mahapatra et al. 2005	The impact of NTFP sales on rural households' cash income in India's dry deciduous forest	T_TSTMBF	0.6551284014440105
+Gubbi and MacMillan 2008	Can non-timber forest products solve livelihood problems? A case study from Periyar Tiger Reserve, India	T_TSTMBF	0.6105217570345637
+Tynsong 2012	Contribution of NTFPs to cash income of the War Khasi community of southern Meghalaya, North-East India	T_TSTMBF	0.6009716546025244
+Fu et al. 2009	The role of non-timber forest products during agroecosystem shift in Xishuangbanna, southwestern China	T_TSTMBF	0.5868759866330324
+Amoah and Wiafe 2012	Livelihoods of fringe communities and the impacts on the management of conservation area: The case of Kakum National Park in Ghana	T_TSTCF	0.5719464191245746
+Van Vliet 2010	Participatory vulnerability assessment in the context of conservation and development projects: A case study of local communities in Southwest Cameroon	T_TSTMBF	0.27677213435583425
+Thondhlana 2012	Natural resource use, income and dependence among San and Mier communities bordering Kgalagadi Transfrontier Park, southern Kalahari, South Africa		0.27510653852349964
+Khalyani et al. 2013	Development and evaluation of local communities incentive programs for improving the traditional forest management: A case study of Northern Zagros forests, Iran	T_TBMF	0.22177723101239583
+Himley 2009	Nature conservation, rural livelihoods, and territorial control in Andean Ecuador	T_TSTMBF	0.17745565022119286

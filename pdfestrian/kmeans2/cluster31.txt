@@ -1,0 +1,3 @@
+Tumusiime 2011	Breaking the law? Illegal livelihoods from a Protected Area in Uganda	T_TSTMBF	0.7826094537792212
+Vedeld 2012	Protected areas, poverty and conflicts. A livelihood case study of Mikumi National Park, Tanzania		0.6879990343257496
+Bizikova et al. 2012	Sustaining Multifunctional Foresstry Through the Developing of Social Capital and Promoting Participation A Case of Multiethnic Mountain Communities	T_TCF	0.43371863340194566

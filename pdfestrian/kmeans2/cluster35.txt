@@ -1,0 +1,11 @@
+Osano 2013(2)	Why keep lions instead of livestock? Assessing wildlife tourism-based payment for ecosystem services involving herders in the Maasai Mara, Kenya	T_TSTGSS	0.6027748661089313
+Osano 2013	Why keep lions instead of livestock? Assessing wildlife tourism-based payment for ecosystem services involving herders in the Maasai Mara, Kenya	T_TSTGSS	0.6027748661089313
+van der Ploeg 2011	What local people think about crocodiles: Challenging environmental policy narratives in the Philippines		0.5144397243093853
+Sifuna 2010	Wildlife damage and its impact on public attitudes towards conservation: A comparative study of Kenya and Botswana, with particular reference to Kenya's Laikipia Region and Botswana's Okavango Delta Region	T_TSTMBF	0.46506024007599184
+Nelson 2010	Payments for ecosystem services as a framework for community-based conservation in Northern Tanzania: Conservation practice and policy	M_TRC	0.38164496581714813
+Tacconi 2013	The Livelihood Impacts of Payments for Environmental Services and Implications for REDD+		0.351129735126418
+Rinzin 2009	Nature conservation and human well-being in Bhutan: An assessment of local community perceptions	T_TSTMBF	0.3310380757175998
+Kaltenborn et al. 2006	Animal preferences and acceptability of wildlife management actions around Serengeti National Park, Tanzania	T_TSTGSS	0.31260817514838546
+Sekhar 2003	Local people's attitudes towards conservation and wildlife tourism around Sariska Tiger Reserve, India	T_TSTDBF	0.29039007097808917
+Grujcic 2008	Conflict management in protected areas: The Lazar Canyon natural monument, Eastern Serbia	T_TBMF	0.24844401080162348
+Hansen et al. 2012	Management of trees in northern Ghana - When the approach of development organizations contradicts local practices	T_TSTGSS	0.18578479605949264

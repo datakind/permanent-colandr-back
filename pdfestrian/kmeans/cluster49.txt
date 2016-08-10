@@ -1,0 +1,5 @@
+Johannes 2002	The renaissance of community-based marine resource management in Oceania	M_TRC	0.7113499234075216
+Aswani and Furusawa 2007	Do Marine Protected Areas Affect Human Nutrition and Health? A Comparison between Villages in Roviana, Solomon Islands	M_TRC	0.5451460322075421
+Brunnschweile 2010	The Shark Reef marine Reserve: A marine tourism project in Fiji involving local communities	M_TRC	0.46913066132430753
+Zommers 2012	Protected Areas as Frontiers for Human Migration	T_TSTGSS	0.36154132191761146
+Rijal 2010	The Chepang and forest conservation in the central mid-hills of Nepal	T_TSTMBF	0.3179029052045657

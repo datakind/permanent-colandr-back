@@ -1,0 +1,9 @@
+Das 2012	Impact of participatory forestry program on sustainable rural livelihoods: Lessons from an Indian province	T_TSTDBF	0.5485682755393106
+Das and Sarker 2009	Impact of a moral hazard problem in the Joint Forest Management Programme: A study from forest-dependent households in West Bengal	T_TSTMBF	0.49917284046081195
+Yemiru 2010	Forest incomes and poverty alleviation under participatory forest management in the bale highlands, Southern Ethiopia		0.4860081026260334
+Kamanga et al. 2009	Forest incomes and rural livelihoods in Chiradzulu District, Malawi	T_MGS	0.4827308348329136
+Uberhuaga 2011	Indigenous forest management in Bolivia: Potentials for livelihood improvement		0.4623170798016272
+Tieguhong 2012	Household dependence on forests around Lobeke National Park, Cameroon	T_TSTMBF	0.43293899590007084
+Baral and Stern 2011b	Capital Stocks and Organizational Resilience in the Annapurna Conservation Area, Nepal	T_TSTCF	0.3689938591536014
+Grundy 2004	Participatory forest management in conservation areas: The case of Cwebe, South Africa	T_TSTMBF	0.303140506679641
+Gugushe 2008	Perceptions of forest resource use and management in two village communities in the Eastern Cape province, South Africa	T_MGS	0.28525387879419867

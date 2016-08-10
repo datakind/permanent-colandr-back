@@ -3,9 +3,11 @@ package org.datakind.ci.pdfestrian.extraction
 import java.io.{BufferedWriter, FileWriter}
 
 import cc.factorie.Factorie.{DiscreteDomain, _}
+import cc.factorie.app.classify.backend.{MulticlassClassifier, RandomForestMulticlassTrainer}
 import cc.factorie.app.classify.{BatchOptimizingLinearVectorClassifierTrainer, LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, SVMLinearVectorClassifierTrainer}
 import cc.factorie.app.nlp.Document
-import cc.factorie.la.SparseTensor1
+import cc.factorie.app.strings.PorterStemmer
+import cc.factorie.la.{SparseIndexedTensor, SparseTensor1}
 import cc.factorie.optimize.{AdaGradRDA, L2Regularization, LBFGS}
 import cc.factorie.variable.{CategoricalLabeling, VectorDomain, VectorVariable}
 import org.datakind.ci.pdfestrian.scripts.Aid
@@ -51,23 +53,27 @@ class BiomeExtractor {
         features += "BIGRAM=" + current + "+" + next
       }*/
     }*/
-    val features = new BiomeFeatures(TfIdf(pl))
+    val f = TfIdf(pl)
+    //val vector = new SparseTensor1(TfIdf.featureSize)
+    //vector(0) = f(TfIdf.wordCounts("mangrov")._2)
+    //vector(1) = f(TfIdf.wordCounts("mangrov")._2)
+    val features = new BiomeFeatures(f)//TfIdf(pl))
     new BiomeLabel(label, features)
   }
 
-  def testAccuracy(testData : Seq[BiomeLabel], classifier : LinearVectorClassifier[BiomeLabel, BiomeFeatures]) : Double = {
-    val correct = testData.count{ td => classifier.bestLabelIndex(td) == td.target.intValue}
+  def testAccuracy(testData : Seq[BiomeLabel], classifier : MulticlassClassifier[Tensor1]) : Double = {
+    val correct = testData.count{ td => classifier.classification(td.feature.value).bestLabelIndex == td.target.intValue}
     println(evaluate(testData,classifier))
     correct.toDouble/testData.length
   }
 
-  def evaluate(testData : Seq[BiomeLabel], classifier : LinearVectorClassifier[BiomeLabel, BiomeFeatures]) : String = {
+  def evaluate(testData : Seq[BiomeLabel], classifier : MulticlassClassifier[Tensor1]) : String = {
     val trueCounts = new Array[Int](BiomeLabelDomain.size)
     val correctCounts = new Array[Int](BiomeLabelDomain.size)
     val predictedCounts = new Array[Int](BiomeLabelDomain.size)
 
     for(data <- testData) {
-      val prediction = classifier.bestLabelIndex(data)
+      val prediction = classifier.classification(data.feature.value).bestLabelIndex
       val trueValue = data.target.intValue
       trueCounts(trueValue) += 1
       predictedCounts(prediction) += 1
@@ -94,12 +100,13 @@ class BiomeExtractor {
   def l2f(l : BiomeLabel) = l.feature
 
   def train(trainData : Seq[BiomeLabel], testData : Seq[BiomeLabel], l2 : Double) :
-    LinearVectorClassifier[BiomeLabel, BiomeFeatures] = {
+    MulticlassClassifier[Tensor1] = {
+    //val classifier2 = new RandomForestMulticlassTrainer(100,100,100).train(trainData, (l : BiomeLabel) => l.feature, (l : BiomeLabel) => 1.0)
     val optimizer = new LBFGS with L2Regularization {
       variance = l2
     }
     val rda = new AdaGradRDA(l1 = l2)
-    val trainer = new OnlineOptimizingLinearVectorClassifierTrainer(optimizer = rda, maxIterations = 15)//(optimizer = optimizer)//(l2 = l2)
+    val trainer = new OnlineOptimizingLinearVectorClassifierTrainer(optimizer = rda)//(l2 = l2)//(optimizer = rda)//, maxIterations = 15)//(optimizer = optimizer)//(l2 = l2)
     val classifier = trainer.train(trainData, l2f)
     println("Train Acc: " + testAccuracy(trainData,classifier) )
     println("Test Acc: " + testAccuracy(testData,classifier) )
@@ -123,19 +130,55 @@ object BiomeExtractor {
   def main(args: Array[String]): Unit = {
     val extractor = new BiomeExtractor
 
-    val data = Aid.load(args.head).flatMap{ a =>
+    val data = Aid.load(args.head).toArray.flatMap{ a =>
         extractor.aidToFeature(a)
     }
+    println(PorterStemmer("mangrov"))
+    val aids = Aid.load(args.head).toArray
+    val tm = aids.filter(a => a.biome.isDefined && a.biome.get.biome.trim == "T_M").map { a =>
+      println(a.pdf.filename)
+      val feature = extractor.aidToFeature(a)
+      if(feature.isDefined) {
+        val feat = feature.get.feature.value.asInstanceOf[SparseTensor1]
+        println(feat(TfIdf.wordCounts("mangrov")._2))
+        if(a.interv.isDefined) {
+          println(a.interv.get.Int_area )
+        } else println("")
+        if(a.biome.isDefined) {
+          println(a.biome )
+        } else println("")
+        feat(TfIdf.wordCounts("mangrov")._2)
+      } else 0.0
+    }
+    println("other")
+    val other = aids.filter(a => a.biome.isDefined && a.biome.get.biome.trim != "T_M").map { a =>
+      println(a.pdf.filename)
+      val feature = extractor.aidToFeature(a)
+      if(feature.isDefined) {
+        val feat = feature.get.feature.value.asInstanceOf[SparseTensor1]
+        println(feat(TfIdf.wordCounts("mangrov")._2))
+        if(a.interv.isDefined) {
+          println(a.interv.get.Int_area )
+        } else println("")
+        if(a.biome.isDefined) {
+          println(a.biome )
+        } else println("")
+        feat(TfIdf.wordCounts("mangrov")._2)
+      } else 0.0
+    }
+    println("man: " + tm.sum.toDouble/tm.length)
+    println("non man: " + other.sum.toDouble/other.length)
+
     val trainLength = (data.length.toDouble * 0.8).toInt
     val testLength = data.length - trainLength
     val trainData = data.take(trainLength)
     val testData = data.takeRight(testLength)
-    extractor.train(trainData, testData, l2 = 0.5)
+    //extractor.train(trainData, testData, l2 = 0.5)
 
-    /*for(d <- 0.001 until 100.0 by 0.5) {
+    for(d <- 0.01 until 100.0 by 0.001) {
       println("l2=" + d)
       extractor.train(trainData, testData, l2 = d)
-    }             */
+    }
   }
 
 }

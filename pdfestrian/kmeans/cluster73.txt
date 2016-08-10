@@ -1,0 +1,8 @@
+Rijal 2011	Non-timber forest product dependency in the Central Himalayan foot hills	T_TSTGSS	0.45662823906637295
+Espirito-Santo et al. 2009	Sustainability of tropical dry forests: Two case studies in southeastern and central Brazil	T_TSTMBF	0.43366519788207897
+Gordon and Ayiemba 2003	Harnessing butterfly biodiversity for improving livelihoods and forest conservation: The Kipepeo Project	T_TSTMBF	0.4071495135810489
+Low_Sundaresan 2009	Partnering with local communities to identify conservation priorities for endangered Grevy's zebra	T_TSTMBF	0.3786783636029913
+Vedeld 2012	Protected areas, poverty and conflicts. A livelihood case study of Mikumi National Park, Tanzania		0.3587374084500683
+Dong et al. 2007	Farmer and professional attitudes to the large-scale ban on livestock grazing of grasslands in China	T_TGSS	0.351708807618185
+Harris et al. 2012	Integrating family planning service provision into community-based marine conservation	M_TRC	0.2969357900971496
+Petrova 2011	Local nuances in the perception of nature protection and place attachment: a tale of two parks	M_TRC	0.2327006709675414

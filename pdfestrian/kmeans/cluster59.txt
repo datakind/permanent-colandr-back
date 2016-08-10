@@ -1,0 +1,5 @@
+Jagger and Pender 2003	The role of trees for sustainable management of less-favored lands: The case of eucalyptus in Ethiopia	T_TSTMBF	0.9231239614240347
+Gaude 2005	Socio-economic situation and land use conflicts around Ag-Gel National Park (Azerbaijan)	T_DXS	0.2851964777459528
+Hack 2010	Payment schemes for hydrological ecosystem services as a political instrument for the sustainable management of natural resources and poverty reduction _ a case study from Belen, Nicaragua	T_TSTDBF	0.2165513237893563
+Muteshi 1995	COLLABORATIVE ALLIANCES - THE ENVIRONMENT, WOMEN AND THE AFRICA-2000-NETWORK	T_TSTMBF	0.21393865180820157
+Nowak 2008	Environmental degradation and its gendered impact on coastal livelihoods options among Btsisi' households of Peninsular Malaysia	T_MGS	0.14702404053140347

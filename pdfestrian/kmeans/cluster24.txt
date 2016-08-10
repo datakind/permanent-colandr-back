@@ -1,0 +1,3 @@
+Duchelle 2014	Is Certification Associated with Better Forest Management and Socioeconomic Benefits? A Comparative Analysis of Three Certification Schemes Applied to Brazil Nuts in Western Amazonia	T_TSTMBF	0.7243683151310308
+Sousa 2014	Local knowledge and perceptions of chimpanzees in Cantanhez National Park, Guinea-Bissau		0.6572789079969668
+Pacheco 2012	Perspectives on Sustainable Resource Conservation in Community Nature Reserves: A Case Study from Senegal	T_MFWS	0.3916342261148483

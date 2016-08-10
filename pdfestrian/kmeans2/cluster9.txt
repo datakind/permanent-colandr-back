@@ -1,0 +1,7 @@
+Green et al. 2011	Emerging marine protected area networks in the coral triangle: Lessons and way forward	M_TRC	0.7687235156351483
+Weeks and Jupiter 2013	Adaptive Comanagement of a Marine Protected Area Network in Fiji	M_TRC	0.5372201237072015
+Nghiem 2013	Biodiversity conservation attitudes and policy tools for promoting biodiversity in tropical planted forests	T_TSTMBF	0.3561565185132096
+Widayati 2010	Accessibility Factors and Conservation Forest Designation Affecting Rattan Cane Harvesting in Lambusango Forest, Buton, Indonesia	T_TSTMBF	0.3523610567829738
+Somerville 2010	Impact of a community-based payment for environmental services intervention on forest use in Menabe, Madagascar		0.29014490105632557
+Lepp and Holland 2006	A comparison of attitudes toward state-led conservation and community-based conservation in the village of Bigodi, Uganda	T_TSTMBF	0.2706152666788369
+Kellert et al. 2000	Community Natural Resource Management: Promise, Rhetoric, and Reality	T_TSTCF	0.17047606890237318

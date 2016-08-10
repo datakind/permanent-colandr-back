@@ -1,0 +1,3 @@
+Nyenza 2013	Socio-ecological resilience of people evicted for establishment of Uluguru nature reserve in morogoro region, Tanzania	T_FGS	0.7266183771190053
+Elbakidze and Angelstam 2007	Implementing sustainable forest management in Ukraine's Carpathian Mountains: The role of traditional village systems	T_TCF	0.5202965133039625
+Farrelly 2011	Indigenous and democratic decision-making: issues from community-based ecotourism in the Bouma _ National Heritage Park, Fiji	T_TSTMBF	0.49066119230502103

@@ -1,0 +1,8 @@
+Baral and Stern 2011a	A comparative study of two community-based conservation models in Nepal	T_TSTCF	0.5069935645430824
+Wang 2006	Farmer attitudes towards conservation in Jigme Singye Wangchuck National Park, Bhutan	T_TBMF	0.4801744021765853
+Katel and Schmidt-Vogt 2011	Use of forest resources by residents of Jigme Singye Wangchuck National Park, Bhutan: Practices and perceptions in a context of constraints	T_TBMF	0.47371481254312486
+Babulo et al. 2009	The economic contribution of forest resource use to rural livelihoods in Tigray, Northern Ethiopia	M_TRC	0.439116667256023
+Campbell et al. 2007	Sustainability of community-based conservation: Sea turtle egg harvesting in Ostional (Costa Rica) ten years later	M_TRC	0.3901595409988818
+Mbile et al 2005	Linking management and livelihood in environmental conservation: Case of the Korup National Park Cameroon	T_TSTMBF	0.3601521622401031
+Keitumetse 2006	UNESCO 2003 convention on intangible heritage: Practical implications for heritage management approaches in Africa	T_TSTGSS	0.2924434029505944
+Dollo et al. 2010	Conservation of the orange-bellied Himalayan squirrel Dremomys lokriah using a traditional knowledge system: A case study from Arunachal Pradesh, India	T_TBMF	0.1919364936405816

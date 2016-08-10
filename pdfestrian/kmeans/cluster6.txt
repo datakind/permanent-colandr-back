@@ -1,0 +1,6 @@
+Karnad et al. 2013	Perceptions matter: how fishermen's perceptions affect trends of sustainability in Indian fisheries	M_TRC	0.6135876373710641
+Richards 1996	Protected areas, people and incentives in the search for sustainable forest conservation in Honduras	T_TSTMBF	0.5090510421884498
+Brannlund et al. 2009	Participation to forest conservation in National Kabore Tambi Park in Southern Burkina Faso	T_TSTGSS	0.4016809661408856
+Asquith et al. 2002	Can forest-protection carbon projects improve rural livelihoods? Analysis of the Noel Kempff Mercado Climate Action Project, Bolivia		0.39444274286730907
+Neba 2007	Population dynamics, rural livelihoods and forest protection projects in Sub-Saharan Africa: Experiences from Santa, Cameroon	T_TSTMBF	0.30664229848404884
+Oettle 2004	Community exchange and training in the Suid Bokkeveld: A UNCCD pilot project to enhance livelihoods and natural resource management	T_DXS	0.27258189819816175

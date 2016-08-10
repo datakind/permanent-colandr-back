@@ -1,0 +1,12 @@
+Baez 2011	Notes: The "right" redd framework: National laws that best protect indigenous rights in a global redd regime	T_TSTMBF	0.9052283153737563
+Evans et al. 2014	Global versus local narratives of REDD: A case study from Peru's Amazon	T_TSTMBF	0.7955238550653707
+Mustalahti 2012	Can REDD+ reconcile local priorities and needs with global mitigation benefits? Lessons from angai forest, Tanzania	M_TRC	0.7620887888661669
+Awono et al. 2014	Tenure and participation in local REDD+ projects: Insights from southern Cameroon	T_TSTMBF	0.756510357297355
+Mustalahti 2012b	Analysis of three crucial elements of REDD+ in participatory forest management	T_TSTMBF	0.7400007463083077
+Dressler et al. 2012	REDD Policy Impacts on Indigenous Property Rights Regimes on Palawan Island, the Philippines	T_TSTMBF	0.68231948738099
+Krause and Zambonino 2013	More than just trees-Animal species diversity and participatory forest monitoring in the Ecuadorian Amazon	T_TSTMBF	0.30707005117545855
+Isager and Broge 2007	Combining remote sensing and anthropology to trace historical land-use changes and facilitate better landscape management in a sub-watershed in North Thailand	T_TSTMBF	0.182134011119128
+Lindstrom et al. 2012	Forest cover change in Sri Lanka: The role of small scale farmers	T_TSTDBF	0.16472338172633919
+Hogarth 2013	The link between smallholder bamboo shoot management, income, and livelihoods: A case study in southern China	T_TSTMBF	0.14035987292862379
+Madhusudan 2005	The Global Village: Linkages between International Coffee Markets and Grazing by Livestock in a South Indian Wildlife Reserve	T_TSTMBF	0.13878792673572282
+Belova 2007	Protected areas and benefits: Russian experience	T_TBMF	0.0531700815838466

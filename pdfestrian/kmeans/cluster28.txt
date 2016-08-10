@@ -1,0 +1,11 @@
+Nath Inoue 2008	The upland settlement project of Bangladesh as a means of reducing land degradation and improving rural livelihoods	T_TSTMBF	0.7058068186578502
+Nath Inoue 2010	PARTICIPATORY FOREST MANAGEMENT AND LIVELIHOODS OF ETHNIC PEOPLE: EMPIRICAL ANALYSIS FROM BANGLADESH CONCLUSION		0.6982522668913719
+Nath Inoue 2008b	Why did the project fail to achieve its objectives in some villages? The experience of the Upland Settlement Project (USP) in Bangladesh	FW_TSTCR	0.6958552729412066
+Higgins-Zogib et al. 2010	Safety Net: Protected Areas Contributing to Human Well-being	T_TSTMBF	0.5905252910590284
+Nath Inoue 2009b	Forest-based settlement project and its impacts on community livelihood in the chittagong hill tracts, Bangladesh	T_TSTMBF	0.4850263605361346
+Nath Inoue 2005	Small-scale agroforestry for upland community development: A case study from Chittagong Hill Tracts, Bangladesh	FW_LL	0.39579395792767297
+Nath Inoue 2014	Forest Villagers in Northeastern Hill Forests of Bangladesh: Examining Their Livelihoods, Livelihood Strategies and Forest Conservation Linkages	T_TSTMBF	0.28646976547728736
+Kendall 2011	The spatial and agricultural basis of crop raiding by the Vulnerable common hippopotamus Hippopotamus amphibius around Ruaha National Park, Tanzania	T_TSTGSS	0.1938896171882133
+Haglund et al. 2011	Dry land tree management for improved household livelihoods: Farmer managed natural regeneration in Niger	T_TSTGSS	0.18150162376710913
+Dollacker and Rhodes 2007	Integrating crop productivity and biodiversity conservation pilot initiatives developed by Bayer CropScience	T_TSTMBF	0.17088385194645275
+Martino 2008	Gender and urban perceptions of nature and protected areas in Ba_ados del Este Biosphere Reserve		0.13351971996489356

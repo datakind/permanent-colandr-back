@@ -1,0 +1,5 @@
+Huber et al. 2010	Livelihood and Conservation Aspects of Non-wood Forest Product Collection in the Shaxi Valley, Southwest China	T_TSTMBF	0.5528325956663865
+Lepp and Holland 2006	A comparison of attitudes toward state-led conservation and community-based conservation in the village of Bigodi, Uganda	T_TSTMBF	0.5491470320416817
+Hegde and Enters 2000	Forest products and household economy: a case study from Mudumalai Wildlife Sanctuary, Southern India	T_TSTMBF	0.5273539042054691
+Getzner and Islam 2013	NATURAL RESOURCES, LIVELIHOODS, AND RESERVE MANAGEMENT: A CASE STUDY FROM SUNDARBANS MANGROVE FORESTS, BANGLADESH	T_M	0.3753567089457976
+Twyman 2000b	Participatory conservation? Community-based natural resource management in Botswana	T_TSTGSS	0.3647826055784468

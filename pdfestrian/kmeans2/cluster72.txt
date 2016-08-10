@@ -1,0 +1,3 @@
+Oo et al. 2012	Contributions of community forestry to the rural livelihoods and watershed conservation: A case study in Ywangan township, Shan state, Myanmar	T_TSTMBF	0.6873926489641571
+Suh 2012	The past and future of community-based forest management in the Philippines	T_TSTMBF	0.6725891738955291
+Tanui 2013	Integrated environmental education for sustainable forest management: The case of Nandi Hills Forests, Kenya		0.3634818910847476

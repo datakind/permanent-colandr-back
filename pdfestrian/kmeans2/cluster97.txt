@@ -1,0 +1,6 @@
+Heyman and Granados-Dieseldorff 2012	The voice of the fisherman of the Gulf of Honduras: Improving regional fisheries management through fisher participation	T_M	0.7522857464277641
+Napier et al. 2005	Evaluating conditions for successful co-management of subsistence fisheries in KwaZulu-Natal, South Africa	M_TU	0.41207663329208455
+Jim and Xu 2002	Stifled stakeholders and subdued participation: Interpreting local responses toward Shimentai nature reserve in South China	T_TSTMBF	0.3513160568048238
+Gill et al. 2009	Moving beyond rhetoric: The need for participatory forest management with the Jakun of South-East Pahang, Malaysia	T_TSTMBF	0.34449915183655583
+Novriyanto et al. 2012	Linking coastal community livelihoods to marine conservation in Aceh, Indonesia	M_TRC	0.3297684865688438
+Gugushe 2008	Perceptions of forest resource use and management in two village communities in the Eastern Cape province, South Africa	T_MGS	0.2516430474252655

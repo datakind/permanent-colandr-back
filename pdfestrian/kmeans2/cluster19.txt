@@ -1,0 +1,7 @@
+Yemiru 2010	Forest incomes and poverty alleviation under participatory forest management in the bale highlands, Southern Ethiopia		0.6598385318115642
+Kamanga et al. 2009	Forest incomes and rural livelihoods in Chiradzulu District, Malawi	T_MGS	0.658614831893522
+Babulo et al. 2009	The economic contribution of forest resource use to rural livelihoods in Tigray, Northern Ethiopia	M_TRC	0.6484644334425149
+Tesfaye 2011	Livelihood strategies and the role of forest income in participatory-managed forests of Dodola area in the bale highlands, southern Ethiopia		0.5300463075125407
+Kaswamila et al. 2007	Impacts of wildlife on household food security and income in Northeastern Tanzania	T_TSTMBF	0.3448133952837691
+Slater 2002	Between a rock and a hard place: Contested livelihoods in Qwaqwa National Park, South Africa		0.3182294726149811
+Ghazanfari et al. 2004	Traditional forest management and its application to encourage public participation for sustainable forest management in the northern Zagros mountains of Kurdistan Province, Iran	T_TBMF	0.24970359287658117

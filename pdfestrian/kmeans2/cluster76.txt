@@ -1,0 +1,9 @@
+Idinoba et al. 2009	Climate change and non-wood forest products: Vulnerability and adaptation in West Africa	T_TSTDBF	0.8678792583373817
+Locatelli et al. 2011	Forests and climate change in latin America: Linking adaptation and mitigation	T_TSTMBF	0.5587911301346163
+Kashaigili 2009	Freshwater management and climate change adaptation: Experiences from the great Ruaha River catchment in Tanzania	FW_TSTCR	0.36712912648804324
+Tomicevic 2010b	DEVELOPING LOCAL CAPACITY FOR PARTICIPATORY MANAGEMENT OF PROTECTED AREAS: THE CASE OF TARA NATIONAL PARK		0.34926759170816635
+Tomicevic 2010	Socio-economic impacts on the attitudes towards conservation of natural resources: Case study from Serbia		0.32636872693140856
+Hausser et al. 2009	Bees, farmers, tourists and hunters: Conflict dynamics around Western Tanzania protected areas	T_TSTGSS	0.28540708472671217
+Sodhi 2010	Local people value environmental services provided by forested parks		0.23112453023691373
+Lewis et al. 2011	Community Markets for Conservation (COMACO) links biodiversity conservation with sustainable improvements in livelihoods and food production	T_TSTGSS	0.1949849108745824
+Ramadhani 2010	Promoting good forest governance for sustainable livelihood improvement: A Tanzanian example	T_TSTGSS	0.17853873084162022

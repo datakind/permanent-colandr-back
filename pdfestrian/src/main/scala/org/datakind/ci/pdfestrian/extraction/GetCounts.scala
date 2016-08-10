@@ -2,6 +2,8 @@ package org.datakind.ci.pdfestrian.extraction
 
 import java.io.{BufferedWriter, File, FileWriter}
 
+import cc.factorie.app.strings.PorterStemmer
+
 import scala.collection.mutable
 import scala.io.Source
 
@@ -11,7 +13,7 @@ import scala.io.Source
 object GetCounts {
   val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
   def clean(string : String) : String = {
-    val lower = string.toLowerCase()
+    val lower = PorterStemmer(string.toLowerCase())
     lower.filter(_.isLetterOrDigit)
   }
 
@@ -31,14 +33,14 @@ object GetCounts {
           val current = clean(t.string)
           if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
             bigrams += current
-             /*if(t.hasNext) {
+             if(t.hasNext) {
                val next = clean(t.next.string)
                 if(next.length > 0 && next.count(_.isLetter) > 0 && !stopWords.contains(next)) {
                    val bigram = current+"-"+next
                    //counts(bigram)+=1
                    bigrams += bigram
                 }
-               }   */
+               }
           }
         }   }
         for(b <- bigrams) counts(b) += 1

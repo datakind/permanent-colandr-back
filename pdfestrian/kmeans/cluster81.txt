@@ -1,0 +1,8 @@
+Jacobson and Robles 1992	ECOTOURISM, SUSTAINABLE DEVELOPMENT, AND CONSERVATION EDUCATION - DEVELOPMENT OF A TOUR GUIDE TRAINING-PROGRAM IN TORTUGUERO, COSTA-RICA	T_TSTMBF	0.4875120768152416
+Syakur et al. 2012	Ensuring local stakeholder support for marine conservation: Establishing a locally-managed marine area network in Aceh		0.4852894096406637
+Setiawan et al. 2012	The perceived impact of customary marine resource management on household and community welfare in Northern Sumatra, Indonesia		0.4514988702434162
+Wadley 1997	Hunting Primates and Managing Forests: The Case of Iban Forest Farmers in Indonesian Borneo	T_TSTMBF	0.43256944390062574
+Webb et al. 2004	Using local user perceptions to evaluate outcomes of protected area management in the Sagay Marine Reserve, Philippines		0.32791533157518565
+Oo et al. 2012	Contributions of community forestry to the rural livelihoods and watershed conservation: A case study in Ywangan township, Shan state, Myanmar	T_TSTMBF	0.2955109687968451
+Salim 2010	Trade-off between monsoon trawl ban and the livelihood of trawl labourers in Maharashtra	T_TSTMBF	0.2950280386990393
+Pasquini 2009	Devising appropriate policies and instruments in support of private conservation areas: Lessons learned from the klein Karoo, South Africa	T_MFWS	0.2871992006153699

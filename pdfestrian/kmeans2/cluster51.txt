@@ -1,0 +1,5 @@
+Beitl 2012	Shifting policies, access, and the tragedy of enclosures in Ecuadorian mangrove fisheries: towards a political ecology of the commons	T_M	0.8889775031952907
+Beitl 2011	Cockles in custody: The role of common property arrangements in the ecological sustainability of mangrove fisheries on the Ecuadorian coast	M_TRC	0.8327303727798337
+Crawford et al 2010	Small Scale Fisheries Management: Lessons from Cockle Harvesters in Nicaragua and Tanzania	M_TRC	0.48133406077346463
+Hayes 2012	Payment for ecosystem services, sustained behavioural change, and adaptive management: peasant perspectives in the Colombian Andes	T_TSTMBF	0.24659426639482596
+Koul et al. 2011	Improvement in livestock status through soil and water conservation: Case of two semi-arid districts of Madhya Pradesh in India	T_TSTDBF	0.17556429173546662
