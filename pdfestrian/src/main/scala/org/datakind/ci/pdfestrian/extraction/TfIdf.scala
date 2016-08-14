@@ -62,7 +62,7 @@ object TfIdf {
       }
     }
     tensor *= idf
-    //tensor /= tensor.twoNorm
+    tensor /= tensor.twoNorm
     tensor
   }
 

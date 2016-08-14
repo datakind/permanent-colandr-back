@@ -35,8 +35,8 @@ object PDFToDocument {
   }
 
   def splitReferences(doc : Document) : (Document, Document) = {
-    val document = new Document()
-    val references = new Document()
+    val document = new Document().setName(doc.name)
+    val references = new Document().setName(doc.name)
     var i = 0
     val sentences = doc.sentences.toArray
     var found = false
