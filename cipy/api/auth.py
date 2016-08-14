@@ -2,9 +2,7 @@ import hug
 
 import cipy
 
-
-CONN_CREDS = cipy.db.get_conn_creds('DATABASE_URL')
-USERS_DB = cipy.db.PostgresDB(CONN_CREDS, ddl='users')
+USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 
 class APIUser(object):
@@ -16,9 +14,10 @@ class APIUser(object):
 
 
 def verify_user(email, password):
-    db_matches = list(USERS_DB.run_query(
-        USERS_DB.ddl['templates']['login_user'],
-        bindings={'email': email, 'password': password}))
+    db_matches = list(
+        cipy.api.PGDB.run_query(
+            USERS_DDL['templates']['login_user'],
+            bindings={'email': email, 'password': password}))
     if not db_matches:
         return False
     assert len(db_matches) == 1
