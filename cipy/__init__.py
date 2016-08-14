@@ -17,6 +17,8 @@ from cipy import validation
 from cipy import utils
 from cipy import hacks
 
+from cipy import api
+
 logger = logging.getLogger('cipy')
 if len(logger.handlers) == 0:  # to ensure reload() doesn't add another one
     logger.addHandler(logging.NullHandler())
