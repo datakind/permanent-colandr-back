@@ -1,15 +1,15 @@
 from flask import Flask
 from flask_restful import Api
 
-from ciapi.resources.citations import Citation  # Citations
+from ciapi.resources.citations import Citation, Citations
 
 
-APP = Flask(__name__)
-API = Api(APP)
+app = Flask(__name__)
+api = Api(app)
 
-# API.add_resource(Citations, '/citations')
-API.add_resource(Citation, '/citations/<int:citation_id>')
+api.add_resource(Citations, '/citations')
+api.add_resource(Citation, '/citations/<int:citation_id>')
 
 
 if __name__ == '__main__':
-    APP.run(debug=True)
+    app.run(debug=True)
