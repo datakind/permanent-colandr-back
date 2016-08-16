@@ -1,9 +1,9 @@
 import hug
 
-from cipy.api.auth import AUTH
-from cipy.api import citation
-from cipy.api import citations
-from cipy.api import user
+from ciapi.hug_api.auth import AUTH
+from ciapi.hug_api import citation
+from ciapi.hug_api import citations
+from ciapi.hug_api import user
 
 
 @hug.get('/login', requires=AUTH)

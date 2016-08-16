@@ -1,5 +1,5 @@
 from . import auth
-from . import root
+from . import app
 from . import citation
 from . import citations
 from . import user

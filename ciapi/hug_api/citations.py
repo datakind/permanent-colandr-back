@@ -1,8 +1,8 @@
 import hug
 from psycopg2.extensions import AsIs
 
-import cipy
-from cipy.api.auth import AUTH
+from ciapi import hug_api
+from ciapi.hug_api.auth import AUTH
 
 
 @hug.get('/',
@@ -28,4 +28,9 @@ def get_citations(
                 'order_dir': AsIs(order_dir),
                 'limit': per_page,
                 'offset': page * per_page}
-    return list(cipy.api.PGDB.run_query(query, bindings=bindings))
+    return list(hug_api.PGDB.run_query(query, bindings=bindings))
+
+
+@hug.post('/load')
+def load_citations():
+    return

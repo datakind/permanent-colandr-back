@@ -1,8 +1,8 @@
 import hug
 from psycopg2.extensions import AsIs
 
-import cipy
-from cipy.api.auth import AUTH
+from ciapi import hug_api
+from ciapi.hug_api.auth import AUTH
 
 
 @hug.get('/',
@@ -23,7 +23,7 @@ def get_citation(
     bindings = {'fields': AsIs(','.join(fields)),
                 'review_id': review_id,
                 'citation_id': citation_id}
-    result = list(cipy.api.PGDB.run_query(query, bindings=bindings))
+    result = list(hug_api.PGDB.run_query(query, bindings=bindings))
     if not result:
         raise Exception()
     return result[0]

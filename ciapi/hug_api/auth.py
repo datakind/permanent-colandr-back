@@ -1,5 +1,6 @@
 import hug
 
+from ciapi import hug_api
 import cipy
 
 USERS_DDL = cipy.db.db_utils.get_ddl('users')
@@ -15,7 +16,7 @@ class APIUser(object):
 
 def verify_user(email, password):
     db_matches = list(
-        cipy.api.PGDB.run_query(
+        hug_api.PGDB.run_query(
             USERS_DDL['templates']['login_user'],
             bindings={'email': email, 'password': password}))
     if not db_matches:

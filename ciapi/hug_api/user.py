@@ -2,7 +2,8 @@ import hug
 from psycopg2.extensions import AsIs
 
 import cipy
-from cipy.api.auth import AUTH
+from ciapi import hug_api
+from ciapi.hug_api.auth import AUTH
 
 USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
@@ -21,7 +22,7 @@ def get_user(
         """
     bindings = {'fields': AsIs(','.join(fields)),
                 'user_id': user_id}
-    results = list(cipy.api.PGDB.run_query(query, bindings=bindings))
+    results = list(hug_api.PGDB.run_query(query, bindings=bindings))
     if not results:
         raise Exception()
     return results[0]
