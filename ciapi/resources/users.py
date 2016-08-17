@@ -1,4 +1,4 @@
-from flask import request
+from flask import jsonify, request
 from flask_restful import Resource
 from marshmallow import validate
 from psycopg2.extensions import AsIs
@@ -33,10 +33,11 @@ class User(Resource):
         results = list(PGDB.run_query(query, bindings=bindings))
         if not results:
             raise Exception()
-        return results[0]
+        return jsonify(results[0])
 
 
-class NewUser(Resource):
+# TODO: password should be encrypted?
+class AppUser(Resource):
 
     @use_kwargs({
         'name': fields.String(
@@ -48,21 +49,20 @@ class NewUser(Resource):
         'password': fields.String(required=True),
         'test': fields.Boolean(missing=False)
         })
-    def get(self, name, email, password, test):
+    def post(self, name, email, password, test):
         user = {'name': name, 'email': email, 'password': password}
         user = cipy.validation.user.User(user)
         user.validate()
         valid_user = user.to_primitive()
-        # if test is False:
-        #     created_user_id = list(PGDB.run_query(
-        #         USERS_DDL['templates']['create_user'],
-        #         bindings=valid_user,
-        #         act=act))[0]['user_id']
-        #     return created_user_id
-        # else:
-        # HACK HACK HACK
-        result = list(PGDB.run_query(
-            USERS_DDL['templates']['create_user'],
-            bindings=valid_user,
-            act=False))
-        return user.to_primitive()
+        if test is True:
+            _ = list(PGDB.run_query(
+                USERS_DDL['templates']['create_user'],
+                bindings=valid_user,
+                act=False))
+            return valid_user
+        else:
+            created_user_id = list(PGDB.run_query(
+                USERS_DDL['templates']['create_user'],
+                bindings=valid_user,
+                act=True))[0]['user_id']
+            return created_user_id
