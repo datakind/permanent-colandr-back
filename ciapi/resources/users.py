@@ -1,5 +1,6 @@
 from flask import jsonify, request
 from flask_restful import Resource
+from flask_restful_swagger import swagger
 from marshmallow import validate
 from psycopg2.extensions import AsIs
 from webargs import fields
@@ -14,6 +15,7 @@ USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 class User(Resource):
 
+    @swagger.operation()
     @use_kwargs({
         'user_id': fields.Int(
             required=True, location='view_args',

@@ -17,7 +17,7 @@ schema:
         -
             column_name: "created_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
-            column_constraints: "NOT NULL"
+            column_constraints: "DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"
         -
             column_name: "type_of_work"
             data_type: "VARCHAR(25)"

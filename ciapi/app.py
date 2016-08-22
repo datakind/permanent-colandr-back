@@ -1,8 +1,9 @@
 import flask
-from flask import Flask
-from flask_bcrypt import Bcrypt
+from flask import Flask, jsonify, make_response
+# from flask_bcrypt import Bcrypt
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import Api, Resource
+from flask_restful_swagger import swagger
 
 import ciapi
 from ciapi.resources.citations import Citation, Citations
@@ -16,10 +17,27 @@ USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
-
-api = Api(app)
-bcrypt = Bcrypt(app)
+# bcrypt = Bcrypt(app)
 auth = HTTPBasicAuth()
+
+# api = Api(app)
+api = swagger.docs(
+    Api(app),
+    apiVersion='0.1',
+    api_spec_url='/spec',
+    description='Burton\'s First API!')
+
+
+@app.errorhandler(422)
+def handle_unprocessable_entity(err):
+    # webargs attaches additional metadata to the `data` attribute
+    data = getattr(err, 'data')
+    if data:
+        # Get validations from the ValidationError object
+        messages = data['exc'].messages
+    else:
+        messages = ['Invalid request']
+    return jsonify({'messages': messages}), 422
 
 
 @auth.verify_password
@@ -33,6 +51,11 @@ def verify_user(email, password):
     assert len(db_matches) == 1
     flask.session['user'] = db_matches[0]
     return True
+
+
+@auth.error_handler
+def unauthorized():
+    return make_response(jsonify({'message': 'Unauthorized!'}))
 
 
 class Root(Resource):
