@@ -9,7 +9,7 @@ schema:
         -
             column_name: "created_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
-            column_constraints: "NOT NULL"
+            column_constraints: "DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"
         -
             column_name: "name"
             data_type: "VARCHAR(200)"
@@ -17,7 +17,7 @@ schema:
         -
             column_name: "email"
             data_type: "VARCHAR(200)"
-            column_constraints: "NOT NULL"
+            column_constraints: "UNIQUE NOT NULL"
         -
             column_name: "password"
             data_type: "VARCHAR"
@@ -37,7 +37,7 @@ templates:
         DELETE from users
         WHERE user_id = %(user_id)s
     login_user: >
-        SELECT user_id, name, review_ids, owned_review_ids
+        SELECT user_id, name, email, review_ids, owned_review_ids
         FROM users
         WHERE
             email = %(email)s

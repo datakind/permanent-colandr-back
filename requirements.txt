@@ -1,6 +1,7 @@
 arrow>=0.7.0
 bibtexparser>=0.6.2
 dedupe>=1.4.14
+hug>=2.1.2
 pandas>=0.18.0
 psycopg2>=2.6.1
 python-dateutil>=2.5.3

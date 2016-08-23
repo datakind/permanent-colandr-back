@@ -1,14 +1,14 @@
 import hug
 
-import cipy
-from cipy.api.auth import AUTH
-from cipy.api import citation
-from cipy.api import user
+from ciapi.hug_api.auth import AUTH
+from ciapi.hug_api import citation
+from ciapi.hug_api import citations
+from ciapi.hug_api import user
 
 
-@hug.get('/', requires=AUTH)
+@hug.get('/login', requires=AUTH)
 def root():
-    return 'Hello, World!'
+    return True
 
 
 @hug.request_middleware()
@@ -16,10 +16,14 @@ def process_data(request, response):
     response.set_header('Content-Type', 'application/vnd.api+json')
 
 
+@hug.extend_api('/citations')
+def get_citations():
+    return [citations]
+
+
 @hug.extend_api('/citation')
 def get_citation():
     return [citation]
-    # return [cipy.api.citation]
 
 
 @hug.extend_api('/user')

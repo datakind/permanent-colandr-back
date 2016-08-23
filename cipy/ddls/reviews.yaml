@@ -9,7 +9,7 @@ schema:
         -
             column_name: "created_ts"
             data_type: "TIMESTAMP(0) WITHOUT TIME ZONE"
-            column_constraints: "NOT NULL"
+            column_constraints: "DEFAULT (CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"
         -
             column_name: "owner_user_id"
             data_type: "INTEGER"
