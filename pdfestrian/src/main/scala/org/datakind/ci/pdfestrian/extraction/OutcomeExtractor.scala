@@ -27,7 +27,7 @@ class OutcomeExtractor(distMap : Map[String,Int], length : Int) {
     val intval = bio.intValue
     val count = distMap(name)
     val tw = length.toDouble/count.toDouble
-    val newW = if(tw < 15.0) 1.0 else tw*100
+    val newW = tw //if(tw < 15.0) 1.0 else tw*100
     intval -> newW
   }.sortBy(_._1).map{_._2}.toArray
 
@@ -117,9 +117,11 @@ class OutcomeExtractor(distMap : Map[String,Int], length : Int) {
   def train(trainData : Seq[OutcomeLabel], testData : Seq[OutcomeLabel], l2 : Double) :
   MulticlassClassifier[Tensor1] = {
     //val classifier = new DecisionTreeMulticlassTrainer(new C45DecisionTreeTrainer).train(trainData, (l : BiomeLabel) => l.feature, (l : BiomeLabel) => 1.0)
-    //val optimizer = new LBFGS// with L2Regularization //
-    val rda = new AdaGradRDA(l1 = l2)
-    val trainer = new OnlineOptimizingLinearVectorClassifierTrainer {
+    val optimizer = new LBFGS with L2Regularization {
+      variance = 10
+    }
+    val rda = new AdaGradRDA(l2 = l2)
+    val trainer = new BatchOptimizingLinearVectorClassifierTrainer(optimizer = optimizer) {
       override def examples[L<:LabeledDiscreteVar,F<:VectorVar](classifier:LinearVectorClassifier[L,F], labels:Iterable[L], l2f:L=>F, objective:Multiclass): Seq[Example] =
         labels.toSeq.map(l => new PredictorExample(classifier, l2f(l).value, l.target.intValue, objective, weight(l.target.intValue)))
     }
@@ -135,6 +137,7 @@ class OutcomeExtractor(distMap : Map[String,Int], length : Int) {
       case Some(d) =>
         aid.outcome match {
           case None => None
+          case Some(b) if b.Outcome == "NA" => None
           case Some(b) => Some(docToFeature(d._1,b.Outcome))
         }
     }
@@ -179,7 +182,7 @@ object OutcomeExtractor {
      }
      println("man: " + tm.sum.toDouble/tm.length)
      println("non man: " + other.sum.toDouble/other.length)*/
-    val distribution = Aid.load(args.head).toArray.filter(_.outcome.isDefined).groupBy(_.outcome.get.Outcome).map{ b => b._1 -> b._2.length}
+    val distribution = Aid.load(args.head).toArray.filter( o => o.outcome.isDefined && o.outcome.get.Outcome != "NA").groupBy(_.outcome.get.Outcome).map{ b => b._1 -> b._2.length}
     val count = Aid.load(args.head).toArray.count(_.biome.isDefined)
     val extractor = new OutcomeExtractor(distribution, count)
 
@@ -197,7 +200,7 @@ object OutcomeExtractor {
     //  println("l2=" + d)
     //  extractor.train(trainData, testData, l2 = d)
     //}
-    val classifier = extractor.train(trainData,testData,0.0006)
+    val classifier = extractor.train(trainData,testData,0.00000005)
     val weights = classifier.asInstanceOf[LinearVectorClassifier[_,_]].weights.value
     for(label <- extractor.OutcomeLabelDomain) {
       println(label.category)

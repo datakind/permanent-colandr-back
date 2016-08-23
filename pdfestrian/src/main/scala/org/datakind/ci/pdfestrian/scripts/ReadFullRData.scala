@@ -43,6 +43,12 @@ case class Aid(index : Int, pdf : PDFExtractedDataMore, bib : BiblioItem, allFie
                interv : Option[Interv], outcome: Option[Outcome], outcomeHWB : Option[OutcomeHWB], pathway : Option[Pathways],
                study : Option[Study]) extends JsonWriter
 
+case class AidSeq(index : Int, pdf : PDFExtractedDataMore, bib : BiblioItem, allFields : AllFieldsRecord, biome : Seq[Biome],
+               interv : Seq[Interv], outcome: Seq[Outcome], outcomeHWB : Seq[OutcomeHWB], pathway : Seq[Pathways],
+               study : Seq[Study]) extends JsonWriter
+
+
+
 object Aid {
   val mapper = new ObjectMapper() with ScalaObjectMapper
   mapper.registerModule(DefaultScalaModule)
@@ -54,13 +60,24 @@ object Aid {
   }
 }
 
+object AidSeq {
+  val mapper = new ObjectMapper() with ScalaObjectMapper
+  mapper.registerModule(DefaultScalaModule)
+  def load(string : String) : Seq[AidSeq] = {
+    val source = Source.fromFile(new File(string))
+    source.getLines().map{ l =>
+      mapper.readValue[AidSeq](l)
+    }.toSeq
+  }
+}
+
 object ReadBiome {
   def main(args: Array[String]) {
     val out = new BufferedWriter(new FileWriter("biome.json"))
     val reader = CSVReader.open(args.head).iterator.drop(1)
     val biomes = reader.map{ s =>
       new Biome(s(1).toInt, s(2))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     biomes.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -80,7 +97,7 @@ object ReadInterv {
     val reader = CSVReader.open(args.head).iterator.drop(1)
     val intervs = reader.map{ s =>
       new Interv(s(1).toInt, s(2), s(3), s(4), s(5), s(6), s(7), s(8))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     intervs.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -99,7 +116,7 @@ object ReadOutcome {
     val reader = CSVReader.open(args.head).iterator.drop(1)
     val outcomes = reader.map{ s =>
       new Outcome(s(1).toInt, s(2).toInt, s(3), s(4), s(5))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     outcomes.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -119,7 +136,7 @@ object ReadOutcomeWB {
     val reader = CSVReader.open(args.head).iterator.drop(1)
     val outcomes = reader.map{ s =>
       new OutcomeHWB(s(1).toInt, s(2), s(3), s(4), s(5), s(6).toInt, s(7).toInt, s(8), s(9))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     outcomes.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -139,7 +156,7 @@ object ReadPathways {
     val outcomes = reader.map{ s =>
       new Pathways(s(1).toInt, s(2), s(3), s(4), s(5), s(6), s(7), s(8), s(9), s(10), s(11), s(12), s(13),
         s(14), s(15))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     outcomes.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -160,7 +177,7 @@ object ReadStudy {
       new Study(s(1).toInt, s(2).toInt, s(3).toInt, s(4).toInt, s(5), s(6), s(7), s(8),
         s(9), s(10), s(11), s(12), s(13), s(14), s(15), s(16), s(17), s(18), s(19), s(20),
         s(21), s(22), s(23))
-    }.toSeq.groupBy(_.aid).map{ _._2.head }.toSeq
+    }.toSeq.groupBy(_.aid).flatMap{ _._2 }.toSeq
     outcomes.sortBy(_.aid).foreach( b => out.write(b.toJson + "\n"))
     out.flush()
   }
@@ -179,19 +196,19 @@ import org.datakind.ci.pdfestrian.Triple
 
 object AidWriter {
   def main(args: Array[String]) {
-    val out = new BufferedWriter(new FileWriter("aid.json"))
+    val out = new BufferedWriter(new FileWriter("aidSeq.json"))
     val triples = Triple.load(args.head)
-    val biome = ReadBiome.load(args(1)).map{ t => t.aid -> t}.toMap
-    val intervs = ReadInterv.load(args(2)).map{ t => t.aid -> t}.toMap
-    val outcomes = ReadOutcome.load(args(3)).map{ t => t.aid -> t}.toMap
-    val outcomeHWBs = ReadOutcomeWB.load(args(4)).map{ t => t.aid -> t}.toMap
-    val pathways = ReadPathways.load(args(5)).map{ t => t.aid -> t}.toMap
-    val studys = ReadStudy.load(args(6)).map{ t => t.aid -> t}.toMap
+    val biome = ReadBiome.load(args(1)).groupBy(_.aid)
+    val intervs = ReadInterv.load(args(2)).groupBy(_.aid)
+    val outcomes = ReadOutcome.load(args(3)).groupBy(_.aid)
+    val outcomeHWBs = ReadOutcomeWB.load(args(4)).groupBy(_.aid)
+    val pathways = ReadPathways.load(args(5)).groupBy(_.aid)
+    val studys = ReadStudy.load(args(6)).groupBy(_.aid)
     val allAids = triples.map{ t =>
       val aid = t.bib.aid
-      Aid(index = aid, pdf = t.pdf, bib = t.bib, allFields = t.allFields,
-        biome = biome.get(aid), interv = intervs.get(aid), outcome = outcomes.get(aid),
-        outcomeHWB = outcomeHWBs.get(aid), pathway = pathways.get(aid), study = studys.get(aid)
+      AidSeq(index = aid, pdf = t.pdf, bib = t.bib, allFields = t.allFields,
+        biome = biome.getOrElse(aid,Seq()), interv = intervs.getOrElse(aid,Seq()), outcome = outcomes.getOrElse(aid,Seq()),
+        outcomeHWB = outcomeHWBs.getOrElse(aid,Seq()), pathway = pathways.getOrElse(aid,Seq()), study = studys.getOrElse(aid,Seq())
       )
     }
     allAids.sortBy(_.index).foreach{ aid =>
