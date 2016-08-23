@@ -1,0 +1,37 @@
+## Burton
+
+- **API**
+    - users
+        - [ ] login/authentication/permissions/logout
+        - [ ] email invitation to join as collaborator (?)
+        - [ ] delete existing user (and update/delete reviews collaborating on/owned)
+    - reviews
+        - [ ] creation of new review
+        - [ ] delete an existing review, with owner privileges
+    - review plans
+        - [ ] creation of new review plan for existing review PUT?)
+        - [ ] update of existing review plan
+        - [ ] suggest good/bad key terms based on included/excluded citations
+    - citations
+        - [ ] higher-level filtering options, e.g. to-be-screened or is-duplicate
+        - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
+        - [ ] upload citation files via HTTP POST (form?)
+        - [ ] add individual citation, manually entered via HTTP POST
+        - [ ] link citation to PDF file uploaded by user
+    - citation status (screening!)
+        - [ ] get summary for status of all citations, "review progress bar"
+        - [ ] update de-duplication status of citation, upon upload and upon upload of all subsequent batches of citations
+        - [ ] update screening status of citation, for each referrer, and correctly flag conflicts
+        - [ ] enable mass screening status update (?)
+    - documentation
+        - [ ] improve documentation on all endpoints, as needed
+        - [ ] improve interactive swagger html page (optional)
+    - deployment
+        - [ ] deploy data and API on Heroku or AWS or OVH or academic server
+    - security
+        - [ ] enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
+- **NLP (for ranking citations)**
+    - [ ] improve initial ranking from reviewer terms
+    - [ ] implement automatic term recognition with scoring for 2nd-stage ranking
+    - [ ] implement ML-based ranking based on user-labeled citations
+    - [ ] automatically switch and/or hybridize methods depending on metrics, e.g. observed inclusion rate vs. baseline inclusion rate
