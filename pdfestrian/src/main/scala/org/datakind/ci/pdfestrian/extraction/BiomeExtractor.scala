@@ -3,19 +3,60 @@ package org.datakind.ci.pdfestrian.extraction
 import java.io.{BufferedWriter, FileWriter}
 
 import cc.factorie.{DenseTensor1, DenseTensor2}
-import cc.factorie.app.classify.backend.{C45DecisionTreeTrainer, DecisionTreeMulticlassTrainer, MulticlassClassifier, RandomForestMulticlassTrainer}
+import cc.factorie.app.classify.backend._
 import cc.factorie.app.classify.{BatchOptimizingLinearVectorClassifierTrainer, LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, SVMLinearVectorClassifierTrainer}
 import cc.factorie.app.nlp.Document
 import cc.factorie.app.strings.PorterStemmer
-import cc.factorie.la.{SparseIndexedTensor, SparseTensor1, Tensor1}
+import cc.factorie.la._
 import cc.factorie.optimize.OptimizableObjectives.Multiclass
 import cc.factorie.optimize._
+import cc.factorie.util.DoubleAccumulator
 import cc.factorie.variable._
 import cc.factorie.variable._
-import org.datakind.ci.pdfestrian.scripts.Aid
+import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Biome}
 
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.util.Random
+
+
+class SigmoidalLoss extends MultivariateOptimizableObjective[Tensor1] {
+  def sigmoid(d : Double) : Double = {
+    1.0/(1.0f + math.exp(-d))
+  }
+
+  def valueAndGradient(prediction: Tensor1, label: Tensor1): (Double, Tensor1) = {
+    var objective = 0.0
+    val gradient = new SparseIndexedTensor1(prediction.size)
+    for (i <- prediction.activeDomain) {
+      val sigvalue = sigmoid(prediction(i))
+      val diff = sigvalue - label(i)
+      val value = -label(i)*prediction(i) + math.log1p(math.exp(prediction(i)))
+      objective -= value
+      gradient += (i, diff)
+    }
+    (objective, gradient)
+  }
+}
+
+class HingeLoss extends MultivariateOptimizableObjective[Tensor1] {
+
+  def valueAndGradient(prediction: Tensor1, label: Tensor1): (Double, Tensor1) = {
+    var objective = 0.0
+    val gradient = new SparseIndexedTensor1(prediction.size)
+    for (i <- prediction.activeDomain) {
+      if(prediction(i) < 0.1 && label(i) == 1.0) {
+        gradient += (i, 1.0f)
+        objective += prediction(i) - 0.1
+      } else if(prediction(i) > 0.0 && label(i) == 0.0) {
+        gradient += (i, -1.0f)
+        objective += - prediction(i)
+      }
+    }
+    (objective, gradient)
+  }
+}
+
 
 /**
   * Created by sameyeam on 8/1/16.
@@ -36,15 +77,22 @@ class BiomeExtractor(distMap : Map[String,Int], length : Int) {
 
   object BiomeLabelDomain extends CategoricalDomain[String]
 
-  class BiomeLabel(label : String, val feature : BiomeFeatures, val name : String = "") extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
+  class BiomeLabel(label : String, val feature : BiomeFeatures, val name : String = "", val labels : Seq[String]) extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
     def domain = BiomeLabelDomain
+    def multiLabel : DenseTensor1 = {
+      val dt = new DenseTensor1(BiomeLabelDomain.size)
+      for(l <- labels) {
+        dt(BiomeLabelDomain.index(l)) = 1.0
+      }
+      dt
+    }
   }
 
   object BiomeFeaturesDomain extends VectorDomain {
     override type Value = SparseTensor1
-    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(Word2Vec.featureSize)
+    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(TfIdf.featureSize)
   }
-  class BiomeFeatures(st1 : DenseTensor1) extends VectorVariable(st1) {//BinaryFeatureVectorVariable[String] {
+  class BiomeFeatures(st1 : SparseTensor1) extends VectorVariable(st1) {//BinaryFeatureVectorVariable[String] {
     def domain = BiomeFeaturesDomain
    //override def skipNonCategories = true
   }
@@ -54,7 +102,7 @@ class BiomeExtractor(distMap : Map[String,Int], length : Int) {
     lower.filter(_.isLetterOrDigit)
   }
 
-  def docToFeature(pl : Document, label : String) : BiomeLabel = {
+  def docToFeature(pl : Document, labels : Seq[String]) : BiomeLabel = {
     /*val features = new BiomeFeatures()
     for(e <- pl.sentences; w <- e.tokens) {
       val current = clean(w.string)
@@ -65,12 +113,15 @@ class BiomeExtractor(distMap : Map[String,Int], length : Int) {
         features += "BIGRAM=" + current + "+" + next
       }*/
     }*/
-    val f = Word2Vec(pl) //Word2Vec(pl)
+    val f = TfIdf(pl) //Word2Vec(pl)
     //val vector = new SparseTensor1(TfIdf.featureSize)
     //vector(0) = f(TfIdf.wordCounts("mangrov")._2)
     //vector(1) = f(TfIdf.wordCounts("mangrov")._2)
     val features = new BiomeFeatures(f)//TfIdf(pl))
-    new BiomeLabel(label, features, pl.name)
+    for(l <- labels) {
+      new BiomeLabel(l,features,pl.name, labels)
+    }
+    new BiomeLabel(labels.head, features, pl.name, labels)
   }
 
   def testAccuracy(testData : Seq[BiomeLabel], classifier : MulticlassClassifier[Tensor1]) : Double = {
@@ -79,18 +130,34 @@ class BiomeExtractor(distMap : Map[String,Int], length : Int) {
     correct.toDouble/testData.length
   }
 
+  def sigmoid(d : Double) : Double = {
+    1.0/(1.0f + math.exp(-d))
+  }
+
+
   def evaluate(testData : Seq[BiomeLabel], classifier : MulticlassClassifier[Tensor1]) : String = {
     val trueCounts = new Array[Int](BiomeLabelDomain.size)
     val correctCounts = new Array[Int](BiomeLabelDomain.size)
     val predictedCounts = new Array[Int](BiomeLabelDomain.size)
 
     for(data <- testData) {
-      val prediction = classifier.classification(data.feature.value).bestLabelIndex
-      val trueValue = data.target.intValue
-      trueCounts(trueValue) += 1
-      predictedCounts(prediction) += 1
-      if(trueValue == prediction) {
-        correctCounts(trueValue) += 1
+      val prediction = classifier.classification(data.feature.value).prediction
+      for(i <- 0 until prediction.dim1) {
+        prediction(i) = sigmoid(prediction(i))
+      }
+      val predictedValues = new ArrayBuffer[Int]()
+      for(i <- 0 until prediction.dim1) {
+        if(prediction(i) >= 0.5) predictedValues += i
+      }
+      val trueValue = data.multiLabel
+      val trueValues = new ArrayBuffer[Int]()
+      for(i <- 0 until trueValue.dim1) {
+        if(trueValue(i) == 1.0) trueValues += i
+      }
+      trueValues.foreach{ tv => trueCounts(tv) += 1 }
+      predictedValues.foreach{ pv => predictedCounts(pv) += 1 }
+      for(p <- predictedValues; if trueValues.contains(p)) {
+        correctCounts(p) += 1
       }
     }
     val trueCount = trueCounts.sum
@@ -116,23 +183,35 @@ class BiomeExtractor(distMap : Map[String,Int], length : Int) {
     //val classifier = new DecisionTreeMulticlassTrainer(new C45DecisionTreeTrainer).train(trainData, (l : BiomeLabel) => l.feature, (l : BiomeLabel) => 1.0)
     //val optimizer = new LBFGS// with L2Regularization //
     val rda = new AdaGradRDA(l1 = l2)
-    val trainer = new OnlineOptimizingLinearVectorClassifierTrainer {
+    val classifier = new LinearVectorClassifier(BiomeLabelDomain.size, BiomeFeaturesDomain.dimensionSize, (l : BiomeLabel) => l.feature)/*(objective = new SigmoidalLoss().asInstanceOf[OptimizableObjectives.Multiclass]) {
       override def examples[L<:LabeledDiscreteVar,F<:VectorVar](classifier:LinearVectorClassifier[L,F], labels:Iterable[L], l2f:L=>F, objective:Multiclass): Seq[Example] =
-        labels.toSeq.map(l => new PredictorExample(classifier, l2f(l).value, l.target.intValue, objective, weight(l.target.intValue)))
+        labels.toSeq.map(l => new PredictorExample(classifier, l2f(l).value, l.target.value, objective))//, weight(l.target.intValue)))
+    }*/
+    val optimizer = new AdaGrad()
+    val trainer = new OnlineTrainer(classifier.parameters, optimizer)
+    val trainExamples = trainData.map{ td =>
+      new PredictorExample(classifier, td.feature.value, td.multiLabel, new HingeLoss, 1.0)
     }
-    val classifier = trainer.train(trainData, l2f)
+    val testExamples = trainData.map{ td =>
+      new PredictorExample(classifier, td.feature.value, td.multiLabel, new HingeLoss, 1.0)
+    }
+
+    for(i <- 0 until 50)
+      trainer.processExamples(trainExamples)
+    //val classifier = trainer.train(trainData, l2f)
     println("Train Acc: " + testAccuracy(trainData,classifier) )
     println("Test Acc: " + testAccuracy(testData,classifier) )
     classifier
   }
 
-  def aidToFeature(aid : Aid) : Option[BiomeLabel] = {
+  def aidToFeature(aid : AidSeq) : Option[BiomeLabel] = {
     PDFToDocument.apply(aid.pdf.filename) match {
       case None => None
       case Some(d) =>
         aid.biome match {
-          case None => None
-          case Some(b) => Some(docToFeature(d._1,b.biome))
+          case a : Seq[Biome] if a.isEmpty => None
+          case a: Seq[Biome] =>
+            Some(docToFeature(d._1,a.map(_.biome).distinct))
         }
     }
   }
@@ -176,11 +255,11 @@ object BiomeExtractor {
     }
     println("man: " + tm.sum.toDouble/tm.length)
     println("non man: " + other.sum.toDouble/other.length)*/
-    val distribution = Aid.load(args.head).toArray.filter(_.biome.isDefined).groupBy(_.biome.get.biome).map{ b => b._1 -> b._2.length}
-    val count = Aid.load(args.head).toArray.count(_.biome.isDefined)
+    val distribution = AidSeq.load(args.head).toArray.filter(_.biome.nonEmpty).flatMap(_.biome).groupBy(_.biome).map{ b => (b._1,b._2.length) }
+    val count = AidSeq.load(args.head).toArray.flatMap(_.biome).length
     val extractor = new BiomeExtractor(distribution, count)
 
-    val data = Aid.load(args.head).toArray.flatMap{ a =>
+    val data = AidSeq.load(args.head).toArray.flatMap{ a =>
       extractor.aidToFeature(a)
     }
 
