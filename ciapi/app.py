@@ -1,6 +1,5 @@
 import flask
 from flask import Flask, jsonify, make_response
-# from flask_bcrypt import Bcrypt
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import Api, Resource
 from flask_restful_swagger import swagger
@@ -8,7 +7,7 @@ from flask_restful_swagger import swagger
 import ciapi
 from ciapi.resources.citations import Citation, Citations
 from ciapi.resources.reviews import Review, Reviews
-from ciapi.resources.users import User, AppUser
+from ciapi.resources.users import User
 import cipy
 
 
@@ -17,7 +16,6 @@ USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
-# bcrypt = Bcrypt(app)
 auth = HTTPBasicAuth()
 
 # api = Api(app)
@@ -69,8 +67,7 @@ api.add_resource(Citations, '/citations')
 api.add_resource(Citation, '/citations/<int:citation_id>')
 api.add_resource(Reviews, '/reviews')
 api.add_resource(Review, '/reviews/<int:review_id>')
-api.add_resource(User, '/users/<int:user_id>')
-api.add_resource(AppUser, '/users/register')
+api.add_resource(User, '/users/<int:user_id>', '/users')
 
 
 if __name__ == '__main__':
