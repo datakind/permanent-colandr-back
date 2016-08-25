@@ -30,8 +30,8 @@ schema:
             data_type: "INTEGER ARRAY"
 templates:
     create_user: >
-        INSERT INTO users (created_ts, name, email, password)
-        VALUES (%(created_ts)s, %(name)s, %(email)s, crypt(%(password)s, gen_salt('bf')))
+        INSERT INTO users (name, email, password, review_ids, owned_review_ids)
+        VALUES (%(name)s, %(email)s, crypt(%(password)s, gen_salt('bf')), %(review_ids)s, %(owned_review_ids)s)
         RETURNING user_id
     delete_user: >
         DELETE from users

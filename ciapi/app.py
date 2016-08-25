@@ -13,6 +13,32 @@ import cipy
 
 USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
+errors = {
+    'DataIntegrityError': {
+        'message': 'Input data can not be inserted into the database.',
+        'status': 409},
+    'ValidationError': {
+        'message': 'Input data does not pass type and value validation.',
+        'status': 422},
+    }
+
+
+class MissingData(Exception):
+    status_code = 404
+
+    def __init__(self, message, status_code=None, payload=None):
+        Exception.__init__(self)
+        self.message = message
+        if status_code is not None:
+            self.status_code = status_code
+        self.payload = payload
+
+    def to_dict(self):
+        rv = dict(self.payload or ())
+        rv['message'] = self.message
+        return rv
+
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
@@ -20,7 +46,7 @@ auth = HTTPBasicAuth()
 
 # api = Api(app)
 api = swagger.docs(
-    Api(app),
+    Api(app, catch_all_404s=False, errors=errors),
     apiVersion='0.1',
     api_spec_url='/spec',
     description='Burton\'s First API!')
@@ -62,7 +88,7 @@ class Root(Resource):
         return flask.session['user']
 
 
-api.add_resource(Root, '/')
+api.add_resource(Root, '/login')
 api.add_resource(Citations, '/citations')
 api.add_resource(Citation, '/citations/<int:citation_id>')
 api.add_resource(Reviews, '/reviews')

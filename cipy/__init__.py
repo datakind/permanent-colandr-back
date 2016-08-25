@@ -16,6 +16,7 @@ from cipy import validation
 # top-level modules
 from cipy import utils
 from cipy import hacks
+from cipy import exceptions
 
 logger = logging.getLogger('cipy')
 if len(logger.handlers) == 0:  # to ensure reload() doesn't add another one

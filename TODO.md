@@ -3,8 +3,9 @@
 - **API**
     - users
         - [ ] login/authentication/permissions/logout
-        - [ ] email invitation to join as collaborator (?)
+        - [x] create new user
         - [ ] delete existing user (and update/delete reviews collaborating on/owned)
+        - [ ] email invitation to join as collaborator (?)
     - reviews
         - [ ] creation of new review
         - [ ] delete an existing review, with owner privileges
