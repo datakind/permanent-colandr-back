@@ -1,5 +1,8 @@
 ## Burton
 
+- **Documentation**
+    - [x] write engineering environment setup guide
+    - [ ] contribute to app usage guide, as needed
 - **API**
     - users
         - [ ] login/authentication/permissions/logout
