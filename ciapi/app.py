@@ -1,3 +1,5 @@
+import logging
+
 import flask
 from flask import Flask, jsonify, make_response
 from flask_httpauth import HTTPBasicAuth
@@ -39,9 +41,17 @@ class MissingData(Exception):
         return rv
 
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
+
+# Logging
+_logger = logging.getLogger('API')
+_logger.setLevel(logging.INFO)
+_handler = logging.StreamHandler()
+_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_handler.setFormatter(_formatter)
+app.logger.addHandler(_handler)
+
 auth = HTTPBasicAuth()
 
 # api = Api(app)
@@ -82,17 +92,17 @@ def unauthorized():
     return make_response(jsonify({'message': 'Unauthorized!'}))
 
 
-class Root(Resource):
+class Login(Resource):
     @auth.login_required
     def get(self):
         return flask.session['user']
 
 
-api.add_resource(Root, '/login')
+api.add_resource(Login, '/login')
 api.add_resource(Citations, '/citations')
 api.add_resource(Citation, '/citations/<int:citation_id>')
 api.add_resource(Reviews, '/reviews')
-api.add_resource(Review, '/reviews/<int:review_id>')
+api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')
 api.add_resource(User, '/users/<int:user_id>', '/users')
 
 

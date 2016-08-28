@@ -25,9 +25,11 @@ schema:
         -
             column_name: "review_ids"
             data_type: "INTEGER ARRAY"
+            column_constraints: "DEFAULT '{}'"
         -
             column_name: "owned_review_ids"
             data_type: "INTEGER ARRAY"
+            column_constraints: "DEFAULT '{}'"
 templates:
     create_user: >
         INSERT INTO users (name, email, password, review_ids, owned_review_ids)

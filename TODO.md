@@ -10,8 +10,8 @@
         - [ ] delete existing user (and update/delete reviews collaborating on/owned)
         - [ ] email invitation to join as collaborator (?)
     - reviews
-        - [ ] creation of new review
-        - [ ] delete an existing review, with owner privileges
+        - [x] creation of new review
+        - [x] delete an existing review, with owner privileges
     - review plans
         - [ ] creation of new review plan for existing review PUT?)
         - [ ] update of existing review plan
@@ -27,6 +27,8 @@
         - [ ] update de-duplication status of citation, upon upload and upon upload of all subsequent batches of citations
         - [ ] update screening status of citation, for each referrer, and correctly flag conflicts
         - [ ] enable mass screening status update (?)
+    - error handling
+        - [ ] define custom exceptions and raise them appropriately
     - documentation
         - [ ] improve documentation on all endpoints, as needed
         - [ ] improve interactive swagger html page (optional)

@@ -1,14 +1,14 @@
 from psycopg2.extensions import AsIs
 from psycopg2 import IntegrityError as DataIntegrityError
 
-from flask import jsonify, request
+from flask import jsonify, request, session
 from flask_restful import Resource, abort
 from flask_restful_swagger import swagger
 
 from marshmallow import Schema, fields, ValidationError
 from marshmallow.validate import Email, Length, Range
 from webargs.fields import DelimitedList
-from webargs.flaskparser import use_kwargs  # use_args
+from webargs.flaskparser import use_args, use_kwargs
 
 from ciapi import PGDB
 import cipy
@@ -30,10 +30,10 @@ class UserSchema(Schema):
         required=True, load_only=True)
     review_ids = fields.List(
         fields.Int(validate=Range(min=1, max=2147483647)),
-        required=True, allow_none=True)
+        missing=None)
     owned_review_ids = fields.List(
         fields.Int(validate=Range(min=1, max=2147483647)),
-        required=True, allow_none=True)
+        missing=None)
 
     class Meta:
         strict = True
@@ -60,45 +60,25 @@ class User(Resource):
             'user_id': user_id}
         results = list(PGDB.run_query(query, bindings=bindings))
         if not results:
-            #raise cipy.exceptions.MissingDataException()
-            abort(404, message='User not found with id="{}"'.format(user_id))
+            # MissingDataException
+            raise Exception('User not found with id="{}"'.format(user_id))
         return UserSchema().dump(results[0]).data
 
     @swagger.operation()
-    @use_kwargs({
-        'name': fields.String(
-            required=True, validate=Length(min=1, max=200)),
-        'email': fields.Email(
-            required=True, validate=[Email(), Length(max=200)]),
-        'password': fields.String(
-            required=True),
-        'review_ids': fields.List(
-            fields.Int(validate=Range(min=1, max=2147483647)),
-            required=True, missing=None, allow_none=True),
-        'owned_review_ids': fields.List(
-            fields.Int(validate=Range(min=1, max=2147483647)),
-            required=True, missing=None, allow_none=True),
-        'test': fields.Boolean(missing=False)
-        })
-    def post(self, name, email, password, review_ids, owned_review_ids, test):
-        data = {'name': name, 'email': email, 'password': password,
-                'review_ids': review_ids, 'owned_review_ids': owned_review_ids}
-        try:
-            UserSchema().validate(data)
-        except ValidationError:
-            raise
-
+    @use_args(UserSchema())
+    @use_kwargs({'test': fields.Boolean(missing=False)})
+    def post(self, args, test):
         if test is True:
             list(PGDB.run_query(
                 USERS_DDL['templates']['create_user'],
-                bindings=data,
+                bindings=args,
                 act=False))
-            return data
+            return args
         else:
             try:
                 created_user_id = list(PGDB.run_query(
                     USERS_DDL['templates']['create_user'],
-                    bindings=data,
+                    bindings=args,
                     act=True))[0]['user_id']
                 return created_user_id
             except DataIntegrityError:
@@ -109,6 +89,10 @@ class User(Resource):
         'user_id': fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=2147483647)),
+        'test': fields.Boolean(missing=False)
         })
-    def delete(self, user_id):
+    def delete(self, user_id, test):
+        if user_id != session['user']['user_id']:
+            # UnauthorizedException
+            raise Exception('user not authorized to delete this user')
         return user_id
