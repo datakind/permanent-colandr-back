@@ -149,7 +149,8 @@ class Reviews(Resource):
             """
         bindings = {'fields': AsIs(','.join(fields)),
                     'user_id': session['user']['user_id']}
-        result = list(PGDB.run_query(query, bindings=bindings))
-        if not result:
+        results = list(PGDB.run_query(query, bindings=bindings))
+        if not results:
+            # MissingDataException
             raise Exception('no results found')
-        return jsonify(result)
+        return jsonify(results)
