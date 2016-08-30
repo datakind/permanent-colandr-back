@@ -1,3 +1,5 @@
+import logging
+
 from psycopg2.extensions import AsIs
 from psycopg2 import IntegrityError as DataIntegrityError
 
@@ -14,6 +16,7 @@ from ciapi import PGDB
 import cipy
 
 
+REVIEWS_DDL = cipy.db.db_utils.get_ddl('reviews')
 USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 
@@ -95,4 +98,18 @@ class User(Resource):
         if user_id != session['user']['user_id']:
             # UnauthorizedException
             raise Exception('user not authorized to delete this user')
-        return user_id
+        act = not test
+        updated_reviews = PGDB.run_query(
+            REVIEWS_DDL['templates']['remove_deleted_user'],
+            bindings={'user_id': user_id},
+            act=act)
+        PGDB.execute(
+            USERS_DDL['templates']['delete_user'],
+            bindings={'user_id': user_id},
+            act=act)
+        if test is False:
+            updated_review_ids = [review['review_id'] for review in updated_reviews]
+            logging.info('user id=%s removed from review ids=%s',
+                         user_id, updated_review_ids)
+        else:
+            logging.info('deleted user id=%s from reviews (TEST)', user_id)

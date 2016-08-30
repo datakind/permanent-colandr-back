@@ -9,7 +9,7 @@ schema:
         -
             column_name: "review_id"
             data_type: "INTEGER"
-            column_constraints: "NOT NULL"
+            column_constraints: "REFERENCES reviews (review_id) ON DELETE CASCADE"
         -
             column_name: "user_id"
             data_type: "INTEGER"
@@ -46,7 +46,7 @@ schema:
             column_name: "type_of_reference"
             data_type: "VARCHAR(50)"
         -
-            column_name: "journal_column_name"
+            column_name: "journal_name"
             data_type: "VARCHAR(100)"
         -
             column_name: "volume"

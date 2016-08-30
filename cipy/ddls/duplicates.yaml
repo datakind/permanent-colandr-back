@@ -9,7 +9,7 @@ schema:
         -
             column_name: "review_id"
             data_type: "INTEGER"
-            column_constraints: "NOT NULL"
+            column_constraints: "REFERENCES reviews (review_id) ON DELETE CASCADE"
         -
             column_name: "canonical_citation_id"
             data_type: "INTEGER"

@@ -7,7 +7,7 @@
     - users
         - [ ] login/authentication/permissions/logout
         - [x] create new user
-        - [ ] delete existing user (and update/delete reviews collaborating on/owned)
+        - [x] delete existing user (and update/delete reviews collaborating on/owned)
         - [ ] email invitation to join as collaborator (?)
     - reviews
         - [x] creation of new review

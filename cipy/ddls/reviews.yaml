@@ -17,7 +17,7 @@ schema:
         -
             column_name: "user_ids"
             data_type: "INTEGER ARRAY"
-            column_constraints: "NOT NULL"
+            column_constraints: "REFERENCES users (user_id) ON DELETE CASCADE"
         -
             column_name: "name"
             data_type: "VARCHAR(500)"
