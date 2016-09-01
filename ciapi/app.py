@@ -1,4 +1,5 @@
 import logging
+import os
 
 import flask
 from flask import Flask, jsonify, make_response
@@ -10,10 +11,34 @@ import ciapi
 from ciapi.resources.citations import Citation, Citations
 from ciapi.resources.reviews import Review, Reviews
 from ciapi.resources.users import User
+from ciapi.models import db
 import cipy
 
 
-USERS_DDL = cipy.db.db_utils.get_ddl('users')
+app = Flask(__name__)
+app.config.from_object('ciapi.config')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
+
+db.init_app(app)
+
+auth = HTTPBasicAuth()
+
+# api = Api(app)
+api = swagger.docs(
+    Api(app, catch_all_404s=False),  # , errors=errors),
+    apiVersion='0.1',
+    api_spec_url='/spec',
+    description='Burton\'s First API!')
+
+
+# Logging
+# _logger = logging.getLogger('API')
+# _logger.setLevel(logging.INFO)
+_handler = logging.StreamHandler()
+_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_handler.setFormatter(_formatter)
+app.logger.addHandler(_handler)
+
 
 errors = {
     'DataIntegrityError': {
@@ -41,27 +66,6 @@ class MissingData(Exception):
         return rv
 
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'the quick brown fox jumps over the lazy dog'
-
-# Logging
-_logger = logging.getLogger('API')
-_logger.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-app.logger.addHandler(_handler)
-
-auth = HTTPBasicAuth()
-
-# api = Api(app)
-api = swagger.docs(
-    Api(app, catch_all_404s=False, errors=errors),
-    apiVersion='0.1',
-    api_spec_url='/spec',
-    description='Burton\'s First API!')
-
-
 @app.errorhandler(422)
 def handle_unprocessable_entity(err):
     # webargs attaches additional metadata to the `data` attribute
@@ -72,6 +76,9 @@ def handle_unprocessable_entity(err):
     else:
         messages = ['Invalid request']
     return jsonify({'messages': messages}), 422
+
+
+USERS_DDL = cipy.db.db_utils.get_ddl('users')
 
 
 @auth.verify_password

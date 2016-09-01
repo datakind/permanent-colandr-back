@@ -116,6 +116,8 @@ class ReviewPlan(db.Model, CRUD):
     __tablename__ = 'review_plans'
 
     # columns
+    id = db.Column(
+        db.Integer, primary_key=True, autoincrement=True)
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         index=True)
@@ -201,6 +203,8 @@ class CitationStatus(db.Model, CRUD):
     __tablename__ = 'citation_statuses'
 
     # columns
+    id = db.Column(
+        db.Integer, primary_key=True, autoincrement=True)
     citation_id = db.Column(
         db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
         index=True)
