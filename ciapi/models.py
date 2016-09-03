@@ -41,7 +41,7 @@ class User(db.Model, CRUD):
         db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
-        server_default=text("(CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"))
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     name = db.Column(
         db.Unicode(length=200), nullable=False)
     email = db.Column(
@@ -76,12 +76,13 @@ class Review(db.Model, CRUD):
         db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
-        server_default=text("(CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"))
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     name = db.Column(
         db.Unicode(length=500), nullable=False)
     description = db.Column(db.UnicodeText)
     settings = db.Column(
-        postgresql.JSONB(none_as_null=True), nullable=False)
+        postgresql.JSONB(none_as_null=True), nullable=False,
+        server_default='{}')
     owner_user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
         index=True)
@@ -92,12 +93,12 @@ class Review(db.Model, CRUD):
         lazy='select')
     users = db.relationship(
         'User', secondary=users_reviews, back_populates='reviews',
-        lazy='dynamic')
+        lazy='select')
     review_plan = db.relationship(
         'ReviewPlan', uselist=False, back_populates='review',
         lazy='select')
-    citations = db.relationship(
-        'Citation', back_populates='review',
+    studies = db.relationship(
+        'Study', back_populates='review',
         lazy='dynamic')
 
     def __init__(self, name, description, settings, user_ids, owner_user_id):
@@ -126,21 +127,76 @@ class ReviewPlan(db.Model, CRUD):
     pico = db.Column(postgresql.JSONB(none_as_null=True))
     keyterms = db.Column(postgresql.JSONB(none_as_null=True))
     selection_criteria = db.Column(postgresql.JSONB(none_as_null=True))
+    extraction_form = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='review_plan',
         lazy='select')
 
-    def __init__(self, objective, research_questions, pico, keyterms, selection_criteria):
+    def __init__(self, objective, research_questions, pico, keyterms,
+                 selection_criteria, extraction_form):
         self.objective = objective
         self.research_questions = research_questions
         self.pico = pico
         self.keyterms = keyterms
         self.selection_criteria = selection_criteria
+        self.extraction_form = extraction_form
 
     def __repr__(self):
         return "<ReviewPlan(review_id='{}')>".format(self.review_id)
+
+
+class Study(db.Model, CRUD):
+
+    __tablename__ = 'studies'
+
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        index=True)
+    citation_id = db.Column(
+        db.BigInteger, ForeignKey('citations.id'),
+        index=True)
+    fulltext_id = db.Column(
+        db.BigInteger, ForeignKey('fulltexts.id'),
+        index=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    title = db.Column(
+        db.Unicode(length=250), nullable=False,
+        server_default='untitled')
+    status = db.Column(
+        db.Unicode(length=20), nullable=False, server_default='pending',
+        index=True)
+    exclude_reason = db.Column(db.Unicode(length=20))
+    tags = db.Column(postgresql.ARRAY(db.Unicode(length=25)))
+    duplication = db.Column(postgresql.JSONB(none_as_null=True))
+    citation_screening = db.Column(postgresql.JSONB(none_as_null=True))
+    fulltext_screening = db.Column(postgresql.JSONB(none_as_null=True))
+
+    # relationships
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='studies',
+        lazy='select')
+    citation = db.relationship(
+        'Citation', uselist=False, back_populates='study',
+        lazy='select')
+    fulltext = db.relationship(
+        'Fulltext', uselist=False, back_populates='study',
+        lazy='select')
+
+    def __init__(self, review_id, citation_id, title=None):
+        self.review_id = review_id
+        self.citation_id = citation_id
+        if title is not None:
+            self.title = title
+
+    def __repr__(self):
+        return "<Study(id='{}')>".format(self.id)
 
 
 class Citation(db.Model, CRUD):
@@ -150,14 +206,12 @@ class Citation(db.Model, CRUD):
     # columns
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+    study_id = db.Column(
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
         index=True)
-    user_id = db.Column(
-        db.Integer, ForeignKey('users.id'))
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
-        server_default=text("(CURRENT_TIMESTAMP(0) AT TIME ZONE 'UTC')"))
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     type_of_work = db.Column(db.Unicode(length=25))
     title = db.Column(db.Unicode(length=250))
     secondary_title = db.Column(db.Unicode(length=250))
@@ -179,45 +233,41 @@ class Citation(db.Model, CRUD):
     other_fields = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='citations',
-        lazy='select')
-    status = db.relationship(
-        'CitationStatus', uselist=False, back_populates='citation',
+    study = db.relationship(
+        'Study', foreign_keys=[study_id], back_populates='citation',
         lazy='select')
 
-    # TODO: init method
-#     def __init__(self, objective, research_questions, pico, keyterms, selection_criteria):
-#         self.objective = objective
-#         self.research_questions = research_questions
-#         self.pico = pico
-#         self.keyterms = keyterms
-#         self.selection_criteria = selection_criteria
+    def __init__(self):
+        return  # TODO
 
     def __repr__(self):
-        return "<Citation(id='{}')>".format(self.id)
+        return "<Citation(study_id='{}')>".format(self.study_id)
 
 
-class CitationStatus(db.Model, CRUD):
+class Fulltext(db.Model, CRUD):
 
-    __tablename__ = 'citation_statuses'
+    __tablename__ = 'fulltexts'
 
     # columns
     id = db.Column(
-        db.Integer, primary_key=True, autoincrement=True)
-    citation_id = db.Column(
-        db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
+        db.BigInteger, primary_key=True, autoincrement=True)
+    study_id = db.Column(
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
         index=True)
-    status = db.Column(
-        db.Unicode(length=15), nullable=False, index=True)  # default?
-    exclude_reason = db.Column(db.Unicode(length=20))
-    deduplication = db.Column(postgresql.JSONB(none_as_null=True))
-    citation_screening = db.Column(postgresql.JSONB(none_as_null=True))
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    filename = db.Column(db.UnicodeText())
+    content = db.Column(db.UnicodeText())
+    extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
-    citation = db.relationship(
-        'Citation', foreign_keys=[citation_id], back_populates='status',
+    study = db.relationship(
+        'Study', foreign_keys=[study_id], back_populates='fulltext',
         lazy='select')
 
+    def __init__(self):
+        return  # TODO
+
     def __repr__(self):
-        return "<CitationStatus(citation_id='{}')>".format(self.citation_id)
+        return "<Fulltext(study_id='{}')>".format(self.study_id)
