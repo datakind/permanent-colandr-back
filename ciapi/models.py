@@ -2,15 +2,15 @@ from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.orm import validates
 
+import ciapi
 
 db = SQLAlchemy()
 
 
 class CRUD(object):
-    """
-    Class to add, update and delete data via SQLALchemy session.
-    """
+    """Class to add, update and delete data via SQLALchemy session."""
 
     def add(self, resource):
         db.session.add(resource)
@@ -47,8 +47,10 @@ class User(db.Model, CRUD):
     email = db.Column(
         db.Unicode(length=200), unique=True, nullable=False,
         index=True)
+    # password = db.Column(
+    #     db.Unicode, nullable=False)
     password = db.Column(
-        db.Unicode, nullable=False)
+        ciapi.auth.Password(rounds=12), nullable=False)
 
     # relationships
     owned_reviews = db.relationship(
@@ -57,6 +59,10 @@ class User(db.Model, CRUD):
     reviews = db.relationship(
         'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
+
+    @validates('password')
+    def _validate_password(self, key, password):
+        return getattr(type(self), key).type.validator(password)
 
     def __init__(self, name, email, password):
         self.name = name
@@ -80,6 +86,8 @@ class Review(db.Model, CRUD):
     name = db.Column(
         db.Unicode(length=500), nullable=False)
     description = db.Column(db.UnicodeText)
+    status = db.Column(
+        db.Unicode(length=25), server_default='active')
     settings = db.Column(
         postgresql.JSONB(none_as_null=True), nullable=False,
         server_default='{}')
@@ -127,7 +135,7 @@ class ReviewPlan(db.Model, CRUD):
     pico = db.Column(postgresql.JSONB(none_as_null=True))
     keyterms = db.Column(postgresql.JSONB(none_as_null=True))
     selection_criteria = db.Column(postgresql.JSONB(none_as_null=True))
-    extraction_form = db.Column(postgresql.JSONB(none_as_null=True))
+    data_extraction_form = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
     review = db.relationship(
@@ -135,13 +143,13 @@ class ReviewPlan(db.Model, CRUD):
         lazy='select')
 
     def __init__(self, objective, research_questions, pico, keyterms,
-                 selection_criteria, extraction_form):
+                 selection_criteria, data_extraction_form):
         self.objective = objective
         self.research_questions = research_questions
         self.pico = pico
         self.keyterms = keyterms
         self.selection_criteria = selection_criteria
-        self.extraction_form = extraction_form
+        self.data_extraction_form = data_extraction_form
 
     def __repr__(self):
         return "<ReviewPlan(review_id='{}')>".format(self.review_id)
@@ -157,23 +165,23 @@ class Study(db.Model, CRUD):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         index=True)
-    citation_id = db.Column(
-        db.BigInteger, ForeignKey('citations.id'),
-        index=True)
-    fulltext_id = db.Column(
-        db.BigInteger, ForeignKey('fulltexts.id'),
-        index=True)
+    # citation_id = db.Column(
+    #     db.BigInteger, ForeignKey('citations.id'))
+    # fulltext_id = db.Column(
+    #     db.BigInteger, ForeignKey('fulltexts.id'))
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     title = db.Column(
         db.Unicode(length=250), nullable=False,
         server_default='untitled')
+    tags = db.Column(
+        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
+        index=True)
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='pending',
         index=True)
     exclude_reason = db.Column(db.Unicode(length=20))
-    tags = db.Column(postgresql.ARRAY(db.Unicode(length=25)))
     duplication = db.Column(postgresql.JSONB(none_as_null=True))
     citation_screening = db.Column(postgresql.JSONB(none_as_null=True))
     fulltext_screening = db.Column(postgresql.JSONB(none_as_null=True))
@@ -258,7 +266,8 @@ class Fulltext(db.Model, CRUD):
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     filename = db.Column(db.UnicodeText())
-    content = db.Column(db.UnicodeText())
+    content = db.Column(
+        db.UnicodeText(), nullable=False)
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
@@ -266,7 +275,7 @@ class Fulltext(db.Model, CRUD):
         'Study', foreign_keys=[study_id], back_populates='fulltext',
         lazy='select')
 
-    def __init__(self):
+    def __init__(self, filename, content, extracted_info=None):
         return  # TODO
 
     def __repr__(self):
