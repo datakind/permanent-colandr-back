@@ -162,16 +162,12 @@ class Study(db.Model, CRUD):
     # columns
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        index=True)
-    # citation_id = db.Column(
-    #     db.BigInteger, ForeignKey('citations.id'))
-    # fulltext_id = db.Column(
-    #     db.BigInteger, ForeignKey('fulltexts.id'))
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        index=True)
     title = db.Column(
         db.Unicode(length=250), nullable=False,
         server_default='untitled')
@@ -181,8 +177,7 @@ class Study(db.Model, CRUD):
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='pending',
         index=True)
-    exclude_reason = db.Column(db.Unicode(length=20))
-    duplication = db.Column(postgresql.JSONB(none_as_null=True))
+    deduplication = db.Column(postgresql.JSONB(none_as_null=True))
     citation_screening = db.Column(postgresql.JSONB(none_as_null=True))
     fulltext_screening = db.Column(postgresql.JSONB(none_as_null=True))
 
@@ -197,9 +192,8 @@ class Study(db.Model, CRUD):
         'Fulltext', uselist=False, back_populates='study',
         lazy='select')
 
-    def __init__(self, review_id, citation_id, title=None):
+    def __init__(self, review_id, title=None):
         self.review_id = review_id
-        self.citation_id = citation_id
         if title is not None:
             self.title = title
 
@@ -214,20 +208,20 @@ class Citation(db.Model, CRUD):
     # columns
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        index=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    study_id = db.Column(
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+        index=True)
     type_of_work = db.Column(db.Unicode(length=25))
     title = db.Column(db.Unicode(length=250))
     secondary_title = db.Column(db.Unicode(length=250))
+    abstract = db.Column(db.UnicodeText)
     pub_year = db.Column(db.SmallInteger)
     pub_month = db.Column(db.SmallInteger)
     authors = db.Column(
         postgresql.ARRAY(db.Unicode(length=100)))
-    abstract = db.Column(db.UnicodeText)
     keywords = db.Column(
         postgresql.ARRAY(db.Unicode(length=100)))
     type_of_reference = db.Column(db.Unicode(length=50))
@@ -245,8 +239,30 @@ class Citation(db.Model, CRUD):
         'Study', foreign_keys=[study_id], back_populates='citation',
         lazy='select')
 
-    def __init__(self):
-        return  # TODO
+    def __init__(self, study_id,
+                 type_of_work=None, title=None, secondary_title=None, abstract=None,
+                 pub_year=None, pub_month=None, authors=None, keywords=None,
+                 type_of_reference=None, journal_name=None, volume=None,
+                 issue_number=None, doi=None, issn=None, publisher=None,
+                 language=None, other_fields=None):
+        self.study_id = study_id
+        self.type_of_work = type_of_work
+        self.title = title
+        self.secondary_title = secondary_title
+        self.abstract = abstract
+        self.pub_year = pub_year
+        self.pub_month = pub_month
+        self.authors = authors
+        self.keywords = keywords
+        self.type_of_reference = type_of_reference
+        self.journal_name = journal_name
+        self.volume = volume
+        self.issue_number = issue_number
+        self.doi = doi
+        self.issn = issn
+        self.publisher = publisher
+        self.language = language
+        self.other_fields = other_fields
 
     def __repr__(self):
         return "<Citation(study_id='{}')>".format(self.study_id)
@@ -259,15 +275,15 @@ class Fulltext(db.Model, CRUD):
     # columns
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        index=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    filename = db.Column(db.UnicodeText())
+    study_id = db.Column(
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+        index=True)
     content = db.Column(
-        db.UnicodeText(), nullable=False)
+        db.UnicodeText, nullable=False)
+    filename = db.Column(db.UnicodeText)
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
@@ -275,8 +291,10 @@ class Fulltext(db.Model, CRUD):
         'Study', foreign_keys=[study_id], back_populates='fulltext',
         lazy='select')
 
-    def __init__(self, filename, content, extracted_info=None):
-        return  # TODO
+    def __init__(self, content, filename=None, extracted_info=None):
+        self.content = content
+        self.filename = filename
+        self.extracted_info = extracted_info
 
     def __repr__(self):
         return "<Fulltext(study_id='{}')>".format(self.study_id)

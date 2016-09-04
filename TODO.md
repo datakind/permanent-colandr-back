@@ -3,6 +3,9 @@
 - **Documentation**
     - [x] write engineering environment setup guide
     - [ ] contribute to app usage guide, as needed
+- **Backend Engineering**
+    - [ ] finalize database models
+    - [ ] finish implementing schema validation
 - **API**
     - users
         - [ ] login/authentication/permissions/logout
@@ -16,17 +19,21 @@
         - [ ] creation of new review plan for existing review PUT?)
         - [ ] update of existing review plan
         - [ ] suggest good/bad key terms based on included/excluded citations
+    - studies
+        - [ ] get summary for status of all studies, e.g. for "review progress bar"
+        - [ ] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations
+        - [ ] update screening status of citation, for each reviewer, and correctly flag conflicts
+        - [ ] update screning status of fulltext, for each reviewer, and correctly flag conflicts
+        - [ ] enable mass screening status update (?)
     - citations
         - [ ] higher-level filtering options, e.g. to-be-screened or is-duplicate
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
         - [ ] upload citation files via HTTP POST (form?)
         - [ ] add individual citation, manually entered via HTTP POST
         - [ ] link citation to PDF file uploaded by user
-    - citation status (screening!)
-        - [ ] get summary for status of all citations, "review progress bar"
-        - [ ] update de-duplication status of citation, upon upload and upon upload of all subsequent batches of citations
-        - [ ] update screening status of citation, for each referrer, and correctly flag conflicts
-        - [ ] enable mass screening status update (?)
+    - fulltexts
+        - [ ] facilitate uploads of pdfs and storage on server in standardized form
+        - [ ] the rest TBD depending on Sam A's input
     - error handling
         - [ ] define custom exceptions and raise them appropriately
     - documentation

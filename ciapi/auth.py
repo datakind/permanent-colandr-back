@@ -1,6 +1,6 @@
 import bcrypt
 
-from sqlalchemy import Text, TypeDecorator, VARCHAR
+from sqlalchemy import TypeDecorator, VARCHAR  # Text
 from sqlalchemy.ext.mutable import Mutable
 
 
