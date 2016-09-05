@@ -7,39 +7,19 @@ from flask import jsonify, request, session
 from flask_restful import Resource, abort
 from flask_restful_swagger import swagger
 
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import fields
 from marshmallow.validate import Email, Length, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ciapi import PGDB
+from ciapi.models import db
+from ciapi.schemas import UserSchema
 import cipy
 
 
 REVIEWS_DDL = cipy.db.db_utils.get_ddl('reviews')
 USERS_DDL = cipy.db.db_utils.get_ddl('users')
-
-
-class UserSchema(Schema):
-    user_id = fields.Int(
-        dump_only=True, validate=Range(min=1, max=2147483647))
-    created_ts = fields.DateTime(
-        dump_only=True, format='iso')
-    name = fields.Str(
-        required=True, validate=Length(min=1, max=200))
-    email = fields.Email(
-        required=True, validate=[Email(), Length(max=200)])
-    password = fields.Str(
-        required=True, load_only=True)
-    review_ids = fields.List(
-        fields.Int(validate=Range(min=1, max=2147483647)),
-        missing=None)
-    owned_review_ids = fields.List(
-        fields.Int(validate=Range(min=1, max=2147483647)),
-        missing=None)
-
-    class Meta:
-        strict = True
 
 
 class User(Resource):

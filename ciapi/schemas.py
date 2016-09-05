@@ -29,10 +29,6 @@ class ReviewSettingsSchema(Schema):
         required=True, missing=2, validate=Range(min=1, max=3))
     num_fulltext_screening_reviewers = fields.Int(
         required=True, missing=2, validate=Range(min=1, max=3))
-    required_citation_screener_id = fields.Int(
-        missing=None, validate=Range(min=0, max=MAX_INT))
-    required_fulltext_screener_id = fields.Int(
-        missing=None, validate=Range(min=0, max=MAX_INT))
 
     class Meta:
         strict = True
@@ -48,7 +44,7 @@ class ReviewSchema(Schema):
     description = fields.Str(
         missing=None)
     status = fields.Str(
-        validate=Length(max=25))
+        validate=OneOf(['active', 'archived']))
     settings = fields.Nested(
         ReviewSettingsSchema,
         required=True, missing=ReviewSettingsSchema().load({}).data)

@@ -1,10 +1,12 @@
+import bcrypt
+
 from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.orm import validates
+# from sqlalchemy.orm import validates
 
-import ciapi
+# import ciapi
 
 db = SQLAlchemy()
 
@@ -47,10 +49,16 @@ class User(db.Model, CRUD):
     email = db.Column(
         db.Unicode(length=200), unique=True, nullable=False,
         index=True)
-    # password = db.Column(
-    #     db.Unicode, nullable=False)
     password = db.Column(
-        ciapi.auth.Password(rounds=12), nullable=False)
+        db.String(length=64, convert_unicode=False), nullable=False)
+
+    # these two use the stuff in auth.py
+    # password = db.Column(
+    #     ciapi.auth.Password(rounds=12), nullable=False)
+
+    # @validates('password')
+    # def _validate_password(self, key, password):
+    #     return getattr(type(self), key).type.validator(password)
 
     # relationships
     owned_reviews = db.relationship(
@@ -60,17 +68,24 @@ class User(db.Model, CRUD):
         'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
 
-    @validates('password')
-    def _validate_password(self, key, password):
-        return getattr(type(self), key).type.validator(password)
-
     def __init__(self, name, email, password):
         self.name = name
         self.email = email
-        self.password = password
+        self.password = self.hash_password(password, 12)
 
     def __repr__(self):
         return "<User(id='{}')>".format(self.id)
+
+    def hash_password(self, password, rounds):
+        if isinstance(password, (str, bytes)):
+            if isinstance(password, str):
+                password = password.encode('utf8')
+            return bcrypt.hashpw(password, bcrypt.gensalt(rounds=rounds))
+        else:
+            raise TypeError('password must be a string')
+
+    def verify_password(self, password):
+        return bcrypt.checkpw(password, self.password)
 
 
 class Review(db.Model, CRUD):
