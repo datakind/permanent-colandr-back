@@ -5,25 +5,11 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
 # from sqlalchemy.orm import validates
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 # import ciapi
 
 db = SQLAlchemy()
-
-
-class CRUD(object):
-    """Class to add, update and delete data via SQLALchemy session."""
-
-    def add(self, resource):
-        db.session.add(resource)
-        return db.session.commit()
-
-    def update(self):
-        return db.session.commit()
-
-    def delete(self, resource):
-        db.session.delete(resource)
-        return db.session.commit()
 
 
 # association table for users-reviews many-to-many relationship
@@ -34,7 +20,7 @@ users_reviews = db.Table(
     )
 
 
-class User(db.Model, CRUD):
+class User(db.Model):
 
     __tablename__ = 'users'
 
@@ -50,7 +36,7 @@ class User(db.Model, CRUD):
         db.Unicode(length=200), unique=True, nullable=False,
         index=True)
     password = db.Column(
-        db.String(length=64, convert_unicode=False), nullable=False)
+        db.Unicode(length=60), nullable=False)
 
     # these two use the stuff in auth.py
     # password = db.Column(
@@ -71,24 +57,23 @@ class User(db.Model, CRUD):
     def __init__(self, name, email, password):
         self.name = name
         self.email = email
-        self.password = self.hash_password(password, 12)
+        self.password = self.hash_password(password, 12).decode('utf8')
 
     def __repr__(self):
         return "<User(id='{}')>".format(self.id)
 
-    def hash_password(self, password, rounds):
-        if isinstance(password, (str, bytes)):
-            if isinstance(password, str):
-                password = password.encode('utf8')
-            return bcrypt.hashpw(password, bcrypt.gensalt(rounds=rounds))
-        else:
-            raise TypeError('password must be a string')
+    def hash_password(self, plaintext_password, rounds):
+        if isinstance(plaintext_password, str):
+            plaintext_password = plaintext_password.encode('utf8')
+        return bcrypt.hashpw(plaintext_password, bcrypt.gensalt(rounds=rounds))
 
-    def verify_password(self, password):
-        return bcrypt.checkpw(password, self.password)
+    def verify_password(self, plaintext_password):
+        if isinstance(plaintext_password, str):
+            plaintext_password = plaintext_password.encode('utf8')
+        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
 
 
-class Review(db.Model, CRUD):
+class Review(db.Model):
 
     __tablename__ = 'reviews'
 
@@ -135,7 +120,7 @@ class Review(db.Model, CRUD):
         return "<Review(id='{}')>".format(self.id)
 
 
-class ReviewPlan(db.Model, CRUD):
+class ReviewPlan(db.Model):
 
     __tablename__ = 'review_plans'
 
@@ -170,7 +155,7 @@ class ReviewPlan(db.Model, CRUD):
         return "<ReviewPlan(review_id='{}')>".format(self.review_id)
 
 
-class Study(db.Model, CRUD):
+class Study(db.Model):
 
     __tablename__ = 'studies'
 
@@ -216,7 +201,7 @@ class Study(db.Model, CRUD):
         return "<Study(id='{}')>".format(self.id)
 
 
-class Citation(db.Model, CRUD):
+class Citation(db.Model):
 
     __tablename__ = 'citations'
 
@@ -283,7 +268,7 @@ class Citation(db.Model, CRUD):
         return "<Citation(study_id='{}')>".format(self.study_id)
 
 
-class Fulltext(db.Model, CRUD):
+class Fulltext(db.Model):
 
     __tablename__ = 'fulltexts'
 

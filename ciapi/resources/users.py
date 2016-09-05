@@ -1,28 +1,24 @@
-import logging
+# import logging
 
-from psycopg2.extensions import AsIs
-from psycopg2 import IntegrityError as DataIntegrityError
+# from psycopg2.extensions import AsIs
+# from psycopg2 import IntegrityError as DataIntegrityError
 
-from flask import jsonify, request, session
-from flask_restful import Resource, abort
+# from flask import jsonify, request, session
+from flask_restful import Resource  # , abort
 from flask_restful_swagger import swagger
+from sqlalchemy.orm import load_only
+from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields
-from marshmallow.validate import Email, Length, Range
+from marshmallow.validate import Email, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ciapi import PGDB
-from ciapi.models import db
+from ciapi.models import db, User, Review
 from ciapi.schemas import UserSchema
-import cipy
 
 
-REVIEWS_DDL = cipy.db.db_utils.get_ddl('reviews')
-USERS_DDL = cipy.db.db_utils.get_ddl('users')
-
-
-class User(Resource):
+class UserResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
@@ -30,42 +26,19 @@ class User(Resource):
             required=True, location='view_args',
             validate=Range(min=1, max=2147483647)),
         'fields': DelimitedList(
-            fields.String(), delimiter=',', missing=['all'])
+            fields.String(), delimiter=',', missing=None)
         })
     def get(self, user_id, fields):
-        query = """
-            SELECT %(fields)s
-            FROM users
-            WHERE user_id = %(user_id)s
-            """
-        bindings = {
-            'fields': AsIs('*') if fields == ['all'] else AsIs(','.join(fields)),
-            'user_id': user_id}
-        results = list(PGDB.run_query(query, bindings=bindings))
-        if not results:
-            # MissingDataException
-            raise Exception('User not found with id="{}"'.format(user_id))
-        return UserSchema().dump(results[0]).data
-
-    @swagger.operation()
-    @use_args(UserSchema())
-    @use_kwargs({'test': fields.Boolean(missing=False)})
-    def post(self, args, test):
-        if test is True:
-            list(PGDB.run_query(
-                USERS_DDL['templates']['create_user'],
-                bindings=args,
-                act=False))
-            return args
+        if fields is None:
+            user = db.session.query(User).get(user_id)
+            if not user:
+                raise NoResultFound
         else:
-            try:
-                created_user_id = list(PGDB.run_query(
-                    USERS_DDL['templates']['create_user'],
-                    bindings=args,
-                    act=True))[0]['user_id']
-                return created_user_id
-            except DataIntegrityError:
-                raise
+            user = db.session.query(User)\
+                     .filter_by(id=user_id)\
+                     .options(load_only(*fields))\
+                     .one()
+        return UserSchema().dump(user).data
 
     @swagger.operation()
     @use_kwargs({
@@ -75,21 +48,64 @@ class User(Resource):
         'test': fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
-        if user_id != session['user']['user_id']:
-            # UnauthorizedException
-            raise Exception('user not authorized to delete this user')
-        act = not test
-        updated_reviews = PGDB.run_query(
-            REVIEWS_DDL['templates']['remove_deleted_user'],
-            bindings={'user_id': user_id},
-            act=act)
-        PGDB.execute(
-            USERS_DDL['templates']['delete_user'],
-            bindings={'user_id': user_id},
-            act=act)
+        # TODO
+        # if user_id != session['user']['user_id']:
+        #     # UnauthorizedException
+        #     raise Exception('user not authorized to delete this user')
+        user = db.session.query(User).get(user_id)
+        if not user:
+            raise NoResultFound
         if test is False:
-            updated_review_ids = [review['review_id'] for review in updated_reviews]
-            logging.info('user id=%s removed from review ids=%s',
-                         user_id, updated_review_ids)
-        else:
-            logging.info('deleted user id=%s from reviews (TEST)', user_id)
+            db.session.delete(user)
+            db.session.commit()
+
+#     @swagger.operation()
+#     @use_args(UserSchema())
+#     @use_kwargs({'test': fields.Boolean(missing=False)})
+#     def post(self, args, test):
+#         if test is True:
+#             list(PGDB.run_query(
+#                 USERS_DDL['templates']['create_user'],
+#                 bindings=args,
+#                 act=False))
+#             return args
+#         else:
+#             try:
+#                 created_user_id = list(PGDB.run_query(
+#                     USERS_DDL['templates']['create_user'],
+#                     bindings=args,
+#                     act=True))[0]['user_id']
+#                 return created_user_id
+#             except DataIntegrityError:
+#                 raise
+
+
+class UsersResource(Resource):
+
+    @swagger.operation()
+    @use_kwargs({
+        'email': fields.Email(
+            missing=None, validate=Email()),
+        'review_id': fields.Int(
+            missing=None, validate=Range(min=1, max=2147483647))
+        })
+    def get(self, email, review_id):
+        if email:
+            user = db.session.query(User).filter_by(email=email).one()
+            return UserSchema().dump(user).data
+        elif review_id:
+            review = db.session.query(Review).get(review_id)
+            if not review:
+                raise NoResultFound
+            users = review.users
+            return UserSchema(many=True).dump(users).data
+
+    @swagger.operation()
+    @use_args(UserSchema())
+    @use_kwargs({'test': fields.Boolean(missing=False)})
+    def post(self, args, test):
+        user = User(**args)
+        if test is False:
+            db.session.add(user)
+            db.session.commit()
+        return UserSchema().dump(user).data

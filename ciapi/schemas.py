@@ -18,7 +18,7 @@ class UserSchema(Schema):
     email = fields.Email(
         required=True, validate=[Email(), Length(max=200)])
     password = fields.Str(
-        required=True, load_only=True)
+        load_only=True, required=True, validate=Length(min=6, max=60))
 
     class Meta:
         strict = True

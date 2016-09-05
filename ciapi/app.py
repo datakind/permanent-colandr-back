@@ -8,9 +8,9 @@ from flask_restful import Api
 from flask_restful_swagger import swagger
 
 import ciapi
-from ciapi.resources.citations import Citation, Citations
-from ciapi.resources.reviews import Review, Reviews
-from ciapi.resources.users import User
+from ciapi.resources.users import UserResource, UsersResource
+# from ciapi.resources.citations import Citation, Citations
+# from ciapi.resources.reviews import Review, Reviews
 from ciapi.models import db
 import cipy
 
@@ -77,26 +77,26 @@ app.logger.addHandler(_handler)
 #         messages = ['Invalid request']
 #     return jsonify({'messages': messages}), 422
 
-
-USERS_DDL = cipy.db.db_utils.get_ddl('users')
-
-
-@auth.verify_password
-def verify_user(email, password):
-    db_matches = list(
-        ciapi.PGDB.run_query(
-            USERS_DDL['templates']['login_user'],
-            bindings={'email': email, 'password': password}))
-    if not db_matches:
-        return False
-    assert len(db_matches) == 1
-    flask.session['user'] = db_matches[0]
-    return True
-
-
-@auth.error_handler
-def unauthorized():
-    return make_response(jsonify({'message': 'Unauthorized!'}))
+#
+# USERS_DDL = cipy.db.db_utils.get_ddl('users')
+#
+#
+# @auth.verify_password
+# def verify_user(email, password):
+#     db_matches = list(
+#         ciapi.PGDB.run_query(
+#             USERS_DDL['templates']['login_user'],
+#             bindings={'email': email, 'password': password}))
+#     if not db_matches:
+#         return False
+#     assert len(db_matches) == 1
+#     flask.session['user'] = db_matches[0]
+#     return True
+#
+#
+# @auth.error_handler
+# def unauthorized():
+#     return make_response(jsonify({'message': 'Unauthorized!'}))
 
 
 # class Login(Resource):
@@ -106,11 +106,12 @@ def unauthorized():
 #
 #
 # api.add_resource(Login, '/login')
-api.add_resource(User, '/users/<int:user_id>', '/users')
-api.add_resource(Citations, '/citations')
-api.add_resource(Citation, '/citations/<int:citation_id>')
-api.add_resource(Reviews, '/reviews')
-api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')
+api.add_resource(UsersResource, '/users')
+api.add_resource(UserResource, '/users/<int:user_id>')
+# api.add_resource(Citations, '/citations')
+# api.add_resource(Citation, '/citations/<int:citation_id>')
+# api.add_resource(Reviews, '/reviews')
+# api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')
 
 
 if __name__ == '__main__':
