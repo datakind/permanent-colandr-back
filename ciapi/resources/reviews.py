@@ -1,20 +1,30 @@
-# import logging
-# import json
-#
-# import arrow
-# from flask import jsonify, request, session
-# from flask_restful import Resource
-# from flask_restful_swagger import swagger
-# from marshmallow import Schema, fields
-# from marshmallow.validate import Length, Range
-# from psycopg2.extensions import AsIs
-# from webargs.fields import DelimitedList
-# from webargs.flaskparser import use_args, use_kwargs
-#
-# from ciapi import PGDB
-# import cipy
-#
-#
+from flask_restful import Resource  # , abort
+from flask_restful_swagger import swagger
+from sqlalchemy.orm import load_only
+from sqlalchemy.orm.exc import NoResultFound
+
+from marshmallow import fields as ma_fields
+from marshmallow.validate import Email, Range
+from webargs.fields import DelimitedList
+from webargs.flaskparser import use_args, use_kwargs
+
+from ciapi.models import db, Review
+from ciapi.schemas import ReviewSchema
+
+
+class ReviewsResource(Resource):
+
+    @swagger.operation()
+    @use_args(ReviewSchema())
+    @use_kwargs({'test': ma_fields.Boolean(missing=False)})
+    def post(self, args, test):
+        review = Review(**args)
+        if test is False:
+            db.session.add(review)
+            db.session.commit()
+        return ReviewSchema().dump(review).data
+
+
 # REVIEWS_DDL = cipy.db.db_utils.get_ddl('reviews')
 # USERS_DDL = cipy.db.db_utils.get_ddl('users')
 #

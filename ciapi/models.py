@@ -1,13 +1,12 @@
 import bcrypt
+import os
 
 from flask_sqlalchemy import SQLAlchemy
-
+from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
+                          BadSignature, SignatureExpired)
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
-# from sqlalchemy.orm import validates
-from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
-# import ciapi
 
 db = SQLAlchemy()
 
@@ -38,14 +37,6 @@ class User(db.Model):
     password = db.Column(
         db.Unicode(length=60), nullable=False)
 
-    # these two use the stuff in auth.py
-    # password = db.Column(
-    #     ciapi.auth.Password(rounds=12), nullable=False)
-
-    # @validates('password')
-    # def _validate_password(self, key, password):
-    #     return getattr(type(self), key).type.validator(password)
-
     # relationships
     owned_reviews = db.relationship(
         'Review', back_populates='owner_user',
@@ -72,6 +63,24 @@ class User(db.Model):
             plaintext_password = plaintext_password.encode('utf8')
         return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
 
+    def generate_auth_token(self, expiration=1800):
+        """
+        Generate an authentication token for user that automatically expires
+        after ``expiration`` seconds.
+        """
+        s = Serializer(os.environ['COLANDR_SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id})
+
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(os.environ['COLANDR_SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except (SignatureExpired, BadSignature):
+            return None  # valid token, but expired OR invalid token
+        user = User.query.get(data['id'])
+        return user
+
 
 class Review(db.Model):
 
@@ -87,13 +96,14 @@ class Review(db.Model):
         db.Unicode(length=500), nullable=False)
     description = db.Column(db.UnicodeText)
     status = db.Column(
-        db.Unicode(length=25), server_default='active')
-    settings = db.Column(
-        postgresql.JSONB(none_as_null=True), nullable=False,
-        server_default='{}')
+        db.Unicode(length=25), server_default='active', nullable=False)
     owner_user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
         index=True)
+    num_citation_screening_reviewers = db.Column(
+        db.SmallInteger, server_default=text('1'), nullable=False)
+    num_fulltext_screening_reviewers = db.Column(
+        db.SmallInteger, server_default=text('1'), nullable=False)
 
     # relationships
     owner_user = db.relationship(
@@ -109,12 +119,14 @@ class Review(db.Model):
         'Study', back_populates='review',
         lazy='dynamic')
 
-    def __init__(self, name, description, settings, user_ids, owner_user_id):
+    def __init__(self, name, description, status, owner_user_id,
+                 num_citation_screening_reviewers, num_fulltext_screening_reviewers):
         self.name = name
         self.description = description
-        self.settings = settings
-        self.user_ids = user_ids
+        self.status = status
         self.owner_user_id = owner_user_id
+        self.num_citation_screening_reviewers = num_citation_screening_reviewers
+        self.num_fulltext_screening_reviewers = num_fulltext_screening_reviewers
 
     def __repr__(self):
         return "<Review(id='{}')>".format(self.id)

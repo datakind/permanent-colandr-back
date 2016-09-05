@@ -2,26 +2,23 @@ import logging
 import os
 
 import flask
-from flask import Flask, jsonify, make_response
-from flask_httpauth import HTTPBasicAuth
-from flask_restful import Api
+from flask import Flask, jsonify, session  # , make_response
+from flask_restful import Api, Resource
 from flask_restful_swagger import swagger
 
 import ciapi
 from ciapi.resources.users import UserResource, UsersResource
-# from ciapi.resources.citations import Citation, Citations
-# from ciapi.resources.reviews import Review, Reviews
-from ciapi.models import db
-import cipy
+from ciapi.resources.reviews import ReviewsResource
+from ciapi.models import db, User
+from ciapi.auth import auth
 
 
 app = Flask(__name__)
 app.config.from_object('ciapi.config')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['SQLALCHEMY_DATABASE_URI']
+app.config['SECRET_KEY'] = os.environ['COLANDR_SECRET_KEY']
 
 db.init_app(app)
-
-auth = HTTPBasicAuth()
 
 # api = Api(app)
 api = swagger.docs(
@@ -81,17 +78,6 @@ app.logger.addHandler(_handler)
 # USERS_DDL = cipy.db.db_utils.get_ddl('users')
 #
 #
-# @auth.verify_password
-# def verify_user(email, password):
-#     db_matches = list(
-#         ciapi.PGDB.run_query(
-#             USERS_DDL['templates']['login_user'],
-#             bindings={'email': email, 'password': password}))
-#     if not db_matches:
-#         return False
-#     assert len(db_matches) == 1
-#     flask.session['user'] = db_matches[0]
-#     return True
 #
 #
 # @auth.error_handler
@@ -99,18 +85,21 @@ app.logger.addHandler(_handler)
 #     return make_response(jsonify({'message': 'Unauthorized!'}))
 
 
-# class Login(Resource):
-#     @auth.login_required
-#     def get(self):
-#         return flask.session['user']
-#
-#
-# api.add_resource(Login, '/login')
+class AuthTokenResource(Resource):
+
+    @auth.login_required
+    def get(self):
+        user = db.session.query(User).get(flask.session['user']['id'])
+        token = user.generate_auth_token()
+        return jsonify({'token': token.decode('ascii')})
+
+
+api.add_resource(AuthTokenResource, '/authtoken')
 api.add_resource(UsersResource, '/users')
 api.add_resource(UserResource, '/users/<int:user_id>')
+api.add_resource(ReviewsResource, '/reviews')
 # api.add_resource(Citations, '/citations')
 # api.add_resource(Citation, '/citations/<int:citation_id>')
-# api.add_resource(Reviews, '/reviews')
 # api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')
 
 

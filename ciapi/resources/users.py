@@ -4,54 +4,51 @@
 # from psycopg2 import IntegrityError as DataIntegrityError
 
 # from flask import jsonify, request, session
+import flask
 from flask_restful import Resource  # , abort
 from flask_restful_swagger import swagger
-from sqlalchemy.orm import load_only
 from sqlalchemy.orm.exc import NoResultFound
 
-from marshmallow import fields
+from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ciapi.models import db, User, Review
 from ciapi.schemas import UserSchema
+from ciapi.auth import auth
 
 
 class UserResource(Resource):
 
-    @swagger.operation()
-    @use_kwargs({
-        'user_id': fields.Int(
-            required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
-        'fields': DelimitedList(
-            fields.String(), delimiter=',', missing=None)
-        })
-    def get(self, user_id, fields):
-        if fields is None:
-            user = db.session.query(User).get(user_id)
-            if not user:
-                raise NoResultFound
-        else:
-            user = db.session.query(User)\
-                     .filter_by(id=user_id)\
-                     .options(load_only(*fields))\
-                     .one()
-        return UserSchema().dump(user).data
+    method_decorators = [auth.login_required]
 
     @swagger.operation()
     @use_kwargs({
-        'user_id': fields.Int(
+        'user_id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=2147483647)),
-        'test': fields.Boolean(missing=False)
+        'fields': DelimitedList(
+            ma_fields.String(), delimiter=',', missing=None)
+        })
+    def get(self, user_id, fields):
+        user = db.session.query(User).get(user_id)
+        if not user:
+            raise NoResultFound
+        return UserSchema(only=fields).dump(user).data
+
+    @swagger.operation()
+    @use_kwargs({
+        'user_id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=2147483647)),
+        'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
         # TODO
-        # if user_id != session['user']['user_id']:
-        #     # UnauthorizedException
-        #     raise Exception('user not authorized to delete this user')
+        if user_id != flask.session['user']['id']:
+            # UnauthorizedException
+            raise Exception('user not authorized to delete this user')
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
@@ -82,11 +79,12 @@ class UserResource(Resource):
 
 class UsersResource(Resource):
 
+    @auth.login_required
     @swagger.operation()
     @use_kwargs({
-        'email': fields.Email(
+        'email': ma_fields.Email(
             missing=None, validate=Email()),
-        'review_id': fields.Int(
+        'review_id': ma_fields.Int(
             missing=None, validate=Range(min=1, max=2147483647))
         })
     def get(self, email, review_id):
@@ -102,7 +100,7 @@ class UsersResource(Resource):
 
     @swagger.operation()
     @use_args(UserSchema())
-    @use_kwargs({'test': fields.Boolean(missing=False)})
+    @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
         user = User(**args)
         if test is False:

@@ -24,16 +24,6 @@ class UserSchema(Schema):
         strict = True
 
 
-class ReviewSettingsSchema(Schema):
-    num_citation_screening_reviewers = fields.Int(
-        required=True, missing=2, validate=Range(min=1, max=3))
-    num_fulltext_screening_reviewers = fields.Int(
-        required=True, missing=2, validate=Range(min=1, max=3))
-
-    class Meta:
-        strict = True
-
-
 class ReviewSchema(Schema):
     id = fields.Int(
         dump_only=True)
@@ -45,11 +35,12 @@ class ReviewSchema(Schema):
         missing=None)
     status = fields.Str(
         validate=OneOf(['active', 'archived']))
-    settings = fields.Nested(
-        ReviewSettingsSchema,
-        required=True, missing=ReviewSettingsSchema().load({}).data)
     owner_user_id = fields.Int(
         required=True, validate=Range(min=1, max=MAX_INT))
+    num_citation_screening_reviewers = fields.Int(
+        validate=Range(min=1, max=2))
+    num_fulltext_screening_reviewers = fields.Int(
+        validate=Range(min=1, max=2))
 
     class Meta:
         strict = True

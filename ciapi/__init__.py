@@ -1,9 +1,9 @@
 import cipy
 
-# from . import auth
 from . import models
 from . import schemas
 from . import resources
+from . import auth
 
 
 # CONN_CREDS = cipy.db.get_conn_creds('DATABASE_URL')
