@@ -1,9 +1,3 @@
-# import logging
-
-# from psycopg2.extensions import AsIs
-# from psycopg2 import IntegrityError as DataIntegrityError
-
-# from flask import jsonify, request, session
 import flask
 from flask_restful import Resource  # , abort
 from flask_restful_swagger import swagger
@@ -29,7 +23,7 @@ class UserResource(Resource):
             required=True, location='view_args',
             validate=Range(min=1, max=2147483647)),
         'fields': DelimitedList(
-            ma_fields.String(), delimiter=',', missing=None)
+            ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, user_id, fields):
         user = db.session.query(User).get(user_id)
@@ -45,9 +39,7 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
-        # TODO
         if user_id != flask.session['user']['id']:
-            # UnauthorizedException
             raise Exception('user not authorized to delete this user')
         user = db.session.query(User).get(user_id)
         if not user:
@@ -56,25 +48,7 @@ class UserResource(Resource):
             db.session.delete(user)
             db.session.commit()
 
-#     @swagger.operation()
-#     @use_args(UserSchema())
-#     @use_kwargs({'test': fields.Boolean(missing=False)})
-#     def post(self, args, test):
-#         if test is True:
-#             list(PGDB.run_query(
-#                 USERS_DDL['templates']['create_user'],
-#                 bindings=args,
-#                 act=False))
-#             return args
-#         else:
-#             try:
-#                 created_user_id = list(PGDB.run_query(
-#                     USERS_DDL['templates']['create_user'],
-#                     bindings=args,
-#                     act=True))[0]['user_id']
-#                 return created_user_id
-#             except DataIntegrityError:
-#                 raise
+    # TODO: post and put
 
 
 class UsersResource(Resource):

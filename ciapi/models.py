@@ -111,7 +111,7 @@ class Review(db.Model):
         lazy='select')
     users = db.relationship(
         'User', secondary=users_reviews, back_populates='reviews',
-        lazy='select')
+        lazy='dynamic')
     review_plan = db.relationship(
         'ReviewPlan', uselist=False, back_populates='review',
         lazy='select')
@@ -119,8 +119,9 @@ class Review(db.Model):
         'Study', back_populates='review',
         lazy='dynamic')
 
-    def __init__(self, name, description, status, owner_user_id,
-                 num_citation_screening_reviewers, num_fulltext_screening_reviewers):
+    def __init__(self, name, description=None, status=None, owner_user_id=None,
+                 num_citation_screening_reviewers=None,
+                 num_fulltext_screening_reviewers=None):
         self.name = name
         self.description = description
         self.status = status

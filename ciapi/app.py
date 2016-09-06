@@ -1,14 +1,14 @@
-import logging
+# import logging
 import os
 
 import flask
-from flask import Flask, jsonify, session  # , make_response
+from flask import Flask, jsonify  # session, make_response
 from flask_restful import Api, Resource
 from flask_restful_swagger import swagger
 
 import ciapi
 from ciapi.resources.users import UserResource, UsersResource
-from ciapi.resources.reviews import ReviewsResource
+from ciapi.resources.reviews import ReviewResource, ReviewsResource
 from ciapi.models import db, User
 from ciapi.auth import auth
 
@@ -31,10 +31,10 @@ api = swagger.docs(
 # Logging
 # _logger = logging.getLogger('API')
 # _logger.setLevel(logging.INFO)
-_handler = logging.StreamHandler()
-_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-_handler.setFormatter(_formatter)
-app.logger.addHandler(_handler)
+# _handler = logging.StreamHandler()
+# _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# _handler.setFormatter(_formatter)
+# app.logger.addHandler(_handler)
 
 
 # errors = {
@@ -74,23 +74,13 @@ app.logger.addHandler(_handler)
 #         messages = ['Invalid request']
 #     return jsonify({'messages': messages}), 422
 
-#
-# USERS_DDL = cipy.db.db_utils.get_ddl('users')
-#
-#
-#
-#
-# @auth.error_handler
-# def unauthorized():
-#     return make_response(jsonify({'message': 'Unauthorized!'}))
-
 
 class AuthTokenResource(Resource):
 
     @auth.login_required
     def get(self):
-        user = db.session.query(User).get(flask.session['user']['id'])
-        token = user.generate_auth_token()
+        current_user = db.session.query(User).get(flask.session['user']['id'])
+        token = current_user.generate_auth_token()
         return jsonify({'token': token.decode('ascii')})
 
 
@@ -98,6 +88,7 @@ api.add_resource(AuthTokenResource, '/authtoken')
 api.add_resource(UsersResource, '/users')
 api.add_resource(UserResource, '/users/<int:user_id>')
 api.add_resource(ReviewsResource, '/reviews')
+api.add_resource(ReviewResource, '/reviews/<int:review_id>')
 # api.add_resource(Citations, '/citations')
 # api.add_resource(Citation, '/citations/<int:citation_id>')
 # api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')

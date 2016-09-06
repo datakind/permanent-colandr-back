@@ -26,7 +26,7 @@ class UserSchema(Schema):
 
 class ReviewSchema(Schema):
     id = fields.Int(
-        dump_only=True)
+        dump_only=True, validate=Range(min=1, max=MAX_INT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     name = fields.Str(
@@ -36,7 +36,7 @@ class ReviewSchema(Schema):
     status = fields.Str(
         validate=OneOf(['active', 'archived']))
     owner_user_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_INT))
+        validate=Range(min=1, max=MAX_INT))
     num_citation_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(
