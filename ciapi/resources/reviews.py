@@ -31,11 +31,11 @@ class ReviewResource(Resource):
         if not review:
             raise NoResultFound
         current_user = db.session.query(User).get(flask.session['user']['id'])
-        if (review.owner is current_user or
-                review.collaborators.filter_by(id=current_user.id).one_or_none() is not None):
+        if review.collaborators.filter_by(id=current_user.id).one_or_none() is not None:
             return ReviewSchema(only=fields).dump(review).data
         else:
-            raise Exception('user not authorized to get this review')
+            raise Exception(
+                '{} not authorized to get this review'.format(current_user))
 
     @swagger.operation()
     @use_kwargs({
@@ -95,9 +95,8 @@ class ReviewsResource(Resource):
         })
     def get(self, fields):
         current_user = db.session.query(User).get(flask.session['user']['id'])
-        owned_reviews = current_user.owned_reviews.order_by(Review.id).all()
         reviews = current_user.reviews.order_by(Review.id).all()
-        return ReviewSchema(only=fields, many=True).dump(owned_reviews + reviews).data
+        return ReviewSchema(only=fields, many=True).dump(reviews).data
 
     @swagger.operation()
     @use_args(ReviewSchema(partial=['owner_user_id']))
@@ -109,6 +108,7 @@ class ReviewsResource(Resource):
         if test is False:
             current_user = db.session.query(User).get(flask.session['user']['id'])
             current_user.owned_reviews.append(review)
+            current_user.reviews.append(review)
             db.session.add(review)
             db.session.commit()
         return ReviewSchema().dump(review).data

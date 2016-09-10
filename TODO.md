@@ -20,8 +20,10 @@
         - [x] delete an existing review, with owner privileges
         - [x] update an existing review, with owner privileges
     - review plans
-        - [ ] creation of new review plan for existing review PUT?)
-        - [ ] update of existing review plan
+        - [x] create a new review plan for existing review, with review owner privileges
+        - [x] get an existing review plan, with review collaborator privileges
+        - [x] update an existing review plan, with review owner privileges
+        - [x] delete an existing review plan, with review owner privileges
         - [ ] suggest good/bad key terms based on included/excluded citations
     - studies
         - [ ] get summary for status of all studies, e.g. for "review progress bar"

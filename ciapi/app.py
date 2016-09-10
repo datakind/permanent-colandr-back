@@ -9,6 +9,7 @@ from flask_restful_swagger import swagger
 import ciapi
 from ciapi.resources.users import UserResource, UsersResource
 from ciapi.resources.reviews import ReviewResource, ReviewsResource
+from ciapi.resources.reviewplans import ReviewPlanResource, ReviewPlansResource
 from ciapi.models import db, User
 from ciapi.auth import auth
 
@@ -89,10 +90,8 @@ api.add_resource(UsersResource, '/users')
 api.add_resource(UserResource, '/users/<int:user_id>')
 api.add_resource(ReviewsResource, '/reviews')
 api.add_resource(ReviewResource, '/reviews/<int:review_id>')
-# api.add_resource(Citations, '/citations')
-# api.add_resource(Citation, '/citations/<int:citation_id>')
-# api.add_resource(Review, '/reviews/<int:review_id>', '/reviews')
-
+api.add_resource(ReviewPlansResource, '/reviewplans')
+api.add_resource(ReviewPlanResource, '/reviewplans/<int:reviewplan_id>')
 
 if __name__ == '__main__':
     app.run(debug=True)

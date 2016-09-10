@@ -154,10 +154,13 @@ class ReviewPlan(db.Model):
     # relationships
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='review_plan',
-        lazy='select')
+        lazy='subquery')
 
-    def __init__(self, objective, research_questions, pico, keyterms,
-                 selection_criteria, data_extraction_form):
+    def __init__(self, review_id,
+                 objective=None, research_questions=None, pico=None,
+                 keyterms=None, selection_criteria=None,
+                 data_extraction_form=None):
+        self.review_id = review_id
         self.objective = objective
         self.research_questions = research_questions
         self.pico = pico

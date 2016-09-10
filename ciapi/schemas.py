@@ -99,7 +99,7 @@ class ReviewPlanDataExtractionForm(Schema):
         strict = True
 
 
-class ReviewPlan(Schema):
+class ReviewPlanSchema(Schema):
     id = fields.Int(
         dump_only=True)
     review_id = fields.Int(
