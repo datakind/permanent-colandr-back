@@ -42,7 +42,7 @@ class User(db.Model):
         'Review', back_populates='owner',
         lazy='dynamic')
     reviews = db.relationship(
-        'Review', secondary=users_reviews, back_populates='collaborators',
+        'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
 
     def __init__(self, name, email, password):
@@ -93,14 +93,14 @@ class Review(db.Model):
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    owner_user_id = db.Column(
+        db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
+        index=True)
     name = db.Column(
         db.Unicode(length=500), nullable=False)
     description = db.Column(db.UnicodeText)
     status = db.Column(
         db.Unicode(length=25), server_default='active', nullable=False)
-    owner_user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
-        index=True)
     num_citation_screening_reviewers = db.Column(
         db.SmallInteger, server_default=text('1'), nullable=False)
     num_fulltext_screening_reviewers = db.Column(
@@ -110,25 +110,20 @@ class Review(db.Model):
     owner = db.relationship(
         'User', foreign_keys=[owner_user_id], back_populates='owned_reviews',
         lazy='select')
-    collaborators = db.relationship(
+    users = db.relationship(
         'User', secondary=users_reviews, back_populates='reviews',
         lazy='dynamic')
     review_plan = db.relationship(
         'ReviewPlan', uselist=False, back_populates='review',
         lazy='select')
-    studies = db.relationship(
-        'Study', back_populates='review',
+    citations = db.relationship(
+        'Citation', back_populates='review',
         lazy='dynamic')
 
-    def __init__(self, name, description=None, status=None, owner_user_id=None,
-                 num_citation_screening_reviewers=None,
-                 num_fulltext_screening_reviewers=None):
+    def __init__(self, name, owner_user_id, description=None):
         self.name = name
-        self.description = description
-        self.status = status
         self.owner_user_id = owner_user_id
-        self.num_citation_screening_reviewers = num_citation_screening_reviewers
-        self.num_fulltext_screening_reviewers = num_fulltext_screening_reviewers
+        self.description = description
 
     def __repr__(self):
         return "<Review(id='{}')>".format(self.id)
@@ -145,11 +140,16 @@ class ReviewPlan(db.Model):
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         index=True)
     objective = db.Column(db.UnicodeText)
-    research_questions = db.Column(postgresql.JSONB(none_as_null=True))
-    pico = db.Column(postgresql.JSONB(none_as_null=True))
-    keyterms = db.Column(postgresql.JSONB(none_as_null=True))
-    selection_criteria = db.Column(postgresql.JSONB(none_as_null=True))
-    data_extraction_form = db.Column(postgresql.JSONB(none_as_null=True))
+    research_questions = db.Column(
+        postgresql.ARRAY(db.Unicode(length=300)), server_default='{}')
+    pico = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    keyterms = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    selection_criteria = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    data_extraction_form = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
     review = db.relationship(
@@ -172,52 +172,6 @@ class ReviewPlan(db.Model):
         return "<ReviewPlan(review_id='{}')>".format(self.review_id)
 
 
-class Study(db.Model):
-
-    __tablename__ = 'studies'
-
-    # columns
-    id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        index=True)
-    title = db.Column(
-        db.Unicode(length=250), nullable=False,
-        server_default='untitled')
-    tags = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
-        index=True)
-    status = db.Column(
-        db.Unicode(length=20), nullable=False, server_default='pending',
-        index=True)
-    deduplication = db.Column(postgresql.JSONB(none_as_null=True))
-    citation_screening = db.Column(postgresql.JSONB(none_as_null=True))
-    fulltext_screening = db.Column(postgresql.JSONB(none_as_null=True))
-
-    # relationships
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='studies',
-        lazy='select')
-    citation = db.relationship(
-        'Citation', uselist=False, back_populates='study',
-        lazy='select')
-    fulltext = db.relationship(
-        'Fulltext', uselist=False, back_populates='study',
-        lazy='select')
-
-    def __init__(self, review_id, title=None):
-        self.review_id = review_id
-        if title is not None:
-            self.title = title
-
-    def __repr__(self):
-        return "<Study(id='{}')>".format(self.id)
-
-
 class Citation(db.Model):
 
     __tablename__ = 'citations'
@@ -228,11 +182,25 @@ class Citation(db.Model):
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        index=True)
+    status = db.Column(
+        db.Unicode(length=20), nullable=False, server_default='pending',
+        index=True)
+    exclude_reasons = db.Column(
+        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}')
+    deduplication = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    screening = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    tags = db.Column(
+        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
         index=True)
     type_of_work = db.Column(db.Unicode(length=25))
-    title = db.Column(db.Unicode(length=250))
+    title = db.Column(
+        db.Unicode(length=250), nullable=False,
+        server_default='unknown')
     secondary_title = db.Column(db.Unicode(length=250))
     abstract = db.Column(db.UnicodeText)
     pub_year = db.Column(db.SmallInteger)
@@ -252,17 +220,20 @@ class Citation(db.Model):
     other_fields = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[study_id], back_populates='citation',
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='citations',
+        lazy='select')
+    fulltext = db.relationship(
+        'Fulltext', uselist=False, back_populates='citation',
         lazy='select')
 
-    def __init__(self, study_id,
+    def __init__(self, review_id,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
                  pub_year=None, pub_month=None, authors=None, keywords=None,
                  type_of_reference=None, journal_name=None, volume=None,
                  issue_number=None, doi=None, issn=None, publisher=None,
                  language=None, other_fields=None):
-        self.study_id = study_id
+        self.review_id = review_id
         self.type_of_work = type_of_work
         self.title = title
         self.secondary_title = secondary_title
@@ -282,7 +253,7 @@ class Citation(db.Model):
         self.other_fields = other_fields
 
     def __repr__(self):
-        return "<Citation(study_id='{}')>".format(self.study_id)
+        return "<Citation(id='{}')>".format(self.id)
 
 
 class Fulltext(db.Model):
@@ -295,23 +266,30 @@ class Fulltext(db.Model):
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+    citation_id = db.Column(
+        db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
         index=True)
+    status = db.Column(
+        db.Unicode(length=20), nullable=False, server_default='pending',
+        index=True)
+    exclude_reasons = db.Column(
+        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}')
+    screening = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
     content = db.Column(
         db.UnicodeText, nullable=False)
     filename = db.Column(db.UnicodeText)
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[study_id], back_populates='fulltext',
-        lazy='select')
+    citation = db.relationship(
+        'Citation', foreign_keys=[citation_id], back_populates='fulltext',
+        lazy='subquery')
 
-    def __init__(self, content, filename=None, extracted_info=None):
+    def __init__(self, citation_id, content, filename=None):
+        self.citation_id = citation_id
         self.content = content
         self.filename = filename
-        self.extracted_info = extracted_info
 
     def __repr__(self):
-        return "<Fulltext(study_id='{}')>".format(self.study_id)
+        return "<Fulltext(citation_id='{}')>".format(self.citation_id)

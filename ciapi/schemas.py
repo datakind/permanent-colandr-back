@@ -29,28 +29,18 @@ class ReviewSchema(Schema):
         dump_only=True, validate=Range(min=1, max=MAX_INT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
+    owner_user_id = fields.Int(
+        required=True, validate=Range(min=1, max=MAX_INT))
     name = fields.Str(
         required=True, validate=Length(max=500))
     description = fields.Str(
         missing=None)
     status = fields.Str(
         validate=OneOf(['active', 'archived']))
-    owner_user_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_INT))
     num_citation_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
-
-    class Meta:
-        strict = True
-
-
-class ReviewPlanResearchQuestion(Schema):
-    question = fields.Str(
-        required=True, validate=Length(max=300))
-    rank = fields.Int(
-        required=True, validate=Range(min=1))
 
     class Meta:
         strict = True
@@ -105,27 +95,34 @@ class ReviewPlanSchema(Schema):
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=MAX_INT))
     objective = fields.Str()
-    research_questions = fields.Nested(
-        ReviewPlanResearchQuestion, many=True,
-        missing=[])
+    research_question = fields.List(
+        fields.Str(validate=Length(max=300)))
     pico = fields.Nested(
-        ReviewPlanPICO,
-        missing={})
+        ReviewPlanPICO)
     keyterms = fields.Nested(
-        ReviewPlanKeyterm, many=True,
-        missing=[])
+        ReviewPlanKeyterm, many=True)
     selection_criteria = fields.Nested(
-        ReviewPlanSelectionCriterion, many=True,
-        required=True, missing=[])
+        ReviewPlanSelectionCriterion, many=True)
     data_extraction_form = fields.Nested(
-        ReviewPlanDataExtractionForm,
-        required=True, missing=[])
+        ReviewPlanDataExtractionForm)  # TODO
 
     class Meta:
         strict = True
 
 
-class StudyDeduplication(Schema):
+class Screening(Schema):
+    status = fields.Str(
+        validate=OneOf(['included', 'excluded']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), missing=None)
+    user_id = fields.Int(
+        missing=None, validate=Range(min=1, max=MAX_INT))
+
+    class Meta:
+        strict = True
+
+
+class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
     is_duplicate_of = fields.Int(
@@ -139,49 +136,24 @@ class StudyDeduplication(Schema):
         strict = True
 
 
-class StudyScreening(Schema):
-    status = fields.Str(
-        validate=OneOf(['included', 'excluded']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)), missing=None)
-    user_id = fields.Int(
-        missing=None, validate=Range(min=1, max=MAX_INT))
-
-    class Meta:
-        strict = True
-
-
-class Study(Schema):
+class Citation(Schema):
     id = fields.Int(
         dump_only=True)
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=MAX_INT))
-    title = fields.Str(
-        validate=Length(max=250))
+    status = fields.Str(
+        validate=OneOf(['pending', 'screened_once', 'screened_twice',
+                        'included', 'excluded', 'conflict']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)))
+    deduplication = fields.Nested(
+        Deduplication)
+    screening = fields.Nested(
+        Screening, many=True)
     tags = fields.List(
         fields.Str(validate=Length(max=25)))
-    status = fields.Str(
-        validate=OneOf(['included', 'excluded', 'pending', 'conflict']))
-    deduplication = fields.Nested(
-        StudyDeduplication)
-    citation_screening = fields.Nested(
-        StudyScreening, many=True)
-    fulltext_screening = fields.Nested(
-        StudyScreening, many=True)
-
-    class Meta:
-        strict = True
-
-
-class Citation(Schema):
-    id = fields.Int(
-        dump_only=True)
-    created_at = fields.DateTime(
-        dump_only=True, format='iso')
-    study_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_BIGINT))
     type_of_work = fields.Str(
         validate=Length(max=25))
     title = fields.Str(
@@ -230,10 +202,18 @@ class Fulltext(Schema):
         dump_only=True)
     created_at = fields.DateTime(
         dump_only=True, format='iso')
-    study_id = fields.Int(
+    citation_id = fields.Int(
         required=True, validate=Range(min=1, max=MAX_BIGINT))
+    status = fields.Str(
+        validate=OneOf(['pending', 'screened_once', 'screened_twice',
+                        'included', 'excluded', 'conflict']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)))
+    screening = fields.Nested(
+        Screening, many=True)
     filename = fields.Str()
-    content = fields.Str()
+    content = fields.Str(
+        required=True)
     extracted_info = fields.Dict()
 
     class Meta:

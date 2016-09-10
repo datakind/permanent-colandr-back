@@ -31,7 +31,7 @@ class ReviewResource(Resource):
         if not review:
             raise NoResultFound
         current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.collaborators.filter_by(id=current_user.id).one_or_none() is not None:
+        if review.users.filter_by(id=current_user.id).one_or_none() is not None:
             return ReviewSchema(only=fields).dump(review).data
         else:
             raise Exception(
@@ -102,11 +102,11 @@ class ReviewsResource(Resource):
     @use_args(ReviewSchema(partial=['owner_user_id']))
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
-        args['owner_user_id'] = flask.session['user']['id']
+        owner_user_id = flask.session['user']['id']
         name = args.pop('name')
-        review = Review(name, **args)
+        review = Review(name, owner_user_id, **args)
         if test is False:
-            current_user = db.session.query(User).get(flask.session['user']['id'])
+            current_user = db.session.query(User).get(owner_user_id)
             current_user.owned_reviews.append(review)
             current_user.reviews.append(review)
             db.session.add(review)
