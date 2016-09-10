@@ -5,6 +5,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
+from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
@@ -29,6 +30,8 @@ class UserResource(Resource):
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
+        elif user.id != flask.session['user']['id']:
+            raise Exception('{} not authorized to get this user'.format(user))
         return UserSchema(only=fields).dump(user).data
 
     @swagger.operation()
@@ -39,16 +42,41 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
-        if user_id != flask.session['user']['id']:
-            raise Exception('user not authorized to delete this user')
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
+        elif user.id != flask.session['user']['id']:
+            raise Exception('{} not authorized to delete this user'.format(user))
         if test is False:
             db.session.delete(user)
             db.session.commit()
 
-    # TODO: post and put
+    @swagger.operation()
+    @use_args(UserSchema(partial=True))
+    @use_kwargs({
+        'user_id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=2147483647)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def put(self, args, user_id, test):
+        user = db.session.query(User).get(user_id)
+        if not user:
+            raise NoResultFound
+        elif user.id != flask.session['user']['id']:
+            raise Exception('{} not authorized to update this user'.format(user))
+        for key, value in args.items():
+            if key is missing:
+                continue
+            elif key == 'password':
+                setattr(user, key, User.hash_password(value))
+            else:
+                setattr(user, key, value)
+        if test is False:
+            db.session.commit()
+        else:
+            db.session.rollback()
+        return UserSchema().dump(user).data
 
 
 class UsersResource(Resource):
@@ -63,8 +91,11 @@ class UsersResource(Resource):
         })
     def get(self, email, review_id):
         if email:
-            user = db.session.query(User).filter_by(email=email).one()
-            return UserSchema().dump(user).data
+            user = db.session.query(User).filter_by(email=email).one_or_none()
+            if not user:
+                return NoResultFound
+            else:
+                return UserSchema().dump(user).data
         elif review_id:
             review = db.session.query(Review).get(review_id)
             if not review:

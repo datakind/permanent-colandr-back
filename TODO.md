@@ -8,13 +8,17 @@
     - [ ] finish implementing schema validation
 - **API**
     - users
-        - [ ] login/authentication/permissions/logout
+        - [x] user authentication
         - [x] create new user
-        - [x] delete existing user (and update/delete reviews collaborating on/owned)
+        - [x] delete an existing user (and update/delete reviews collaborating on/owned), if current user
+        - [x] update an existing user, if current user
         - [ ] email invitation to join as collaborator (?)
+        - [ ] login/logout endpoints (???)
     - reviews
         - [x] creation of new review
+        - [x] get all reviews owned or collaborated on by current user
         - [x] delete an existing review, with owner privileges
+        - [x] update an existing review, with owner privileges
     - review plans
         - [ ] creation of new review plan for existing review PUT?)
         - [ ] update of existing review plan

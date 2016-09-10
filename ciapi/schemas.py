@@ -36,7 +36,7 @@ class ReviewSchema(Schema):
     status = fields.Str(
         validate=OneOf(['active', 'archived']))
     owner_user_id = fields.Int(
-        validate=Range(min=1, max=MAX_INT))
+        required=True, validate=Range(min=1, max=MAX_INT))
     num_citation_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(

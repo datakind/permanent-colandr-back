@@ -39,29 +39,19 @@ class User(db.Model):
 
     # relationships
     owned_reviews = db.relationship(
-        'Review', back_populates='owner_user',
+        'Review', back_populates='owner',
         lazy='dynamic')
     reviews = db.relationship(
-        'Review', secondary=users_reviews, back_populates='users',
+        'Review', secondary=users_reviews, back_populates='collaborators',
         lazy='dynamic')
 
     def __init__(self, name, email, password):
         self.name = name
         self.email = email
-        self.password = self.hash_password(password, 12).decode('utf8')
+        self.password = self.hash_password(password).decode('utf8')
 
     def __repr__(self):
         return "<User(id='{}')>".format(self.id)
-
-    def hash_password(self, plaintext_password, rounds):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.hashpw(plaintext_password, bcrypt.gensalt(rounds=rounds))
-
-    def verify_password(self, plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
 
     def generate_auth_token(self, expiration=1800):
         """
@@ -70,6 +60,17 @@ class User(db.Model):
         """
         s = Serializer(os.environ['COLANDR_SECRET_KEY'], expires_in=expiration)
         return s.dumps({'id': self.id})
+
+    def verify_password(self, plaintext_password):
+        if isinstance(plaintext_password, str):
+            plaintext_password = plaintext_password.encode('utf8')
+        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
+
+    @staticmethod
+    def hash_password(plaintext_password, rounds=12):
+        if isinstance(plaintext_password, str):
+            plaintext_password = plaintext_password.encode('utf8')
+        return bcrypt.hashpw(plaintext_password, bcrypt.gensalt(rounds=rounds))
 
     @staticmethod
     def verify_auth_token(token):
@@ -106,10 +107,10 @@ class Review(db.Model):
         db.SmallInteger, server_default=text('1'), nullable=False)
 
     # relationships
-    owner_user = db.relationship(
+    owner = db.relationship(
         'User', foreign_keys=[owner_user_id], back_populates='owned_reviews',
         lazy='select')
-    users = db.relationship(
+    collaborators = db.relationship(
         'User', secondary=users_reviews, back_populates='reviews',
         lazy='dynamic')
     review_plan = db.relationship(
