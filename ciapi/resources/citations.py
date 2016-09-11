@@ -1,47 +1,52 @@
-# from flask import jsonify, request
-# from flask_restful import Resource
-# from flask_restful_swagger import swagger
-# from marshmallow import validate
-# from psycopg2.extensions import AsIs
-# from webargs import fields
-# from webargs.flaskparser import use_kwargs  # use_args
-#
-# from ciapi import PGDB
-# import cipy
-#
-# LOGGER = cipy.utils.get_logger('citations')
-#
-#
-# class Citation(Resource):
-#
-#     @swagger.operation()
-#     @use_kwargs({
-#         'citation_id': fields.Int(
-#             required=True, location='view_args',
-#             validate=validate.Range(min=1, max=2147483647)),
-#         'review_id': fields.Int(
-#             required=True, validate=validate.Range(min=1, max=2147483647)),
-#         'fields': fields.DelimitedList(
-#             fields.String(), delimiter=',',
-#             missing=['citation_id', 'authors', 'title', 'abstract', 'publication_year', 'doi'])
-#         })
-#     def get(self, citation_id, review_id, fields):
-#         query = """
-#             SELECT %(fields)s
-#             FROM citations
-#             WHERE
-#                 citation_id = %(citation_id)s
-#                 AND review_id = %(review_id)s
-#             """
-#         bindings = {'fields': AsIs(','.join(fields)),
-#                     'review_id': review_id,
-#                     'citation_id': citation_id}
-#         result = list(PGDB.run_query(query, bindings=bindings))
-#         if not result:
-#             raise Exception()
-#         return result[0]
-#
-#
+import flask
+from flask_restful import Resource
+from flask_restful_swagger import swagger
+from sqlalchemy.orm.exc import NoResultFound
+
+from marshmallow import fields as ma_fields
+from marshmallow.validate import Range
+from webargs import missing
+from webargs.fields import DelimitedList
+from webargs.flaskparser import use_args, use_kwargs
+
+from ciapi.models import db, Citation
+from ciapi.schemas import CitationSchema
+from ciapi.auth import auth
+import cipy
+
+
+class CitationsResource(Resource):
+
+    method_decorators = [auth.login_required]
+
+    @swagger.operation()
+    @use_kwargs({
+        'uploaded_file': ma_fields.Raw(
+            required=True, location='files'),
+        'review_id': ma_fields.Int(
+            required=True, validate=Range(min=1, max=2147483647)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def post(self, uploaded_file, review_id, test):
+        # TODO: check if current user has permissions for this review
+        fname = uploaded_file.filename
+        if fname.endswith('.bib'):
+            citations_file = cipy.parsers.BibTexFile(uploaded_file.stream)
+        elif fname.endswith('.ris') or fname.endswith('.txt'):
+            citations_file = cipy.parsers.RisFile(uploaded_file.stream)
+        else:
+            raise TypeError()
+        citation_schema = CitationSchema()
+        for record in citations_file.parse():
+            record['review_id'] = review_id
+            citation_data = citation_schema.dump(record).data
+            citation = Citation(**citation_data)
+            if test is False:
+                db.session.add(citation)
+        if test is False:
+            db.session.commit()  # TODO: bulk_insert_mappings?
+
+
 # class Citations(Resource):
 #
 #     @swagger.operation()

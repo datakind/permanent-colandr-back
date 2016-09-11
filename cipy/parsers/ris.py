@@ -249,10 +249,20 @@ class RisFile(object):
             sanitizers will be used; if False, no sanitization will be performed
     """
 
-    def __init__(self, path,
+    def __init__(self, path_or_stream,
                  key_map=None,
                  value_sanitizers=None):
-        self.path = path
+        if isinstance(path_or_stream, io.TextIOBase):  # io.StringIO):
+            self.path = None
+            self.stream = path_or_stream
+        elif isinstance(path_or_stream, io.IOBase):  # (io.BytesIO, io.BufferedRandom)):
+            self.path = None
+            self.stream = io.TextIOWrapper(path_or_stream)  # , encoding='utf8')
+        elif isinstance(path_or_stream, (bytes, str)):
+            self.path = path_or_stream
+            self.stream = None
+        else:
+            raise TypeError()
         self.key_map = (key_map if key_map is not None
                         else KEY_MAP)
         self.value_sanitizers = (value_sanitizers if value_sanitizers is not None
@@ -283,7 +293,9 @@ class RisFile(object):
         Raises:
             IOError
         """
-        with io.open(self.path, mode='rt') as f:
+        if not self.stream:
+            self.stream = io.open(self.path, mode='rt')
+        with self.stream as f:
             for i, line in enumerate(f):
 
                 # get rid of byte order mark (BOM)

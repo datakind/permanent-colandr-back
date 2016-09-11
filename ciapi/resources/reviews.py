@@ -1,5 +1,5 @@
 import flask
-from flask_restful import Resource  # , abort
+from flask_restful import Resource
 from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
 

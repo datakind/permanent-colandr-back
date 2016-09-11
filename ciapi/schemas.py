@@ -1,6 +1,6 @@
 import json
 
-from marshmallow import Schema, fields, post_dump
+from marshmallow import Schema, fields, pre_dump, post_dump
 from marshmallow.validate import Email, Length, OneOf, Range
 
 MAX_SMALLINT = 32767
@@ -136,7 +136,33 @@ class Deduplication(Schema):
         strict = True
 
 
-class Citation(Schema):
+from datetime import datetime
+from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
+
+
+FIELD_SANITIZERS = {
+    'created_at': lambda x: sanitize_type(x, datetime),
+    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'type_of_work': lambda x: sanitize_string(x, max_length=25),
+    'title': lambda x: sanitize_string(x, max_length=250),
+    'secondary_title': lambda x: sanitize_string(x, max_length=250),
+    'publication_year': lambda x: sanitize_integer(x, max_value=32767),
+    'publication_month': lambda x: sanitize_integer(x, max_value=32767),
+    'authors': lambda x: [sanitize_string(item, max_length=100) for item in x],
+    'abstract': sanitize_string,
+    'keywords': lambda x: [sanitize_string(item, max_length=100) for item in x],
+    'type_of_reference': lambda x: sanitize_string(x, max_length=50),
+    'journal_name': lambda x: sanitize_string(x, max_length=100),
+    'volume': lambda x: sanitize_string(x, max_length=20),
+    'issue_number': lambda x: sanitize_string(x, max_length=20),
+    'doi': lambda x: sanitize_string(x, max_length=100),
+    'issn': lambda x: sanitize_string(x, max_length=20),
+    'publisher': lambda x: sanitize_string(x, max_length=100),
+    'language': lambda x: sanitize_string(x, max_length=50)
+    }
+
+
+class CitationSchema(Schema):
     id = fields.Int(
         dump_only=True)
     created_at = fields.DateTime(
@@ -187,6 +213,30 @@ class Citation(Schema):
         validate=Length(max=50))
     other_fields = fields.Dict()
 
+    non_other_fields = {
+        'id', 'created_at', 'review_id', 'status', 'exclude_reasons',
+        'deduplication', 'screening', 'tags', 'type_of_work', 'title',
+        'secondary_title', 'abstract', 'pub_year', 'pub_month', 'authors',
+        'keywords', 'type_of_reference', 'journal_name', 'volume', 'issue_number',
+        'doi', 'issn', 'publisher', 'language'}
+
+    @pre_dump(pass_many=False)
+    def put_stuff_in_other_fields(self, record):
+        # processed_data = {'other_fields': {}}
+        # for key, value in data.items():
+        #     if key in self.non_other_fields:
+        #         processed_data[key] = value
+        #     else:
+        #         processed_data['other_fields'][key] = str(value)
+        # return processed_data
+        sanitized_record = {'other_fields': {}}
+        for key, value in record.items():
+            try:
+                sanitized_record[key] = FIELD_SANITIZERS[key](value)
+            except KeyError:
+                sanitized_record['other_fields'][key] = sanitize_type(value, str)
+        return sanitized_record
+
     # @post_dump
     # def json_to_string(self, data):
     #     if data.get('other_fields'):
@@ -197,7 +247,7 @@ class Citation(Schema):
         strict = True
 
 
-class Fulltext(Schema):
+class FulltextSchema(Schema):
     id = fields.Int(
         dump_only=True)
     created_at = fields.DateTime(

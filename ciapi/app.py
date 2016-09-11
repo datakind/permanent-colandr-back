@@ -10,6 +10,7 @@ import ciapi
 from ciapi.resources.users import UserResource, UsersResource
 from ciapi.resources.reviews import ReviewResource, ReviewsResource
 from ciapi.resources.reviewplans import ReviewPlanResource, ReviewPlansResource
+from ciapi.resources.citations import CitationsResource
 from ciapi.models import db, User
 from ciapi.auth import auth
 
@@ -92,6 +93,7 @@ api.add_resource(ReviewsResource, '/reviews')
 api.add_resource(ReviewResource, '/reviews/<int:review_id>')
 api.add_resource(ReviewPlansResource, '/reviewplans')
 api.add_resource(ReviewPlanResource, '/reviewplans/<int:reviewplan_id>')
+api.add_resource(CitationsResource, '/citations')
 
 if __name__ == '__main__':
     app.run(debug=True)
