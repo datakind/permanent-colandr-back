@@ -9,9 +9,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ciapi.models import db, User, Review
-from ciapi.schemas import UserSchema
-from ciapi.auth import auth
+from ..models import db, User, Review
+from .schemas import UserSchema
+from .authentication import auth
 
 
 class UserResource(Resource):

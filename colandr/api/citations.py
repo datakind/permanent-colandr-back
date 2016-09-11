@@ -9,9 +9,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ciapi.models import db, Citation
-from ciapi.schemas import CitationSchema
-from ciapi.auth import auth
+from ..models import db, Citation
+from .schemas import CitationSchema
+from .authentication import auth
 import cipy
 
 

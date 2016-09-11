@@ -7,8 +7,7 @@ from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
 
-
-db = SQLAlchemy()
+from . import db
 
 
 # association table for users-reviews many-to-many relationship
