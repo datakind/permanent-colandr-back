@@ -1,4 +1,4 @@
-import flask
+from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
@@ -9,7 +9,8 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..models import db, Review, User
+from ..models import db, Review
+from .errors import unauthorized
 from .schemas import ReviewSchema
 from .authentication import auth
 
@@ -30,12 +31,10 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.users.filter_by(id=current_user.id).one_or_none() is not None:
-            return ReviewSchema(only=fields).dump(review).data
-        else:
-            raise Exception(
-                '{} not authorized to get this review'.format(current_user))
+        if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get this review'.format(g.current_user))
+        return ReviewSchema(only=fields).dump(review).data
 
     @swagger.operation()
     @use_kwargs({
@@ -48,10 +47,9 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.owner is not current_user:
-            raise Exception(
-                '{} not authorized to delete this review'.format(current_user))
+        if review.owner is not g.current_user:
+            return unauthorized(
+                '{} not authorized to delete this review'.format(g.current_user))
         if test is False:
             db.session.delete(review)
             db.session.commit()
@@ -68,10 +66,9 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.owner is not current_user:
-            raise Exception(
-                '{} not authorized to update this review'.format(current_user))
+        if review.owner is not g.current_user:
+            return unauthorized(
+                '{} not authorized to update this review'.format(g.current_user))
         for key, value in args.items():
             if key is missing:
                 continue
@@ -94,21 +91,18 @@ class ReviewsResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, fields):
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        reviews = current_user.reviews.order_by(Review.id).all()
+        reviews = g.current_user.reviews.order_by(Review.id).all()
         return ReviewSchema(only=fields, many=True).dump(reviews).data
 
     @swagger.operation()
     @use_args(ReviewSchema(partial=['owner_user_id']))
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
-        owner_user_id = flask.session['user']['id']
         name = args.pop('name')
-        review = Review(name, owner_user_id, **args)
+        review = Review(name, g.current_user.id, **args)
         if test is False:
-            current_user = db.session.query(User).get(owner_user_id)
-            current_user.owned_reviews.append(review)
-            current_user.reviews.append(review)
+            g.current_user.owned_reviews.append(review)
+            g.current_user.reviews.append(review)
             db.session.add(review)
             db.session.commit()
         return ReviewSchema().dump(review).data

@@ -1,7 +1,6 @@
 import bcrypt
-import os
 
-from flask_sqlalchemy import SQLAlchemy
+from flask import current_app
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
 from sqlalchemy import text, ForeignKey
@@ -57,8 +56,8 @@ class User(db.Model):
         Generate an authentication token for user that automatically expires
         after ``expiration`` seconds.
         """
-        s = Serializer(os.environ['COLANDR_SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'id': self.id})
+        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
+        return s.dumps({'id': self.id}).decode('ascii')
 
     def verify_password(self, plaintext_password):
         if isinstance(plaintext_password, str):
@@ -66,20 +65,21 @@ class User(db.Model):
         return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
 
     @staticmethod
-    def hash_password(plaintext_password, rounds=12):
+    def hash_password(plaintext_password):
         if isinstance(plaintext_password, str):
             plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.hashpw(plaintext_password, bcrypt.gensalt(rounds=rounds))
+        return bcrypt.hashpw(
+            plaintext_password,
+            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS']))
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(os.environ['COLANDR_SECRET_KEY'])
+        s = Serializer(current_app.config['SECRET_KEY'])
         try:
             data = s.loads(token)
         except (SignatureExpired, BadSignature):
             return None  # valid token, but expired OR invalid token
-        user = User.query.get(data['id'])
-        return user
+        return db.session.query(User).get(data['id'])
 
 
 class Review(db.Model):

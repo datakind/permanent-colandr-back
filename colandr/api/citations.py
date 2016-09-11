@@ -1,4 +1,4 @@
-import flask
+from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
@@ -9,7 +9,8 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..models import db, Citation
+from ..models import db, Citation, Review
+from .errors import unauthorized
 from .schemas import CitationSchema
 from .authentication import auth
 import cipy
@@ -28,7 +29,12 @@ class CitationsResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def post(self, uploaded_file, review_id, test):
-        # TODO: check if current user has permissions for this review
+        review = db.session.query(Review).get(review_id)
+        if not review:
+            raise NoResultFound
+        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to add citations to this review'.format(g.current_user))
         fname = uploaded_file.filename
         if fname.endswith('.bib'):
             citations_file = cipy.parsers.BibTexFile(uploaded_file.stream)

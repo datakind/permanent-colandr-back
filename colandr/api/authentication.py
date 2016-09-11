@@ -1,11 +1,9 @@
-import flask
-from flask import jsonify
+from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
 from flask_restful import Resource
 
 from ..models import db, User
-from .schemas import UserSchema
-from .errors import unauthorized  # , forbidden
+from .errors import unauthorized
 
 
 auth = HTTPBasicAuth()
@@ -13,16 +11,19 @@ auth = HTTPBasicAuth()
 
 @auth.verify_password
 def verify_password(email_or_token, password):
-    # try to authenticate by token
+    # authenticate by token
     if not password:
-        user = User.verify_auth_token(email_or_token)
-    # try to authenticate with email + password
+        g.current_user = User.verify_auth_token(email_or_token)
+        g.token_used = True
+        return g.current_user is not None
+    # authenticate by email + password
     else:
         user = db.session.query(User).filter_by(email=email_or_token).one_or_none()
-        if not user or not user.verify_password(password):
+        if not user:
             return False
-    flask.session['user'] = UserSchema().dump(user).data
-    return True
+        g.current_user = user
+        g.token_used = False
+        return user.verify_password(password)
 
 
 @auth.error_handler
@@ -34,9 +35,10 @@ class AuthTokenResource(Resource):
 
     @auth.login_required
     def get(self):
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        token = current_user.generate_auth_token()
-        return jsonify({'token': token.decode('ascii')})
+        if g.token_used is True:
+            return unauthorized('invalid authentication credentials')
+        token = g.current_user.generate_auth_token()
+        return jsonify({'token': token})
 
 
 

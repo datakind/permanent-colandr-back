@@ -1,4 +1,4 @@
-import flask
+from flask import g
 from flask_restful import Resource  # , abort
 from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
@@ -10,6 +10,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ..models import db, User, Review
+from .errors import unauthorized
 from .schemas import UserSchema
 from .authentication import auth
 
@@ -27,11 +28,12 @@ class UserResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, user_id, fields):
+        if user_id != g.current_user.id:
+            return unauthorized(
+                '{} not authorized to get this user'.format(g.current_user))
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
-        elif user.id != flask.session['user']['id']:
-            raise Exception('{} not authorized to get this user'.format(user))
         return UserSchema(only=fields).dump(user).data
 
     @swagger.operation()
@@ -42,11 +44,12 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
+        if user_id != g.current_user.id:
+            return unauthorized(
+                '{} not authorized to delete this user'.format(g.current_user))
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
-        elif user.id != flask.session['user']['id']:
-            raise Exception('{} not authorized to delete this user'.format(user))
         if test is False:
             db.session.delete(user)
             db.session.commit()
@@ -60,11 +63,12 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, user_id, test):
+        if user_id != g.current_user.id:
+            return unauthorized(
+                '{} not authorized to update this user'.format(g.current_user))
         user = db.session.query(User).get(user_id)
         if not user:
             raise NoResultFound
-        elif user.id != flask.session['user']['id']:
-            raise Exception('{} not authorized to update this user'.format(user))
         for key, value in args.items():
             if key is missing:
                 continue

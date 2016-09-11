@@ -1,5 +1,5 @@
-import flask
-from flask_restful import Resource  # , abort
+from flask import g
+from flask_restful import Resource
 from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
 
@@ -9,7 +9,8 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..models import db, Review, ReviewPlan, User
+from ..models import db, Review, ReviewPlan
+from .errors import unauthorized
 from .schemas import ReviewPlanSchema
 from .authentication import auth
 
@@ -27,14 +28,13 @@ class ReviewPlanResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, reviewplan_id, fields):
-        reviewplan = db.session.query(ReviewPlan).get(reviewplan_id)
-        if not reviewplan:
+        review_plan = db.session.query(ReviewPlan).get(reviewplan_id)
+        if not review_plan:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if reviewplan.review.collaborators.filter_by(id=current_user.id).one_or_none() is None:
-            raise Exception(
-                '{} not authorized to get this review'.format(current_user))
-        return ReviewPlanSchema(only=fields).dump(reviewplan).data
+        if review_plan.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get this review plan'.format(g.current_user))
+        return ReviewPlanSchema(only=fields).dump(review_plan).data
 
     @swagger.operation()
     @use_kwargs({
@@ -44,15 +44,14 @@ class ReviewPlanResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, reviewplan_id, test):
-        reviewplan = db.session.query(ReviewPlan).get(reviewplan_id)
-        if not reviewplan:
+        review_plan = db.session.query(ReviewPlan).get(reviewplan_id)
+        if not review_plan:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if reviewplan.review.owner is not current_user:
-            raise Exception(
-                '{} not authorized to delete this review plan'.format(current_user))
+        if review_plan.review.owner is not g.current_user:
+            return unauthorized(
+                '{} not authorized to delete this review plan'.format(g.current_user))
         if test is False:
-            db.session.delete(reviewplan)
+            db.session.delete(review_plan)
             db.session.commit()
 
     @swagger.operation()
@@ -64,23 +63,22 @@ class ReviewPlanResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, reviewplan_id, test):
-        reviewplan = db.session.query(ReviewPlan).get(reviewplan_id)
-        if not reviewplan:
+        review_plan = db.session.query(ReviewPlan).get(reviewplan_id)
+        if not review_plan:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if reviewplan.review.owner is not current_user:
-            raise Exception(
-                '{} not authorized to update this review plan'.format(current_user))
+        if review_plan.review.owner is not g.current_user:
+            return unauthorized(
+                '{} not authorized to update this review plan'.format(g.current_user))
         for key, value in args.items():
             if key is missing:
                 continue
             else:
-                setattr(reviewplan, key, value)
+                setattr(review_plan, key, value)
         if test is False:
             db.session.commit()
         else:
             db.session.rollback()
-        return ReviewPlanSchema().dump(reviewplan).data
+        return ReviewPlanSchema().dump(review_plan).data
 
 
 class ReviewPlansResource(Resource):
@@ -98,12 +96,11 @@ class ReviewPlansResource(Resource):
         review = db.sessionquery(Review).get(review_id)
         if not review:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.collaborators.filter_by(id=current_user.id).one_or_none() is None:
-            raise Exception(
-                '{} not authorized to get this review plan'.format(current_user))
-        reviewplan = review.review_plan
-        return ReviewPlanSchema(only=fields).dump(reviewplan).data
+        if review.collaborators.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get this review plan'.format(g.current_user))
+        review_plan = review.review_plan
+        return ReviewPlanSchema(only=fields).dump(review_plan).data
 
     @swagger.operation()
     @use_args(ReviewPlanSchema())
@@ -112,13 +109,12 @@ class ReviewPlansResource(Resource):
         review = db.session.query(Review).get(args['review_id'])
         if not review:
             raise NoResultFound
-        current_user = db.session.query(User).get(flask.session['user']['id'])
-        if review.owner is not current_user:
-            raise Exception(
-                '{} not authorized to create this review plan'.format(current_user))
-        reviewplan = ReviewPlan(**args)
+        if review.owner is not g.current_user:
+            return unauthorized(
+                '{} not authorized to create this review plan'.format(g.current_user))
+        review_plan = ReviewPlan(**args)
         if test is False:
-            reviewplan.review = review
-            db.session.add(reviewplan)
+            review_plan.review = review
+            db.session.add(review_plan)
             db.session.commit()
-        return ReviewPlanSchema().dump(reviewplan).data
+        return ReviewPlanSchema().dump(review_plan).data
