@@ -11,7 +11,6 @@ for fname in os.listdir(_ddls_path):
 
 # subpackages
 from cipy import db
-from cipy import parsers
 from cipy import validation
 # top-level modules
 from cipy import utils

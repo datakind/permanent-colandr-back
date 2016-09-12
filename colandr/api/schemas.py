@@ -1,16 +1,12 @@
-# import json
-
-from marshmallow import Schema, fields, pre_dump  # , post_dump
+from marshmallow import Schema, fields, pre_load
 from marshmallow.validate import Email, Length, OneOf, Range
 
-MAX_SMALLINT = 32767
-MAX_INT = 2147483647
-MAX_BIGINT = 9223372036854775807
+from ..lib import constants
 
 
 class UserSchema(Schema):
     id = fields.Int(
-        dump_only=True, validate=Range(min=1, max=MAX_INT))
+        dump_only=True, validate=Range(min=1, max=constants.MAX_INT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     name = fields.Str(
@@ -26,11 +22,11 @@ class UserSchema(Schema):
 
 class ReviewSchema(Schema):
     id = fields.Int(
-        dump_only=True, validate=Range(min=1, max=MAX_INT))
+        dump_only=True, validate=Range(min=1, max=constants.MAX_INT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     owner_user_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_INT))
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
     name = fields.Str(
         required=True, validate=Length(max=500))
     description = fields.Str(
@@ -93,7 +89,7 @@ class ReviewPlanSchema(Schema):
     id = fields.Int(
         dump_only=True)
     review_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_INT))
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
     objective = fields.Str()
     research_question = fields.List(
         fields.Str(validate=Length(max=300)))
@@ -116,7 +112,7 @@ class Screening(Schema):
     exclude_reasons = fields.List(
         fields.Str(validate=Length(max=25)), missing=None)
     user_id = fields.Int(
-        missing=None, validate=Range(min=1, max=MAX_INT))
+        missing=None, validate=Range(min=1, max=constants.MAX_INT))
 
     class Meta:
         strict = True
@@ -126,30 +122,28 @@ class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
     is_duplicate_of = fields.Int(
-        validate=Range(min=1, max=MAX_BIGINT))
+        validate=Range(min=1, max=constants.MAX_BIGINT))
     duplicate_score = fields.Float(
         validate=Range(min=0.0, max=1.0))
     user_id = fields.Int(
-        missing=None, validate=Range(min=1, max=MAX_INT))
+        missing=None, validate=Range(min=1, max=constants.MAX_INT))
 
     class Meta:
         strict = True
 
 
-from datetime import datetime
 from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
 
 FIELD_SANITIZERS = {
-    'created_at': lambda x: sanitize_type(x, datetime),
-    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=2147483647),
+    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=constants.MAX_INT),
     'type_of_work': lambda x: sanitize_string(x, max_length=25),
     'title': lambda x: sanitize_string(x, max_length=250),
     'secondary_title': lambda x: sanitize_string(x, max_length=250),
-    'publication_year': lambda x: sanitize_integer(x, max_value=32767),
-    'publication_month': lambda x: sanitize_integer(x, max_value=32767),
-    'authors': lambda x: [sanitize_string(item, max_length=100) for item in x],
     'abstract': sanitize_string,
+    'pub_year': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
+    'pub_month': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
+    'authors': lambda x: [sanitize_string(item, max_length=100) for item in x],
     'keywords': lambda x: [sanitize_string(item, max_length=100) for item in x],
     'type_of_reference': lambda x: sanitize_string(x, max_length=50),
     'journal_name': lambda x: sanitize_string(x, max_length=100),
@@ -168,7 +162,7 @@ class CitationSchema(Schema):
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     review_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_INT))
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
     status = fields.Str(
         validate=OneOf(['pending', 'screened_once', 'screened_twice',
                         'included', 'excluded', 'conflict']))
@@ -188,9 +182,9 @@ class CitationSchema(Schema):
         validate=Length(max=250))
     abstract = fields.Str()
     pub_year = fields.Int(
-        validate=Range(min=1, max=MAX_SMALLINT))
+        validate=Range(min=1, max=constants.MAX_SMALLINT))
     pub_month = fields.Int(
-        validate=Range(min=1, max=MAX_SMALLINT))
+        validate=Range(min=1, max=constants.MAX_SMALLINT))
     authors = fields.List(
         fields.Str(validate=Length(max=100)))
     keywords = fields.List(
@@ -208,7 +202,7 @@ class CitationSchema(Schema):
     issn = fields.Str(
         validate=Length(max=20))
     publisher = fields.Str(
-        validate=Length(max=50))
+        validate=Length(max=100))
     language = fields.Str(
         validate=Length(max=50))
     other_fields = fields.Dict()
@@ -220,15 +214,8 @@ class CitationSchema(Schema):
         'keywords', 'type_of_reference', 'journal_name', 'volume', 'issue_number',
         'doi', 'issn', 'publisher', 'language'}
 
-    @pre_dump(pass_many=False)
-    def put_stuff_in_other_fields(self, record):
-        # processed_data = {'other_fields': {}}
-        # for key, value in data.items():
-        #     if key in self.non_other_fields:
-        #         processed_data[key] = value
-        #     else:
-        #         processed_data['other_fields'][key] = str(value)
-        # return processed_data
+    @pre_load(pass_many=False)
+    def sanitize_citation_record(self, record):
         sanitized_record = {'other_fields': {}}
         for key, value in record.items():
             try:
@@ -253,7 +240,7 @@ class FulltextSchema(Schema):
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     citation_id = fields.Int(
-        required=True, validate=Range(min=1, max=MAX_BIGINT))
+        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
     status = fields.Str(
         validate=OneOf(['pending', 'screened_once', 'screened_twice',
                         'included', 'excluded', 'conflict']))

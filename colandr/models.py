@@ -49,7 +49,7 @@ class User(db.Model):
         self.password = self.hash_password(password).decode('utf8')
 
     def __repr__(self):
-        return "<User(id='{}')>".format(self.id)
+        return "<User(id={})>".format(self.id)
 
     def generate_auth_token(self, expiration=1800):
         """
@@ -125,7 +125,7 @@ class Review(db.Model):
         self.description = description
 
     def __repr__(self):
-        return "<Review(id='{}')>".format(self.id)
+        return "<Review(id={})>".format(self.id)
 
 
 class ReviewPlan(db.Model):
@@ -168,7 +168,7 @@ class ReviewPlan(db.Model):
         self.data_extraction_form = data_extraction_form
 
     def __repr__(self):
-        return "<ReviewPlan(review_id='{}')>".format(self.review_id)
+        return "<ReviewPlan(review_id={})>".format(self.review_id)
 
 
 class Citation(db.Model):
@@ -252,7 +252,7 @@ class Citation(db.Model):
         self.other_fields = other_fields
 
     def __repr__(self):
-        return "<Citation(id='{}')>".format(self.id)
+        return "<Citation(id={})>".format(self.id)
 
 
 class Fulltext(db.Model):
@@ -291,4 +291,4 @@ class Fulltext(db.Model):
         self.filename = filename
 
     def __repr__(self):
-        return "<Fulltext(citation_id='{}')>".format(self.citation_id)
+        return "<Fulltext(citation_id={})>".format(self.citation_id)

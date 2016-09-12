@@ -34,7 +34,7 @@
     - citations
         - [ ] higher-level filtering options, e.g. to-be-screened or is-duplicate
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
-        - [ ] upload citation files via HTTP POST (form?)
+        - [x] upload citation files via HTTP POST
         - [ ] add individual citation, manually entered via HTTP POST
         - [ ] link citation to PDF file uploaded by user
     - fulltexts

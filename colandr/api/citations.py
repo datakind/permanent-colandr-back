@@ -9,23 +9,95 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ..lib import constants
+from ..lib.parsers import BibTexFile, RisFile
 from ..models import db, Citation, Review
 from .errors import unauthorized
 from .schemas import CitationSchema
 from .authentication import auth
-import cipy
+
+
+class CitationResource(Resource):
+
+    method_decorators = [auth.login_required]
+
+    @swagger.operation()
+    @use_kwargs({
+        'citation_id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'fields': DelimitedList(
+            ma_fields.String, delimiter=',', missing=None)
+        })
+    def get(self, citation_id, fields):
+        citation = db.session.query(Citation).get(citation_id)
+        if not citation:
+            raise NoResultFound
+        if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get this citation'.format(g.current_user))
+        return CitationSchema(only=fields).dump(citation).data
+
+    @swagger.operation()
+    @use_kwargs({
+        'citation_id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def delete(self, citation_id, test):
+        citation = db.session.query(Citation).get(citation_id)
+        if not citation:
+            raise NoResultFound
+        if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to delete this citation'.format(g.current_user))
+        if test is False:
+            db.session.delete(citation)
+            db.session.commit()
+
+    @swagger.operation()
+    @use_args(CitationSchema(partial=True))
+    @use_kwargs({
+        'citation_id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def put(self, args, citation_id, test):
+        citation = db.session.query(Citation).get(citation_id)
+        if not citation:
+            raise NoResultFound
+        if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to delete this citation'.format(g.current_user))
+        for key, value in args.items():
+            if key is missing:
+                continue
+            else:
+                setattr(citation, key, value)
+        if test is False:
+            db.session.commit()
+        else:
+            db.session.rollback()
+        return CitationSchema().dump(citation).data
 
 
 class CitationsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    # @swagger.operation()
+    # @use_kwargs()
+    # def get(self, review_id):
+    #     raise NotImplementedError('sorry')
+
     @swagger.operation()
     @use_kwargs({
         'uploaded_file': ma_fields.Raw(
             required=True, location='files'),
         'review_id': ma_fields.Int(
-            required=True, validate=Range(min=1, max=2147483647)),
+            required=True, validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
     def post(self, uploaded_file, review_id, test):
@@ -37,20 +109,20 @@ class CitationsResource(Resource):
                 '{} not authorized to add citations to this review'.format(g.current_user))
         fname = uploaded_file.filename
         if fname.endswith('.bib'):
-            citations_file = cipy.parsers.BibTexFile(uploaded_file.stream)
+            citations_file = BibTexFile(uploaded_file.stream)
         elif fname.endswith('.ris') or fname.endswith('.txt'):
-            citations_file = cipy.parsers.RisFile(uploaded_file.stream)
+            citations_file = RisFile(uploaded_file.stream)
         else:
             raise TypeError()
         citation_schema = CitationSchema()
+
+        citations_to_insert = []
         for record in citations_file.parse():
             record['review_id'] = review_id
-            citation_data = citation_schema.dump(record).data
-            citation = Citation(**citation_data)
-            if test is False:
-                db.session.add(citation)
+            citation_data = citation_schema.load(record).data
+            citations_to_insert.append(Citation(**citation_data))
         if test is False:
-            db.session.commit()  # TODO: bulk_insert_mappings?
+            db.session.bulk_save_objects(citations_to_insert)
 
 
 # class Citations(Resource):

@@ -10,6 +10,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ..models import db, Review, ReviewPlan
+from ..lib import constants
 from .errors import unauthorized
 from .schemas import ReviewPlanSchema
 from .authentication import auth
@@ -23,7 +24,7 @@ class ReviewPlanResource(Resource):
     @use_kwargs({
         'reviewplan_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
@@ -40,7 +41,7 @@ class ReviewPlanResource(Resource):
     @use_kwargs({
         'reviewplan_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, reviewplan_id, test):
@@ -59,7 +60,7 @@ class ReviewPlanResource(Resource):
     @use_kwargs({
         'reviewplan_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, reviewplan_id, test):
@@ -88,7 +89,7 @@ class ReviewPlansResource(Resource):
     @swagger.operation()
     @use_kwargs({
         'review_id': ma_fields.Int(
-            required=True, validate=Range(min=1, max=2147483647)),
+            required=True, validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })

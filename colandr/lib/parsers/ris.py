@@ -84,14 +84,14 @@ KEY_MAP = {
     'OP': 'original_publication',
     'PA': 'publisher_address',
     'PB': 'publisher',
-    'PD': 'publication_month',  # HACK: should actually be "publication_date"
+    'PD': 'pub_month',  # HACK: should actually be "publication_date"
     'PG': 'page_count',
     'PI': 'publisher_city',
     'PM': 'pubmed_id',
     'PN': 'part_number',
     'PP': 'publishing_place',
     'PT': 'publication_type',
-    'PY': 'publication_year',  # special: YYYY
+    'PY': 'pub_year',  # special: YYYY
     'PU': 'publisher',
     'RI': 'reviewed_item',
     'RN': 'research_notes',
@@ -126,7 +126,7 @@ KEY_MAP = {
     'Y1': 'primary_date',  # special: YYYY/
     'Y2': 'access_date',
     'Z9': 'num_times_cited',
-}
+    }
 
 REFERENCE_TYPES_MAPPING = {
     'ABST': 'abstract',
@@ -185,7 +185,7 @@ REFERENCE_TYPES_MAPPING = {
     'UNBILL': 'unenacted bill/resolution',
     'UNPB': 'unpublished work',
     'VIDEO': 'video recording',
-}
+    }
 
 MULTI_TAGS = {'A1', 'A2', 'A3', 'A4', 'AD', 'AU', 'ED', 'KW', 'N1'}
 IGNORE_TAGS = {'FN', 'VR', 'EF'}
@@ -204,17 +204,19 @@ _MONTH_MAP = {'spr': 3, 'sum': 6, 'fal': 9, 'win': 12,
               'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
               'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
 
+
 def _sanitize_pd_tag(value):
     try:
         return int(value)
     except ValueError:
         value = value.split(' ')[0].strip().lower() if ' ' in value \
-                else value.split('-')[0].strip().lower() if '-' in value \
-                else value.lower()
+            else value.split('-')[0].strip().lower() if '-' in value \
+            else value.lower()
         try:
             return _MONTH_MAP[value]
         except KeyError:
             raise ValueError
+
 
 def _sanitize_sn_tag(value):
     match = ISSN_RE.search(value)
@@ -241,7 +243,8 @@ VALUE_SANITIZERS = {
 class RisFile(object):
     """
     Args:
-        path (str): RIS file to be parsed
+        path_or_stream (str or io stream): RIS file to be parsed, either as its
+            path on disk or as a stream of data
         key_map (dict or bool): mapping of short RIS tags to to human-readable keys;
             if None (default), default mapping is used; if False, no mapping will be done
         value_sanitizers (dict or bool): mapping of short RIS tags to functions
@@ -313,7 +316,7 @@ class RisFile(object):
                     elif TAGv2_RE.match(line):
                         self.tag_re = TAGv2_RE
                     else:
-                        msg ='tags in file {}, lineno {}, line {} not formatted as expected!'.format(self.path, i, line)
+                        msg = 'tags in file {}, lineno {}, line {} not formatted as expected!'.format(self.path, i, line)
                         LOGGER.error(msg)
                         raise IOError(msg)
 
@@ -385,7 +388,8 @@ class RisFile(object):
                     self.record[key] += ' ' + line.strip()
 
                 else:
-                    LOGGER.error('bad line: prev_tag=%s, line=%s "%s"',
+                    LOGGER.error(
+                        'bad line: prev_tag=%s, line=%s "%s"',
                         self.prev_tag, i, line.strip())
 
     def _add_tag_line(self, tag, line, start_idx):
@@ -404,7 +408,8 @@ class RisFile(object):
         except KeyError:
             pass
         except Exception:
-            LOGGER.exception('value sanitization error: key=%s, value=%s',
+            LOGGER.exception(
+                'value sanitization error: key=%s, value=%s',
                 key, value)
         # for multi-value tags, append to a list
         if tag in MULTI_TAGS:
@@ -434,7 +439,8 @@ class RisFile(object):
             except KeyError:
                 pass
             except Exception:
-                LOGGER.exception('multi-value sort error: key=%s, value=%s',
+                LOGGER.exception(
+                    'multi-value sort error: key=%s, value=%s',
                     key, self.record[key])
 
     def _sanitize_record(self):
@@ -444,7 +450,8 @@ class RisFile(object):
             except KeyError:
                 pass
             except Exception:
-                LOGGER.exception('record sanitization error: key=%s, value=%s',
+                LOGGER.exception(
+                    'record sanitization error: key=%s, value=%s',
                     key, self.record[key])
         if not self.record.get('journal_name'):
             for key in self.journal_keys:
@@ -467,11 +474,12 @@ class RisFile(object):
                     break
                 except KeyError:
                     continue
-        if not self.record.get('publication_year'):
+        if not self.record.get('pub_year'):
             y1_key = self.key_map.get('Y1', 'Y1')
             try:
                 if self.record.get(y1_key):
-                    self.record['publication_year'] = self.record[y1_key].year
+                    self.record['pub_year'] = self.record[y1_key].year
             except Exception:
-                LOGGER.exception('record sanitization error: key=%s, value=%s',
+                LOGGER.exception(
+                    'record sanitization error: key=%s, value=%s',
                     y1_key, self.record[y1_key])

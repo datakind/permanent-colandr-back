@@ -61,10 +61,10 @@ KEY_MAP = {
     'editor': 'editors',
     'keyword': 'keywords',
     'journal': 'journal_name',
-    'month': 'publication_month',
+    'month': 'pub_month',
     'note': 'notes',
     'number': 'issue_number',
-    'year': 'publication_year',
+    'year': 'pub_year',
 }
 
 VALUE_SANITIZERS = {
@@ -85,7 +85,8 @@ VALUE_SANITIZERS = {
 class BibTexFile(object):
     """
     Args:
-        path (str): BibTex file to be parsed
+        path_or_stream (str or io stream): RIS file to be parsed, either as its
+            path on disk or as a stream of data
         key_map (dict or bool): mapping of default BibTex tags to to human-readable keys;
             if None (default), default mapping is used; if False, no mapping will be done
         value_sanitizers (dict or bool): mapping of default BibTex tags to functions
@@ -93,8 +94,16 @@ class BibTexFile(object):
             will be used; if False, no sanitization will be performed
     """
 
-    def __init__(self, path, key_map=None, value_sanitizers=None):
-        self.path = path
+    def __init__(self, path_or_stream, key_map=None, value_sanitizers=None):
+        if isinstance(path_or_stream, io.TextIOBase):  # io.StringIO):
+            self.path = None
+            self.stream = path_or_stream
+        elif isinstance(path_or_stream, io.IOBase):  # (io.BytesIO, io.BufferedRandom)):
+            self.path = None
+            self.stream = io.TextIOWrapper(path_or_stream)  # , encoding='utf8')
+        elif isinstance(path_or_stream, (bytes, str)):
+            self.path = path_or_stream
+            self.stream = None
         self.parser = BibTexParser()
         self.parser.ignore_nonstandard_types = False
         self.parser.homogenize_fields = False
@@ -109,7 +118,9 @@ class BibTexFile(object):
         Yields:
             dict: next parsed citation record
         """
-        with io.open(self.path, mode='rt') as f:
+        if not self.stream:
+            self.stream = io.open(self.path, mode='rt')
+        with self.stream as f:
             parsed_data = bibtexparser.load(f, parser=self.parser)
         for record in parsed_data.entries:
             if self.value_sanitizers:

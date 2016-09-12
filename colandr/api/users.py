@@ -10,6 +10,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ..models import db, User, Review
+from ..lib import constants
 from .errors import unauthorized
 from .schemas import UserSchema
 from .authentication import auth
@@ -23,7 +24,7 @@ class UserResource(Resource):
     @use_kwargs({
         'user_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
@@ -40,7 +41,7 @@ class UserResource(Resource):
     @use_kwargs({
         'user_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, user_id, test):
@@ -59,7 +60,7 @@ class UserResource(Resource):
     @use_kwargs({
         'user_id': ma_fields.Int(
             required=True, location='view_args',
-            validate=Range(min=1, max=2147483647)),
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, user_id, test):
@@ -91,7 +92,7 @@ class UsersResource(Resource):
         'email': ma_fields.Email(
             missing=None, validate=Email()),
         'review_id': ma_fields.Int(
-            missing=None, validate=Range(min=1, max=2147483647))
+            missing=None, validate=Range(min=1, max=constants.MAX_INT))
         })
     def get(self, email, review_id):
         if email:
