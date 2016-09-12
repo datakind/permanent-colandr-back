@@ -41,7 +41,7 @@
         - [ ] facilitate uploads of pdfs and storage on server in standardized form
         - [ ] the rest TBD depending on Sam A's input
     - error handling
-        - [ ] define custom exceptions and raise them appropriately
+        - [x] define custom exceptions and raise them appropriately
     - documentation
         - [ ] improve documentation on all endpoints, as needed
         - [ ] improve interactive swagger html page (optional)

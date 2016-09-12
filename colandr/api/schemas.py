@@ -164,8 +164,8 @@ class CitationSchema(Schema):
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     status = fields.Str(
-        validate=OneOf(['pending', 'screened_once', 'screened_twice',
-                        'included', 'excluded', 'conflict']))
+        validate=OneOf(['pending', 'awaiting_coscreener', 'conflict'
+                        'excluded', 'included']))
     exclude_reasons = fields.List(
         fields.Str(validate=Length(max=25)))
     deduplication = fields.Nested(

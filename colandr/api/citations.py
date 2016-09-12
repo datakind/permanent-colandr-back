@@ -1,10 +1,11 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
+from sqlalchemy import asc, desc
 from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
-from marshmallow.validate import Range
+from marshmallow.validate import OneOf, Length, Range
 from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
@@ -87,10 +88,57 @@ class CitationsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    # @swagger.operation()
-    # @use_kwargs()
-    # def get(self, review_id):
-    #     raise NotImplementedError('sorry')
+    @swagger.operation()
+    @use_kwargs({
+        'review_id': ma_fields.Int(
+            required=True, validate=Range(min=1, max=constants.MAX_INT)),
+        'fields': DelimitedList(
+            ma_fields.String(), delimiter=',', missing=None),
+        'status': ma_fields.String(
+            missing=None, validate=OneOf(['pending', 'awaiting_other',
+                                          'conflict', 'excluded', 'included'])),
+        'tag': ma_fields.String(
+            missing=None, validate=Length(max=25)),
+        'order_by': ma_fields.String(
+            missing='recency', validate=OneOf(['recency', 'relevance'])),
+        'order_dir': ma_fields.String(
+            missing='DESC', validate=OneOf(['ASC', 'DESC'])),
+        'per_page': ma_fields.Int(
+            missing=25, validate=OneOf([10, 25, 50])),
+        'page': ma_fields.Int(
+            missing=0, validate=Range(min=0)),
+        })
+    def get(self, review_id, fields, status, tag,
+            order_by, order_dir, per_page, page):
+        review = db.session.query(Review).get(review_id)
+        if not review:
+            raise NoResultFound
+        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get citations from this review'.format(g.current_user))
+        # build the query by components
+        query = review.citations
+        # filters
+        if status:
+            query = query.filter(Citation.status == status)
+        if tag:
+            query = query.filter(Citation.tag == tag)
+        # order, offset, and limit
+        order_by = Citation.id if order_by == 'recency' else Citation.id  # TODO: NLP!
+        order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)
+        query = query.order_by(order_by)
+        query = query.offset(page * per_page).limit(per_page)
+        # get particular columns or full citations
+        if fields:
+            if 'id' not in fields:
+                fields.append('id')
+            fields = sorted(fields)
+            query = query.with_entities(*[getattr(Citation, field) for field in fields])
+            results = [{field: value for field, value in zip(fields, row)}
+                       for row in query]
+        else:
+            results = query.all()
+        return CitationSchema(many=True).dump(results).data
 
     @swagger.operation()
     @use_kwargs({
@@ -123,56 +171,3 @@ class CitationsResource(Resource):
             citations_to_insert.append(Citation(**citation_data))
         if test is False:
             db.session.bulk_save_objects(citations_to_insert)
-
-
-# class Citations(Resource):
-#
-#     @swagger.operation()
-#     @use_kwargs({
-#         'review_id': fields.Int(
-#             required=True, validate=validate.Range(min=1, max=2147483647)),
-#         'fields': fields.DelimitedList(
-#             fields.String(), delimiter=',',
-#             missing=['citation_id', 'authors', 'title', 'abstract', 'publication_year', 'doi']),
-#         'status': fields.String(
-#             missing='', validate=validate.OneOf(['included', 'excluded', ''])),
-#         'order_dir': fields.String(
-#             missing='ASC', validate=validate.OneOf(['ASC', 'DESC'])),
-#         'per_page': fields.Int(
-#             missing=10, validate=validate.OneOf([10, 20, 50])),
-#         'page': fields.Int(
-#             missing=0, validate=validate.Range(min=0)),
-#         })
-#     def get(self, review_id, fields, status, order_dir, per_page, page):
-#         bindings = {'review_id': review_id,
-#                     'order_dir': AsIs(order_dir),
-#                     'limit': per_page,
-#                     'offset': page * per_page}
-#         if status:
-#             query = """
-#                 SELECT %(fields)s
-#                 FROM
-#                     citations AS t1,
-#                     citation_status AS t2
-#                 WHERE
-#                     t1.review_id = %(review_id)s
-#                     AND t1.citation_id = t2.citation_id
-#                     AND t2.status = %(status)s
-#                 ORDER BY t1.citation_id %(order_dir)s
-#                 LIMIT %(limit)s
-#                 OFFSET %(offset)s
-#                 """
-#             bindings['fields'] = AsIs(','.join('t1.' + field for field in fields))
-#             bindings['status'] = status
-#         else:
-#             query = """
-#                 SELECT %(fields)s
-#                 FROM citations
-#                 WHERE review_id = %(review_id)s
-#                 ORDER BY citation_id %(order_dir)s
-#                 LIMIT %(limit)s
-#                 OFFSET %(offset)s
-#                 """
-#             bindings['fields'] = AsIs(','.join(fields))
-#
-#         return list(PGDB.run_query(query, bindings=bindings))
