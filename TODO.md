@@ -32,10 +32,10 @@
         - [ ] update screning status of fulltext, for each reviewer, and correctly flag conflicts
         - [ ] enable mass screening status update (?)
     - citations
-        - [ ] higher-level filtering options, e.g. to-be-screened or is-duplicate
+        - [x] higher-level filtering options, e.g. to-be-screened or is-duplicate
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
         - [x] upload citation files via HTTP POST
-        - [ ] add individual citation, manually entered via HTTP POST
+        - [ ] add individual citation, manually entered via HTTP POST (?)
         - [ ] link citation to PDF file uploaded by user
     - fulltexts
         - [ ] facilitate uploads of pdfs and storage on server in standardized form

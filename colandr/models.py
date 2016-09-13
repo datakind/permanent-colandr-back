@@ -174,6 +174,14 @@ class ReviewPlan(db.Model):
 class Citation(db.Model):
 
     __tablename__ = 'citations'
+    # indexing doesn't work here — we'd need to specify the config e.g. 'english'
+    # but we can't guarantee that is correct in all cases -- oh well!
+    # __table_args__ = (
+    #     db.Index('citations_title_fulltext_idx',
+    #              db.func.to_tsvector('title'), postgresql_using='gin'),
+    #     db.Index('citations_abstract_fulltext_idx',
+    #              db.func.to_tsvector('abstract'), postgresql_using='gin'),
+    #     )
 
     # columns
     id = db.Column(

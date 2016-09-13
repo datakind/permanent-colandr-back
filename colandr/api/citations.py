@@ -1,8 +1,9 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, and_, or_
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Length, Range
@@ -94,8 +95,10 @@ class CitationsResource(Resource):
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String(), delimiter=',', missing=None),
+        'tsquery': ma_fields.String(
+            missing=None, validate=Length(max=50)),
         'status': ma_fields.String(
-            missing=None, validate=OneOf(['pending', 'awaiting_other',
+            missing=None, validate=OneOf(['pending', 'awaiting_coscreener',
                                           'conflict', 'excluded', 'included'])),
         'tag': ma_fields.String(
             missing=None, validate=Length(max=25)),
@@ -108,7 +111,7 @@ class CitationsResource(Resource):
         'page': ma_fields.Int(
             missing=0, validate=Range(min=0)),
         })
-    def get(self, review_id, fields, status, tag,
+    def get(self, review_id, fields, status, tag, tsquery,
             order_by, order_dir, per_page, page):
         review = db.session.query(Review).get(review_id)
         if not review:
@@ -120,9 +123,17 @@ class CitationsResource(Resource):
         query = review.citations
         # filters
         if status:
-            query = query.filter(Citation.status == status)
+            if status in ('conflict', 'excluded', 'included'):
+                query = query.filter(Citation.status == status)
+            elif status == 'pending':
+                raise NotImplementedError('working on it')
+            elif status == 'awaiting_coscreener':
+                raise NotImplementedError('working on it')
         if tag:
-            query = query.filter(Citation.tag == tag)
+            query = query.filter(Citation.tags.any(tag, operator=operators.eq))
+        if tsquery:
+            query = query.filter(or_(Citation.title.match(tsquery),
+                                     Citation.abstract.match(tsquery)))
         # order, offset, and limit
         order_by = Citation.id if order_by == 'recency' else Citation.id  # TODO: NLP!
         order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)

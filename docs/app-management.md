@@ -40,7 +40,7 @@ $ python3 reset_db.py --help
 $ python3 reset_db.py --config=<CONFIG_NAME>
 ```
 
-**COMING SOON:** How to re-populate the database.
+Check out the `api-tests.ipynb` notebook in the `conservation-intl/notebooks` directory for an example of how to populate and otherwise interact with the database via the REST API. **TODO:** Add more details here.
 
 
 ## Run the App

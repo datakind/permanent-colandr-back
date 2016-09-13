@@ -28,7 +28,7 @@ def verify_password(email_or_token, password):
 
 @auth.error_handler
 def auth_error():
-    return unauthorized('invalid authentication credentials')
+    return unauthorized('invalid or expired authentication credentials')
 
 
 class AuthTokenResource(Resource):
