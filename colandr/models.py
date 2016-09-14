@@ -94,7 +94,7 @@ class Review(db.Model):
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     owner_user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
-        index=True)
+        nullable=False, index=True)
     name = db.Column(
         db.Unicode(length=500), nullable=False)
     description = db.Column(db.UnicodeText)
@@ -118,6 +118,9 @@ class Review(db.Model):
     citations = db.relationship(
         'Citation', back_populates='review',
         lazy='dynamic')
+    fulltexts = db.relationship(
+        'Fulltext', back_populates='review',
+        lazy='dynamic')
 
     def __init__(self, name, owner_user_id, description=None):
         self.name = name
@@ -137,7 +140,7 @@ class ReviewPlan(db.Model):
         db.Integer, primary_key=True, autoincrement=True)
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        index=True)
+        nullable=False, index=True)
     objective = db.Column(db.UnicodeText)
     research_questions = db.Column(
         postgresql.ARRAY(db.Unicode(length=300)), server_default='{}')
@@ -191,9 +194,9 @@ class Citation(db.Model):
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        index=True)
+        nullable=False, index=True)
     status = db.Column(
-        db.Unicode(length=20), nullable=False, server_default='pending',
+        db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
     exclude_reasons = db.Column(
         postgresql.ARRAY(db.Unicode(length=25)), server_default='{}')
@@ -273,9 +276,12 @@ class Fulltext(db.Model):
     created_at = db.Column(
         db.TIMESTAMP(timezone=False),
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
     citation_id = db.Column(
         db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
-        index=True)
+        nullable=False, index=True)
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='pending',
         index=True)
@@ -289,11 +295,15 @@ class Fulltext(db.Model):
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='fulltexts',
+        lazy='select')
     citation = db.relationship(
         'Citation', foreign_keys=[citation_id], back_populates='fulltext',
         lazy='subquery')
 
-    def __init__(self, citation_id, content, filename=None):
+    def __init__(self, review_id, citation_id, content, filename=None):
+        self.review_id = review_id
         self.citation_id = citation_id
         self.content = content
         self.filename = filename
