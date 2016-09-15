@@ -42,8 +42,11 @@ class User(db.Model):
     reviews = db.relationship(
         'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
-    screenings = db.relationship(
-        'Screening', back_populates='user',
+    citation_screenings = db.relationship(
+        'CitationScreening', back_populates='user',
+        lazy='dynamic')
+    fulltext_screenings = db.relationship(
+        'FulltextScreening', back_populates='user',
         lazy='dynamic')
 
     def __init__(self, name, email, password):
@@ -124,8 +127,11 @@ class Review(db.Model):
     fulltexts = db.relationship(
         'Fulltext', back_populates='review',
         lazy='dynamic')
-    screenings = db.relationship(
-        'Screening', back_populates='review',
+    citation_screenings = db.relationship(
+        'CitationScreening', back_populates='review',
+        lazy='dynamic')
+    fulltext_screenings = db.relationship(
+        'FulltextScreening', back_populates='review',
         lazy='dynamic')
 
     def __init__(self, name, owner_user_id, description=None):
@@ -204,12 +210,8 @@ class Citation(db.Model):
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
-    exclude_reasons = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}')
     deduplication = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
-    # screening = db.Column(
-    #     postgresql.JSONB(none_as_null=True), server_default='{}')
     tags = db.Column(
         postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
         index=True)
@@ -243,7 +245,7 @@ class Citation(db.Model):
         'Fulltext', uselist=False, back_populates='citation',
         lazy='select')
     screenings = db.relationship(
-        'Screening', back_populates='citation',
+        'CitationScreening', back_populates='citation',
         lazy='select')
 
     def __init__(self, review_id,
@@ -294,10 +296,6 @@ class Fulltext(db.Model):
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='pending',
         index=True)
-    exclude_reasons = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}')
-    # screening = db.Column(
-    #     postgresql.JSONB(none_as_null=True), server_default='{}')
     content = db.Column(
         db.UnicodeText, nullable=False)
     filename = db.Column(db.UnicodeText)
@@ -311,7 +309,7 @@ class Fulltext(db.Model):
         'Citation', foreign_keys=[citation_id], back_populates='fulltext',
         lazy='subquery')
     screenings = db.relationship(
-        'Screening', back_populates='fulltext',
+        'FulltextScreening', back_populates='fulltext',
         lazy='select')
 
 
@@ -325,9 +323,13 @@ class Fulltext(db.Model):
         return "<Fulltext(citation_id={})>".format(self.citation_id)
 
 
-class Screening(db.Model):
+class CitationScreening(db.Model):
 
-    __tablename__ = 'screenings'
+    __tablename__ = 'citation_screenings'
+    __table_args__ = (
+        db.UniqueConstraint('review_id', 'user_id', 'citation_id',
+                            name='review_user_citation_uc'),
+        )
 
     # columns
     id = db.Column(
@@ -343,45 +345,83 @@ class Screening(db.Model):
         nullable=False, index=True)
     citation_id = db.Column(
         db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
-        nullable=True, index=True)
-    fulltext_id = db.Column(
-        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
-        nullable=True, index=True)
+        nullable=False, index=True)
     status = db.Column(
         db.Unicode(length=20),
         nullable=False, index=True)
     exclude_reasons = db.Column(
         postgresql.ARRAY(db.Unicode(length=25)),
-        nullable=False)
+        nullable=True)
 
     # relationships
     user = db.relationship(
-        'User', foreign_keys=[user_id], back_populates='screenings',
-        lazy='dynamic')
+        'User', foreign_keys=[user_id], back_populates='citation_screenings',
+        lazy='select')
     review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='screenings',
+        'Review', foreign_keys=[review_id], back_populates='citation_screenings',
         lazy='select')
     citation = db.relationship(
         'Citation', foreign_keys=[citation_id], back_populates='screenings',
         lazy='subquery')
+
+    def __init__(self, review_id, user_id, citation_id, status, exclude_reasons):
+        self.review_id = review_id
+        self.user_id = user_id
+        self.citation_id = citation_id
+        self.status = status
+        self.exclude_reasons = exclude_reasons
+
+    def __repr__(self):
+        return "<CitationScreening(citation_id={})>".format(self.citation_id)
+
+
+class FulltextScreening(db.Model):
+
+    __tablename__ = 'fulltext_screenings'
+    __table_args__ = (
+        db.UniqueConstraint('review_id', 'user_id', 'fulltext_id',
+                            name='review_user_fulltext_uc'),
+        )
+
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=False, index=True)
+    fulltext_id = db.Column(
+        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    status = db.Column(
+        db.Unicode(length=20),
+        nullable=False, index=True)
+    exclude_reasons = db.Column(
+        postgresql.ARRAY(db.Unicode(length=25)),
+        nullable=True)
+
+    # relationships
+    user = db.relationship(
+        'User', foreign_keys=[user_id], back_populates='fulltext_screenings',
+        lazy='select')
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='fulltext_screenings',
+        lazy='select')
     fulltext = db.relationship(
         'Fulltext', foreign_keys=[fulltext_id], back_populates='screenings',
         lazy='subquery')
 
-    def __init__(self, review_id, user_id, status, exclude_reasons,
-                 citation_id=None, fulltext_id=None):
-        if bool(citation_id) ^ bool(fulltext_id) is False:
-            raise ValueError(
-                'screening must be for either a citation or a fulltext')
+    def __init__(self, review_id, user_id, fulltext_id, status, exclude_reasons):
         self.review_id = review_id
         self.user_id = user_id
+        self.fulltext_id = fulltext_id
         self.status = status
         self.exclude_reasons = exclude_reasons
-        self.citation_id = citation_id
-        self.fulltext_id = fulltext_id
 
     def __repr__(self):
-        if self.citation_id is not None:
-            return "<Screening(citation_id={})>".format(self.citation_id)
-        else:
-            return "<Screening(fulltext_id={})>".format(self.fulltext_id)
+        return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)

@@ -166,12 +166,8 @@ class CitationSchema(Schema):
     status = fields.Str(
         validate=OneOf(['not_screened', 'screened_once', 'screened_twice',
                         'conflict', 'excluded', 'included']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)))
     deduplication = fields.Nested(
         Deduplication)
-    # screening = fields.Nested(
-    #     Screening, many=True)
     tags = fields.List(
         fields.Str(validate=Length(max=25)))
     type_of_work = fields.Str(
@@ -238,10 +234,6 @@ class FulltextSchema(Schema):
     status = fields.Str(
         validate=OneOf(['pending', 'screened_once', 'screened_twice',
                         'included', 'excluded', 'conflict']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)))
-    # screening = fields.Nested(
-    #     Screening, many=True)
     filename = fields.Str()
     content = fields.Str(
         required=True)
@@ -251,7 +243,7 @@ class FulltextSchema(Schema):
         strict = True
 
 
-class Screening(Schema):
+class ScreeningSchema(Schema):
     id = fields.Int(
         dump_only=True)
     created_at = fields.DateTime(
