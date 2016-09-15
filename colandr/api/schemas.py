@@ -106,16 +106,16 @@ class ReviewPlanSchema(Schema):
         strict = True
 
 
-class Screening(Schema):
-    status = fields.Str(
-        validate=OneOf(['included', 'excluded']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)), missing=None)
-    user_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_INT))
-
-    class Meta:
-        strict = True
+# class Screening(Schema):
+#     status = fields.Str(
+#         validate=OneOf(['included', 'excluded']))
+#     exclude_reasons = fields.List(
+#         fields.Str(validate=Length(max=25)), missing=None)
+#     user_id = fields.Int(
+#         missing=None, validate=Range(min=1, max=constants.MAX_INT))
+#
+#     class Meta:
+#         strict = True
 
 
 class Deduplication(Schema):
@@ -170,8 +170,8 @@ class CitationSchema(Schema):
         fields.Str(validate=Length(max=25)))
     deduplication = fields.Nested(
         Deduplication)
-    screening = fields.Nested(
-        Screening, many=True)
+    # screening = fields.Nested(
+    #     Screening, many=True)
     tags = fields.List(
         fields.Str(validate=Length(max=25)))
     type_of_work = fields.Str(
@@ -224,12 +224,6 @@ class CitationSchema(Schema):
                 sanitized_record['other_fields'][key] = sanitize_type(value, str)
         return sanitized_record
 
-    # @post_dump
-    # def json_to_string(self, data):
-    #     if data.get('other_fields'):
-    #         data['other_fields'] = json.dumps(data['other_fields'])
-    #     return data
-
     class Meta:
         strict = True
 
@@ -246,12 +240,34 @@ class FulltextSchema(Schema):
                         'included', 'excluded', 'conflict']))
     exclude_reasons = fields.List(
         fields.Str(validate=Length(max=25)))
-    screening = fields.Nested(
-        Screening, many=True)
+    # screening = fields.Nested(
+    #     Screening, many=True)
     filename = fields.Str()
     content = fields.Str(
         required=True)
     extracted_info = fields.Dict()
+
+    class Meta:
+        strict = True
+
+
+class Screening(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    citation_id = fields.Int(
+        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
+    fulltext_id = fields.Int(
+        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
+    status = fields.Str(
+        validate=OneOf(['included', 'excluded']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), missing=None)
 
     class Meta:
         strict = True
