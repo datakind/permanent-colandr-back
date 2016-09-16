@@ -22,33 +22,35 @@ class UserResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'user_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
-    def get(self, user_id, fields):
-        if user_id != g.current_user.id:
+    def get(self, id, fields):
+        if (id != g.current_user.id and
+                any(review.users.filter_by(id=id).one_or_none()
+                    for review in g.current_user.reviews) is False):
             return unauthorized(
                 '{} not authorized to get this user'.format(g.current_user))
-        user = db.session.query(User).get(user_id)
+        user = db.session.query(User).get(id)
         if not user:
             raise NoResultFound
         return UserSchema(only=fields).dump(user).data
 
     @swagger.operation()
     @use_kwargs({
-        'user_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def delete(self, user_id, test):
-        if user_id != g.current_user.id:
+    def delete(self, id, test):
+        if id != g.current_user.id:
             return unauthorized(
                 '{} not authorized to delete this user'.format(g.current_user))
-        user = db.session.query(User).get(user_id)
+        user = db.session.query(User).get(id)
         if not user:
             raise NoResultFound
         if test is False:
@@ -58,16 +60,16 @@ class UserResource(Resource):
     @swagger.operation()
     @use_args(UserSchema(partial=True))
     @use_kwargs({
-        'user_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def put(self, args, user_id, test):
-        if user_id != g.current_user.id:
+    def put(self, args, id, test):
+        if id != g.current_user.id:
             return unauthorized(
                 '{} not authorized to update this user'.format(g.current_user))
-        user = db.session.query(User).get(user_id)
+        user = db.session.query(User).get(id)
         if not user:
             raise NoResultFound
         for key, value in args.items():
@@ -105,6 +107,10 @@ class UsersResource(Resource):
             review = db.session.query(Review).get(review_id)
             if not review:
                 raise NoResultFound
+            if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+                raise unauthorized(
+                    '{} not authorized to see users for this review'.format(
+                        g.current_user))
             users = review.users
             return UserSchema(many=True).dump(users).data
 

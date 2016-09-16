@@ -22,14 +22,14 @@ class ReviewResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'review_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
-    def get(self, review_id, fields):
-        review = db.session.query(Review).get(review_id)
+    def get(self, id, fields):
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
@@ -39,13 +39,13 @@ class ReviewResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'review_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def delete(self, review_id, test):
-        review = db.session.query(Review).get(review_id)
+    def delete(self, id, test):
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.owner is not g.current_user:
@@ -58,13 +58,13 @@ class ReviewResource(Resource):
     @swagger.operation()
     @use_args(ReviewSchema(partial=True))
     @use_kwargs({
-        'review_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def put(self, args, review_id, test):
-        review = db.session.query(Review).get(review_id)
+    def put(self, args, id, test):
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.owner is not g.current_user:

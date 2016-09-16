@@ -38,7 +38,7 @@ class User(db.Model):
     # relationships
     owned_reviews = db.relationship(
         'Review', back_populates='owner',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
     reviews = db.relationship(
         'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
@@ -120,19 +120,19 @@ class Review(db.Model):
         lazy='dynamic')
     review_plan = db.relationship(
         'ReviewPlan', uselist=False, back_populates='review',
-        lazy='select')
+        lazy='select', passive_deletes=True)
     citations = db.relationship(
         'Citation', back_populates='review',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
     fulltexts = db.relationship(
         'Fulltext', back_populates='review',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
     citation_screenings = db.relationship(
         'CitationScreening', back_populates='review',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
     fulltext_screenings = db.relationship(
         'FulltextScreening', back_populates='review',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, name, owner_user_id, description=None):
         self.name = name
@@ -152,7 +152,7 @@ class ReviewPlan(db.Model):
         db.Integer, primary_key=True, autoincrement=True)
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
+        unique=True, nullable=False, index=True)
     objective = db.Column(db.UnicodeText)
     research_questions = db.Column(
         postgresql.ARRAY(db.Unicode(length=300)), server_default='{}')
@@ -243,10 +243,10 @@ class Citation(db.Model):
         lazy='select')
     fulltext = db.relationship(
         'Fulltext', uselist=False, back_populates='citation',
-        lazy='select')
+        lazy='select', passive_deletes=True)
     screenings = db.relationship(
         'CitationScreening', back_populates='citation',
-        lazy='dynamic')
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, review_id,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
@@ -292,13 +292,15 @@ class Fulltext(db.Model):
         nullable=False, index=True)
     citation_id = db.Column(
         db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
-        nullable=False, index=True)
+        unique=True, nullable=False, index=True)
     status = db.Column(
-        db.Unicode(length=20), nullable=False, server_default='pending',
+        db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
     content = db.Column(
         db.UnicodeText, nullable=False)
-    filename = db.Column(db.UnicodeText)
+    filename = db.Column(
+        db.UnicodeText,
+        unique=True, nullable=True)
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
@@ -310,8 +312,7 @@ class Fulltext(db.Model):
         lazy='subquery')
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
-        lazy='dynamic')
-
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, review_id, citation_id, content, filename=None):
         self.review_id = review_id

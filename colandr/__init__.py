@@ -9,9 +9,10 @@ from .config import config
 from .api.users import UserResource, UsersResource
 from .api.reviews import ReviewResource, ReviewsResource
 from .api.reviewplans import ReviewPlanResource, ReviewPlansResource
-from .api.citations import CitationResource, CitationsResource
-from .api.screenings import CitationScreeningsResource
+from .api.review_teams import ReviewTeamResource
 from .api.review_progress import ReviewProgressResource
+from .api.citations import CitationResource, CitationsResource
+from .api.screenings import CitationScreeningResource, CitationScreeningsResource
 from .api.authentication import AuthTokenResource
 
 
@@ -30,14 +31,16 @@ def create_app(config_name):
 
     api.add_resource(AuthTokenResource, '/authtoken')
     api.add_resource(UsersResource, '/users')
-    api.add_resource(UserResource, '/users/<int:user_id>')
+    api.add_resource(UserResource, '/users/<int:id>')
     api.add_resource(ReviewsResource, '/reviews')
-    api.add_resource(ReviewResource, '/reviews/<int:review_id>')
-    api.add_resource(ReviewProgressResource, '/reviews/<int:review_id>/progress')
+    api.add_resource(ReviewResource, '/reviews/<int:id>')
+    api.add_resource(ReviewTeamResource, '/reviews/<int:id>/team')
+    api.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
     api.add_resource(ReviewPlansResource, '/reviewplans')
-    api.add_resource(ReviewPlanResource, '/reviewplans/<int:reviewplan_id>')
+    api.add_resource(ReviewPlanResource, '/reviewplans/<int:id>')
     api.add_resource(CitationsResource, '/citations')
-    api.add_resource(CitationResource, '/citations/<int:citation_id>')
+    api.add_resource(CitationResource, '/citations/<int:id>')
     api.add_resource(CitationScreeningsResource, '/citations/screenings')
+    api.add_resource(CitationScreeningResource, '/citations/screenings/<int:id>')
 
     return app

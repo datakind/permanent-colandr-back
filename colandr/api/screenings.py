@@ -4,7 +4,8 @@ from flask_restful_swagger import swagger
 from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
-from marshmallow.validate import OneOf, Range
+from marshmallow.validate import Range
+from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ..lib import constants
@@ -12,6 +13,48 @@ from ..models import db, CitationScreening, Citation, Review, User
 from .errors import unauthorized
 from .schemas import ScreeningSchema
 from .authentication import auth
+
+
+class CitationScreeningResource(Resource):
+
+    method_decorators = [auth.login_required]
+
+    @swagger.operation()
+    @use_kwargs({
+        'id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'fields': DelimitedList(
+            ma_fields.String, delimiter=',', missing=None)
+        })
+    def get(self, id, fields):
+        screening = db.session.query(CitationScreening).get(id)
+        if not screening:
+            raise NoResultFound
+        if screening.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get {}'.format(
+                    g.current_user, screening))
+        return ScreeningSchema(only=fields).dump(screening).data
+
+    @swagger.operation()
+    @use_kwargs({
+        'id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def delete(self, id, test):
+        screening = db.session.query(CitationScreening).get(id)
+        if not screening:
+            raise NoResultFound
+        if screening.user_id != g.current_user.id:
+            return unauthorized(
+                '{} not authorized to delete {}'.format(
+                    g.current_user, screening))
+        if test is False:
+            db.session.delete(screening)
+            db.session.commit()
 
 
 class CitationScreeningsResource(Resource):
@@ -33,7 +76,18 @@ class CitationScreeningsResource(Resource):
             citation = db.session.query(Citation).get(citation_id)
             if not citation:
                 raise NoResultFound
+            if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+                return unauthorized(
+                    '{} not authorized to get screenings for {}'.format(
+                        g.current_user, citation))
             query = citation.screenings
+        elif user_id is not None and review_id is not None:
+            review = g.current_user.reviews.filter_by(id=review_id).one_or_none()
+            if review is None:
+                return unauthorized(
+                    '{} not authorized to get screenings for {}'.format(
+                        g.current_user, review))
+            query = review.citation_screenings.filter_by(user_id=user_id)
         elif user_id is not None:
             user = db.session.query(User).get(user_id)
             if not user:
@@ -43,6 +97,10 @@ class CitationScreeningsResource(Resource):
             review = db.session.query(Review).get(review_id)
             if not review:
                 raise NoResultFound
+            if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+                return unauthorized(
+                    '{} not authorized to get screenings for {}'.format(
+                        g.current_user, review))
             query = review.citation_screenings
         else:
             raise ValueError()
