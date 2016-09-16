@@ -74,3 +74,9 @@ class ReviewTeamResource(Resource):
             db.session.commit()
         else:
             db.session.rollback()
+        users = UserSchema(many=True).dump(review.users).data
+        owner_user_id = review.owner_user_id
+        for user in users:
+            if user['id'] == owner_user_id:
+                user['is_owner'] = True
+        return users
