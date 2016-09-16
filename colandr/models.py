@@ -246,7 +246,7 @@ class Citation(db.Model):
         lazy='select')
     screenings = db.relationship(
         'CitationScreening', back_populates='citation',
-        lazy='select')
+        lazy='dynamic')
 
     def __init__(self, review_id,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
@@ -310,7 +310,7 @@ class Fulltext(db.Model):
         lazy='subquery')
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
-        lazy='select')
+        lazy='dynamic')
 
 
     def __init__(self, review_id, citation_id, content, filename=None):

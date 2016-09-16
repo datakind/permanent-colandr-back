@@ -157,9 +157,11 @@ class CitationsResource(Resource):
             required=True, location='files'),
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
+        'status': ma_fields.Str(
+            missing=None, validate=OneOf(['included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, uploaded_file, review_id, test):
+    def post(self, uploaded_file, review_id, status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
             raise NoResultFound
@@ -174,10 +176,11 @@ class CitationsResource(Resource):
         else:
             raise TypeError()
         citation_schema = CitationSchema()
-
         citations_to_insert = []
         for record in citations_file.parse():
             record['review_id'] = review_id
+            if status:
+                record['status'] = status
             citation_data = citation_schema.load(record).data
             citations_to_insert.append(Citation(**citation_data))
         if test is False:
