@@ -129,7 +129,7 @@ class CitationScreeningsResource(Resource):
         db.session.add(screening)
         # update associated citation status, considering all screenings
         citation = db.session.query(Citation).get(args['citation_id'])
-        all_screenings = citation.screenings
+        all_screenings = citation.screenings.all()
         num_screeners = review.num_citation_screening_reviewers
         if num_screeners == 1:
             citation.status = screening.status

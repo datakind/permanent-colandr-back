@@ -23,7 +23,7 @@ class ReviewProgressResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'review_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'step': ma_fields.Str(
@@ -31,15 +31,14 @@ class ReviewProgressResource(Resource):
                                            'extraction', 'all'])),
         'user_view': ma_fields.Bool(missing=False),
         })
-    def get(self, review_id, step, user_view):
+    def get(self, id, step, user_view):
         response = {}
-        review = db.session.query(Review).get(review_id)
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
-                '{} not authorized to get progress on {}'.format(g.current_user,
-                                                                 review))
+                '{} not authorized to get review progress'.format(g.current_user))
         if step in ('planning', 'all'):
             review_plan = review.review_plan
             progress = {'objective': bool(review_plan.objective),
@@ -50,16 +49,16 @@ class ReviewProgressResource(Resource):
                         'data_extraction_form': bool(review_plan.data_extraction_form),
                         }
             response['planning'] = {key: val for key, val in progress.items()
-                                    if val is not False}
+                                    if val is True}
         if step in ('citations', 'all'):
             if user_view is False:
                 progress = db.session.query(Citation.status, db.func.count(1))\
-                    .filter_by(review_id=review_id)\
+                    .filter_by(review_id=id)\
                     .group_by(Citation.status)\
                     .all()
             else:
                 progress = db.session.query(Citation.status, db.func.count(1))\
-                    .filter_by(review_id=review_id)\
+                    .filter_by(review_id=id)\
                     .filter(Citation.status.in_(['conflict', 'excluded', 'included']))\
                     .group_by(Citation.status)\
                     .all()
@@ -77,12 +76,12 @@ class ReviewProgressResource(Resource):
         if step in ('fulltexts', 'all'):
             if user_view is False:
                 progress = db.session.query(Fulltext.status, db.func.count(1))\
-                    .filter_by(review_id=review_id)\
+                    .filter_by(review_id=id)\
                     .group_by(Fulltext.status)\
                     .all()
             else:
                 progress = db.session.query(Fulltext.status, db.func.count(1))\
-                    .filter_by(review_id=review_id)\
+                    .filter_by(review_id=id)\
                     .filter(Citation.status.in_(['conflict', 'excluded', 'included']))\
                     .group_by(Fulltext.status)\
                     .all()

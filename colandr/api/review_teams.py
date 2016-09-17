@@ -10,7 +10,7 @@ from webargs.flaskparser import use_kwargs
 
 from ..models import db, Review, User
 from ..lib import constants
-from .errors import unauthorized
+from .errors import forbidden, unauthorized
 from .schemas import UserSchema
 from .authentication import auth
 
@@ -70,6 +70,8 @@ class ReviewTeamResource(Resource):
             if review_users.filter_by(id=user_id).one_or_none() is None:
                 review_users.append(user)
         elif action == 'remove':
+            if user_id == review.owner_user_id:
+                raise forbidden('current review owner can not be removed from team')
             if review_users.filter_by(id=user_id).one_or_none() is not None:
                 review_users.remove(user)
         if test is False:
