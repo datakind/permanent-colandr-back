@@ -4,8 +4,9 @@
     - [x] write engineering environment setup guide
     - [ ] contribute to app usage guide, as needed
 - **Backend Engineering**
-    - [ ] finalize database models
-    - [ ] finish implementing schema validation
+    - [x] finalize database models
+    - [x] finish implementing schema validation
+    - [ ] except: figure out data extraction models and validation
 - **API**
     - users
         - [x] user authentication
@@ -19,27 +20,26 @@
         - [x] get all reviews owned or collaborated on by current user
         - [x] delete an existing review, with owner privileges
         - [x] update an existing review, with owner privileges
+        - [x] manage the collaborators and change the owner of a review, with owner privileges
     - review plans
         - [x] create a new review plan for existing review, with review owner privileges
         - [x] get an existing review plan, with review collaborator privileges
         - [x] update an existing review plan, with review owner privileges
         - [x] delete an existing review plan, with review owner privileges
         - [ ] suggest good/bad key terms based on included/excluded citations
-    - studies
-        - [ ] get summary for status of all studies, e.g. for "review progress bar"
-        - [ ] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations
-        - [ ] update screening status of citation, for each reviewer, and correctly flag conflicts
-        - [ ] update screning status of fulltext, for each reviewer, and correctly flag conflicts
-        - [ ] enable mass screening status update (?)
     - citations
-        - [x] higher-level filtering options, e.g. to-be-screened or is-duplicate
+        - [x] upload batches of citations via POST'd files, with ability to preemptively set status of all citations in batch (and skip the screening process)
+        - [x] get counts by status of all citations to show "review progress"
+        - [ ] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations; must be asynchronous
+        - [x] add a citation screening for a reviewer, updating status according to review settings and other screenings, and correctly flag conflicts
+        - [x] get collections of citations with a variety of filtering options, e.g. to-be-screened-by-current-user, is-duplicate, has-tag, matches-search-string, ...
+        - [ ] enable mass screening status update (?)
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
-        - [x] upload citation files via HTTP POST
         - [ ] add individual citation, manually entered via HTTP POST (?)
-        - [ ] link citation to PDF file uploaded by user
     - fulltexts
         - [ ] facilitate uploads of pdfs and storage on server in standardized form
         - [ ] the rest TBD depending on Sam A's input
+        - [ ] link citation to PDF file uploaded by user
     - error handling
         - [x] define custom exceptions and raise them appropriately
     - documentation
