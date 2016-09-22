@@ -84,7 +84,7 @@ class User(db.Model):
         try:
             data = s.loads(token)
         except (SignatureExpired, BadSignature):
-            return None  # valid token, but expired OR invalid token
+            return None  # valid token, but expired
         return db.session.query(User).get(data['id'])
 
 
@@ -235,7 +235,8 @@ class Citation(db.Model):
     issn = db.Column(db.Unicode(length=20))
     publisher = db.Column(db.Unicode(length=100))
     language = db.Column(db.Unicode(length=50))
-    other_fields = db.Column(postgresql.JSONB(none_as_null=True))
+    other_fields = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
     review = db.relationship(
@@ -248,13 +249,14 @@ class Citation(db.Model):
         'CitationScreening', back_populates='citation',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, review_id,
+    def __init__(self, review_id, status=None,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
                  pub_year=None, pub_month=None, authors=None, keywords=None,
                  type_of_reference=None, journal_name=None, volume=None,
                  issue_number=None, doi=None, issn=None, publisher=None,
                  language=None, other_fields=None):
         self.review_id = review_id
+        self.status = status
         self.type_of_work = type_of_work
         self.title = title
         self.secondary_title = secondary_title

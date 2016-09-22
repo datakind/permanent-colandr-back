@@ -1,6 +1,4 @@
 from flask import jsonify
-# from app.exceptions import ValidationError
-# from . import api
 
 
 def bad_request(message):
@@ -21,6 +19,13 @@ def forbidden(message):
     return response
 
 
-# @api.errorhandler(ValidationError)
-# def validation_error(e):
-#     return bad_request(e.args[0])
+def validation(message):
+    response = jsonify({'error': 'validation', 'message': message})
+    response.status_code = 422
+    return response
+
+
+def no_data_found(message):
+    response = jsonify({'error': 'no data found', 'message': message})
+    response.status_code = 404
+    return response

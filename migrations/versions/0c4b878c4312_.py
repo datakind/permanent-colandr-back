@@ -1,13 +1,13 @@
 """empty message
 
-Revision ID: edca8f07e6fb
+Revision ID: 0c4b878c4312
 Revises: None
-Create Date: 2016-09-11 16:25:58.925801
+Create Date: 2016-09-21 19:42:33.382439
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'edca8f07e6fb'
+revision = '0c4b878c4312'
 down_revision = None
 
 from alembic import op
@@ -28,7 +28,7 @@ def upgrade():
     op.create_table('reviews',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"), nullable=True),
-    sa.Column('owner_user_id', sa.Integer(), nullable=True),
+    sa.Column('owner_user_id', sa.Integer(), nullable=False),
     sa.Column('name', sa.Unicode(length=500), nullable=False),
     sa.Column('description', sa.UnicodeText(), nullable=True),
     sa.Column('status', sa.Unicode(length=25), server_default='active', nullable=False),
@@ -41,11 +41,9 @@ def upgrade():
     op.create_table('citations',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"), nullable=True),
-    sa.Column('review_id', sa.Integer(), nullable=True),
-    sa.Column('status', sa.Unicode(length=20), server_default='pending', nullable=False),
-    sa.Column('exclude_reasons', postgresql.ARRAY(sa.Unicode(length=25)), server_default='{}', nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=False),
+    sa.Column('status', sa.Unicode(length=20), server_default='not_screened', nullable=False),
     sa.Column('deduplication', postgresql.JSONB(none_as_null=True), server_default='{}', nullable=True),
-    sa.Column('screening', postgresql.JSONB(none_as_null=True), server_default='{}', nullable=True),
     sa.Column('tags', postgresql.ARRAY(sa.Unicode(length=25)), server_default='{}', nullable=True),
     sa.Column('type_of_work', sa.Unicode(length=25), nullable=True),
     sa.Column('title', sa.Unicode(length=250), server_default='unknown', nullable=False),
@@ -63,7 +61,7 @@ def upgrade():
     sa.Column('issn', sa.Unicode(length=20), nullable=True),
     sa.Column('publisher', sa.Unicode(length=100), nullable=True),
     sa.Column('language', sa.Unicode(length=50), nullable=True),
-    sa.Column('other_fields', postgresql.JSONB(none_as_null=True), nullable=True),
+    sa.Column('other_fields', postgresql.JSONB(none_as_null=True), server_default='{}', nullable=True),
     sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -72,7 +70,7 @@ def upgrade():
     op.create_index(op.f('ix_citations_tags'), 'citations', ['tags'], unique=False)
     op.create_table('review_plans',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('review_id', sa.Integer(), nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=False),
     sa.Column('objective', sa.UnicodeText(), nullable=True),
     sa.Column('research_questions', postgresql.ARRAY(sa.Unicode(length=300)), server_default='{}', nullable=True),
     sa.Column('pico', postgresql.JSONB(none_as_null=True), server_default='{}', nullable=True),
@@ -82,7 +80,7 @@ def upgrade():
     sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index(op.f('ix_review_plans_review_id'), 'review_plans', ['review_id'], unique=False)
+    op.create_index(op.f('ix_review_plans_review_id'), 'review_plans', ['review_id'], unique=True)
     op.create_table('users_to_reviews',
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('review_id', sa.Integer(), nullable=True),
@@ -91,29 +89,78 @@ def upgrade():
     )
     op.create_index(op.f('ix_users_to_reviews_review_id'), 'users_to_reviews', ['review_id'], unique=False)
     op.create_index(op.f('ix_users_to_reviews_user_id'), 'users_to_reviews', ['user_id'], unique=False)
+    op.create_table('citation_screenings',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"), nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('citation_id', sa.BigInteger(), nullable=False),
+    sa.Column('status', sa.Unicode(length=20), nullable=False),
+    sa.Column('exclude_reasons', postgresql.ARRAY(sa.Unicode(length=25)), nullable=True),
+    sa.ForeignKeyConstraint(['citation_id'], ['citations.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('review_id', 'user_id', 'citation_id', name='review_user_citation_uc')
+    )
+    op.create_index(op.f('ix_citation_screenings_citation_id'), 'citation_screenings', ['citation_id'], unique=False)
+    op.create_index(op.f('ix_citation_screenings_review_id'), 'citation_screenings', ['review_id'], unique=False)
+    op.create_index(op.f('ix_citation_screenings_status'), 'citation_screenings', ['status'], unique=False)
+    op.create_index(op.f('ix_citation_screenings_user_id'), 'citation_screenings', ['user_id'], unique=False)
     op.create_table('fulltexts',
     sa.Column('id', sa.BigInteger(), nullable=False),
     sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"), nullable=True),
-    sa.Column('citation_id', sa.BigInteger(), nullable=True),
-    sa.Column('status', sa.Unicode(length=20), server_default='pending', nullable=False),
-    sa.Column('exclude_reasons', postgresql.ARRAY(sa.Unicode(length=25)), server_default='{}', nullable=True),
-    sa.Column('screening', postgresql.JSONB(none_as_null=True), server_default='{}', nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=False),
+    sa.Column('citation_id', sa.BigInteger(), nullable=False),
+    sa.Column('status', sa.Unicode(length=20), server_default='not_screened', nullable=False),
     sa.Column('content', sa.UnicodeText(), nullable=False),
     sa.Column('filename', sa.UnicodeText(), nullable=True),
     sa.Column('extracted_info', postgresql.JSONB(none_as_null=True), nullable=True),
     sa.ForeignKeyConstraint(['citation_id'], ['citations.id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('filename')
     )
-    op.create_index(op.f('ix_fulltexts_citation_id'), 'fulltexts', ['citation_id'], unique=False)
+    op.create_index(op.f('ix_fulltexts_citation_id'), 'fulltexts', ['citation_id'], unique=True)
+    op.create_index(op.f('ix_fulltexts_review_id'), 'fulltexts', ['review_id'], unique=False)
     op.create_index(op.f('ix_fulltexts_status'), 'fulltexts', ['status'], unique=False)
+    op.create_table('fulltext_screenings',
+    sa.Column('id', sa.BigInteger(), nullable=False),
+    sa.Column('created_at', sa.TIMESTAMP(), server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"), nullable=True),
+    sa.Column('review_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('fulltext_id', sa.BigInteger(), nullable=False),
+    sa.Column('status', sa.Unicode(length=20), nullable=False),
+    sa.Column('exclude_reasons', postgresql.ARRAY(sa.Unicode(length=25)), nullable=True),
+    sa.ForeignKeyConstraint(['fulltext_id'], ['fulltexts.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['review_id'], ['reviews.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='SET NULL'),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('review_id', 'user_id', 'fulltext_id', name='review_user_fulltext_uc')
+    )
+    op.create_index(op.f('ix_fulltext_screenings_fulltext_id'), 'fulltext_screenings', ['fulltext_id'], unique=False)
+    op.create_index(op.f('ix_fulltext_screenings_review_id'), 'fulltext_screenings', ['review_id'], unique=False)
+    op.create_index(op.f('ix_fulltext_screenings_status'), 'fulltext_screenings', ['status'], unique=False)
+    op.create_index(op.f('ix_fulltext_screenings_user_id'), 'fulltext_screenings', ['user_id'], unique=False)
     ### end Alembic commands ###
 
 
 def downgrade():
     ### commands auto generated by Alembic - please adjust! ###
+    op.drop_index(op.f('ix_fulltext_screenings_user_id'), table_name='fulltext_screenings')
+    op.drop_index(op.f('ix_fulltext_screenings_status'), table_name='fulltext_screenings')
+    op.drop_index(op.f('ix_fulltext_screenings_review_id'), table_name='fulltext_screenings')
+    op.drop_index(op.f('ix_fulltext_screenings_fulltext_id'), table_name='fulltext_screenings')
+    op.drop_table('fulltext_screenings')
     op.drop_index(op.f('ix_fulltexts_status'), table_name='fulltexts')
+    op.drop_index(op.f('ix_fulltexts_review_id'), table_name='fulltexts')
     op.drop_index(op.f('ix_fulltexts_citation_id'), table_name='fulltexts')
     op.drop_table('fulltexts')
+    op.drop_index(op.f('ix_citation_screenings_user_id'), table_name='citation_screenings')
+    op.drop_index(op.f('ix_citation_screenings_status'), table_name='citation_screenings')
+    op.drop_index(op.f('ix_citation_screenings_review_id'), table_name='citation_screenings')
+    op.drop_index(op.f('ix_citation_screenings_citation_id'), table_name='citation_screenings')
+    op.drop_table('citation_screenings')
     op.drop_index(op.f('ix_users_to_reviews_user_id'), table_name='users_to_reviews')
     op.drop_index(op.f('ix_users_to_reviews_review_id'), table_name='users_to_reviews')
     op.drop_table('users_to_reviews')

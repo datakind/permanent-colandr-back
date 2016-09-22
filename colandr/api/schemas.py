@@ -106,18 +106,6 @@ class ReviewPlanSchema(Schema):
         strict = True
 
 
-# class Screening(Schema):
-#     status = fields.Str(
-#         validate=OneOf(['included', 'excluded']))
-#     exclude_reasons = fields.List(
-#         fields.Str(validate=Length(max=25)), missing=None)
-#     user_id = fields.Int(
-#         missing=None, validate=Range(min=1, max=constants.MAX_INT))
-#
-#     class Meta:
-#         strict = True
-
-
 class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
@@ -204,8 +192,8 @@ class CitationSchema(Schema):
     other_fields = fields.Dict()
 
     non_other_fields = {
-        'id', 'created_at', 'review_id', 'status', 'exclude_reasons',
-        'deduplication', 'screening', 'tags', 'type_of_work', 'title',
+        'id', 'created_at', 'review_id', 'status',
+        'deduplication', 'tags', 'type_of_work', 'title',  # screenings
         'secondary_title', 'abstract', 'pub_year', 'pub_month', 'authors',
         'keywords', 'type_of_reference', 'journal_name', 'volume', 'issue_number',
         'doi', 'issn', 'publisher', 'language'}
@@ -232,7 +220,7 @@ class FulltextSchema(Schema):
     citation_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
     status = fields.Str(
-        validate=OneOf(['pending', 'screened_once', 'screened_twice',
+        validate=OneOf(['not_screened', 'screened_once', 'screened_twice',
                         'included', 'excluded', 'conflict']))
     filename = fields.Str()
     content = fields.Str(

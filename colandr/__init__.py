@@ -12,7 +12,7 @@ from .api.review_plans import ReviewPlanResource
 from .api.review_teams import ReviewTeamResource
 from .api.review_progress import ReviewProgressResource
 from .api.citations import CitationResource, CitationsResource
-from .api.screenings import CitationScreeningResource, CitationScreeningsResource
+from .api.screenings import CitationScreeningsResource, CitationsScreeningsResource
 from .api.authentication import AuthTokenResource
 
 
@@ -39,7 +39,7 @@ def create_app(config_name):
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
     api.add_resource(CitationsResource, '/citations')
     api.add_resource(CitationResource, '/citations/<int:id>')
-    api.add_resource(CitationScreeningsResource, '/citations/screenings')
-    api.add_resource(CitationScreeningResource, '/citations/screenings/<int:id>')
+    api.add_resource(CitationsScreeningsResource, '/citations/screenings')
+    api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')
 
     return app

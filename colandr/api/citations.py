@@ -1,8 +1,7 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc, and_, or_
-from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy import asc, desc, or_
 from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
@@ -14,7 +13,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from ..lib import constants
 from ..lib.parsers import BibTexFile, RisFile
 from ..models import db, Citation, Review
-from .errors import unauthorized
+from .errors import no_data_found, unauthorized, validation
 from .schemas import CitationSchema
 from .authentication import auth
 
@@ -25,16 +24,16 @@ class CitationResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'citation_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_BIGINT)),
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
-    def get(self, citation_id, fields):
-        citation = db.session.query(Citation).get(citation_id)
+    def get(self, id, fields):
+        citation = db.session.query(Citation).get(id)
         if not citation:
-            raise NoResultFound
+            return no_data_found('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this citation'.format(g.current_user))
@@ -42,15 +41,15 @@ class CitationResource(Resource):
 
     @swagger.operation()
     @use_kwargs({
-        'citation_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_BIGINT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def delete(self, citation_id, test):
-        citation = db.session.query(Citation).get(citation_id)
+    def delete(self, id, test):
+        citation = db.session.query(Citation).get(id)
         if not citation:
-            raise NoResultFound
+            return no_data_found('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to delete this citation'.format(g.current_user))
@@ -61,15 +60,15 @@ class CitationResource(Resource):
     @swagger.operation()
     @use_args(CitationSchema(partial=True))
     @use_kwargs({
-        'citation_id': ma_fields.Int(
+        'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_BIGINT)),
         'test': ma_fields.Boolean(missing=False)
         })
-    def put(self, args, citation_id, test):
-        citation = db.session.query(Citation).get(citation_id)
+    def put(self, args, id, test):
+        citation = db.session.query(Citation).get(id)
         if not citation:
-            raise NoResultFound
+            return no_data_found('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to delete this citation'.format(g.current_user))
@@ -115,10 +114,11 @@ class CitationsResource(Resource):
             order_by, order_dir, per_page, page):
         review = db.session.query(Review).get(review_id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
-                '{} not authorized to get citations from this review'.format(g.current_user))
+                '{} not authorized to get citations from this review'.format(
+                    g.current_user))
         # build the query by components
         query = review.citations
         # filters
@@ -164,7 +164,7 @@ class CitationsResource(Resource):
     def post(self, uploaded_file, review_id, status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to add citations to this review'.format(g.current_user))
@@ -174,7 +174,7 @@ class CitationsResource(Resource):
         elif fname.endswith('.ris') or fname.endswith('.txt'):
             citations_file = RisFile(uploaded_file.stream)
         else:
-            raise TypeError()
+            return validation('unknown file type: "{}"'.format(fname))
         citation_schema = CitationSchema()
         citations_to_insert = []
         for record in citations_file.parse():
