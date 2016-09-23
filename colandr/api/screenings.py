@@ -185,16 +185,18 @@ class CitationsScreeningsResource(Resource):
     @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
     @use_kwargs({
         'review_id': ma_fields.Int(
+            location='query',
             missing=None, validate=Range(min=1, max=constants.MAX_INT)),
-        'test': ma_fields.Boolean(missing=False)
+        'test': ma_fields.Boolean(
+            location='query', missing=False)
         })
     def post(self, args, review_id, test):
         # check current user authorization
-        review = db.session.query(Review).get(args['review_id'])
+        review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found(
                 '<Review(id={})> not found'.format(review_id))
-        if g.current_user.reviews.filter_by(id=args['review_id']).one_or_none() is None:
+        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to screen citations for {}'.format(
                     g.current_user, review))

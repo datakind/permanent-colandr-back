@@ -29,7 +29,7 @@ class ReviewPlanResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
-        review = db.sessionquery(Review).get(id)
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
@@ -46,7 +46,7 @@ class ReviewPlanResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
-        review = db.sessionquery(Review).get(id)
+        review = db.session.query(Review).get(id)
         if not review:
             raise NoResultFound
         if review.owner is not g.current_user:

@@ -1,14 +1,10 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc, and_, or_
 from sqlalchemy.orm.exc import NoResultFound
-# from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
-# from webargs import missing
-# from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
 from ..lib import constants
