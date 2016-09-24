@@ -16,8 +16,10 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     LOGGER_NAME = 'colandr-api'
     JSON_AS_ASCII = False
-    FULLTEXT_UPLOAD_FOLDER = '~/colandr/uploads'
-    ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'txt', 'pdf'}
+    FULLTEXT_UPLOAD_FOLDER = os.path.join(
+        os.environ.get('HOME') or os.path.expanduser('~/'),
+        'colandr/fulltexts/uploads')
+    ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     # MAIL_SERVER = 'smtp.googlemail.com'
     # MAIL_PORT = 587
     # MAIL_USE_TLS = True

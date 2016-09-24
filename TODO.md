@@ -37,9 +37,9 @@
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
         - [ ] add individual citation, manually entered via HTTP POST (?)
     - fulltexts
-        - [ ] facilitate uploads of pdfs and storage on server in standardized form
+        - [x] facilitate uploads of pdfs and storage on server in standardized form
         - [ ] the rest TBD depending on Sam A's input
-        - [ ] link citation to PDF file uploaded by user
+        - [x] link citation to PDF file uploaded by user
     - error handling
         - [x] define custom exceptions and raise them appropriately
     - documentation

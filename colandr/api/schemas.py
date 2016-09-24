@@ -222,9 +222,9 @@ class FulltextSchema(Schema):
     status = fields.Str(
         validate=OneOf(['not_screened', 'screened_once', 'screened_twice',
                         'included', 'excluded', 'conflict']))
-    filename = fields.Str()
-    content = fields.Str(
+    filename = fields.Str(
         required=True)
+    content = fields.Str()
     extracted_info = fields.Dict()
 
     class Meta:
