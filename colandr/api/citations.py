@@ -1,7 +1,7 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc, or_
+from sqlalchemy import asc, desc
 from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
@@ -71,7 +71,7 @@ class CitationResource(Resource):
             return no_data_found('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
-                '{} not authorized to delete this citation'.format(g.current_user))
+                '{} not authorized to modify this citation'.format(g.current_user))
         for key, value in args.items():
             if key is missing:
                 continue
@@ -132,8 +132,7 @@ class CitationsResource(Resource):
         if tag:
             query = query.filter(Citation.tags.any(tag, operator=operators.eq))
         if tsquery:
-            query = query.filter(or_(Citation.title.match(tsquery),
-                                     Citation.abstract.match(tsquery)))
+            query = query.filter(Citation.text_content.match(tsquery))
         # order, offset, and limit
         order_by = Citation.id if order_by == 'recency' else Citation.id  # TODO: NLP!
         order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)

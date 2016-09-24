@@ -5,6 +5,7 @@ from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
 from sqlalchemy import text, ForeignKey
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from . import db
 
@@ -237,6 +238,14 @@ class Citation(db.Model):
     language = db.Column(db.Unicode(length=50))
     other_fields = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
+
+    @hybrid_property
+    def text_content(self):
+        return '\n\n'.join((self.title or '', self.abstract or '')).strip()
+
+    @text_content.expression
+    def text_content(self):
+        return db.func.concat_ws('\n\n', self.title, self.abstract)
 
     # relationships
     review = db.relationship(

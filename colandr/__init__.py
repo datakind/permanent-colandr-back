@@ -15,7 +15,7 @@ from .api.review_teams import ReviewTeamResource
 from .api.review_progress import ReviewProgressResource
 from .api.citations import CitationResource, CitationsResource
 from .api.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
-from .api.fulltexts import FulltextsResource
+from .api.fulltexts import FulltextResource, FulltextsResource
 from .api.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.authentication import AuthTokenResource
 
@@ -47,6 +47,7 @@ def create_app(config_name):
     api.add_resource(CitationsScreeningsResource, '/citations/screenings')
     api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')
     api.add_resource(FulltextsResource, '/fulltexts')
+    api.add_resource(FulltextResource, '/fulltexts/<int:id>')
     api.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
     api.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
 

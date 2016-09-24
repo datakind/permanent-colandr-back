@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import sys
 
 from colandr import config, create_app, db
@@ -17,6 +18,7 @@ def main():
     with app.app_context():
         db.drop_all()
         db.create_all()
+        shutil.rmtree(app.config['FULLTEXT_UPLOAD_FOLDER'])
 
 
 if __name__ == '__main__':

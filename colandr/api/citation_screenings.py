@@ -1,3 +1,6 @@
+import logging
+from operator import itemgetter
+
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
@@ -172,6 +175,7 @@ class CitationsScreeningsResource(Resource):
             location='query', missing=False)
         })
     def post(self, args, review_id, test):
+        logging.warning('the "citations/screenings" endpoint is for dev use only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)
         if not review:
@@ -188,14 +192,17 @@ class CitationsScreeningsResource(Resource):
             screening['review_id'] = review_id
             screening['user_id'] = user_id
             screenings_to_insert.append(screening)
+        screenings_to_insert = sorted(
+            screenings_to_insert, key=itemgetter('citation_id'))
         if test is False:
             db.session.bulk_insert_mappings(
                 CitationScreening, screenings_to_insert)
         # bulk update citation statuses
         num_screeners = review.num_citation_screening_reviewers
         citations_to_update = []
-        for screening in screenings_to_insert:
-            citation = db.session.query(Citation).get(screening['citation_id'])
+        citations = db.session.query(Citation)\
+            .filter(Citation.id.in_([s['citation_id'] for s in screenings_to_insert]))
+        for citation in citations:
             status = assign_status(
                 citation.screenings.all(), num_screeners)
             citations_to_update.append(
