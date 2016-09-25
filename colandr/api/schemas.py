@@ -229,6 +229,8 @@ class FulltextSchema(Schema):
     screenings = fields.Nested(
         ScreeningSchema, many=True)
     extracted_info = fields.Dict()
+    citation = fields.Nested(
+        CitationSchema)
 
     class Meta:
         strict = True

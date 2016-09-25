@@ -1,7 +1,7 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
@@ -128,9 +128,37 @@ class CitationsResource(Resource):
             if status in ('conflict', 'excluded', 'included'):
                 query = query.filter(Citation.status == status)
             elif status == 'pending':
-                raise NotImplementedError('working on it')
+                sql_query = """
+                    SELECT t.id
+                    FROM (SELECT citations.id, citations.status, screenings.user_ids
+                          FROM citations
+                          LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
+                                     FROM citation_screenings
+                                     GROUP BY citation_id
+                                     ) AS screenings
+                          ON citations.id = screenings.citation_id
+                          ) AS t
+                    WHERE
+                        t.status = 'not_screened'
+                        OR NOT {user_id} = ANY(t.user_ids)
+                    """.format(user_id=g.current_user.id)
+                query = query.filter(Citation.id.in_(text(sql_query)))
             elif status == 'awaiting_coscreener':
-                raise NotImplementedError('working on it')
+                sql_query = """
+                    SELECT t.id
+                    FROM (SELECT citations.id, citations.status, screenings.user_ids
+                          FROM citations
+                          LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
+                                     FROM citation_screenings
+                                     GROUP BY citation_id
+                                     ) AS screenings
+                          ON citations.id = screenings.citation_id
+                          ) AS t
+                    WHERE
+                        t.status IN ('screened_once', 'screened_twice')
+                        AND {user_id} = ANY(t.user_ids)
+                    """.format(user_id=g.current_user.id)
+                query = query.filter(Citation.id.in_(text(sql_query)))
         if tag:
             query = query.filter(Citation.tags.any(tag, operator=operators.eq))
         if tsquery:
@@ -140,17 +168,9 @@ class CitationsResource(Resource):
         order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)
         query = query.order_by(order_by)
         query = query.offset(page * per_page).limit(per_page)
-        # get particular columns or full citations
-        if fields:
-            if 'id' not in fields:
-                fields.append('id')
-            fields = sorted(fields)
-            query = query.with_entities(*[getattr(Citation, field) for field in fields])
-            results = [{field: value for field, value in zip(fields, row)}
-                       for row in query]
-        else:
-            results = query.all()
-        return CitationSchema(many=True).dump(results).data
+        if fields and 'id' not in fields:
+            fields.append('id')
+        return CitationSchema(many=True, only=fields).dump(query.all()).data
 
     @swagger.operation()
     @use_kwargs({
