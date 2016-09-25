@@ -76,6 +76,8 @@ class FulltextResource(Resource):
         for key, value in args.items():
             if key is missing:
                 continue
+            elif key == 'status':
+                return forbidden('fulltext status can not be updated manually')
             else:
                 setattr(fulltext, key, value)
         if test is False:

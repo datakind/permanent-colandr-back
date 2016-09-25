@@ -120,6 +120,28 @@ class Deduplication(Schema):
         strict = True
 
 
+class ScreeningSchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    citation_id = fields.Int(
+        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
+    fulltext_id = fields.Int(
+        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
+    status = fields.Str(
+        validate=OneOf(['included', 'excluded']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), missing=None)
+
+    class Meta:
+        strict = True
+
+
 from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
 
 
@@ -190,6 +212,8 @@ class CitationSchema(Schema):
     language = fields.Str(
         validate=Length(max=50))
     other_fields = fields.Dict()
+    screenings = fields.Nested(
+        ScreeningSchema, many=True)
 
     non_other_fields = {
         'id', 'created_at', 'review_id', 'status',
@@ -225,29 +249,9 @@ class FulltextSchema(Schema):
     filename = fields.Str(
         required=True)
     content = fields.Str()
+    screenings = fields.Nested(
+        ScreeningSchema, many=True)
     extracted_info = fields.Dict()
-
-    class Meta:
-        strict = True
-
-
-class ScreeningSchema(Schema):
-    id = fields.Int(
-        dump_only=True)
-    created_at = fields.DateTime(
-        dump_only=True, format='iso')
-    review_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    user_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    citation_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
-    fulltext_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
-    status = fields.Str(
-        validate=OneOf(['included', 'excluded']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)), missing=None)
 
     class Meta:
         strict = True

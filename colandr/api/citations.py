@@ -12,8 +12,8 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ..lib import constants
 from ..lib.parsers import BibTexFile, RisFile
-from ..models import db, Citation, Review
-from .errors import no_data_found, unauthorized, validation
+from ..models import db, Citation, Fulltext, Review
+from .errors import forbidden, no_data_found, unauthorized, validation
 from .schemas import CitationSchema
 from .authentication import auth
 
@@ -75,6 +75,8 @@ class CitationResource(Resource):
         for key, value in args.items():
             if key is missing:
                 continue
+            elif key == 'status':
+                return forbidden('citation status can not be updated manually')
             else:
                 setattr(citation, key, value)
         if test is False:
@@ -176,11 +178,17 @@ class CitationsResource(Resource):
             return validation('unknown file type: "{}"'.format(fname))
         citation_schema = CitationSchema()
         citations_to_insert = []
+        fulltexts_to_insert = []
         for record in citations_file.parse():
             record['review_id'] = review_id
             if status:
                 record['status'] = status
+                if status == 'included':
+                    fulltexts_to_insert.append(
+                        Fulltext(record['review_id'], record['citation_id']))
             citation_data = citation_schema.load(record).data
             citations_to_insert.append(Citation(**citation_data))
         if test is False:
             db.session.bulk_save_objects(citations_to_insert)
+            if status == 'included':
+                db.session.bulk_save_objects(fulltexts_to_insert)

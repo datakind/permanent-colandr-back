@@ -1,13 +1,15 @@
 import bcrypt
+import logging
 
 from flask import current_app
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
-from sqlalchemy import text, ForeignKey
+from sqlalchemy import event, text, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from . import db
+from .api.utils import assign_status
 
 
 # association table for users-reviews many-to-many relationship
@@ -253,7 +255,7 @@ class Citation(db.Model):
         lazy='select')
     fulltext = db.relationship(
         'Fulltext', uselist=False, back_populates='citation',
-        lazy='select', passive_deletes=True)
+        lazy='joined', passive_deletes=True)
     screenings = db.relationship(
         'CitationScreening', back_populates='citation',
         lazy='dynamic', passive_deletes=True)
@@ -308,7 +310,7 @@ class Fulltext(db.Model):
         db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
     filename = db.Column(
-        db.Unicode(length=30), unique=True, nullable=False)
+        db.Unicode(length=30), unique=True, nullable=True)
     content = db.Column(
         db.UnicodeText, nullable=True)
     extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
@@ -319,16 +321,16 @@ class Fulltext(db.Model):
         lazy='select')
     citation = db.relationship(
         'Citation', foreign_keys=[citation_id], back_populates='fulltext',
-        lazy='subquery')
+        lazy='joined')
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, review_id, citation_id, filename, content=None):
+    def __init__(self, review_id, citation_id, filename=None, content=None):
         self.review_id = review_id
         self.citation_id = citation_id
-        self.content = content
         self.filename = filename
+        self.content = content
 
     def __repr__(self):
         return "<Fulltext(citation_id={})>".format(self.citation_id)
@@ -436,3 +438,63 @@ class FulltextScreening(db.Model):
 
     def __repr__(self):
         return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
+
+
+# events for automatic updating of citation status and insertion/deletion
+# of accompanying fulltexts
+
+@event.listens_for(CitationScreening, 'after_insert')
+def update_citation_status(mapper, connection, target):
+    citation_id = target.citation_id
+    citation = db.session.query(Citation).get(citation_id)
+    citation.status = assign_status(
+        db.session.query(CitationScreening).filter_by(citation_id=citation_id).all(),
+        target.citation.review.num_citation_screening_reviewers)
+    logging.warning('{} inserted for {}, status = {}'.format(
+        target, citation, citation.status))
+    if citation.status == 'included' and citation.fulltext is None:
+        with connection.begin() as transaction:
+            result = connection.execute(
+                db.insert(Fulltext).values(
+                    citation_id=citation.id, review_id=citation.review_id))
+            logging.warning('inserted <Fulltext(citation_id={})>'.format(
+                citation_id))
+
+
+@event.listens_for(CitationScreening, 'after_delete')
+def update_citation_status(mapper, connection, target):
+    citation_id = target.citation_id
+    citation = db.session.query(Citation).get(citation_id)
+    citation.status = assign_status(
+        db.session.query(CitationScreening).filter_by(citation_id=citation_id).all(),
+        target.citation.review.num_citation_screening_reviewers)
+    logging.warning('{} deleted for {}, status = {}'.format(
+        target, citation, citation.status))
+    if citation.status != 'included' and citation.fulltext is not None:
+        with connection.begin() as transaction:
+            result = connection.execute(
+                db.delete(Fulltext).where(Fulltext.citation_id == citation_id))
+            logging.warning('removed <Fulltext(citation_id={})>'.format(
+                citation_id))
+
+
+@event.listens_for(FulltextScreening, 'after_insert')
+def update_fulltext_status(mapper, connection, target):
+    fulltext_id = target.fulltext_id
+    fulltext = db.session.query(Fulltext).get(fulltext_id)
+    fulltext.status = assign_status(
+        db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id).all(),
+        target.fulltext.review.num_fulltext_screening_reviewers)
+    logging.warning('{} inserted for {}, status = {}'.format(
+        target, fulltext, fulltext.status))
+
+
+@event.listens_for(FulltextScreening, 'after_delete')
+def update_fulltext_status(mapper, connection, target):
+    fulltext_id = target.fulltext_id
+    fulltext = db.session.query(Fulltext).get(fulltext_id)
+    fulltext.status = assign_status(
+        db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id).all(),
+        target.fulltext.review.num_fulltext_screening_reviewers)
+    logging.warning('{} deleted for {}, status = {}'.format(
+        target, fulltext, fulltext.status))

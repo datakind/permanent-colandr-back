@@ -1,3 +1,7 @@
+import itertools
+import logging
+from operator import attrgetter
+
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
@@ -59,8 +63,6 @@ class FulltextScreeningsResource(Resource):
             return forbidden('{} has not screened {}, so nothing to delete'.format(
                 g.current_user, fulltext))
         db.session.delete(screening)
-        fulltext.status = assign_status(
-            fulltext.screenings.all(), fulltext.review.num_fulltext_screening_reviewers)
         if test is False:
             db.session.commit()
         else:
@@ -94,8 +96,6 @@ class FulltextScreeningsResource(Resource):
                 g.current_user, fulltext))
         if test is False:
             fulltext.screenings.append(screening)
-            fulltext.status = assign_status(
-                fulltext.screenings.all(), fulltext.review.num_fulltext_screening_reviewers)
             db.session.commit()
         else:
             db.session.rollback()
@@ -193,13 +193,13 @@ class FulltextsScreeningsResource(Resource):
                 FulltextScreening, screenings_to_insert)
         # bulk update fulltext statuses
         num_screeners = review.num_fulltext_screening_reviewers
-        fulltexts_to_update = []
-        for screening in screenings_to_insert:
-            fulltext = db.session.query(Fulltext).get(screening['fulltext_id'])
-            status = assign_status(
-                fulltext.screenings.all(), num_screeners)
-            fulltexts_to_update.append(
-                {'id': screening['fulltext_id'], 'status': status})
+        fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
+        results = db.session.query(FulltextScreening)\
+            .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
+        fulltexts_to_update = [
+            {'id': fid, 'status': assign_status(list(scrns), num_screeners)}
+            for fid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
+            ]
         if test is False:
             db.session.bulk_update_mappings(
                 Fulltext, fulltexts_to_update)
