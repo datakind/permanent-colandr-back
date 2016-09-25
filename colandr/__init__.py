@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_restful import Api
 from flask_restful_swagger import swagger
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 
 from .config import config
+from .api.errors import no_data_found
 from .api.users import UserResource, UsersResource
 from .api.reviews import ReviewResource, ReviewsResource
 from .api.review_plans import ReviewPlanResource
@@ -52,5 +53,19 @@ def create_app(config_name):
     api.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
     api.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
     api.add_resource(FulltextUploadResource, '/fulltexts/<int:id>/upload')
+
+    @app.route('/fulltexts/<id>/upload', methods=['GET'])
+    def get_uploaded_fulltext_file(id):
+        filename = None
+        upload_dir = app.config['FULLTEXT_UPLOAD_FOLDER']
+        for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
+            fname = '{}{}'.format(id, ext)
+            if os.path.isfile(os.path.join(upload_dir, fname)):
+                filename = fname
+                break
+        if not filename:
+            return no_data_found(
+                'no uploaded file for <Fulltext(id={})> found'.format(id))
+        return send_from_directory(upload_dir, filename)
 
     return app

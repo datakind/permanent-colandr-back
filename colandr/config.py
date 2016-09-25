@@ -11,7 +11,7 @@ class Config(object):
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_ECHO = False  # True
+    SQLALCHEMY_ECHO = False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     LOGGER_NAME = 'colandr-api'
@@ -20,6 +20,7 @@ class Config(object):
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
+    MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20MB file upload limit
     # MAIL_SERVER = 'smtp.googlemail.com'
     # MAIL_PORT = 587
     # MAIL_USE_TLS = True
@@ -50,6 +51,7 @@ class TestingConfig(Config):
     TESTING = True
     # TODO: use different databases for difference configs?
     SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
+    SQLALCHEMY_ECHO = True
 
 
 class ProductionConfig(Config):

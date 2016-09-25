@@ -1,6 +1,6 @@
 import os
 
-from flask import current_app, g
+from flask import current_app, g, send_from_directory
 from flask_restful import Resource
 from flask_restful_swagger import swagger
 
