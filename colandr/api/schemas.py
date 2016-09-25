@@ -2,6 +2,7 @@ from marshmallow import Schema, fields, pre_load
 from marshmallow.validate import Email, Length, OneOf, Range
 
 from ..lib import constants
+from ..lib.sanitizers import CITATION_FIELD_SANITIZERS, sanitize_type
 
 
 class UserSchema(Schema):
@@ -142,30 +143,6 @@ class ScreeningSchema(Schema):
         strict = True
 
 
-from cipy.validation.sanitizers import sanitize_integer, sanitize_string, sanitize_type
-
-
-FIELD_SANITIZERS = {
-    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=constants.MAX_INT),
-    'type_of_work': lambda x: sanitize_string(x, max_length=25),
-    'title': lambda x: sanitize_string(x, max_length=250),
-    'secondary_title': lambda x: sanitize_string(x, max_length=250),
-    'abstract': sanitize_string,
-    'pub_year': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
-    'pub_month': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
-    'authors': lambda x: [sanitize_string(item, max_length=100) for item in x],
-    'keywords': lambda x: [sanitize_string(item, max_length=100) for item in x],
-    'type_of_reference': lambda x: sanitize_string(x, max_length=50),
-    'journal_name': lambda x: sanitize_string(x, max_length=100),
-    'volume': lambda x: sanitize_string(x, max_length=20),
-    'issue_number': lambda x: sanitize_string(x, max_length=20),
-    'doi': lambda x: sanitize_string(x, max_length=100),
-    'issn': lambda x: sanitize_string(x, max_length=20),
-    'publisher': lambda x: sanitize_string(x, max_length=100),
-    'language': lambda x: sanitize_string(x, max_length=50)
-    }
-
-
 class CitationSchema(Schema):
     id = fields.Int(
         dump_only=True)
@@ -227,7 +204,7 @@ class CitationSchema(Schema):
         sanitized_record = {'other_fields': {}}
         for key, value in record.items():
             try:
-                sanitized_record[key] = FIELD_SANITIZERS[key](value)
+                sanitized_record[key] = CITATION_FIELD_SANITIZERS[key](value)
             except KeyError:
                 sanitized_record['other_fields'][key] = sanitize_type(value, str)
         return sanitized_record

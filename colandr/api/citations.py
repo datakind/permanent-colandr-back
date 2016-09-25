@@ -192,3 +192,4 @@ class CitationsResource(Resource):
             db.session.bulk_save_objects(citations_to_insert)
             if status == 'included':
                 db.session.bulk_save_objects(fulltexts_to_insert)
+            db.session.commit()

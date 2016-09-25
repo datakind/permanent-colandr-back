@@ -1,6 +1,4 @@
-import itertools
 import logging
-from operator import attrgetter
 
 from flask import g
 from flask_restful import Resource
@@ -192,29 +190,44 @@ class CitationsScreeningsResource(Resource):
         if test is False:
             db.session.bulk_insert_mappings(
                 CitationScreening, screenings_to_insert)
+            db.session.commit()
         # bulk update citation statuses
         num_screeners = review.num_citation_screening_reviewers
         citation_ids = sorted(s['citation_id'] for s in screenings_to_insert)
-        results = db.session.query(CitationScreening)\
-            .filter(CitationScreening.citation_id.in_(citation_ids))
+        # results = db.session.query(CitationScreening)\
+        #     .filter(CitationScreening.citation_id.in_(citation_ids))
+        # citations_to_update = [
+        #     {'id': cid, 'status': assign_status(list(scrns), num_screeners)}
+        #     for cid, scrns in itertools.groupby(results, attrgetter('citation_id'))
+        #     ]
+        with db.engine.connect() as connection:
+            query = """
+                SELECT citation_id, ARRAY_AGG(status)
+                FROM citation_screenings
+                WHERE citation_id IN ({citation_ids})
+                GROUP BY citation_id
+                ORDER BY citation_id
+                """.format(citation_ids=','.join(str(cid) for cid in citation_ids))
+            results = connection.execute(query)
         citations_to_update = [
-            {'id': cid, 'status': assign_status(list(scrns), num_screeners)}
-            for cid, scrns in itertools.groupby(results, attrgetter('citation_id'))
-            ]
-        # sql queries to determine if fulltexts should be added/removed
-        # add_fulltexts_query = """
-        #     SELECT citations.id
-        #     FROM citations
-        #     LEFT JOIN fulltexts ON citations.id = fulltexts.citation_id
-        #     WHERE
-        #         citations.review_id = {review_id}
-        #         AND citations.status = 'included'
-        #         AND fulltexts.id IS NULL
-        #     ORDER BY citations.id
-        #     """.format(review_id=review_id)
-            #.format(citation_ids=','.join(str(cid) for cid in citation_ids))
+            {'id': row[0], 'status': assign_status(row[1], num_screeners)}
+            for row in results]
         if test is False:
             db.session.bulk_update_mappings(
                 Citation, citations_to_update)
-            # from flask import jsonify
-            # return jsonify([row[0] for row in db.engine.execute(add_fulltexts_query)])
+            db.session.commit()
+            # add fulltexts for included citations
+            cids_need_fulltexts = """
+                SELECT citations.id
+                FROM citations
+                LEFT JOIN fulltexts ON citations.id = fulltexts.citation_id
+                WHERE
+                    citations.review_id = {review_id}
+                    AND citations.status = 'included'
+                    AND fulltexts.id IS NULL
+                ORDER BY citations.id
+                """.format(review_id=review_id)
+            citation_ids = [row[0] for row in db.engine.execute(cids_need_fulltexts)]
+            for cid in citation_ids:
+                db.session.add(Fulltext(review_id, cid))
+            db.session.commit()

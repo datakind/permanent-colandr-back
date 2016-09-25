@@ -191,6 +191,7 @@ class FulltextsScreeningsResource(Resource):
         if test is False:
             db.session.bulk_insert_mappings(
                 FulltextScreening, screenings_to_insert)
+            db.session.commit()
         # bulk update fulltext statuses
         num_screeners = review.num_fulltext_screening_reviewers
         fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
@@ -203,3 +204,4 @@ class FulltextsScreeningsResource(Resource):
         if test is False:
             db.session.bulk_update_mappings(
                 Fulltext, fulltexts_to_update)
+            db.session.commit()

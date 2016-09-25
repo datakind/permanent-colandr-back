@@ -450,7 +450,7 @@ def update_citation_status(mapper, connection, target):
     citation_id = target.citation_id
     citation = target.citation
     status = assign_status(
-        db.session.query(CitationScreening).filter_by(citation_id=citation_id).all(),
+        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
     with connection.begin() as transaction:
         result = connection.execute(
@@ -471,7 +471,7 @@ def update_citation_status(mapper, connection, target):
     citation_id = target.citation_id
     citation = target.citation
     status = assign_status(
-        db.session.query(CitationScreening).filter_by(citation_id=citation_id).all(),
+        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
     with connection.begin() as transaction:
         result = connection.execute(
@@ -491,7 +491,7 @@ def update_fulltext_status(mapper, connection, target):
     fulltext_id = target.fulltext_id
     fulltext = target.fulltext
     status = assign_status(
-        db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id).all(),
+        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
         fulltext.review.num_fulltext_screening_reviewers)
     with connection.begin() as transaction:
         result = connection.execute(
@@ -505,7 +505,7 @@ def update_fulltext_status(mapper, connection, target):
     fulltext_id = target.fulltext_id
     fulltext = target.fulltext
     status = assign_status(
-        db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id).all(),
+        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
         fulltext.review.num_fulltext_screening_reviewers)
     with connection.begin() as transaction:
         result = connection.execute(
