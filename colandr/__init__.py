@@ -1,14 +1,17 @@
 import os
 
 from flask import Flask, send_from_directory
-from flask_restful import Api
-from flask_restful_swagger import swagger
+# from flask_restful import Api
+# from flask_restful_swagger import swagger
+from flask_restful_swagger_2 import Api
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 from .config import config
+from .api.authentication import AuthTokenResource
 from .api.errors import no_data_found
+
 from .api.users import UserResource, UsersResource
 from .api.reviews import ReviewResource, ReviewsResource
 from .api.review_plans import ReviewPlanResource
@@ -19,7 +22,6 @@ from .api.citation_screenings import CitationScreeningsResource, CitationsScreen
 from .api.fulltexts import FulltextResource, FulltextsResource
 from .api.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.fulltext_uploads import FulltextUploadResource
-from .api.authentication import AuthTokenResource
 
 
 def create_app(config_name):
@@ -30,11 +32,15 @@ def create_app(config_name):
 
     db.init_app(app)
 
-    api = swagger.docs(
-        Api(app),
-        apiVersion='0.1',
-        api_spec_url='/spec',
-        description='Colandr API')
+    api = Api(
+        app, api_version='0.1.0', api_spec_url='/api/spec',
+        title='colandr', description='REST API powering the colandr app')
+    # api = swagger.docs(
+    #     Api(app),
+    #     apiVersion='0.1',
+    #     api_spec_url='/spec',
+    #     description='Colandr API')
+    # api = Api(app)
 
     api.add_resource(AuthTokenResource, '/authtoken')
     api.add_resource(UsersResource, '/users')

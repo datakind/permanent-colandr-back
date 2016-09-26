@@ -1,6 +1,7 @@
 from flask import g
-from flask_restful import Resource  # , abort
-from flask_restful_swagger import swagger
+from flask_restful import Resource
+# from flask_restful_swagger import swagger
+from flask_restful_swagger_2 import swagger
 from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
@@ -11,7 +12,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ..models import db, User, Review
 from ..lib import constants
-from .errors import unauthorized
+from .errors import no_data_found, unauthorized
 from .schemas import UserSchema
 from .authentication import auth
 
@@ -20,7 +21,22 @@ class UserResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
+    @swagger.doc({
+        'tags': ['users'],
+        'description': 'get a single user by id',
+        'produces': ['application/json'],
+        'parameters': [
+            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
+             'description': 'unique identifier for user'},
+            {'name': 'fields', 'in': 'query', 'type': 'string',
+             'description': 'comma-delimited list-as-string of user fields to return'},
+            ],
+        'responses': {
+            '200': {'description': 'successfuly got user'},
+            '401': {'description': 'current app user not authorized to get user'},
+            '404': {'description': 'no user with matching id was found'},
+            }
+        })
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -36,10 +52,26 @@ class UserResource(Resource):
                 '{} not authorized to get this user'.format(g.current_user))
         user = db.session.query(User).get(id)
         if not user:
-            raise NoResultFound
-        return UserSchema(only=fields).dump(user).data
+            return no_data_found('<User(id={})> not found'.format(id))
+        return UserSchema(only=fields).dump(user).data, 200
 
-    @swagger.operation()
+    @swagger.doc({
+        'tags': ['users'],
+        'description': 'delete a single user by id',
+        'produces': ['application/json'],
+        'parameters': [
+            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
+             'description': 'unique identifier for user'},
+            {'name': 'test', 'in': 'query', 'type': 'boolean',
+             'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
+            ],
+        'responses': {
+            '200': {'description': 'user would have been deleted, if test had been False'},
+            '204': {'description': 'successfuly deleted user'},
+            '401': {'description': 'current app user not authorized to delete user'},
+            '404': {'description': 'no user with matching id was found'}
+            }
+        })
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -52,12 +84,31 @@ class UserResource(Resource):
                 '{} not authorized to delete this user'.format(g.current_user))
         user = db.session.query(User).get(id)
         if not user:
-            raise NoResultFound
+            return no_data_found('<User(id={})> not found'.format(id))
         if test is False:
             db.session.delete(user)
             db.session.commit()
+            return '', 204
+        return '', 200
 
-    @swagger.operation()
+    @swagger.doc({
+        'tags': ['users'],
+        'description': 'modify a single user by id',
+        'produces': ['application/json'],
+        'parameters': [
+            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
+             'description': 'unique identifier for user'},
+            {'name': 'args', 'in': 'body', 'schema': '', 'required': True,
+             'description': 'field: value pairs to be updated for user'},
+            {'name': 'test', 'in': 'query', 'type': 'boolean',
+             'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
+            ],
+        'responses': {
+            '200': {'description': 'user would have been modified, if test had been False'},
+            '401': {'description': 'current app user not authorized to modify user'},
+            '404': {'description': 'no user with matching id was found'}
+            }
+        })
     @use_args(UserSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -71,7 +122,7 @@ class UserResource(Resource):
                 '{} not authorized to update this user'.format(g.current_user))
         user = db.session.query(User).get(id)
         if not user:
-            raise NoResultFound
+            return no_data_found('<User(id={})> not found'.format(id))
         for key, value in args.items():
             if key is missing:
                 continue
@@ -83,13 +134,12 @@ class UserResource(Resource):
             db.session.commit()
         else:
             db.session.rollback()
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user).data, 200
 
 
 class UsersResource(Resource):
 
     @auth.login_required
-    @swagger.operation()
     @use_kwargs({
         'email': ma_fields.Email(
             missing=None, validate=Email()),
@@ -114,7 +164,6 @@ class UsersResource(Resource):
             users = review.users
             return UserSchema(many=True).dump(users).data
 
-    @swagger.operation()
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
