@@ -108,7 +108,7 @@ class CitationsResource(Resource):
         'order_dir': ma_fields.String(
             missing='DESC', validate=OneOf(['ASC', 'DESC'])),
         'per_page': ma_fields.Int(
-            missing=25, validate=OneOf([10, 25, 50])),
+            missing=25, validate=OneOf([10, 25, 50, 100, 5000])),
         'page': ma_fields.Int(
             missing=0, validate=Range(min=0)),
         })

@@ -20,7 +20,7 @@ class Config(object):
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
-    MAX_CONTENT_LENGTH = 20 * 1024 * 1024  # 20MB file upload limit
+    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
     # MAIL_SERVER = 'smtp.googlemail.com'
     # MAIL_PORT = 587
     # MAIL_USE_TLS = True

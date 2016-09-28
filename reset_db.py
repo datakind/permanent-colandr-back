@@ -19,6 +19,7 @@ def main():
         db.drop_all()
         db.create_all()
         shutil.rmtree(app.config['FULLTEXT_UPLOAD_FOLDER'])
+        os.makedirs(app.config['FULLTEXT_UPLOAD_FOLDER'], exist_ok=True)
 
 
 if __name__ == '__main__':

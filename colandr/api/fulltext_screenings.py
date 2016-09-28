@@ -176,6 +176,7 @@ class FulltextsScreeningsResource(Resource):
             location='query', missing=False)
         })
     def post(self, args, review_id, test):
+        logging.warning('the "fulltexts/screenings" endpoint is for dev use only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)
         if not review:
@@ -199,13 +200,69 @@ class FulltextsScreeningsResource(Resource):
         # bulk update fulltext statuses
         num_screeners = review.num_fulltext_screening_reviewers
         fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
-        results = db.session.query(FulltextScreening)\
-            .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
+        # results = db.session.query(FulltextScreening)\
+        #     .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
+        # fulltexts_to_update = [
+        #     {'id': cid, 'status': assign_status(list(scrns), num_screeners)}
+        #     for cid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
+        #     ]
+        with db.engine.connect() as connection:
+            query = """
+                SELECT fulltext_id, ARRAY_AGG(status)
+                FROM fulltext_screenings
+                WHERE fulltext_id IN ({fulltext_ids})
+                GROUP BY fulltext_id
+                ORDER BY fulltext_id
+                """.format(fulltext_ids=','.join(str(cid) for cid in fulltext_ids))
+            results = connection.execute(query)
         fulltexts_to_update = [
-            {'id': fid, 'status': assign_status(list(scrns), num_screeners)}
-            for fid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
-            ]
+            {'id': row[0], 'status': assign_status(row[1], num_screeners)}
+            for row in results]
         if test is False:
             db.session.bulk_update_mappings(
                 Fulltext, fulltexts_to_update)
             db.session.commit()
+
+    # @swagger.operation()
+    # @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
+    # @use_kwargs({
+    #     'review_id': ma_fields.Int(
+    #         location='query',
+    #         missing=None, validate=Range(min=1, max=constants.MAX_INT)),
+    #     'test': ma_fields.Boolean(
+    #         location='query', missing=False)
+    #     })
+    # def post(self, args, review_id, test):
+    #     # check current user authorization
+    #     review = db.session.query(Review).get(review_id)
+    #     if not review:
+    #         return no_data_found(
+    #             '<Review(id={})> not found'.format(review_id))
+    #     if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+    #         return unauthorized(
+    #             '{} not authorized to screen fulltexts for {}'.format(
+    #                 g.current_user, review))
+    #     # bulk insert fulltext screenings
+    #     user_id = g.current_user.id
+    #     screenings_to_insert = []
+    #     for screening in args:
+    #         screening['review_id'] = review_id
+    #         screening['user_id'] = user_id
+    #         screenings_to_insert.append(screening)
+    #     if test is False:
+    #         db.session.bulk_insert_mappings(
+    #             FulltextScreening, screenings_to_insert)
+    #         db.session.commit()
+    #     # bulk update fulltext statuses
+    #     num_screeners = review.num_fulltext_screening_reviewers
+    #     fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
+    #     results = db.session.query(FulltextScreening)\
+    #         .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
+    #     fulltexts_to_update = [
+    #         {'id': fid, 'status': assign_status(list(scrns), num_screeners)}
+    #         for fid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
+    #         ]
+    #     if test is False:
+    #         db.session.bulk_update_mappings(
+    #             Fulltext, fulltexts_to_update)
+    #         db.session.commit()
