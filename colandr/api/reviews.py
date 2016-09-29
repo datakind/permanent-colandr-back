@@ -35,6 +35,8 @@ class ReviewResource(Resource):
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
+        if fields and 'id' not in fields:
+            fields.append('id')
         return ReviewSchema(only=fields).dump(review).data
 
     @swagger.operation()
@@ -54,6 +56,7 @@ class ReviewResource(Resource):
         if test is False:
             db.session.delete(review)
             db.session.commit()
+            return '', 204
 
     @swagger.operation()
     @use_args(ReviewSchema(partial=True))
@@ -93,6 +96,8 @@ class ReviewsResource(Resource):
         })
     def get(self, fields):
         reviews = g.current_user.reviews.order_by(Review.id).all()
+        if fields and 'id' not in fields:
+            fields.append('id')
         return ReviewSchema(only=fields, many=True).dump(reviews).data
 
     @swagger.operation()

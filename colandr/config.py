@@ -11,7 +11,7 @@ class Config(object):
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_ECHO = True  # False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     LOGGER_NAME = 'colandr-api'

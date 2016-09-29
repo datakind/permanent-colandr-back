@@ -53,7 +53,9 @@ class UserResource(Resource):
         user = db.session.query(User).get(id)
         if not user:
             return no_data_found('<User(id={})> not found'.format(id))
-        return UserSchema(only=fields).dump(user).data, 200
+        if fields and 'id' not in fields:
+            fields.append('id')
+        return UserSchema(only=fields).dump(user).data
 
     @swagger.doc({
         'tags': ['users'],
@@ -89,7 +91,6 @@ class UserResource(Resource):
             db.session.delete(user)
             db.session.commit()
             return '', 204
-        return '', 200
 
     @swagger.doc({
         'tags': ['users'],
@@ -134,7 +135,7 @@ class UserResource(Resource):
             db.session.commit()
         else:
             db.session.rollback()
-        return UserSchema().dump(user).data, 200
+        return UserSchema().dump(user).data
 
 
 class UsersResource(Resource):
