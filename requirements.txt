@@ -8,7 +8,7 @@ flask_migrate>=2.0.0
 flask_script>=2.0.5
 flask_sqlalchemy>=2.1.0
 flask_restful>=0.3.5
-flask_restful_swagger
+flask_restful_swagger_2>=0.31
 itsdangerous>=0.24
 marshmallow>=2.10.0
 pandas>=0.18.0
