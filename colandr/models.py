@@ -512,3 +512,12 @@ def update_fulltext_status(mapper, connection, target):
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} deleted for {}, status = {}'.format(
         target, fulltext, status))
+
+
+@event.listens_for(Review, 'after_insert')
+def insert_review_plan(mapper, connection, target):
+    review_plan = ReviewPlan(target.id)
+    with connection.begin() as transaction:
+        result = connection.execute(
+            db.insert(ReviewPlan).values(review_id=target.id))
+    logging.warning('{} inserted, along with {}'.format(target, review_plan))

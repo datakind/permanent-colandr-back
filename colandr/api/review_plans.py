@@ -36,6 +36,8 @@ class ReviewPlanResource(Resource):
             return unauthorized(
                 '{} not authorized to get this review plan'.format(g.current_user))
         review_plan = review.review_plan
+        if fields and 'id' not in fields:
+            fields.append('id')
         return ReviewPlanSchema(only=fields).dump(review_plan).data
 
     @swagger.operation()
@@ -56,29 +58,7 @@ class ReviewPlanResource(Resource):
         if test is False:
             db.session.delete(review_plan)
             db.session.commit()
-
-    @swagger.operation()
-    @use_args(ReviewPlanSchema(partial=['review_id']))
-    @use_kwargs({
-        'id': ma_fields.Int(
-            required=True, location='view_args',
-            validate=Range(min=1, max=constants.MAX_INT)),
-        'test': ma_fields.Boolean(missing=False)
-        })
-    def post(self, args, id, test):
-        review = db.session.query(Review).get(id)
-        if not review:
-            raise NoResultFound
-        if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to create this review plan'.format(g.current_user))
-        args['review_id'] = id
-        review_plan = ReviewPlan(**args)
-        if test is False:
-            review_plan.review = review
-            db.session.add(review_plan)
-            db.session.commit()
-        return ReviewPlanSchema().dump(review_plan).data
+            return '', 204
 
     @swagger.operation()
     @use_args(ReviewPlanSchema(partial=True))

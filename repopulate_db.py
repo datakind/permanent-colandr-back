@@ -162,7 +162,7 @@ def main():
         LOGGER.warning('stopping db repopulation at "users"')
         return
     if current_user:
-        LOGGER.info('current user: <User(id={})>'.format(user['id']))
+        LOGGER.info('current user: <User(id={})>'.format(current_user['id']))
     else:
         logging.error('user email not found in list of users to insert into db')
         return
@@ -208,21 +208,20 @@ def main():
                 json={'user_id': user['id'], 'action': 'add'}, auth=auth)
             print('PUT:', response.url)
             team = response.json()
-            pprint(team)
-            break
+        pprint(team)
 
     if args['last'] == 'reviews':
         LOGGER.warning('stopping db repopulation at "reviews"')
         return
 
     print('\n\n')
-    LOGGER.info('adding review plans to db...')
+    LOGGER.info('updating review plans in db...')
     for REVIEW_PLAN in REVIEW_PLANS:
         response = requests.request(
-            'POST', BASE_URL + 'reviews/{}/plan'.format(REVIEW_PLAN['review_id']),
+            'PUT', BASE_URL + 'reviews/{}/plan'.format(REVIEW_PLAN['review_id']),
             json=REVIEW_PLAN, auth=auth)
         response.raise_for_status()
-        print('POST:', response.url)
+        print('PUT:', response.url)
         review_plan = response.json()
         pprint(review_plan, width=120)
 

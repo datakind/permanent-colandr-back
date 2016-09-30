@@ -34,7 +34,7 @@ class ReviewTeamResource(Resource):
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
-        if 'id' not in fields:
+        if fields and 'id' not in fields:
             fields.append('id')
         users = UserSchema(many=True, only=fields).dump(review.users).data
         owner_user_id = review.owner_user_id
