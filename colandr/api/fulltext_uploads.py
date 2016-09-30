@@ -19,6 +19,9 @@ class FulltextUploadResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    # NOTE: the get method for this resource is actually in the app's __init__.py
+    # it required using flask-style routes instead of flask-restful
+
     @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(

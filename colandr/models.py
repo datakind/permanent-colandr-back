@@ -443,23 +443,21 @@ class FulltextScreening(db.Model):
 # events for automatic updating of citation status
 # and insertion/deletion of accompanying fulltexts
 
-from sqlalchemy.orm.attributes import set_committed_value
-
 @event.listens_for(CitationScreening, 'after_insert')
-def update_citation_status(mapper, connection, target):
+def update_citation_status_after_insert(mapper, connection, target):
     citation_id = target.citation_id
     citation = target.citation
     status = assign_status(
         [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
-    with connection.begin() as transaction:
-        result = connection.execute(
+    with connection.begin():
+        connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
     logging.warning('{} inserted for {}, status = {}'.format(
         target, citation, status))
     if status == 'included' and citation.fulltext is None:
-        with connection.begin() as transaction:
-            result = connection.execute(
+        with connection.begin():
+            connection.execute(
                 db.insert(Fulltext).values(
                     citation_id=citation_id, review_id=citation.review_id))
             logging.warning('inserted <Fulltext(citation_id={})>'.format(
@@ -467,48 +465,48 @@ def update_citation_status(mapper, connection, target):
 
 
 @event.listens_for(CitationScreening, 'after_delete')
-def update_citation_status(mapper, connection, target):
+def update_citation_status_after_delete(mapper, connection, target):
     citation_id = target.citation_id
     citation = target.citation
     status = assign_status(
         [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
-    with connection.begin() as transaction:
-        result = connection.execute(
+    with connection.begin():
+        connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
     logging.warning('{} deleted for {}, status = {}'.format(
         target, citation, status))
     if status != 'included' and citation.fulltext is not None:
-        with connection.begin() as transaction:
-            result = connection.execute(
+        with connection.begin():
+            connection.execute(
                 db.delete(Fulltext).where(Fulltext.citation_id == citation_id))
             logging.warning('deleted <Fulltext(citation_id={})>'.format(
                 citation_id))
 
 
 @event.listens_for(FulltextScreening, 'after_insert')
-def update_fulltext_status(mapper, connection, target):
+def update_fulltext_status_after_insert(mapper, connection, target):
     fulltext_id = target.fulltext_id
     fulltext = target.fulltext
     status = assign_status(
         [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
         fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin() as transaction:
-        result = connection.execute(
+    with connection.begin():
+        connection.execute(
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} inserted for {}, status = {}'.format(
         target, fulltext, status))
 
 
 @event.listens_for(FulltextScreening, 'after_delete')
-def update_fulltext_status(mapper, connection, target):
+def update_fulltext_status_after_delete(mapper, connection, target):
     fulltext_id = target.fulltext_id
     fulltext = target.fulltext
     status = assign_status(
         [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
         fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin() as transaction:
-        result = connection.execute(
+    with connection.begin():
+        connection.execute(
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} deleted for {}, status = {}'.format(
         target, fulltext, status))
@@ -517,7 +515,7 @@ def update_fulltext_status(mapper, connection, target):
 @event.listens_for(Review, 'after_insert')
 def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
-    with connection.begin() as transaction:
-        result = connection.execute(
+    with connection.begin():
+        connection.execute(
             db.insert(ReviewPlan).values(review_id=target.id))
     logging.warning('{} inserted, along with {}'.format(target, review_plan))

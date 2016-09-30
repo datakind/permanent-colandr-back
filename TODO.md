@@ -33,9 +33,9 @@
         - [ ] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations; must be asynchronous
         - [x] add a citation screening for a reviewer, updating status according to review settings and other screenings, and correctly flag conflicts
         - [x] get collections of citations with a variety of filtering options, e.g. to-be-screened-by-current-user, is-duplicate, has-tag, matches-search-string, ...
-        - [ ] enable mass screening status update (?)
+        - [x] enable mass screening status update (?)
         - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
-        - [ ] add individual citation, manually entered via HTTP POST (?)
+        - [x] add individual citation, manually entered via HTTP POST (?)
     - fulltexts
         - [x] facilitate uploads of pdfs and storage on server in standardized form
         - [ ] the rest TBD depending on Sam A's input

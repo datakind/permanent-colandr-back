@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, send_from_directory
+from flask import Flask, jsonify, send_from_directory
 # from flask_restful import Api
 # from flask_restful_swagger import swagger
 from flask_restful_swagger_2 import Api
@@ -73,5 +73,10 @@ def create_app(config_name):
             return no_data_found(
                 'no uploaded file for <Fulltext(id={})> found'.format(id))
         return send_from_directory(upload_dir, filename)
+
+    @app.errorhandler(422)
+    def handle_validation_error(err):
+        # The marshmallow.ValidationError is available on err.exc
+        return jsonify({'errors': err.exc.messages}), 422
 
     return app

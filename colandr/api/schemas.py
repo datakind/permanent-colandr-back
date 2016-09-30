@@ -1,5 +1,6 @@
 from marshmallow import Schema, fields, pre_load
 from marshmallow.validate import Email, Length, OneOf, Range
+from webargs import missing
 
 from ..lib import constants
 from ..lib.sanitizers import CITATION_FIELD_SANITIZERS, sanitize_type
@@ -192,17 +193,12 @@ class CitationSchema(Schema):
     screenings = fields.Nested(
         ScreeningSchema, many=True)
 
-    non_other_fields = {
-        'id', 'created_at', 'review_id', 'status',
-        'deduplication', 'tags', 'type_of_work', 'title',  # screenings
-        'secondary_title', 'abstract', 'pub_year', 'pub_month', 'authors',
-        'keywords', 'type_of_reference', 'journal_name', 'volume', 'issue_number',
-        'doi', 'issn', 'publisher', 'language'}
-
     @pre_load(pass_many=False)
     def sanitize_citation_record(self, record):
         sanitized_record = {'other_fields': {}}
         for key, value in record.items():
+            if value is missing or key == 'screenings':
+                continue
             try:
                 sanitized_record[key] = CITATION_FIELD_SANITIZERS[key](value)
             except KeyError:
