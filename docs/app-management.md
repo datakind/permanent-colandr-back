@@ -1,12 +1,32 @@
+## App and DB Management
+
+Most app+db management tasks are handled by the `manage.py` script, found at the top level of the `conservation-intl` directory where the repository was cloned on disk. To get help on available commands, run the following:
+
+```
+$ python3 manage.py --help
+```
+
+And to get help for a specific command:
+
+```
+$ python3 manage.py <command> --help
+```
+
+For all commands, you can specify the particular app configuration to act upon. This is particularly important if different configs are associated with different databases! Running the `help` command above also shows the available configurations; if desired, specify the config name _before_ the command name, like so:
+
+```
+$ python3 manage.py --config=<config_name> <command>
+```
+
 ## Initialize, Migrate, and Upgrade the Database
 
-Navigate to the `conservation-intl` directory (the cloned repo on disk). If the `conservation-intl/migrations` directory does not exist (**Note:** It should!), issue the following command to initialize the migrations directory and its contents:
+If the `conservation-intl/migrations` directory does not exist (**Note:** It should!), issue the following command to initialize the migrations directory and its contents:
 
 ```
 $ python3 manage.py db init
 ```
 
-If the database models have changed _or_ a current migration script does not exist in the `conservation-intl/migrations/versions` directory (**Note:** It probably should!), issue the following command to generate a migration script using Alembic:
+If the database models have changed _or_ a current migration script does not exist in the `conservation-intl/migrations/versions` directory (**Note:** It should!), issue the following command to generate a migration script using Alembic:
 
 ```
 $ python3 manage.py db migrate
@@ -27,32 +47,32 @@ Any time you change the database models, run the `db migrate` and `db upgrade` c
 
 ## Reset and Re-populate the Database
 
-In order to "reset" the database by dropping and then re-creating all of its tables (**Note:** This is permanent! So be very sure that this is what you want...), run the following script:
+In order to "reset" the database by dropping and then re-creating all of its tables, run the following command:
 
 ```
-$ python3 reset_db.py
+$ python3 manage.py reset_db
 ```
 
-You can specify particular app configurations, if these are associated with separate databases. Options can be seen by calling the script's "help":
+**Note:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
+
+An administrator is automatically added to the database as its first user; if that behavior is unwanted, specify the `no_admin` flag:
 
 ```
-$ python3 reset_db.py --help
-$ python3 reset_db.py --config=<CONFIG_NAME>
+$ python3 manage.py reset_db --no_admin
 ```
 
-Check out the `api-tests.ipynb` notebook in the `conservation-intl/notebooks` directory for an example of how to populate and otherwise interact with the database via the REST API. **TODO:** Add more details here.
+To re-populate the database from scratch (i.e. after running the above command), a separate script is used — for now. Call it like so:
 
+```
+$ python3 repopulate_db.py
+```
+
+As above, use `--help` to see run options, and specify an app configuration with the `--config` flag.
 
 ## Run the App
 
-To order to run the app, navigate to the repo and run the following script:
+To order to run the app, just do this:
 
 ```
-$ python3 run.py
-```
-
-As above, different app configurations (and perhaps database) can be run by specifying the `config` option:
-
-```
-$ python3 run.py --config=<CONFIG_NAME>
+$ python3 migrate.py runserver
 ```
