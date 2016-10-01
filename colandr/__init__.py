@@ -3,10 +3,14 @@ import os
 from flask import Flask, jsonify, send_from_directory
 # from flask_restful import Api
 # from flask_restful_swagger import swagger
+from flask_mail import Mail
+from flask_migrate import Migrate  # check
 from flask_restful_swagger_2 import Api
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
+mail = Mail()
+migrate = Migrate()
 
 from .config import config
 from .api.authentication import AuthTokenResource
@@ -32,6 +36,8 @@ def create_app(config_name):
     os.makedirs(config[config_name].FULLTEXT_UPLOAD_FOLDER, exist_ok=True)
 
     db.init_app(app)
+    mail.init_app(app)
+    migrate.init_app(app, db)
 
     api = Api(
         app, api_version='0.1.0', api_spec_url='/api/spec',

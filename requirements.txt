@@ -4,6 +4,7 @@ bibtexparser>=0.6.2
 dedupe>=1.4.14
 flask>=0.11.1
 flask_httpauth>=3.2.0
+flask_mail>=0.9.1
 flask_migrate>=2.0.0
 flask_script>=2.0.5
 flask_sqlalchemy>=2.1.0

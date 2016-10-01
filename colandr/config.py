@@ -10,29 +10,29 @@ class Config(object):
     SECRET_KEY = os.environ.get('COLANDR_SECRET_KEY') or 'burton-bob-caitlin-ray-sam'
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
+    LOGGER_NAME = 'colandr-api'
+    JSON_AS_ASCII = False
+    # sql db config
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
-    LOGGER_NAME = 'colandr-api'
-    JSON_AS_ASCII = False
+    # file upload config
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
-    # MAIL_SERVER = 'smtp.googlemail.com'
-    # MAIL_PORT = 587
-    # MAIL_USE_TLS = True
-    # MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    # MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    # FLASKY_MAIL_SUBJECT_PREFIX = '[Flasky]'
-    # FLASKY_MAIL_SENDER = 'Flasky Admin <flasky@example.com>'
-    # FLASKY_ADMIN = os.environ.get('FLASKY_ADMIN')
-    # FLASKY_POSTS_PER_PAGE = 20
-    # FLASKY_FOLLOWERS_PER_PAGE = 50
-    # FLASKY_COMMENTS_PER_PAGE = 30
-    # FLASKY_SLOW_DB_QUERY_TIME = 0.5
+    # email server config
+    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USE_SSL = False
+    MAIL_USERNAME = os.environ.get('COLANDR_MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('COLANDR_MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = 'Colandr <burtdewilde@gmail.com>'
+    MAIL_ADMINS = ['burtdewilde@gmail.com']
+    MAIL_SUBJECT_PREFIX = '[Colandr]'
 
     @staticmethod
     def init_app(app):

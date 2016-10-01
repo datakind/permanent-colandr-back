@@ -4,7 +4,7 @@ import logging
 from flask import current_app
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
                           BadSignature, SignatureExpired)
-from sqlalchemy import event, text, ForeignKey
+from sqlalchemy import event, false, text, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -37,6 +37,10 @@ class User(db.Model):
         index=True)
     password = db.Column(
         db.Unicode(length=60), nullable=False)
+    is_confirmed = db.Column(
+        db.Boolean, nullable=False, server_default=false())
+    is_admin = db.Column(
+        db.Boolean, nullable=False, server_default=false())
 
     # relationships
     owned_reviews = db.relationship(
