@@ -29,3 +29,9 @@ def no_data_found(message):
     response = jsonify({'error': 'no data found', 'message': message})
     response.status_code = 404
     return response
+
+
+def db_integrity(message):
+    response = jsonify({'error': 'database integrity', 'message': message})
+    response.status_code = 422
+    return response

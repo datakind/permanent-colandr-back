@@ -21,8 +21,8 @@ def verify_password(email_or_token, password):
         user = db.session.query(User).filter_by(email=email_or_token).one_or_none()
         if not user:
             return False
-        # if user.is_confirmed is False:
-        #     return False
+        if user.is_confirmed is False:
+            return False
         g.current_user = user
         g.token_used = False
         return user.verify_password(password)

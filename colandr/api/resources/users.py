@@ -173,15 +173,3 @@ class UsersResource(Resource):
             db.session.add(user)
             db.session.commit()
         return UserSchema().dump(user).data
-
-
-# class UserRegisterResource(Resource):
-#
-#     @use_args(UserSchema())
-#     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
-#     def post(self, args, test):
-#         user = User(**args)
-#         if test is False:
-#             db.session.add(user)
-#             db.session.commit()
-#         return

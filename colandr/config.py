@@ -8,21 +8,25 @@ import os
 
 class Config(object):
     SECRET_KEY = os.environ.get('COLANDR_SECRET_KEY') or 'burton-bob-caitlin-ray-sam'
+    PASSWORD_SALT = os.environ.get('COLANDR_PASSWORD_SALT') or 'i-dream-of-curry'
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
     LOGGER_NAME = 'colandr-api'
     JSON_AS_ASCII = False
+
     # sql db config
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
+
     # file upload config
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
+
     # email server config
     MAIL_SERVER = 'smtp.googlemail.com'
     MAIL_PORT = 587
