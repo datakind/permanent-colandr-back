@@ -11,12 +11,12 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..lib import constants
-from ..models import db, FulltextScreening, Fulltext, Review, User
-from .errors import bad_request, forbidden, no_data_found, unauthorized, validation
-from .schemas import ScreeningSchema
-from .utils import assign_status
-from .authentication import auth
+from ...lib import constants
+from ...models import db, FulltextScreening, Fulltext, Review, User
+from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
+from ..schemas import ScreeningSchema
+from ..utils import assign_status
+from ..authentication import auth
 
 
 class FulltextScreeningsResource(Resource):

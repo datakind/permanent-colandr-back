@@ -9,11 +9,11 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..models import db, Review, ReviewPlan
-from ..lib import constants
-from .errors import unauthorized
-from .schemas import ReviewPlanSchema
-from .authentication import auth
+from ...models import db, Review
+from ...lib import constants
+from ..errors import unauthorized
+from ..schemas import ReviewPlanSchema
+from ..authentication import auth
 
 
 class ReviewPlanResource(Resource):

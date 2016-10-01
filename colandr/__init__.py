@@ -12,16 +12,17 @@ from .config import config
 from .api.authentication import AuthTokenResource
 from .api.errors import no_data_found
 
-from .api.users import UserResource, UsersResource
-from .api.reviews import ReviewResource, ReviewsResource
-from .api.review_plans import ReviewPlanResource
-from .api.review_teams import ReviewTeamResource
-from .api.review_progress import ReviewProgressResource
-from .api.citations import CitationResource, CitationsResource
-from .api.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
-from .api.fulltexts import FulltextResource, FulltextsResource
-from .api.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
-from .api.fulltext_uploads import FulltextUploadResource
+from .api.resources.users import UserResource, UsersResource
+from .api.resources.reviews import ReviewResource, ReviewsResource
+from .api.resources.review_plans import ReviewPlanResource
+from .api.resources.review_teams import ReviewTeamResource
+from .api.resources.review_progress import ReviewProgressResource
+from .api.resources.citations import CitationResource, CitationsResource
+from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
+from .api.resources.citation_uploads import CitationUploadsResource
+from .api.resources.fulltexts import FulltextResource, FulltextsResource
+from .api.resources.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
+from .api.resources.fulltext_uploads import FulltextUploadResource
 
 
 def create_app(config_name):
@@ -51,6 +52,7 @@ def create_app(config_name):
     api.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
     api.add_resource(CitationsResource, '/citations')
+    api.add_resource(CitationUploadsResource, '/citations/upload')
     api.add_resource(CitationResource, '/citations/<int:id>')
     api.add_resource(CitationsScreeningsResource, '/citations/screenings')
     api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')

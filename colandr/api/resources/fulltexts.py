@@ -10,11 +10,11 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 from webargs import missing
 
-from ..lib import constants
-from ..models import db, Citation, Fulltext, Review
-from .errors import forbidden, no_data_found, unauthorized
-from .schemas import FulltextSchema
-from .authentication import auth
+from ...lib import constants
+from ...models import db, Citation, Fulltext, Review
+from ..errors import forbidden, no_data_found, unauthorized
+from ..schemas import FulltextSchema
+from ..authentication import auth
 
 
 class FulltextResource(Resource):

@@ -10,12 +10,12 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..lib import constants
-from ..lib.parsers import BibTexFile, RisFile
-from ..models import db, Citation, Fulltext, Review
-from .errors import forbidden, no_data_found, unauthorized, validation
-from .schemas import CitationSchema
-from .authentication import auth
+from ...lib import constants
+from ...lib.parsers import BibTexFile, RisFile
+from ...models import db, Citation, Fulltext, Review
+from ..errors import forbidden, no_data_found, unauthorized, validation
+from ..schemas import CitationSchema
+from ..authentication import auth
 
 
 class CitationResource(Resource):
@@ -173,57 +173,25 @@ class CitationsResource(Resource):
         return CitationSchema(many=True, only=fields).dump(query.all()).data
 
     @swagger.operation()
-    @use_args(
-        CitationSchema(partial=True), locations=('json', 'form'))
+    @use_args(CitationSchema(partial=True))
     @use_kwargs({
-        'uploaded_file': ma_fields.Raw(
-            missing=None, location='files'),
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
         'status': ma_fields.Str(
             missing=None, validate=OneOf(['included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, args, uploaded_file, review_id, status, test):
-        if (uploaded_file is None and
-                all(val is missing or not val for val in args.values())):
-            return validation('1 or more citations must be given in as json or file')
+    def post(self, args, review_id, status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to add citations to this review'.format(g.current_user))
-        if not all(val is missing or not val for val in args.values()):
-            citation = Citation(args.pop('review_id', review_id), **args)
-            db.session.add(citation)
-            if test is False:
-                db.session.commit()
-            else:
-                db.session.rollback()
-            return CitationSchema().dump(citation).data
+        citation = Citation(args.pop('review_id'), **args)
+        db.session.add(citation)
+        if test is False:
+            db.session.commit()
         else:
-            fname = uploaded_file.filename
-            if fname.endswith('.bib'):
-                citations_file = BibTexFile(uploaded_file.stream)
-            elif fname.endswith('.ris') or fname.endswith('.txt'):
-                citations_file = RisFile(uploaded_file.stream)
-            else:
-                return validation('unknown file type: "{}"'.format(fname))
-            citation_schema = CitationSchema()
-            citations_to_insert = []
-            fulltexts_to_insert = []
-            for record in citations_file.parse():
-                record['review_id'] = review_id
-                if status:
-                    record['status'] = status
-                    if status == 'included':
-                        fulltexts_to_insert.append(
-                            Fulltext(record['review_id'], record['citation_id']))
-                citation_data = citation_schema.load(record).data
-                citations_to_insert.append(Citation(**citation_data))
-            if test is False:
-                db.session.bulk_save_objects(citations_to_insert)
-                if status == 'included':
-                    db.session.bulk_save_objects(fulltexts_to_insert)
-                db.session.commit()
+            db.session.rollback()
+        return CitationSchema().dump(citation).data

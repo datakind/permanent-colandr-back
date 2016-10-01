@@ -239,7 +239,7 @@ def main():
                 raise OSError()
             filename = os.path.split(citations_file)[-1]
             response = requests.request(
-                'POST', BASE_URL + 'citations',
+                'POST', BASE_URL + 'citations/upload',
                 data={'review_id': review_id},
                 files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
                 auth=auth)

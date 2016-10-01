@@ -8,11 +8,11 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
-from ..lib import constants
-from ..models import db, Fulltext
-from .errors import no_data_found, unauthorized, validation
-from .schemas import FulltextSchema
-from .authentication import auth
+from ...lib import constants
+from ...models import db, Fulltext
+from ..errors import no_data_found, unauthorized, validation
+from ..schemas import FulltextSchema
+from ..authentication import auth
 
 
 class FulltextUploadResource(Resource):

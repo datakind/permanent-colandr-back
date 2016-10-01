@@ -7,10 +7,10 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
-from ..lib import constants
-from ..models import db, Citation, Fulltext, Review
-from .errors import unauthorized
-from .authentication import auth
+from ...lib import constants
+from ...models import db, Citation, Fulltext, Review
+from ..errors import unauthorized
+from ..authentication import auth
 
 
 class ReviewProgressResource(Resource):

@@ -8,11 +8,11 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
-from ..models import db, Review, User
-from ..lib import constants
-from .errors import forbidden, unauthorized
-from .schemas import UserSchema
-from .authentication import auth
+from ...models import db, Review, User
+from ...lib import constants
+from ..errors import forbidden, unauthorized
+from ..schemas import UserSchema
+from ..authentication import auth
 
 
 class ReviewTeamResource(Resource):

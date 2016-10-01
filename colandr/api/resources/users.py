@@ -10,11 +10,11 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..models import db, User, Review
-from ..lib import constants
-from .errors import no_data_found, unauthorized
-from .schemas import UserSchema
-from .authentication import auth
+from ...models import db, User, Review
+from ...lib import constants
+from ..errors import no_data_found, unauthorized
+from ..schemas import UserSchema
+from ..authentication import auth
 
 
 class UserResource(Resource):
