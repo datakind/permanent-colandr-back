@@ -169,6 +169,7 @@ class UsersResource(Resource):
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
         user = User(**args)
+        user.is_confirmed = True
         if test is False:
             db.session.add(user)
             db.session.commit()

@@ -1,5 +1,6 @@
 import os
 
+from celery import Celery
 from flask import Flask, jsonify, send_from_directory
 # from flask_restful import Api
 # from flask_restful_swagger import swagger
@@ -12,10 +13,12 @@ db = SQLAlchemy()
 mail = Mail()
 migrate = Migrate()
 
-from .config import config
+from .config import config, Config
+
+celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
+
 from .api.authentication import AuthTokenResource
 from .api.errors import no_data_found
-
 from .api.resources.users import UserResource, UsersResource
 from .api.resources.user_registration import ConfirmUserResource, RegisterUserResource
 from .api.resources.reviews import ReviewResource, ReviewsResource
@@ -36,13 +39,14 @@ def create_app(config_name):
     config[config_name].init_app(app)
     os.makedirs(config[config_name].FULLTEXT_UPLOAD_FOLDER, exist_ok=True)
 
+    celery.conf.update(app.config)
+
     db.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
 
-    api = Api(
-        app, api_version='0.1.0', api_spec_url='/api/spec',
-        title='colandr', description='REST API powering the colandr app')
+    api = Api(app, api_version='0.1.0', api_spec_url='/api/spec',
+              title='colandr', description='REST API powering the colandr app')
     # api = swagger.docs(
     #     Api(app),
     #     apiVersion='0.1',
