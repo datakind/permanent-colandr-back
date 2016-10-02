@@ -39,14 +39,14 @@ Run `initdb` just once, basically to create the directory structure and such on 
 $ initdb /usr/local/var/postgres9.5 -E utf8
 ```
 
-To _manually_ start and stop a local Postgres server from running, use
+You'll need a way to start and stop a local Postgres server from running. To do this _manually_:
 
 ```
 $ pg_ctl -D /usr/local/var/postgres -l /usr/local/var/postgres/server.log start
 $ pg_ctl -D /usr/local/var/postgres stop -s -m fast
 ```
 
-Or to _automatically_ start a Postgres server (now and) at launch:
+Or, to do this _automatically_ now (and every time at launch):
 
 ```
 $ mkdir -p ~/Library/LaunchAgents
@@ -85,12 +85,42 @@ While we're in the interactive shell, let's create the `pgcrypto` extension for 
 =# CREATE EXTENSION "intarray";
 ```
 
-Lastly, after exiting the postgres shell, define two environment variables used when configuring the API on the server. It's probably best to add them to your `~/.profile` (or `~/.bash_profile`, `~/.zshrc`, etc.) file. The first variable lets the API know where the database is; the second variable acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_.
+Lastly, after exiting the Postgres shell, define an environment variable that lets the app know where the Postgres database is. It's probably best to add it to your `~/.profile` (or `~/.bash_profile`, `~/.zshrc`, etc.) file:
 
 ```
-$ export SQLALCHEMY_DATABASE_URI="postgresql://colandr_app:<DB_PASS>@<DB_HOST>:<DB_PORT>/colandr"
-$ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
+$ export COLANDR_DATABASE_URI="postgresql://colandr_app:<DB_PASS>@<DB_HOST>:<DB_PORT>/colandr"
 ```
+
+
+## Set Up Redis
+
+Redis is an in-memory data structure store, commonly used as a database, cache, and (as in the case of `colandr`) a message broker. Install it with Homebrew:
+
+```
+$ brew update && brew install redis
+```
+
+Or, if already installed,
+
+```
+$ brew update && brew upgrade redis
+```
+
+You'll need a way to start and stop a local Redis server from running. The second command starts it (and enables autostart for when the computer starts up), the last command stops it (and disables autostart).
+
+```
+$ ln -sfv /usr/local/opt/redis/*.plist ~/Library/LaunchAgents
+$ launchctl load -w ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+$ launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.redis.plist
+```
+
+Once running, do a quick sanity-check to make sure redis is working:
+
+```
+$ redis-cli ping
+```
+
+If it replies `PONG`, you should be good to go.
 
 
 ## Get the App Code
@@ -104,6 +134,15 @@ $ git clone http://gitlab.datakind.org/conservation-intl/conservation-intl.git
 ```
 
 This command should create a `conservation-intl` directory, in which the app's code lives.
+
+Now create a few environment variables needed by the app to configure itself and send emails. `COLANDR_SECRET_KEY` acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_. `COLANDR_PASSWORD_SALT` is also like a password, used by the app when sending custom links in account registration confirmation emails. `COLANDR_MAIL_USERNAME` and `COLANDR_MAIL_PASSWORD` are the credentials for the email account that sends those emails.
+
+```
+$ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
+$ export COLANDR_PASSWORD_SALT="<YOUR_PASSWORD_SALT>"
+$ export COLANDR_MAIL_USERNAME="colandrapp@gmail.com"
+$ export COLANDR_PASSWORD_SALT="<ASK_BURTON_FOR_THIS>"
+```
 
 
 ## Set Up Python 3

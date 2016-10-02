@@ -286,7 +286,7 @@ def main():
             'GET', BASE_URL + 'users', params={'review_id': review_id}, auth=auth)
         print('GET:', response.url)
         users = response.json()
-        for user in users:
+        for user in users[:2]:
             print('<USER(id={})>'.format(user['id']))
             auth = get_auth_token(
                 user['email'], get_user_password(user['email']))
@@ -400,7 +400,7 @@ def main():
             'GET', BASE_URL + 'users', params={'review_id': review_id}, auth=auth)
         print('GET:', response.url)
         users = response.json()
-        for user in users:
+        for user in users[:2]:
             print('<USER(id={})>'.format(user['id']))
             auth = get_auth_token(
                 user['email'], get_user_password(user['email']))

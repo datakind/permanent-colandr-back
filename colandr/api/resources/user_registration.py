@@ -5,8 +5,8 @@ from sqlalchemy import exc
 from marshmallow import fields as ma_fields
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...emails import send_email
 from ...models import db, User
+from ...tasks import send_email
 from ..errors import db_integrity, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
@@ -29,8 +29,9 @@ class RegisterUserResource(Resource):
             confirm_url = url_for('confirmuserresource', token=token, _external=True)
             html = render_template(
                 'emails/user_confirmation.html', confirm_url=confirm_url)
-            send_email([user.email], 'Confirm your email', '', html)
-            return '', 204
+            send_email.apply_async(
+                args=[[user.email], 'Confirm your email', '', html])
+        return UserSchema().dump(user).data
 
 
 class ConfirmUserResource(Resource):

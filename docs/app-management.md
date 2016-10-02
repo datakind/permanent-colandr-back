@@ -71,8 +71,14 @@ As above, use `--help` to see run options, and specify an app configuration with
 
 ## Run the App
 
-To order to run the app, just do this:
+To order to run the app, you'll need to have both Postgres and Redis running on your machine; refer to the `dev-env-setup` document for the commands. To run the flask server:
 
 ```
-$ python3 migrate.py runserver
+$ python3 manage.py runserver
+```
+
+In order to send registration emails, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
+
+```
+$ celery worker --app=celery_worker.celery
 ```
