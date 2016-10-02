@@ -59,7 +59,7 @@ object LocationClassifier {
      locationTrainData.sentences.map{ sentenceToFeature }
   }
 
-  def testAccuracy(testData : Seq[LocationLabel], classifier : LinearVectorClassifier[LocationLabel, LocationFeatures]) : Double = {
+  def testAccuracy(testData : Seq[LocationLabel], classifier : cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures]) : Double = {
       val correct = testData.count{ td => classifier.bestLabelIndex(td) == td.target.intValue}
       correct.toDouble/testData.length
   }
@@ -67,7 +67,7 @@ object LocationClassifier {
   def l2f(l : LocationLabel) = l.feature
 
   def train(trainData : Seq[LocationLabel], testData : Seq[LocationLabel]) :
-        LinearVectorClassifier[LocationLabel, LocationFeatures] = {
+        cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures] = {
     val trainer = new OnlineOptimizingLinearVectorClassifierTrainer()
     val classifier = trainer.train(trainData, l2f)
     println("Train Acc: " + testAccuracy(trainData,classifier) )
@@ -75,7 +75,7 @@ object LocationClassifier {
     classifier
   }
 
-  def train(fullData : Seq[LocationLabel]) : LinearVectorClassifier[LocationLabel, LocationFeatures] = {
+  def train(fullData : Seq[LocationLabel]) : cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures] = {
     val trainSize = (fullData.length.toDouble * 0.8).toInt
     val testSize = fullData.length - trainSize
     val shuf = Random.shuffle(fullData)
