@@ -1,16 +1,14 @@
 package org.datakind.ci.pdfestrian.extraction
 
 import cc.factorie.DenseTensor1
-import cc.factorie.app.nlp.Document
-import cc.factorie.app.strings.PorterStemmer
-import cc.factorie.la.SparseTensor1
+import cc.factorie.app.nlp.{Document, Sentence}
 
 import scala.io.Source
 
 /**
   * Created by sameyeam on 8/3/16.
   */
-object Word2Vec {
+object Word2VecSent {
   val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.300d.txt")).getLines().map { word =>
     val split = word.split(" ")
     split.head -> new DenseTensor1(split.takeRight(300).map{_.toDouble}.toArray)
@@ -27,7 +25,7 @@ object Word2Vec {
 
   val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
 
-  val featureSize = 300
+  val featureSize = 301
 
   def clean(string : String) : String = {
     val lower = string.toLowerCase()
@@ -37,11 +35,11 @@ object Word2Vec {
   val N = 920
   val idf = new DenseTensor1(arrayCounts.map{a => math.log(N.toDouble/a.toDouble)}.toArray)
 
-  def apply(document : Document) : DenseTensor1 = {
+  def apply(sentence : Sentence, location : Double) : DenseTensor1 = {
     //val counts = new Array[Int](featureSize)
     val tensor = new DenseTensor1(featureSize)
     var wordsInTensor = 0
-    for(sentence <- document.sentences; token <- sentence.tokens) {
+    for(token <- sentence.tokens) {
       val current = clean(token.string)
       if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
         if(wordCounts.contains(current) && vectors.contains(current)) {
@@ -54,12 +52,17 @@ object Word2Vec {
     tensor /= wordsInTensor.toDouble
     //tensor *= idf
     tensor /= tensor.twoNorm
+    tensor(300) = location
     tensor
   }
 
   def main(args: Array[String]): Unit = {
     val doc = PDFToDocument(args.head)
-    this.apply(doc.get._1)
+    val sentences = doc.get._1.sentences.toArray
+    for((sent,i) <- sentences.zipWithIndex) {
+      val location = i.toDouble/sentences.length.toDouble
+      apply(sent, location)
+    }
   }
 
 
