@@ -18,6 +18,7 @@ class Config(object):
     SSL_DISABLE = False
     LOGGER_NAME = 'colandr-api'
     JSON_AS_ASCII = False
+    CONFIRM_TOKEN_EXPIRATION = 3600
 
     # celery+redis config
     CELERY_BROKER_URL = 'redis://localhost:6379/0'
