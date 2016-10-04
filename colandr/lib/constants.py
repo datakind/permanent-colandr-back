@@ -2,3 +2,10 @@
 MAX_SMALLINT = 32767
 MAX_INT = 2147483647
 MAX_BIGINT = 9223372036854775807
+
+DEDUPE_FIELDS = [
+    {'field': 'authors', 'type': 'Set', 'has missing': True},
+    {'field': 'title', 'type': 'String', 'has missing': True},
+    {'field': 'abstract', 'type': 'Text', 'has missing': True},
+    {'field': 'pub_year', 'type': 'Exact', 'has missing': True},  # NOTE: used to be publication_year
+    {'field': 'doi', 'type': 'String', 'has missing': True}]

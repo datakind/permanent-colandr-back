@@ -4,14 +4,13 @@ import logging
 import dedupe
 from sqlalchemy.sql import text
 
-from colandr import create_app, db
-
 
 def execute_raw_sql_query(query, bindings=None, no_logging=True):
     """
     see: http://docs.sqlalchemy.org/en/latest/core/tutorial.html#specifying-bound-parameter-behaviors
     and: http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-textual-sql
     """
+    from colandr import create_app, db
     bindings = bindings or {}
     if no_logging is True:  # this doesn't appear to work
         logging.getLogger('sqlalchemy.engine').setLevel(logging.CRITICAL)

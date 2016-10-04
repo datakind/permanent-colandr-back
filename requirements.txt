@@ -19,4 +19,5 @@ python-dateutil>=2.5.3
 pyyaml>=3.11
 requests>=2.11.1
 schematics>=2.0.0a1
+sqlalchemy>=1.1.0b3
 webargs>=1.3.4
