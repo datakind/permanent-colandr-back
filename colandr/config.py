@@ -34,12 +34,15 @@ class Config(object):
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-    # file upload config
+    # files-on-disk config
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
+    DEDUPE_MODELS_FOLDER = os.path.join(
+        os.environ.get('HOME') or os.path.expanduser('~/'),
+        'colandr/dedupe')
 
     # email server config
     MAIL_SERVER = 'smtp.googlemail.com'

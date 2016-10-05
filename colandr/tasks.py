@@ -1,3 +1,5 @@
+import logging
+import os
 from time import sleep
 
 import arrow
@@ -5,7 +7,8 @@ from flask import current_app
 from flask_mail import Message
 from sqlalchemy import create_engine, func, types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
-from sqlalchemy.sql import delete, exists, select, text
+from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import case, delete, exists, select, text
 
 from . import celery, mail
 from .lib.utils import load_dedupe_model, make_record_immutable
@@ -32,13 +35,32 @@ def remove_unconfirmed_user(email):
         db.session.commit()
 
 
+def get_candidate_dupes(results):
+    block_id = None
+    records = []
+    for row in results:
+        if row.block_id != block_id:
+            if records:
+                yield records
+            block_id = row.block_id
+            records = []
+        smaller_ids = frozenset(row.smaller_ids)
+        records.append((row.citation_id,
+                        make_record_immutable(dict(row)),
+                        smaller_ids))
+    if records:
+        yield records
+
+
 @celery.task
 def deduplicate_citations(review_id):
     # TODO: see about setting this path in app config
-    deduper = load_dedupe_model('../models/dedupe_citations_settings')
+    deduper = load_dedupe_model(
+        os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
+                     'dedupe_citations_settings'))
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
-        server_side_cursors=True, echo=True)
+        server_side_cursors=True, echo=False)
     with engine.connect() as conn:
 
         # wait until no more review citations have been created in 60+ seconds
@@ -99,7 +121,7 @@ def deduplicate_citations(review_id):
             [{'citation_id': row[0], 'review_id': row[1], 'block_key': row[2]}
              for row in b_data])
 
-        # now fill review rows back in for a couple tables
+        # now fill review rows back in
         stmt = select([DedupeBlockingMap.review_id, DedupeBlockingMap.block_key])\
             .where(DedupeBlockingMap.review_id == review_id)\
             .group_by(DedupeBlockingMap.review_id, DedupeBlockingMap.block_key)\
@@ -143,3 +165,73 @@ def deduplicate_citations(review_id):
         conn.execute(
             DedupeSmallerCoverage.__table__.insert()\
                 .from_select(['citation_id', 'review_id', 'block_id', 'smaller_ids'], stmt))
+
+        # set dedupe model similarity threshold from the data
+        stmt = select([Citation.id, Citation.title, Citation.authors,
+                       Citation.pub_year.label('publication_year'),  # HACK for now
+                       Citation.abstract, Citation.doi])\
+            .where(Citation.review_id == review_id)\
+            .order_by(func.random())\
+            .limit(20000)
+        results = conn.execute(stmt)
+        dupe_threshold = deduper.threshold(
+            {row.id: make_record_immutable(dict(row)) for row in results},
+            recall_weight=0.5)
+
+        # apply dedupe model to get clusters of duplicate records
+        stmt = select([Citation.id.label('citation_id'), Citation.title, Citation.authors,
+                       Citation.pub_year.label('publication_year'),  # HACK for now
+                       Citation.abstract, Citation.doi,
+                       DedupeSmallerCoverage.block_id, DedupeSmallerCoverage.smaller_ids])\
+            .where(Citation.id == DedupeSmallerCoverage.citation_id)\
+            .where(Citation.review_id == review_id)\
+            .order_by(DedupeSmallerCoverage.block_id)
+        results = conn.execute(stmt)
+
+        clustered_dupes = deduper.matchBlocks(
+            get_candidate_dupes(results),
+            threshold=dupe_threshold)
+        print('found {} duplicate clusters'.format(len(clustered_dupes)))
+
+        citations_to_update = []
+        for cids, scores in clustered_dupes:
+            cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
+            stmt = select([
+                    Citation.id,
+                    (case([(Citation.title == None, 1)]) +
+                     case([(Citation.abstract == None, 1)]) +
+                     case([(Citation.pub_year == None, 1)]) +
+                     case([(Citation.pub_month == None, 1)]) +
+                     case([(Citation.authors == {}, 1)]) +
+                     case([(Citation.keywords == {}, 1)]) +
+                     case([(Citation.type_of_reference == None, 1)]) +
+                     case([(Citation.journal_name == None, 1)]) +
+                     case([(Citation.issue_number == None, 1)]) +
+                     case([(Citation.doi == None, 1)]) +
+                     case([(Citation.issn == None, 1)]) +
+                     case([(Citation.publisher == None, 1)]) +
+                     case([(Citation.language == None, 1)])
+                     ).label('n_null_cols')])\
+                .where(Citation.review_id == review_id)\
+                .where(Citation.id.in_([int(cid) for cid in cids]))\
+                .order_by(text('n_null_cols ASC'))\
+                .limit(1)
+            result = conn.execute(stmt).fetchone()
+            canonical_citation_id = result.id
+            for cid, score in cid_scores.items():
+                if cid == canonical_citation_id:
+                    citations_to_update.append(
+                        {'id': cid,
+                         'deduplication': {'is_duplicate': False}
+                         })
+                else:
+                    citations_to_update.append(
+                        {'id': cid,
+                         'status': 'excluded',
+                         'deduplication': {'is_duplicate': True,
+                                           'canonical_id': canonical_citation_id,
+                                           'duplicate_score': score}
+                         })
+        session = Session(bind=conn)
+        session.bulk_update_mappings(Citation, citations_to_update)
+        session.commit()
