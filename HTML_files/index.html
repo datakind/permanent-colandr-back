@@ -60,10 +60,13 @@
 		</div>
 
 	</div>
+	<!-- end of wayfinding -->
+
+	<!-- search and sort content controls -->
 	<div class="row">
 		<div class="col-md-3">
 			 
-			 <!-- select all and highlight keywords -->
+			 <!-- TODO select all and highlight keywords -->
 			
 		</div>
 		<div class="col-md-5">
@@ -118,6 +121,9 @@
 			</div>
 		</div>
 	</div>
+	<!-- end of search and sort content controls -->
+
+	<!-- beginning of content -->
 	<div class="row">
 		<div class="col-md-12">
 			<div class="panel-group" id="panel-107606">
@@ -134,22 +140,22 @@
 								<div class="keywords"><strong>Keywords: </strong>Numerical modeling; Greenhouse gases emission; Carbon dioxide; Hydroelectric reservoirs; Amazon biome</div>
 									</div>
 									<div class="col-md-2">
-										<button type="button" class="btn btn-default">
+										<a type="button" class="btn btn-default" id="modal-596866" href="#modal-container-596866" role="button" data-toggle="modal">
 											Include
-										</button> <br>
+										</a> <br>
 										<button type="button" class="btn btn-default">
 											Skip
 										</button> <br>
-										<button type="button" class="btn btn-default">
+										<a type="button" class="btn btn-default" id="modal-450190" href="#modal-container-450190" role="button" data-toggle="modal" >
 											Exclude
-										</button>
+										</a>
 									</div>
 						</div>
 					</div>
 				</div>
 				<div class="panel panel-default">
 					<div class="panel-heading">
-						 <a class="panel-title collapsed" data-toggle="collapse" data-parent="#panel-107606" href="#panel-element-653859">Collapsible Group Item #2</a>
+						 <a class="panel-title collapsed" data-toggle="collapse" data-parent="#panel-107606" href="#panel-element-653859">Study #2</a>
 					</div>
 					<div id="panel-element-653859" class="panel-collapse collapse">
 						<div class="panel-body">
@@ -159,9 +165,9 @@
 				</div>
 				<div class="panel panel-default">
 					<div class="panel-heading">
-						 <a class="panel-title" data-toggle="collapse" data-parent="#panel-762019" href="#panel-element-5380">Collapsible Group Item #1</a>
+						 <a class="panel-title" data-toggle="collapse" data-parent="#panel-762019" href="#panel-element-5380">Study #3</a>
 					</div>
-					<div id="panel-element-5380" class="panel-collapse collapse in">
+					<div id="panel-element-5380" class="panel-collapse collapse">
 						<div class="panel-body">
 							Anim pariatur cliche...
 						</div>
@@ -169,7 +175,7 @@
 				</div>
 				<div class="panel panel-default">
 					<div class="panel-heading">
-						 <a class="panel-title" data-toggle="collapse" data-parent="#panel-762019" href="#panel-element-261122">Collapsible Group Item #2</a>
+						 <a class="panel-title" data-toggle="collapse" data-parent="#panel-762019" href="#panel-element-261122">Study #4</a>
 					</div>
 					<div id="panel-element-261122" class="panel-collapse collapse">
 						<div class="panel-body">
@@ -202,7 +208,92 @@
 				</li>
 			</ul>
 		</div>
+			<!-- Modal window -->
+	<div class="row">
+		<div class="col-md-12">
+			<!-- <a id="modal-450190" href="#modal-container-450190" role="button" class="btn" data-toggle="modal">Launch demo modal</a> -->
+			
+			<div class="modal fade" id="modal-container-450190" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							 
+							<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+								×
+							</button>
+							<h4 class="modal-title" id="myModalLabel">
+								Exclude Study
+							</h4>
+						</div>
+						<div class="modal-body">
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="duplicate"> Duplicate
+								</label>
+							</div>
+							<div class="checkbox">
 
+								<label>
+									<input type="checkbox" name="reason2"> Reason2
+								</label>
+							</div>
+
+							<div class="checkbox">
+								<label>
+									<input type="checkbox" name="reason3"> Reason3
+								</label>
+							</div>
+						</div>
+						<div class="modal-footer">
+							 
+							<button type="button" class="btn btn-default" data-dismiss="modal">
+								Close
+							</button> 
+							<button type="submit" class="btn btn-default"  data-dismiss="modal">
+								Exclude
+							</button>
+						</div>
+					</div>
+					
+				</div>
+				
+			</div>
+
+
+			 <!-- <a id="modal-596866" href="#modal-container-596866" role="button" class="btn" data-toggle="modal">Launch demo modal</a> -->
+			
+			<div class="modal fade" id="modal-container-596866" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							 
+							<button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+								×
+							</button>
+							<h4 class="modal-title" id="myModalLabel">
+								Study Added to Review
+							</h4>
+						</div>
+						<div class="modal-body">
+							The paper "Carbon dioxide emissions from Tucuruí reservoir (Amazon biome)" <br>Has beed added to the review
+						</div>
+						<div class="modal-footer">
+							 
+							<button type="button" class="btn btn-default" data-dismiss="modal">
+								Close
+							</button> 
+							<button type="button" class="btn btn-primary"  data-dismiss="modal">
+								Include
+							</button>
+						</div>
+					</div>
+					
+				</div>
+				
+			</div>
+		</div>
+	</div>	
+	<!-- end of Modal Window -->
 	</div>
 </div>
 
