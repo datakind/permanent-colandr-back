@@ -544,12 +544,6 @@ class DedupeBlockingMap(db.Model):
         db.UnicodeText,
         primary_key=True, nullable=False, index=True)
 
-    # relationships
-    # review = db.relationship(
-    #     'Review', foreign_keys=[review_id], lazy='select')
-    # citation = db.relationship(
-    #     'Citation', foreign_keys=[citation_id], lazy='select')
-
     def __init__(self, citation_id, review_id, block_key):
         self.citation_id = citation_id
         self.review_id = review_id

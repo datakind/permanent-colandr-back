@@ -111,7 +111,7 @@ class ReviewPlanSchema(Schema):
 class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
-    is_duplicate_of = fields.Int(
+    canonical_id = fields.Int(
         validate=Range(min=1, max=constants.MAX_BIGINT))
     duplicate_score = fields.Float(
         validate=Range(min=0.0, max=1.0))
