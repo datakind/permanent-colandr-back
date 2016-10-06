@@ -140,8 +140,8 @@ Now create a few environment variables needed by the app to configure itself and
 ```
 $ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
 $ export COLANDR_PASSWORD_SALT="<YOUR_PASSWORD_SALT>"
-$ export COLANDR_MAIL_USERNAME="colandrapp@gmail.com"
-$ export COLANDR_PASSWORD_SALT="<ASK_BURTON_FOR_THIS>"
+$ export COLANDR_MAIL_USERNAME="<AN_EMAIL_ADDRESS>"
+$ export COLANDR_MAIL_PASSWORD="<THE_CORRESPONDING_PASSWORD>"
 ```
 
 

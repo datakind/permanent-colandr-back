@@ -18,7 +18,7 @@ LOGGER.addHandler(_handler)
 BASE_URL = 'http://localhost:5000/'
 
 USERS = [
-    {'name': 'Burton DeWilde', 'email': 'burtdewilde@gmail.com', 'password': 'password'},
+    {'name': 'Burton DeWilde', 'email': 'burtondewilde@gmail.com', 'password': 'password'},
     {'name': 'Ray Shah', 'email': 'rayshah@thinkdesign.com', 'password': 'password'},
     {'name': 'Caitlin Augustin', 'email': 'caugustin@rsmas.miami.edu', 'password': 'password'},
     {'name': 'Bob Minnich', 'email': 'rcm2164@columbia.edu', 'password': 'password'},
@@ -137,7 +137,6 @@ def main():
 
     parser = argparse.ArgumentParser(
         description='Repopulate the colandr database from scratch.')
-    parser.add_argument('--email', type=str, required=True)
     parser.add_argument(
         '--last', type=str, default='',
         help='last table to populate; subsequent tables will not be filled',
@@ -149,23 +148,19 @@ def main():
     print('\n\n')
     LOGGER.info('adding users to db...')
     current_user = None
-    for USER in USERS:
+    for i, USER in enumerate(USERS):
         response = requests.request(
             'POST', BASE_URL + 'users', json=USER)
         print('POST:', response.url)
         user = response.json()
         pprint(user, width=120)
-        if user['email'] == args['email']:
+        if i == 0:
             current_user = user
 
     if args['last'] == 'users':
         LOGGER.warning('stopping db repopulation at "users"')
         return
-    if current_user:
-        LOGGER.info('current user: <User(id={})>'.format(current_user['id']))
-    else:
-        logging.error('user email not found in list of users to insert into db')
-        return
+    LOGGER.info('current user: <User(id={})>'.format(current_user['id']))
 
     # let's get an authentication token for our current user
     auth = get_auth_token(

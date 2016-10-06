@@ -47,19 +47,13 @@ Any time you change the database models, run the `db migrate` and `db upgrade` c
 
 ## Reset and Re-populate the Database
 
-In order to "reset" the database by dropping and then re-creating all of its tables, run the following command:
+In order to "reset" the database by dropping and then re-creating all of its tables, clearing out files uploaded to disk, and adding an administrator user, run the following command:
 
 ```
 $ python3 manage.py reset_db
 ```
 
 **Note:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
-
-An administrator is automatically added to the database as its first user; if that behavior is unwanted, specify the `no_admin` flag:
-
-```
-$ python3 manage.py reset_db --no_admin
-```
 
 To re-populate the database from scratch (i.e. after running the above command), a separate script is used — for now. Call it like so:
 
@@ -77,7 +71,7 @@ To order to run the app, you'll need to have both Postgres and Redis running on 
 $ python3 manage.py runserver
 ```
 
-In order to send registration emails, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
+In order to send registration emails or deduplicate citations, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
 
 ```
 $ celery worker --app=celery_worker.celery
