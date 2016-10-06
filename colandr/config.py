@@ -43,6 +43,9 @@ class Config(object):
     DEDUPE_MODELS_FOLDER = os.path.join(
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/dedupe')
+    CITATIONS_FOLDER = os.path.join(
+        os.environ.get('HOME') or os.path.expanduser('~/'),
+        'colandr/citations')
 
     # email server config
     MAIL_SERVER = 'smtp.googlemail.com'

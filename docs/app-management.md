@@ -45,6 +45,21 @@ $ python3 manage.py db upgrade
 Any time you change the database models, run the `db migrate` and `db upgrade` commands again, and `git commit && git push` the new version to the remote git repo. If you just need to sync the database in a system, update the `conservation-intl/migrations` directory from version control via `git pull` and run the `db upgrade` command only.
 
 
+## Run the App
+
+To order to run the app, you'll need to have both Postgres and Redis running as services on your machine; refer to the `dev-env-setup` document for the start/stop commands. To run the flask server:
+
+```
+$ python3 manage.py runserver
+```
+
+In order to send registration emails or de-duplicate citations, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
+
+```
+$ celery worker --app=celery_worker.celery
+```
+
+
 ## Reset and Re-populate the Database
 
 In order to "reset" the database by dropping and then re-creating all of its tables, clearing out files uploaded to disk, and adding an administrator user, run the following command:
@@ -55,24 +70,16 @@ $ python3 manage.py reset_db
 
 **Note:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
 
-To re-populate the database from scratch (i.e. after running the above command), a separate script is used — for now. Call it like so:
+To re-populate the database from scratch (i.e. after running the above command), a separate script is used — for now. It actually calls the APIs used in the app, so you'll need both the flask app and celery worker running in other terminals (see above). Then, run the script:
 
 ```
 $ python3 repopulate_db.py
 ```
 
-As above, use `--help` to see run options, and specify an app configuration with the `--config` flag.
+As above, use `--help` to see run options, and specify an app configuration with the `--config` flag. **Note:** This script expects a few files to exist on disk:
 
-## Run the App
+- `~/colandr/citations/ci-full-collection-group1.ris`
+- `~/colandr/citations/ci-full-collection-group2.ris`
+- `~/colandr/dedupe/dedupe_citations_settings`
 
-To order to run the app, you'll need to have both Postgres and Redis running on your machine; refer to the `dev-env-setup` document for the commands. To run the flask server:
-
-```
-$ python3 manage.py runserver
-```
-
-In order to send registration emails or deduplicate citations, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
-
-```
-$ celery worker --app=celery_worker.celery
-```
+If you don't have these files, the script will not finish successfully. _Ask and ye shall receive_.

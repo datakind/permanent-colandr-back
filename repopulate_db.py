@@ -6,6 +6,7 @@ import random
 from pprint import pprint
 import sys
 
+from colandr import create_app
 import requests
 
 LOGGER = logging.getLogger('repopulate_db')
@@ -16,6 +17,8 @@ _handler.setFormatter(_formatter)
 LOGGER.addHandler(_handler)
 
 BASE_URL = 'http://localhost:5000/'
+
+app = create_app('default')
 
 USERS = [
     {'name': 'Burton DeWilde', 'email': 'burtondewilde@gmail.com', 'password': 'password'},
@@ -110,8 +113,8 @@ REVIEW_PLANS = [
      }
     ]
 
-CITATIONS = {1: ['../conservation-intl/data/raw/citation_files/ci-full-collection-group1.ris',
-                 '../conservation-intl/data/raw/citation_files/ci-full-collection-group2.ris']
+CITATIONS = {1: [os.path.join(app.config['CITATIONS_FOLDER'], 'ci-full-collection-group1.ris'),
+                 os.path.join(app.config['CITATIONS_FOLDER'], 'ci-full-collection-group2.ris')]
              }
 
 FULLTEXTS = {1: ['../conservation-intl/references/Bottrill_et al_2014_systematic protocol.pdf']}
