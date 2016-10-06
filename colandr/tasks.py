@@ -1,10 +1,12 @@
-import logging
+# import logging
 import os
 from time import sleep
 
 import arrow
 from flask import current_app
 from flask_mail import Message
+import redis
+import redis_lock
 from sqlalchemy import create_engine, func, types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
@@ -15,6 +17,9 @@ from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (db, Citation, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
                      User)
+
+
+REDIS_CONN = redis.StrictRedis()
 
 
 @celery.task
@@ -54,6 +59,19 @@ def get_candidate_dupes(results):
 
 @celery.task
 def deduplicate_citations(review_id):
+
+    lock = redis_lock.Lock(
+        REDIS_CONN, 'deduplicate_citations_{}'.format(review_id),
+        expire=60, auto_renewal=True)
+
+    while True:
+        if lock.acquire() is False:
+            print('an existing job for <Review(id={})> is running, waiting...'.format(review_id))
+            sleep(30)
+        else:
+            print('starting job for <Review(id={})>...'.format(review_id))
+            break
+
     # TODO: see about setting this path in app config
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
@@ -235,3 +253,5 @@ def deduplicate_citations(review_id):
         session = Session(bind=conn)
         session.bulk_update_mappings(Citation, citations_to_update)
         session.commit()
+
+    lock.release()

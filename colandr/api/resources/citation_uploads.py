@@ -60,5 +60,4 @@ class CitationUploadsResource(Resource):
             if status == 'included':
                 db.session.bulk_save_objects(fulltexts_to_insert)
             db.session.commit()
-            # TODO: un-comment this
-            # deduplicate_citations.apply_async(args=[review_id], countdown=5)
+            deduplicate_citations.apply_async(args=[review_id], countdown=60)
