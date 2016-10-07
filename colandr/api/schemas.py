@@ -103,6 +103,7 @@ class ReviewPlanSchema(Schema):
         ReviewPlanSelectionCriterion, many=True)
     data_extraction_form = fields.Nested(
         ReviewPlanDataExtractionForm)  # TODO
+    boolean_search_query = fields.Str()
 
     class Meta:
         strict = True

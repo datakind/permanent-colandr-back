@@ -9,7 +9,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from . import db
-from .api.utils import assign_status
+from .api.utils import assign_status, get_boolean_search_query
 
 
 # association table for users-reviews many-to-many relationship
@@ -172,6 +172,13 @@ class ReviewPlan(db.Model):
     data_extraction_form = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
 
+    @hybrid_property
+    def boolean_search_query(self):
+        if not self.keyterms:
+            return ''
+        else:
+            return get_boolean_search_query(self.keyterms)
+
     # relationships
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='review_plan',
@@ -247,11 +254,16 @@ class Citation(db.Model):
 
     @hybrid_property
     def text_content(self):
-        return '\n\n'.join((self.title or '', self.abstract or '')).strip()
+        return '\n\n'.join(
+            (self.title or '', self.abstract or '', ', '.join(self.keywords))
+            ).strip()
 
     @text_content.expression
     def text_content(self):
-        return db.func.concat_ws('\n\n', self.title, self.abstract)
+        return db.func.concat_ws(
+            '\n\n', self.title, self.abstract,
+            db.func.array_to_string(self.keywords, ', ')
+            )
 
     # relationships
     review = db.relationship(
