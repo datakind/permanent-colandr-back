@@ -117,6 +117,21 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <artifactId>pdfbox-tools</artifactId>
             <version>2.0.3</version>
         </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.55</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_2.11</artifactId>
+            <version>3.5.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.grobid</groupId>
+            <artifactId>grobid-core</artifactId>
+            <version>0.4.1</version>
+        </dependency>
     </dependencies>
     <repositories>
         <repository>
