@@ -40,7 +40,7 @@ object extractText {
 
     opt[Unit]('h', "html").
       action((x, c) => c.copy(html = true)).
-      text("flag, if on will extract html file instead of plain text")
+      text("flag, if on will extract html string instead of plain text")
   }
 
   def main(args : Array[String]) : Unit = {
