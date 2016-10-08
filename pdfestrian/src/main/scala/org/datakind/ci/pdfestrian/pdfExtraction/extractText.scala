@@ -14,7 +14,12 @@ object extractText {
 
   def extractText(filename : String) : String = {
     try {
-      val stream = PDDocument.load(new File(filename))
+      val file = new File(filename)
+      if(!file.exists()) {
+        println("File doesn't exist")
+        return ""
+      }
+      val stream = PDDocument.load(file)
       val textExtractor = new PDFTextStripper
       textExtractor.getText(stream)
     } catch {
@@ -24,7 +29,12 @@ object extractText {
 
   def extractHTML(filename : String) : String = {
     try {
-      val stream = PDDocument.load(new File(filename))
+      val file = new File(filename)
+      if(!file.exists()) {
+        println("File doesn't exist")
+        return ""
+      }
+      val stream = PDDocument.load(file)
       val textExtractor = new PDFText2HTML
       textExtractor.getText(stream)
     } catch {
