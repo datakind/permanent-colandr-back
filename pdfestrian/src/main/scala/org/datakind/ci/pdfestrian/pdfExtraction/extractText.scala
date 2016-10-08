@@ -32,8 +32,8 @@ object extractText {
     }
   }
   case class ExtractTextConfig(filename : String = "", html : Boolean = false)
-  val parser = new scopt.OptionParser[ExtractTextConfig]("scopt") {
-    head("scopt", "3.x")
+  val parser = new scopt.OptionParser[ExtractTextConfig]("extractText") {
+    head("extractText", "0.1")
 
     opt[String]('f', "filename").required().action((x, c) =>
       c.copy(filename = x)).text("Filename of pdf")
