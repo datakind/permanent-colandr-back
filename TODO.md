@@ -26,7 +26,7 @@
         - [x] get an existing review plan, with review collaborator privileges
         - [x] update an existing review plan, with review owner privileges
         - [x] delete an existing review plan, with review owner privileges
-        - [ ] suggest good/bad key terms based on included/excluded citations
+        - [x] suggest good/bad key terms based on included/excluded citations
     - citations
         - [x] upload batches of citations via POST'd files, with ability to preemptively set status of all citations in batch (and skip the screening process)
         - [x] get counts by status of all citations to show "review progress"
