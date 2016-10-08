@@ -171,6 +171,8 @@ class ReviewPlan(db.Model):
         postgresql.JSONB(none_as_null=True), server_default='{}')
     data_extraction_form = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
+    suggested_keyterms = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     @hybrid_property
     def boolean_search_query(self):
@@ -462,22 +464,39 @@ class FulltextScreening(db.Model):
 @event.listens_for(CitationScreening, 'after_insert')
 def update_citation_status_after_insert(mapper, connection, target):
     citation_id = target.citation_id
+    review_id = target.review_id
     citation = target.citation
     status = assign_status(
         [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
-    with connection.begin():
+    with connection.begin_nested() as trans:
         connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
+        trans.commit()
     logging.warning('{} inserted for {}, status = {}'.format(
         target, citation, status))
-    if status == 'included' and citation.fulltext is None:
-        with connection.begin():
-            connection.execute(
-                db.insert(Fulltext).values(
-                    citation_id=citation_id, review_id=citation.review_id))
-            logging.warning('inserted <Fulltext(citation_id={})>'.format(
-                citation_id))
+    if status == 'included':
+        if citation.fulltext is None:
+            with connection.begin():
+                connection.execute(
+                    db.insert(Fulltext).values(
+                        citation_id=citation_id, review_id=review_id))
+                logging.warning('inserted <Fulltext(citation_id={})>'.format(
+                    citation_id))
+        with connection.begin() as trans:
+            status_counts = connection.execute(
+                db.select([Citation.status, db.func.count(Citation.id)])\
+                    .where(Citation.review_id == review_id)\
+                    .where(Citation.status.in_(['included', 'excluded']))\
+                    .group_by(Citation.status)
+                ).fetchall()
+            status_counts = dict(status_counts)
+            n_included = status_counts['included']
+            n_excluded = status_counts['excluded']
+            if n_included > 0 and n_excluded > 0:  # and n_included % 50 == 0:
+                from .tasks import suggest_keyterms
+                sample_size = min(n_included, n_excluded)
+                suggest_keyterms.apply_async(args=[review_id, sample_size])
 
 
 @event.listens_for(CitationScreening, 'after_delete')

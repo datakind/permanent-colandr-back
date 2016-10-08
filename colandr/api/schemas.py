@@ -87,6 +87,18 @@ class ReviewPlanDataExtractionForm(Schema):
         strict = True
 
 
+class ReviewPlanSuggestedKeyterms(Schema):
+    sample_size = fields.Int(
+        required=True, validate=Range(min=1))
+    incl_keyterms = fields.List(
+        fields.Str(), required=True)
+    excl_keyterms = fields.List(
+        fields.Str(), required=True)
+
+    class Meta:
+        strict = True
+
+
 class ReviewPlanSchema(Schema):
     id = fields.Int(
         dump_only=True)
@@ -104,6 +116,8 @@ class ReviewPlanSchema(Schema):
     data_extraction_form = fields.Nested(
         ReviewPlanDataExtractionForm)  # TODO
     boolean_search_query = fields.Str()
+    suggested_keyterms = fields.Nested(
+        ReviewPlanSuggestedKeyterms)
 
     class Meta:
         strict = True
