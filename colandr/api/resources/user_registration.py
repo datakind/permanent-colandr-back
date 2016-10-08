@@ -1,4 +1,4 @@
-from flask import render_template, url_for
+from flask import current_app, render_template, url_for
 from flask_restful import Resource
 from sqlalchemy import exc
 
@@ -6,7 +6,7 @@ from marshmallow import fields as ma_fields
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...models import db, User
-from ...tasks import send_email
+from ...tasks import remove_unconfirmed_user, send_email
 from ..errors import db_integrity, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
@@ -31,6 +31,9 @@ class RegisterUserResource(Resource):
                 'emails/user_confirmation.html', confirm_url=confirm_url)
             send_email.apply_async(
                 args=[[user.email], 'Confirm your email', '', html])
+            remove_unconfirmed_user.apply_async(
+                args=[user.email],
+                countdown=current_app.config['CONFIRM_TOKEN_EXPIRATION'])
         return UserSchema().dump(user).data
 
 

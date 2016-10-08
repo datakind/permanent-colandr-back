@@ -87,6 +87,18 @@ class ReviewPlanDataExtractionForm(Schema):
         strict = True
 
 
+class ReviewPlanSuggestedKeyterms(Schema):
+    sample_size = fields.Int(
+        required=True, validate=Range(min=1))
+    incl_keyterms = fields.List(
+        fields.Str(), required=True)
+    excl_keyterms = fields.List(
+        fields.Str(), required=True)
+
+    class Meta:
+        strict = True
+
+
 class ReviewPlanSchema(Schema):
     id = fields.Int(
         dump_only=True)
@@ -103,6 +115,9 @@ class ReviewPlanSchema(Schema):
         ReviewPlanSelectionCriterion, many=True)
     data_extraction_form = fields.Nested(
         ReviewPlanDataExtractionForm)  # TODO
+    boolean_search_query = fields.Str()
+    suggested_keyterms = fields.Nested(
+        ReviewPlanSuggestedKeyterms)
 
     class Meta:
         strict = True
@@ -111,7 +126,7 @@ class ReviewPlanSchema(Schema):
 class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
-    is_duplicate_of = fields.Int(
+    canonical_id = fields.Int(
         validate=Range(min=1, max=constants.MAX_BIGINT))
     duplicate_score = fields.Float(
         validate=Range(min=0.0, max=1.0))

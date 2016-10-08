@@ -140,8 +140,8 @@ Now create a few environment variables needed by the app to configure itself and
 ```
 $ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
 $ export COLANDR_PASSWORD_SALT="<YOUR_PASSWORD_SALT>"
-$ export COLANDR_MAIL_USERNAME="colandrapp@gmail.com"
-$ export COLANDR_PASSWORD_SALT="<ASK_BURTON_FOR_THIS>"
+$ export COLANDR_MAIL_USERNAME="<AN_EMAIL_ADDRESS>"
+$ export COLANDR_MAIL_PASSWORD="<THE_CORRESPONDING_PASSWORD>"
 ```
 
 
@@ -170,6 +170,15 @@ If you haven't already, change your working directory to your local copy of the 
 $ cd /path/to/conservation-intl
 $ pip3 install -r requirements.txt
 ```
+
+The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
+
+```
+$ python3 -m spacy.en.download --force
+$ python3 -c "import spacy; spacy.load('en'); print('OK')"
+```
+
+The second command will print "OK" if the download was successful.
 
 You may wish to develop within an IPython interpreter and/or Jupyter Notebook. If so:
 

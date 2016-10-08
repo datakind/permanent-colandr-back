@@ -18,6 +18,7 @@ class Config(object):
     SSL_DISABLE = False
     LOGGER_NAME = 'colandr-api'
     JSON_AS_ASCII = False
+    CONFIRM_TOKEN_EXPIRATION = 3600
 
     # celery+redis config
     CELERY_BROKER_URL = 'redis://localhost:6379/0'
@@ -33,12 +34,18 @@ class Config(object):
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-    # file upload config
+    # files-on-disk config
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
         os.environ.get('HOME') or os.path.expanduser('~/'),
         'colandr/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
+    DEDUPE_MODELS_FOLDER = os.path.join(
+        os.environ.get('HOME') or os.path.expanduser('~/'),
+        'colandr/dedupe')
+    CITATIONS_FOLDER = os.path.join(
+        os.environ.get('HOME') or os.path.expanduser('~/'),
+        'colandr/citations')
 
     # email server config
     MAIL_SERVER = 'smtp.googlemail.com'

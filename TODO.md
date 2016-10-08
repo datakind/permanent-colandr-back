@@ -26,11 +26,11 @@
         - [x] get an existing review plan, with review collaborator privileges
         - [x] update an existing review plan, with review owner privileges
         - [x] delete an existing review plan, with review owner privileges
-        - [ ] suggest good/bad key terms based on included/excluded citations
+        - [x] suggest good/bad key terms based on included/excluded citations
     - citations
         - [x] upload batches of citations via POST'd files, with ability to preemptively set status of all citations in batch (and skip the screening process)
         - [x] get counts by status of all citations to show "review progress"
-        - [ ] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations; must be asynchronous
+        - [x] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations; must be asynchronous
         - [x] add a citation screening for a reviewer, updating status according to review settings and other screenings, and correctly flag conflicts
         - [x] get collections of citations with a variety of filtering options, e.g. to-be-screened-by-current-user, is-duplicate, has-tag, matches-search-string, ...
         - [x] enable mass screening status update (?)

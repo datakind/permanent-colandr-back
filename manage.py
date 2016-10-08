@@ -19,10 +19,10 @@ manager.add_command('db', MigrateCommand)
 
 
 @manager.command
-def reset_db(no_admin=False):
+def reset_db():
     """
     Drop and then create all tables in the database, clear out all uploaded
-    fulltext files on disk, and optionally create an admin user.
+    fulltext files on disk, and create an admin user.
     """
     if prompt_bool("Are you sure you want to reset all db data?") is False:
         return
@@ -30,12 +30,12 @@ def reset_db(no_admin=False):
     db.create_all()
     shutil.rmtree(manager.app.config['FULLTEXT_UPLOAD_FOLDER'])
     os.makedirs(manager.app.config['FULLTEXT_UPLOAD_FOLDER'], exist_ok=True)
-    if no_admin is False:
-        user = User('ADMIN', 'burtdewilde@gmail.com', 'password')
-        user.is_confirmed = True
-        user.is_admin = True
-        db.session.add(user)
-        db.session.commit()
+    os.makedirs(manager.app.config['DEDUPE_MODELS_FOLDER'], exist_ok=True)
+    user = User('ADMIN', 'burtdewilde@gmail.com', 'password')
+    user.is_confirmed = True
+    user.is_admin = True
+    db.session.add(user)
+    db.session.commit()
 
 
 if __name__ == '__main__':

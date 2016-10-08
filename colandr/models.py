@@ -9,7 +9,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from . import db
-from .api.utils import assign_status
+from .api.utils import assign_status, get_boolean_search_query
 
 
 # association table for users-reviews many-to-many relationship
@@ -171,6 +171,15 @@ class ReviewPlan(db.Model):
         postgresql.JSONB(none_as_null=True), server_default='{}')
     data_extraction_form = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
+    suggested_keyterms = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+
+    @hybrid_property
+    def boolean_search_query(self):
+        if not self.keyterms:
+            return ''
+        else:
+            return get_boolean_search_query(self.keyterms)
 
     # relationships
     review = db.relationship(
@@ -247,11 +256,16 @@ class Citation(db.Model):
 
     @hybrid_property
     def text_content(self):
-        return '\n\n'.join((self.title or '', self.abstract or '')).strip()
+        return '\n\n'.join(
+            (self.title or '', self.abstract or '', ', '.join(self.keywords))
+            ).strip()
 
     @text_content.expression
     def text_content(self):
-        return db.func.concat_ws('\n\n', self.title, self.abstract)
+        return db.func.concat_ws(
+            '\n\n', self.title, self.abstract,
+            db.func.array_to_string(self.keywords, ', ')
+            )
 
     # relationships
     review = db.relationship(
@@ -450,22 +464,39 @@ class FulltextScreening(db.Model):
 @event.listens_for(CitationScreening, 'after_insert')
 def update_citation_status_after_insert(mapper, connection, target):
     citation_id = target.citation_id
+    review_id = target.review_id
     citation = target.citation
     status = assign_status(
         [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
         citation.review.num_citation_screening_reviewers)
-    with connection.begin():
+    with connection.begin_nested() as trans:
         connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
+        trans.commit()
     logging.warning('{} inserted for {}, status = {}'.format(
         target, citation, status))
-    if status == 'included' and citation.fulltext is None:
-        with connection.begin():
-            connection.execute(
-                db.insert(Fulltext).values(
-                    citation_id=citation_id, review_id=citation.review_id))
-            logging.warning('inserted <Fulltext(citation_id={})>'.format(
-                citation_id))
+    if status == 'included':
+        if citation.fulltext is None:
+            with connection.begin():
+                connection.execute(
+                    db.insert(Fulltext).values(
+                        citation_id=citation_id, review_id=review_id))
+                logging.warning('inserted <Fulltext(citation_id={})>'.format(
+                    citation_id))
+        with connection.begin() as trans:
+            status_counts = connection.execute(
+                db.select([Citation.status, db.func.count(Citation.id)])\
+                    .where(Citation.review_id == review_id)\
+                    .where(Citation.status.in_(['included', 'excluded']))\
+                    .group_by(Citation.status)
+                ).fetchall()
+            status_counts = dict(status_counts)
+            n_included = status_counts['included']
+            n_excluded = status_counts['excluded']
+            if n_included > 0 and n_excluded > 0:  # and n_included % 50 == 0:
+                from .tasks import suggest_keyterms
+                sample_size = min(n_included, n_excluded)
+                suggest_keyterms.apply_async(args=[review_id, sample_size])
 
 
 @event.listens_for(CitationScreening, 'after_delete')
@@ -523,3 +554,129 @@ def insert_review_plan(mapper, connection, target):
         connection.execute(
             db.insert(ReviewPlan).values(review_id=target.id))
     logging.warning('{} inserted, along with {}'.format(target, review_plan))
+
+
+# tables for citation deduplication
+
+class DedupeBlockingMap(db.Model):
+
+    __tablename__ = 'dedupe_blocking_map'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        ForeignKey('citations.id', ondelete='CASCADE'),
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        primary_key=True, nullable=False, index=True)
+    block_key = db.Column(
+        db.UnicodeText,
+        primary_key=True, nullable=False, index=True)
+
+    def __init__(self, citation_id, review_id, block_key):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.block_key = block_key
+
+
+class DedupePluralKey(db.Model):
+
+    __tablename__ = 'dedupe_plural_key'
+    __table_args__ = (
+        db.UniqueConstraint('review_id', 'block_key',
+                            name='review_id_block_key_uc'),
+        )
+
+    # columns
+    block_id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    block_key = db.Column(
+        db.UnicodeText, nullable=False, index=True)
+
+    def __init__(self, block_id, review_id, block_key):
+        self.block_id = block_id
+        self.review_id = review_id
+        self.block_key = block_key
+
+
+class DedupePluralBlock(db.Model):
+
+    __tablename__ = 'dedupe_plural_block'
+    # __table_args__ = (
+    #     db.UniqueConstraint('block_id', 'citation_id',
+    #                         name='block_id_citation_id_uc'),
+    #     )
+
+    # columns
+    block_id = db.Column(
+        db.BigInteger,
+        primary_key=True)
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+
+    def __init__(self, block_id, citation_id, review_id):
+        self.block_id = block_id
+        self.citation_id = citation_id
+        self.review_id = review_id
+
+
+class DedupeCoveredBlocks(db.Model):
+
+    __tablename__ = 'dedupe_covered_blocks'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    # sorted_ids = db.Column(
+    #     db.UnicodeText, nullable=False)
+    sorted_ids = db.Column(
+        postgresql.ARRAY(db.BigInteger),
+        nullable=False, server_default='{}')
+
+    def __init__(self, citation_id, review_id, sorted_ids):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.sorted_ids = sorted_ids
+
+
+class DedupeSmallerCoverage(db.Model):
+
+    __tablename__ = 'dedupe_smaller_coverage'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    block_id = db.Column(
+        db.BigInteger,
+        # ForeignKey('dedupe_plural_key.block_id', ondelete='CASCADE'),
+        primary_key=True, nullable=False)
+    # smaller_ids = db.Column(
+    #     db.UnicodeText, nullable=False)
+    smaller_ids = db.Column(
+        postgresql.ARRAY(db.BigInteger),
+        nullable=True, server_default='{}')
+
+    def __init__(self, citation_id, review_id, block_id, smaller_ids):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.block_id = block_id
+        self.smaller_ids = smaller_ids

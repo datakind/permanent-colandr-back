@@ -9,6 +9,7 @@ from webargs.flaskparser import use_kwargs
 from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, Fulltext, Review
+from ...tasks import deduplicate_citations
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema
 from ..authentication import auth
@@ -59,3 +60,4 @@ class CitationUploadsResource(Resource):
             if status == 'included':
                 db.session.bulk_save_objects(fulltexts_to_insert)
             db.session.commit()
+            deduplicate_citations.apply_async(args=[review_id], countdown=60)
