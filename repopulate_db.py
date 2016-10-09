@@ -16,7 +16,10 @@ _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messa
 _handler.setFormatter(_formatter)
 LOGGER.addHandler(_handler)
 
+logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
+
 BASE_URL = 'http://localhost:5000/'
+session = requests.Session()
 
 app = create_app('default')
 
@@ -122,7 +125,7 @@ FULLTEXTS = {1: ['../conservation-intl/references/Bottrill_et al_2014_systematic
 
 def get_auth_token(email, password):
     """For your convenience."""
-    response = requests.get(BASE_URL + 'authtoken', auth=(email, password))
+    response = session.get(BASE_URL + 'authtoken', auth=(email, password))
     response.raise_for_status()
     return (response.json()['token'], '')
 
@@ -152,7 +155,7 @@ def main():
     LOGGER.info('adding users to db...')
     current_user = None
     for i, USER in enumerate(USERS):
-        response = requests.request(
+        response = session.request(
             'POST', BASE_URL + 'users', json=USER)
         print('POST:', response.url)
         user = response.json()
@@ -173,7 +176,7 @@ def main():
     LOGGER.info('adding reviews to db...')
     review_ids = []
     for REVIEW in REVIEWS:
-        response = requests.request(
+        response = session.request(
             'POST', BASE_URL + 'reviews', json=REVIEW, auth=auth)
         print('POST:', response.url)
         review = response.json()
@@ -185,7 +188,7 @@ def main():
     settings = {'num_citation_screening_reviewers': 2,
                 'num_fulltext_screening_reviewers': 2}
     for review_id in review_ids:
-        response = requests.request(
+        response = session.request(
             'PUT', BASE_URL + 'reviews/{}'.format(review_id),
             json=settings, auth=auth)
         print('PUT:', response.url)
@@ -197,11 +200,11 @@ def main():
         for USER in USERS:
             if USER['email'] == current_user['email']:
                 continue
-            response = requests.request(
+            response = session.request(
                 'GET', BASE_URL + 'users', params={'email': USER['email']}, auth=auth)
             print('GET:', response.url)
             user = response.json()
-            response = requests.request(
+            response = session.request(
                 'PUT', BASE_URL + 'reviews/{}/team'.format(review_id),
                 json={'user_id': user['id'], 'action': 'add'}, auth=auth)
             print('PUT:', response.url)
@@ -215,7 +218,7 @@ def main():
     print('\n\n')
     LOGGER.info('updating review plans in db...')
     for REVIEW_PLAN in REVIEW_PLANS:
-        response = requests.request(
+        response = session.request(
             'PUT', BASE_URL + 'reviews/{}/plan'.format(REVIEW_PLAN['review_id']),
             json=REVIEW_PLAN, auth=auth)
         response.raise_for_status()
@@ -236,7 +239,7 @@ def main():
             if not os.path.isfile(citations_file):
                 raise OSError()
             filename = os.path.split(citations_file)[-1]
-            response = requests.request(
+            response = session.request(
                 'POST', BASE_URL + 'citations/upload',
                 data={'review_id': review_id},
                 files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
@@ -251,7 +254,7 @@ def main():
     LOGGER.info('adding citation screenings to db...')
     for review_id in review_ids:
         print('<REVIEW(id={})>'.format(review_id))
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'reviews/{}/plan'.format(review_id),
             params={'fields': 'selection_criteria'},
             auth=auth)
@@ -266,7 +269,7 @@ def main():
         all_citation_ids = []
         page = 0
         while True:
-            response = requests.request(
+            response = session.request(
                 'GET', BASE_URL + 'citations',
                 params={'review_id': review_id, 'fields': 'id',
                         'order_dir': 'ASC', 'per_page': 5000, 'page': page},
@@ -280,7 +283,7 @@ def main():
                 page += 1
         print('# citations to screen = {}'.format(len(all_citation_ids)))
 
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'users', params={'review_id': review_id}, auth=auth)
         print('GET:', response.url)
         users = response.json()
@@ -305,7 +308,7 @@ def main():
                     screenings.append(
                         {'citation_id': citation_id, 'status': 'included'})
 
-            response = requests.request(
+            response = session.request(
                 'POST', BASE_URL + 'citations/screenings',
                 json=screenings, params={'review_id': review_id},
                 auth=auth)
@@ -331,7 +334,7 @@ def main():
         all_fulltext_ids = []
         page = 0
         while True:
-            response = requests.request(
+            response = session.request(
                 'GET', BASE_URL + 'fulltexts',
                 params={'review_id': review_id, 'fields': 'id',
                         'order_dir': 'ASC', 'per_page': 1000, 'page': page},
@@ -348,7 +351,7 @@ def main():
         for fulltext_id in all_fulltext_ids:
             fulltext_file = random.choice(fulltext_files)
             filename = os.path.split(fulltext_file)[-1]
-            response = requests.request(
+            response = session.request(
                 'POST', BASE_URL + 'fulltexts/{}/upload'.format(fulltext_id),
                 files={'uploaded_file': (filename, io.open(fulltext_file, mode='rb'))},
                 auth=auth)
@@ -365,7 +368,7 @@ def main():
     LOGGER.info('adding fulltext screenings to db...')
     for review_id in review_ids:
         print('<REVIEW(id={})>'.format(review_id))
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'reviews/{}/plan'.format(review_id),
             params={'fields': 'selection_criteria'},
             auth=auth)
@@ -380,7 +383,7 @@ def main():
         all_fulltext_ids = []
         page = 0
         while True:
-            response = requests.request(
+            response = session.request(
                 'GET', BASE_URL + 'fulltexts',
                 params={'review_id': review_id, 'fields': 'id',
                         'order_dir': 'ASC', 'per_page': 1000, 'page': page},
@@ -394,7 +397,7 @@ def main():
                 page += 1
         print('# fulltexts to screen = {}'.format(len(all_fulltext_ids)))
 
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'users', params={'review_id': review_id}, auth=auth)
         print('GET:', response.url)
         users = response.json()
@@ -419,7 +422,7 @@ def main():
                     screenings.append(
                         {'fulltext_id': fulltext_id, 'status': 'included'})
 
-            response = requests.request(
+            response = session.request(
                 'POST', BASE_URL + 'fulltexts/screenings',
                 json=screenings, params={'review_id': review_id},
                 auth=auth)
@@ -438,7 +441,7 @@ def main():
     for review_id in review_ids:
         print('<REVIEW(id={})>'.format(review_id))
 
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'reviews/{}/progress'.format(review_id),
             params={'step': 'all', 'user_view': False},
             auth=auth)
@@ -446,7 +449,7 @@ def main():
         pprint(response.json())
 
         print('')
-        response = requests.request(
+        response = session.request(
             'GET', BASE_URL + 'reviews/{}/progress'.format(review_id),
             params={'step': 'all', 'user_view': True},
             auth=auth)

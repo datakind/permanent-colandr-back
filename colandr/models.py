@@ -459,6 +459,127 @@ class FulltextScreening(db.Model):
         return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
 
 
+# tables for citation deduplication
+
+class DedupeBlockingMap(db.Model):
+
+    __tablename__ = 'dedupe_blocking_map'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        ForeignKey('citations.id', ondelete='CASCADE'),
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        primary_key=True, nullable=False, index=True)
+    block_key = db.Column(
+        db.UnicodeText,
+        primary_key=True, nullable=False, index=True)
+
+    def __init__(self, citation_id, review_id, block_key):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.block_key = block_key
+
+
+class DedupePluralKey(db.Model):
+
+    __tablename__ = 'dedupe_plural_key'
+    __table_args__ = (
+        db.UniqueConstraint('review_id', 'block_key',
+                            name='review_id_block_key_uc'),
+        )
+
+    # columns
+    block_id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    block_key = db.Column(
+        db.UnicodeText, nullable=False, index=True)
+
+    def __init__(self, block_id, review_id, block_key):
+        self.block_id = block_id
+        self.review_id = review_id
+        self.block_key = block_key
+
+
+class DedupePluralBlock(db.Model):
+
+    __tablename__ = 'dedupe_plural_block'
+    # __table_args__ = (
+    #     db.UniqueConstraint('block_id', 'citation_id',
+    #                         name='block_id_citation_id_uc'),
+    #     )
+
+    # columns
+    block_id = db.Column(
+        db.BigInteger,
+        primary_key=True)
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+
+    def __init__(self, block_id, citation_id, review_id):
+        self.block_id = block_id
+        self.citation_id = citation_id
+        self.review_id = review_id
+
+
+class DedupeCoveredBlocks(db.Model):
+
+    __tablename__ = 'dedupe_covered_blocks'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    sorted_ids = db.Column(
+        postgresql.ARRAY(db.BigInteger),
+        nullable=False, server_default='{}')
+
+    def __init__(self, citation_id, review_id, sorted_ids):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.sorted_ids = sorted_ids
+
+
+class DedupeSmallerCoverage(db.Model):
+
+    __tablename__ = 'dedupe_smaller_coverage'
+
+    # columns
+    citation_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer,
+        ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    block_id = db.Column(
+        db.BigInteger,
+        primary_key=True, nullable=False)
+    smaller_ids = db.Column(
+        postgresql.ARRAY(db.BigInteger),
+        nullable=True, server_default='{}')
+
+    def __init__(self, citation_id, review_id, block_id, smaller_ids):
+        self.citation_id = citation_id
+        self.review_id = review_id
+        self.block_id = block_id
+        self.smaller_ids = smaller_ids
+
+
 # events for automatic updating of citation status
 # and insertion/deletion of accompanying fulltexts
 
@@ -555,129 +676,3 @@ def insert_review_plan(mapper, connection, target):
         connection.execute(
             db.insert(ReviewPlan).values(review_id=target.id))
     logging.warning('{} inserted, along with {}'.format(target, review_plan))
-
-
-# tables for citation deduplication
-
-class DedupeBlockingMap(db.Model):
-
-    __tablename__ = 'dedupe_blocking_map'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        ForeignKey('citations.id', ondelete='CASCADE'),
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        primary_key=True, nullable=False, index=True)
-    block_key = db.Column(
-        db.UnicodeText,
-        primary_key=True, nullable=False, index=True)
-
-    def __init__(self, citation_id, review_id, block_key):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralKey(db.Model):
-
-    __tablename__ = 'dedupe_plural_key'
-    __table_args__ = (
-        db.UniqueConstraint('review_id', 'block_key',
-                            name='review_id_block_key_uc'),
-        )
-
-    # columns
-    block_id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    block_key = db.Column(
-        db.UnicodeText, nullable=False, index=True)
-
-    def __init__(self, block_id, review_id, block_key):
-        self.block_id = block_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralBlock(db.Model):
-
-    __tablename__ = 'dedupe_plural_block'
-    # __table_args__ = (
-    #     db.UniqueConstraint('block_id', 'citation_id',
-    #                         name='block_id_citation_id_uc'),
-    #     )
-
-    # columns
-    block_id = db.Column(
-        db.BigInteger,
-        primary_key=True)
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-
-    def __init__(self, block_id, citation_id, review_id):
-        self.block_id = block_id
-        self.citation_id = citation_id
-        self.review_id = review_id
-
-
-class DedupeCoveredBlocks(db.Model):
-
-    __tablename__ = 'dedupe_covered_blocks'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    # sorted_ids = db.Column(
-    #     db.UnicodeText, nullable=False)
-    sorted_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger),
-        nullable=False, server_default='{}')
-
-    def __init__(self, citation_id, review_id, sorted_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.sorted_ids = sorted_ids
-
-
-class DedupeSmallerCoverage(db.Model):
-
-    __tablename__ = 'dedupe_smaller_coverage'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    block_id = db.Column(
-        db.BigInteger,
-        # ForeignKey('dedupe_plural_key.block_id', ondelete='CASCADE'),
-        primary_key=True, nullable=False)
-    # smaller_ids = db.Column(
-    #     db.UnicodeText, nullable=False)
-    smaller_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger),
-        nullable=True, server_default='{}')
-
-    def __init__(self, citation_id, review_id, block_id, smaller_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_id = block_id
-        self.smaller_ids = smaller_ids
