@@ -257,7 +257,8 @@ class Citation(db.Model):
     @hybrid_property
     def text_content(self):
         return '\n\n'.join(
-            (self.title or '', self.abstract or '', ', '.join(self.keywords))
+            (self.title or '', self.abstract or '',
+             ', '.join(self.keywords or []))
             ).strip()
 
     @text_content.expression

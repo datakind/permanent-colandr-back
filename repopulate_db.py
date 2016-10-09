@@ -94,7 +94,7 @@ REVIEW_PLANS = [
                   {"term": "reserve", "group": "intervention"},
                   {"term": "govern", "group": "intervention", "synonyms": ["governs", "government"]},
                   {"term": "capacity-build", "group": "intervention", "synonyms": ["capacity-building", "capacity building"]},
-                  {"term": "train", "group": "intervention", "synonyms": ["tarins", "training"]},
+                  {"term": "train", "group": "intervention", "synonyms": ["trains", "training"]},
                   {"term": "PES", "group": "intervention"},
                   {"term": "ecotourism", "group": "intervention", "synonyms": ["eco-tourism"]},
                   {"term": "sustainable use", "group": "intervention"}
