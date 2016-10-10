@@ -40,7 +40,7 @@ def get_incl_excl_terms_regex(suggested_keyterms):
     return incl_regex, excl_regex
 
 
-def get_keyterms_regex_score(keyterms_regex, text_content):
+def get_keyterms_score(keyterms_regex, text_content):
     """
     Args:
         keyterms_regex (:class:``_sre.SRE_Pattern``)

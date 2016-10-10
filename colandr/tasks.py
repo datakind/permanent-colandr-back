@@ -303,7 +303,7 @@ def suggest_keyterms(review_id, sample_size):
 
         # run the analysis!
         incl_keyterms, excl_keyterms = textacy.keyterms.most_discriminating_terms(
-            terms_lists, included_vec, top_n_terms=25)
+            terms_lists, included_vec, top_n_terms=50)
 
         # munge results into form expected by the database, and validate
         suggested_keyterms = {

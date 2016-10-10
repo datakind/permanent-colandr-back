@@ -1,3 +1,5 @@
+from operator import itemgetter
+
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
@@ -11,9 +13,9 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants
-from ...lib.parsers import BibTexFile, RisFile
-from ...models import db, Citation, Fulltext, Review
-from ..errors import forbidden, no_data_found, unauthorized, validation
+from ...lib.nlp import reviewer_terms
+from ...models import db, Citation, Review
+from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import CitationSchema
 from ..authentication import auth
 
@@ -104,7 +106,7 @@ class CitationsResource(Resource):
         'tag': ma_fields.String(
             missing=None, validate=Length(max=25)),
         'order_by': ma_fields.String(
-            missing='recency', validate=OneOf(['recency', 'relevance'])),
+            missing='relevance', validate=OneOf(['recency', 'relevance'])),
         'order_dir': ma_fields.String(
             missing='DESC', validate=OneOf(['ASC', 'DESC'])),
         'per_page': ma_fields.Int(
@@ -121,6 +123,8 @@ class CitationsResource(Resource):
             return unauthorized(
                 '{} not authorized to get citations from this review'.format(
                     g.current_user))
+        if fields and 'id' not in fields:
+            fields.append('id')
         # build the query by components
         query = review.citations
         # filters
@@ -163,14 +167,40 @@ class CitationsResource(Resource):
             query = query.filter(Citation.tags.any(tag, operator=operators.eq))
         if tsquery:
             query = query.filter(Citation.text_content.match(tsquery))
+
         # order, offset, and limit
-        order_by = Citation.id if order_by == 'recency' else Citation.id  # TODO: NLP!
-        order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)
-        query = query.order_by(order_by)
-        query = query.offset(page * per_page).limit(per_page)
-        if fields and 'id' not in fields:
-            fields.append('id')
-        return CitationSchema(many=True, only=fields).dump(query.all()).data
+        if order_by == 'recency':
+            order_by = desc(Citation.id) if order_dir == 'DESC' else asc(Citation.id)
+            query = query.order_by(order_by)
+            query = query.offset(page * per_page).limit(per_page)
+            return CitationSchema(many=True, only=fields).dump(query.all()).data
+        elif order_by == 'relevance':
+            results = query.order_by(db.func.random()).limit(1000).all()
+            review_plan = review.review_plan
+            suggested_keyterms = review_plan.suggested_keyterms
+            if suggested_keyterms:
+                incl_regex, excl_regex = reviewer_terms.get_incl_excl_terms_regex(
+                    review_plan.suggested_keyterms)
+                scores = (
+                    reviewer_terms.get_incl_excl_terms_score(incl_regex,
+                                                              excl_regex,
+                                                              result.text_content)
+                    for result in results)
+            else:
+                keyterms_regex = reviewer_terms.get_keyterms_regex(
+                    review_plan.keyterms)
+                scores = (
+                    reviewer_terms.get_keyterms_score(keyterms_regex,
+                                                      result.text_content)
+                    for result in results)
+            sorted_results = [
+                result for result, _
+                in sorted(zip(results, scores),
+                          key=itemgetter(1),
+                          reverse=False if order_dir == 'ASC' else True)]
+            offset = page * per_page
+            return CitationSchema(many=True, only=fields).dump(
+                sorted_results[offset: offset + per_page]).data
 
     @swagger.operation()
     @use_args(CitationSchema(partial=True))

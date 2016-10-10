@@ -615,7 +615,7 @@ def update_citation_status_after_insert(mapper, connection, target):
             status_counts = dict(status_counts)
             n_included = status_counts['included']
             n_excluded = status_counts['excluded']
-            if n_included > 0 and n_excluded > 0:  # and n_included % 50 == 0:
+            if n_included > 0 and n_excluded > 0 and n_included % 25 == 0:
                 from .tasks import suggest_keyterms
                 sample_size = min(n_included, n_excluded)
                 suggest_keyterms.apply_async(args=[review_id, sample_size])

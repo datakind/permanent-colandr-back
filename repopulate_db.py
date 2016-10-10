@@ -8,6 +8,7 @@ from pprint import pprint
 import sys
 
 from colandr import create_app
+from colandr.tasks import suggest_keyterms
 import requests
 
 LOGGER = logging.getLogger('repopulate_db')
@@ -310,6 +311,9 @@ def main():
             json=screenings, params={'review_id': review_id},
             auth=auth)
         print('POST:', response.url)
+
+    # run async task to suggest keyterms based on included/excluded citations
+    suggest_keyterms.apply_async(args=[review_id, 500])
 
     if args['last'] == 'citation_screenings':
         LOGGER.warning('stopping db repopulation at "citation_screenings"')
