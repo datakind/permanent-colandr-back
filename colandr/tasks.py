@@ -77,7 +77,6 @@ def deduplicate_citations(review_id):
 
     lock = wait_for_lock('deduplicate_citations_review{}'.format(review_id), expire=60)
 
-    # TODO: see about setting this path in app config
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
                      'dedupe_citations_settings'))
@@ -102,7 +101,8 @@ def deduplicate_citations(review_id):
             [exists().where(Citation.review_id == review_id).where(Citation.deduplication == {})])
         un_deduped_citations = conn.execute(stmt).fetchone()[0]
         if un_deduped_citations is False:
-            raise Exception
+            print('all citations for <Review(id={})> already deduped!'.format(review_id))
+            return
 
         # remove rows for this review
         # which we'll add back with the latest citations included
@@ -216,25 +216,29 @@ def deduplicate_citations(review_id):
             threshold=dupe_threshold)
         print('found {} duplicate clusters'.format(len(clustered_dupes)))
 
+        # get *all* citation ids for this review
+        stmt = select([Citation.id]).where(Citation.review_id == review_id)
+        all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
+        duplicate_cids = set()
+
         citations_to_update = []
         for cids, scores in clustered_dupes:
             cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
-            stmt = select([
-                    Citation.id,
-                    (case([(Citation.title == None, 1)]) +
-                     case([(Citation.abstract == None, 1)]) +
-                     case([(Citation.pub_year == None, 1)]) +
-                     case([(Citation.pub_month == None, 1)]) +
-                     case([(Citation.authors == {}, 1)]) +
-                     case([(Citation.keywords == {}, 1)]) +
-                     case([(Citation.type_of_reference == None, 1)]) +
-                     case([(Citation.journal_name == None, 1)]) +
-                     case([(Citation.issue_number == None, 1)]) +
-                     case([(Citation.doi == None, 1)]) +
-                     case([(Citation.issn == None, 1)]) +
-                     case([(Citation.publisher == None, 1)]) +
-                     case([(Citation.language == None, 1)])
-                     ).label('n_null_cols')])\
+            stmt = select([Citation.id,
+                           (case([(Citation.title == None, 1)]) +
+                            case([(Citation.abstract == None, 1)]) +
+                            case([(Citation.pub_year == None, 1)]) +
+                            case([(Citation.pub_month == None, 1)]) +
+                            case([(Citation.authors == {}, 1)]) +
+                            case([(Citation.keywords == {}, 1)]) +
+                            case([(Citation.type_of_reference == None, 1)]) +
+                            case([(Citation.journal_name == None, 1)]) +
+                            case([(Citation.issue_number == None, 1)]) +
+                            case([(Citation.doi == None, 1)]) +
+                            case([(Citation.issn == None, 1)]) +
+                            case([(Citation.publisher == None, 1)]) +
+                            case([(Citation.language == None, 1)])
+                            ).label('n_null_cols')])\
                 .where(Citation.review_id == review_id)\
                 .where(Citation.id.in_([int(cid) for cid in cids]))\
                 .order_by(text('n_null_cols ASC'))\
@@ -242,12 +246,8 @@ def deduplicate_citations(review_id):
             result = conn.execute(stmt).fetchone()
             canonical_citation_id = result.id
             for cid, score in cid_scores.items():
-                if cid == canonical_citation_id:
-                    citations_to_update.append(
-                        {'id': cid,
-                         'deduplication': {'is_duplicate': False}
-                         })
-                else:
+                if cid != canonical_citation_id:
+                    duplicate_cids.add(cid)
                     citations_to_update.append(
                         {'id': cid,
                          'status': 'excluded',
@@ -255,6 +255,11 @@ def deduplicate_citations(review_id):
                                            'canonical_id': canonical_citation_id,
                                            'duplicate_score': score}
                          })
+        non_duplicate_cids = all_cids - duplicate_cids
+        citations_to_update.extend(
+            {'id': cid, 'deduplication': {'is_duplicate': False}}
+            for cid in non_duplicate_cids
+            )
         session = Session(bind=conn)
         session.bulk_update_mappings(Citation, citations_to_update)
         session.commit()

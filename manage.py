@@ -30,7 +30,6 @@ def reset_db():
     db.create_all()
     shutil.rmtree(manager.app.config['FULLTEXT_UPLOAD_FOLDER'])
     os.makedirs(manager.app.config['FULLTEXT_UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(manager.app.config['DEDUPE_MODELS_FOLDER'], exist_ok=True)
     user = User('ADMIN', 'burtdewilde@gmail.com', 'password')
     user.is_confirmed = True
     user.is_admin = True
