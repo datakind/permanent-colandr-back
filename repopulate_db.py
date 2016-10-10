@@ -264,7 +264,8 @@ def main():
         response = session.request(
             'GET', BASE_URL + 'citations',
             params={'review_id': review_id, 'fields': 'id',
-                    'order_dir': 'ASC', 'per_page': 5000, 'page': page},
+                    'order_by': 'recency', 'order_dir': 'ASC',
+                    'per_page': 5000, 'page': page},
             auth=auth)
         print('GET:', response.url)
         citation_ids = [result['id'] for result in response.json()]

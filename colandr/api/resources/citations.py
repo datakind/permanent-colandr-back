@@ -183,8 +183,8 @@ class CitationsResource(Resource):
                     review_plan.suggested_keyterms)
                 scores = (
                     reviewer_terms.get_incl_excl_terms_score(incl_regex,
-                                                              excl_regex,
-                                                              result.text_content)
+                                                             excl_regex,
+                                                             result.text_content)
                     for result in results)
             else:
                 keyterms_regex = reviewer_terms.get_keyterms_regex(
