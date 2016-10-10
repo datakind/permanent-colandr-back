@@ -7,6 +7,8 @@
 #     - also like a password, can be whatever, just make it hard to guess
 # - COLANDR_MAIL_USERNAME
 # - COLANDR_MAIL_PASSWORD
+# - COLANDR_APP_DIR
+#     - path on disk of colandr, i.e. the conservation-intl repo
 
 import os
 
@@ -35,17 +37,15 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     # files-on-disk config
+    COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR')
+    DEDUPE_MODELS_FOLDER = os.path.join(
+        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/dedupe')
+    CITATIONS_FOLDER = os.path.join(
+        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/citations')
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
-        os.environ.get('HOME') or os.path.expanduser('~/'),
-        'colandr/fulltexts/uploads')
+        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/fulltexts/uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
-    DEDUPE_MODELS_FOLDER = os.path.join(
-        os.environ.get('HOME') or os.path.expanduser('~/'),
-        'colandr/dedupe')
-    CITATIONS_FOLDER = os.path.join(
-        os.environ.get('HOME') or os.path.expanduser('~/'),
-        'colandr/citations')
 
     # email server config
     MAIL_SERVER = 'smtp.googlemail.com'
