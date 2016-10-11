@@ -39,6 +39,8 @@ class CitationResource(Resource):
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this citation'.format(g.current_user))
+        if fields and 'id' not in fields:
+            fields.append('id')
         return CitationSchema(only=fields).dump(citation).data
 
     @swagger.operation()
