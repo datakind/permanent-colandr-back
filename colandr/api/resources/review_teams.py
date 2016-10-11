@@ -10,7 +10,7 @@ from webargs.flaskparser import use_kwargs
 
 from ...models import db, Review, User
 from ...lib import constants
-from ..errors import forbidden, unauthorized
+from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import UserSchema
 from ..authentication import auth
 
@@ -30,7 +30,7 @@ class ReviewTeamResource(Resource):
     def get(self, id, fields):
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found()
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
@@ -57,7 +57,7 @@ class ReviewTeamResource(Resource):
     def put(self, id, user_id, action, test):
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found('')
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to modify this review team'.format(g.current_user))
@@ -71,7 +71,7 @@ class ReviewTeamResource(Resource):
                 review_users.append(user)
         elif action == 'remove':
             if user_id == review.owner_user_id:
-                raise forbidden('current review owner can not be removed from team')
+                return forbidden('current review owner can not be removed from team')
             if review_users.filter_by(id=user_id).one_or_none() is not None:
                 review_users.remove(user)
         if test is False:
