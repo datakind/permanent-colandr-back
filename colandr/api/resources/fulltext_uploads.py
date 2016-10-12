@@ -57,14 +57,15 @@ class FulltextUploadResource(Resource):
             # extract content from disk, depending on type
             if ext == '.txt':
                 with io.open(filepath, mode='rb') as f:
-                    content = f.read()
+                    text_content = f.read()
             elif ext == '.pdf':
                 extract_text_script = os.path.join(
                     current_app.config['COLANDR_APP_DIR'],
                     'pdfestrian/bin/extractText.sh')
-                content = subprocess.check_output(
+                text_content = subprocess.check_output(
                     [extract_text_script, '--filename', filepath])
-            fulltext.content = fix_bad_unicode(content.decode(errors='ignore'))
+            fulltext.text_content = fix_bad_unicode(
+                text_content.decode(errors='ignore'))
             db.session.commit()
         return FulltextSchema().dump(fulltext).data
 

@@ -81,8 +81,19 @@ class ReviewPlanSelectionCriterion(Schema):
         strict = True
 
 
-# TODO
-class ReviewPlanDataExtractionForm(Schema):
+class ReviewPlanDataExtractionItem(Schema):
+    label = fields.Str(
+        required=True, validate=Length(max=25))
+    description = fields.Str(
+        validate=Length(max=300))
+    field_type = fields.Str(
+        required=True,
+        validate=OneOf(['bool', 'date', 'int', 'float', 'str',
+                        'select one', 'select many',
+                        'country']))
+    field_values = fields.List(
+        fields.Str())
+
     class Meta:
         strict = True
 
@@ -114,7 +125,7 @@ class ReviewPlanSchema(Schema):
     selection_criteria = fields.Nested(
         ReviewPlanSelectionCriterion, many=True)
     data_extraction_form = fields.Nested(
-        ReviewPlanDataExtractionForm)  # TODO
+        ReviewPlanDataExtractionItem, many=True)
     boolean_search_query = fields.Str()
     suggested_keyterms = fields.Nested(
         ReviewPlanSuggestedKeyterms)
@@ -236,10 +247,9 @@ class FulltextSchema(Schema):
                         'included', 'excluded', 'conflict']))
     filename = fields.Str(
         required=True)
-    content = fields.Str()
     screenings = fields.Nested(
         ScreeningSchema, many=True)
-    extracted_info = fields.Dict()
+    extracted_data = fields.Dict()
     citation = fields.Nested(
         CitationSchema)
 

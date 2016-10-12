@@ -330,9 +330,10 @@ class Fulltext(db.Model):
         index=True)
     filename = db.Column(
         db.Unicode(length=30), unique=True, nullable=True)
-    content = db.Column(
+    text_content = db.Column(
         db.UnicodeText, nullable=True)
-    extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
+    extracted_data = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
     review = db.relationship(
@@ -345,11 +346,10 @@ class Fulltext(db.Model):
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, review_id, citation_id, filename=None, content=None):
+    def __init__(self, review_id, citation_id, filename=None):
         self.review_id = review_id
         self.citation_id = citation_id
         self.filename = filename
-        self.content = content
 
     def __repr__(self):
         return "<Fulltext(citation_id={})>".format(self.citation_id)

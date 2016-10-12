@@ -11,7 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from webargs import missing
 
 from ...lib import constants
-from ...models import db, Citation, Fulltext, Review
+from ...models import db, Fulltext, Review
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import FulltextSchema
 from ..authentication import auth
@@ -163,7 +163,7 @@ class FulltextsResource(Resource):
         if tag:
             query = query.filter(Fulltext.citation.tags.any(tag, operator=operators.eq))
         if tsquery:
-            query = query.filter(Fulltext.content.match(tsquery))
+            query = query.filter(Fulltext.text_content.match(tsquery))
         # order, offset, and limit
         order_by = Fulltext.id if order_by == 'recency' else Fulltext.id  # TODO: NLP!
         order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)
