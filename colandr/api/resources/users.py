@@ -2,7 +2,6 @@ from flask import g
 from flask_restful import Resource
 # from flask_restful_swagger import swagger
 from flask_restful_swagger_2 import swagger
-from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
@@ -151,15 +150,15 @@ class UsersResource(Resource):
         if email:
             user = db.session.query(User).filter_by(email=email).one_or_none()
             if not user:
-                return NoResultFound
+                return no_data_found('no user found with email "{}"'.format(email))
             else:
                 return UserSchema().dump(user).data
         elif review_id:
             review = db.session.query(Review).get(review_id)
             if not review:
-                raise NoResultFound
+                return no_data_found('<Review(id={})> not found'.format(review_id))
             if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
-                raise unauthorized(
+                return unauthorized(
                     '{} not authorized to see users for this review'.format(
                         g.current_user))
             users = review.users

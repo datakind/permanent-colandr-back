@@ -91,7 +91,7 @@ class ReviewPlanDataExtractionItem(Schema):
         validate=OneOf(['bool', 'date', 'int', 'float', 'str',
                         'select one', 'select many',
                         'country']))
-    field_values = fields.List(
+    allowed_values = fields.List(
         fields.Str())
 
     class Meta:
@@ -235,6 +235,31 @@ class CitationSchema(Schema):
         strict = True
 
 
+class FulltextExtractedDataItem(Schema):
+    label = fields.Str(
+        required=True, validate=Length(max=25))
+    # validation handled in API Resource
+    # based on values in ReviewPlanDataExtractionItem
+    value = fields.Raw(
+        required=True)
+
+    class Meta:
+        strict = True
+
+
+class FulltextExtractedDataSchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    fulltext_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
+    extracted_data = fields.Nested(
+        FulltextExtractedDataItem, many=True)
+
+
 class FulltextSchema(Schema):
     id = fields.Int(
         dump_only=True)
@@ -249,7 +274,8 @@ class FulltextSchema(Schema):
         required=True)
     screenings = fields.Nested(
         ScreeningSchema, many=True)
-    extracted_data = fields.Dict()
+    extracted_data = fields.Nested(
+        FulltextExtractedDataSchema)
     citation = fields.Nested(
         CitationSchema)
 

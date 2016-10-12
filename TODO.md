@@ -34,23 +34,23 @@
         - [x] add a citation screening for a reviewer, updating status according to review settings and other screenings, and correctly flag conflicts
         - [x] get collections of citations with a variety of filtering options, e.g. to-be-screened-by-current-user, is-duplicate, has-tag, matches-search-string, ...
         - [x] enable mass screening status update (?)
-        - [ ] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
+        - [x] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
         - [x] add individual citation, manually entered via HTTP POST (?)
     - fulltexts
         - [x] facilitate uploads of pdfs and storage on server in standardized form
-        - [ ] the rest TBD depending on Sam A's input
+        - [x] data extraction stuff
         - [x] link citation to PDF file uploaded by user
     - error handling
         - [x] define custom exceptions and raise them appropriately
     - documentation
-        - [ ] improve documentation on all endpoints, as needed
+        - [x] improve documentation on all endpoints, as needed
         - [ ] improve interactive swagger html page (optional)
     - deployment
         - [ ] deploy data and API on Heroku or AWS or OVH or academic server
     - security
         - [ ] enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
 - **NLP (for ranking citations)**
-    - [ ] improve initial ranking from reviewer terms
+    - [x] improve initial ranking from reviewer terms
     - [ ] implement automatic term recognition with scoring for 2nd-stage ranking
     - [ ] implement ML-based ranking based on user-labeled citations
     - [ ] automatically switch and/or hybridize methods depending on metrics, e.g. observed inclusion rate vs. baseline inclusion rate

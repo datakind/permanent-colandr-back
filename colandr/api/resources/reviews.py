@@ -1,7 +1,6 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -11,7 +10,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...models import db, Review
 from ...lib import constants
-from ..errors import unauthorized
+from ..errors import no_data_found, unauthorized
 from ..schemas import ReviewSchema
 from ..authentication import auth
 
@@ -31,7 +30,7 @@ class ReviewResource(Resource):
     def get(self, id, fields):
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
@@ -49,7 +48,7 @@ class ReviewResource(Resource):
     def delete(self, id, test):
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to delete this review'.format(g.current_user))
@@ -69,7 +68,7 @@ class ReviewResource(Resource):
     def put(self, args, id, test):
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to update this review'.format(g.current_user))

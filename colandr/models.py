@@ -140,6 +140,9 @@ class Review(db.Model):
     fulltext_screenings = db.relationship(
         'FulltextScreening', back_populates='review',
         lazy='dynamic', passive_deletes=True)
+    fulltexts_extracted_data = db.relationship(
+        'FulltextExtractedData', back_populates='review',
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, name, owner_user_id, description=None):
         self.name = name
@@ -332,8 +335,6 @@ class Fulltext(db.Model):
         db.Unicode(length=30), unique=True, nullable=True)
     text_content = db.Column(
         db.UnicodeText, nullable=True)
-    extracted_data = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
     review = db.relationship(
@@ -345,6 +346,9 @@ class Fulltext(db.Model):
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
+    extracted_data = db.relationship(
+        'FulltextExtractedData', uselist=False, back_populates='fulltext',
+        lazy='select', passive_deletes=True)
 
     def __init__(self, review_id, citation_id, filename=None):
         self.review_id = review_id
@@ -457,6 +461,42 @@ class FulltextScreening(db.Model):
 
     def __repr__(self):
         return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
+
+
+class FulltextExtractedData(db.Model):
+
+    __tablename__ = 'fulltexts_extracted_data'
+
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    fulltext_id = db.Column(
+        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
+        unique=True, nullable=False, index=True)
+    extracted_data = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+
+    # relationships
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='fulltexts_extracted_data',
+        lazy='select')
+    fulltext = db.relationship(
+        'Fulltext', foreign_keys=[fulltext_id], back_populates='extracted_data',
+        lazy='select')
+
+    def __init__(self, review_id, fulltext_id, extracted_data=None):
+        self.review_id = review_id
+        self.fulltext_id = fulltext_id
+        self.extracted_data = extracted_data
+
+    def __repr__(self):
+        return "<FulltextExtractedData(fulltext_id={})>".format(self.fulltext_id)
 
 
 # tables for citation deduplication
@@ -653,6 +693,13 @@ def update_fulltext_status_after_insert(mapper, connection, target):
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} inserted for {}, status = {}'.format(
         target, fulltext, status))
+    if status == 'included' and fulltext.extracted_data is None:
+        with connection.begin():
+            connection.execute(
+                db.insert(FulltextExtractedData).values(
+                    review_id=target.review_id, fulltext_id=fulltext_id))
+            logging.warning('inserted <FulltextExtractedData(fulltext_id={})>'.format(
+                fulltext_id))
 
 
 @event.listens_for(FulltextScreening, 'after_delete')
@@ -667,6 +714,13 @@ def update_fulltext_status_after_delete(mapper, connection, target):
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} deleted for {}, status = {}'.format(
         target, fulltext, status))
+    if status != 'included' and fulltext.extracted_data is None:
+        with connection.begin():
+            connection.execute(
+                db.delete(FulltextExtractedData)\
+                    .where(FulltextExtractedData.fulltext_id == fulltext_id))
+            logging.warning('deleted <FulltextExtractedData(fulltext_id={})>'.format(
+                fulltext_id))
 
 
 @event.listens_for(Review, 'after_insert')

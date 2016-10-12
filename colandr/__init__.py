@@ -31,6 +31,7 @@ from .api.resources.citation_uploads import CitationUploadsResource
 from .api.resources.fulltexts import FulltextResource, FulltextsResource
 from .api.resources.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.resources.fulltext_uploads import FulltextUploadResource
+from .api.resources.fulltexts_extracted_data import FulltextExtractedDataResource
 
 
 def create_app(config_name):
@@ -74,6 +75,7 @@ def create_app(config_name):
     api.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
     api.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
     api.add_resource(FulltextUploadResource, '/fulltexts/<int:id>/upload')
+    api.add_resource(FulltextExtractedDataResource, '/fulltexts/<int:id>/extracted_data')
 
     @app.route('/fulltexts/<id>/upload', methods=['GET'])
     def get_uploaded_fulltext_file(id):

@@ -1,7 +1,6 @@
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy.orm.exc import NoResultFound
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
@@ -9,7 +8,7 @@ from webargs.flaskparser import use_kwargs
 
 from ...lib import constants
 from ...models import db, Citation, Fulltext, Review
-from ..errors import unauthorized
+from ..errors import no_data_found, unauthorized
 from ..authentication import auth
 
 
@@ -31,7 +30,7 @@ class ReviewProgressResource(Resource):
         response = {}
         review = db.session.query(Review).get(id)
         if not review:
-            raise NoResultFound
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get review progress'.format(g.current_user))
