@@ -1,4 +1,6 @@
+import io
 import os
+import subprocess
 
 from flask import current_app, g
 from flask_restful import Resource
@@ -7,6 +9,8 @@ from flask_restful_swagger import swagger
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
+
+from textacy.preprocess import fix_bad_unicode
 
 from ...lib import constants
 from ...models import db, Fulltext
@@ -42,12 +46,27 @@ class FulltextUploadResource(Resource):
         _, ext = os.path.splitext(uploaded_file.filename)
         if ext not in current_app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
             return validation('invalid fulltext upload file type: "{}"'.format(ext))
+        # assign filename based an id, and full path
         filename = '{}{}'.format(id, ext)
         fulltext.filename = filename
+        filepath = os.path.join(
+            current_app.config['FULLTEXT_UPLOAD_FOLDER'], filename)
         if test is False:
+            # save file content to disk
+            uploaded_file.save(filepath)
+            # extract content from disk, depending on type
+            if ext == '.txt':
+                with io.open(filepath, mode='rb') as f:
+                    text_content = f.read()
+            elif ext == '.pdf':
+                extract_text_script = os.path.join(
+                    current_app.config['COLANDR_APP_DIR'],
+                    'pdfestrian/bin/extractText.sh')
+                text_content = subprocess.check_output(
+                    [extract_text_script, '--filename', filepath])
+            fulltext.text_content = fix_bad_unicode(
+                text_content.decode(errors='ignore'))
             db.session.commit()
-            uploaded_file.save(
-                os.path.join(current_app.config['FULLTEXT_UPLOAD_FOLDER'], filename))
         return FulltextSchema().dump(fulltext).data
 
     @swagger.operation()

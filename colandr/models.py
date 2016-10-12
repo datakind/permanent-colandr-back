@@ -140,6 +140,9 @@ class Review(db.Model):
     fulltext_screenings = db.relationship(
         'FulltextScreening', back_populates='review',
         lazy='dynamic', passive_deletes=True)
+    fulltexts_extracted_data = db.relationship(
+        'FulltextExtractedData', back_populates='review',
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, name, owner_user_id, description=None):
         self.name = name
@@ -170,6 +173,8 @@ class ReviewPlan(db.Model):
     selection_criteria = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
     data_extraction_form = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+    suggested_keyterms = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
 
     @hybrid_property
@@ -255,7 +260,8 @@ class Citation(db.Model):
     @hybrid_property
     def text_content(self):
         return '\n\n'.join(
-            (self.title or '', self.abstract or '', ', '.join(self.keywords))
+            (self.title or '', self.abstract or '',
+             ', '.join(self.keywords or []))
             ).strip()
 
     @text_content.expression
@@ -327,9 +333,8 @@ class Fulltext(db.Model):
         index=True)
     filename = db.Column(
         db.Unicode(length=30), unique=True, nullable=True)
-    content = db.Column(
+    text_content = db.Column(
         db.UnicodeText, nullable=True)
-    extracted_info = db.Column(postgresql.JSONB(none_as_null=True))
 
     # relationships
     review = db.relationship(
@@ -341,12 +346,14 @@ class Fulltext(db.Model):
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
+    extracted_data = db.relationship(
+        'FulltextExtractedData', uselist=False, back_populates='fulltext',
+        lazy='select', passive_deletes=True)
 
-    def __init__(self, review_id, citation_id, filename=None, content=None):
+    def __init__(self, review_id, citation_id, filename=None):
         self.review_id = review_id
         self.citation_id = citation_id
         self.filename = filename
-        self.content = content
 
     def __repr__(self):
         return "<Fulltext(citation_id={})>".format(self.citation_id)
@@ -456,85 +463,40 @@ class FulltextScreening(db.Model):
         return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
 
 
-# events for automatic updating of citation status
-# and insertion/deletion of accompanying fulltexts
+class FulltextExtractedData(db.Model):
 
-@event.listens_for(CitationScreening, 'after_insert')
-def update_citation_status_after_insert(mapper, connection, target):
-    citation_id = target.citation_id
-    citation = target.citation
-    status = assign_status(
-        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
-        citation.review.num_citation_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Citation).where(Citation.id == citation_id).values(status=status))
-    logging.warning('{} inserted for {}, status = {}'.format(
-        target, citation, status))
-    if status == 'included' and citation.fulltext is None:
-        with connection.begin():
-            connection.execute(
-                db.insert(Fulltext).values(
-                    citation_id=citation_id, review_id=citation.review_id))
-            logging.warning('inserted <Fulltext(citation_id={})>'.format(
-                citation_id))
+    __tablename__ = 'fulltexts_extracted_data'
 
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    fulltext_id = db.Column(
+        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
+        unique=True, nullable=False, index=True)
+    extracted_data = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
 
-@event.listens_for(CitationScreening, 'after_delete')
-def update_citation_status_after_delete(mapper, connection, target):
-    citation_id = target.citation_id
-    citation = target.citation
-    status = assign_status(
-        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
-        citation.review.num_citation_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Citation).where(Citation.id == citation_id).values(status=status))
-    logging.warning('{} deleted for {}, status = {}'.format(
-        target, citation, status))
-    if status != 'included' and citation.fulltext is not None:
-        with connection.begin():
-            connection.execute(
-                db.delete(Fulltext).where(Fulltext.citation_id == citation_id))
-            logging.warning('deleted <Fulltext(citation_id={})>'.format(
-                citation_id))
+    # relationships
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='fulltexts_extracted_data',
+        lazy='select')
+    fulltext = db.relationship(
+        'Fulltext', foreign_keys=[fulltext_id], back_populates='extracted_data',
+        lazy='select')
 
+    def __init__(self, review_id, fulltext_id, extracted_data=None):
+        self.review_id = review_id
+        self.fulltext_id = fulltext_id
+        self.extracted_data = extracted_data
 
-@event.listens_for(FulltextScreening, 'after_insert')
-def update_fulltext_status_after_insert(mapper, connection, target):
-    fulltext_id = target.fulltext_id
-    fulltext = target.fulltext
-    status = assign_status(
-        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
-        fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
-    logging.warning('{} inserted for {}, status = {}'.format(
-        target, fulltext, status))
-
-
-@event.listens_for(FulltextScreening, 'after_delete')
-def update_fulltext_status_after_delete(mapper, connection, target):
-    fulltext_id = target.fulltext_id
-    fulltext = target.fulltext
-    status = assign_status(
-        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
-        fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
-    logging.warning('{} deleted for {}, status = {}'.format(
-        target, fulltext, status))
-
-
-@event.listens_for(Review, 'after_insert')
-def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(target.id)
-    with connection.begin():
-        connection.execute(
-            db.insert(ReviewPlan).values(review_id=target.id))
-    logging.warning('{} inserted, along with {}'.format(target, review_plan))
+    def __repr__(self):
+        return "<FulltextExtractedData(fulltext_id={})>".format(self.fulltext_id)
 
 
 # tables for citation deduplication
@@ -622,8 +584,6 @@ class DedupeCoveredBlocks(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
-    # sorted_ids = db.Column(
-    #     db.UnicodeText, nullable=False)
     sorted_ids = db.Column(
         postgresql.ARRAY(db.BigInteger),
         nullable=False, server_default='{}')
@@ -648,10 +608,7 @@ class DedupeSmallerCoverage(db.Model):
         nullable=False, index=True)
     block_id = db.Column(
         db.BigInteger,
-        # ForeignKey('dedupe_plural_key.block_id', ondelete='CASCADE'),
         primary_key=True, nullable=False)
-    # smaller_ids = db.Column(
-    #     db.UnicodeText, nullable=False)
     smaller_ids = db.Column(
         postgresql.ARRAY(db.BigInteger),
         nullable=True, server_default='{}')
@@ -661,3 +618,115 @@ class DedupeSmallerCoverage(db.Model):
         self.review_id = review_id
         self.block_id = block_id
         self.smaller_ids = smaller_ids
+
+
+# events for automatic updating of citation status
+# and insertion/deletion of accompanying fulltexts
+
+@event.listens_for(CitationScreening, 'after_insert')
+def update_citation_status_after_insert(mapper, connection, target):
+    citation_id = target.citation_id
+    review_id = target.review_id
+    citation = target.citation
+    status = assign_status(
+        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
+        citation.review.num_citation_screening_reviewers)
+    with connection.begin_nested() as trans:
+        connection.execute(
+            db.update(Citation).where(Citation.id == citation_id).values(status=status))
+        trans.commit()
+    logging.warning('{} inserted for {}, status = {}'.format(
+        target, citation, status))
+    if status == 'included':
+        if citation.fulltext is None:
+            with connection.begin():
+                connection.execute(
+                    db.insert(Fulltext).values(
+                        citation_id=citation_id, review_id=review_id))
+                logging.warning('inserted <Fulltext(citation_id={})>'.format(
+                    citation_id))
+        with connection.begin() as trans:
+            status_counts = connection.execute(
+                db.select([Citation.status, db.func.count(Citation.id)])\
+                    .where(Citation.review_id == review_id)\
+                    .where(Citation.status.in_(['included', 'excluded']))\
+                    .group_by(Citation.status)
+                ).fetchall()
+            status_counts = dict(status_counts)
+            n_included = status_counts['included']
+            n_excluded = status_counts['excluded']
+            if n_included > 0 and n_excluded > 0 and n_included % 25 == 0:
+                from .tasks import suggest_keyterms
+                sample_size = min(n_included, n_excluded)
+                suggest_keyterms.apply_async(args=[review_id, sample_size])
+
+
+@event.listens_for(CitationScreening, 'after_delete')
+def update_citation_status_after_delete(mapper, connection, target):
+    citation_id = target.citation_id
+    citation = target.citation
+    status = assign_status(
+        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
+        citation.review.num_citation_screening_reviewers)
+    with connection.begin():
+        connection.execute(
+            db.update(Citation).where(Citation.id == citation_id).values(status=status))
+    logging.warning('{} deleted for {}, status = {}'.format(
+        target, citation, status))
+    if status != 'included' and citation.fulltext is not None:
+        with connection.begin():
+            connection.execute(
+                db.delete(Fulltext).where(Fulltext.citation_id == citation_id))
+            logging.warning('deleted <Fulltext(citation_id={})>'.format(
+                citation_id))
+
+
+@event.listens_for(FulltextScreening, 'after_insert')
+def update_fulltext_status_after_insert(mapper, connection, target):
+    fulltext_id = target.fulltext_id
+    fulltext = target.fulltext
+    status = assign_status(
+        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
+        fulltext.review.num_fulltext_screening_reviewers)
+    with connection.begin():
+        connection.execute(
+            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
+    logging.warning('{} inserted for {}, status = {}'.format(
+        target, fulltext, status))
+    if status == 'included' and fulltext.extracted_data is None:
+        with connection.begin():
+            connection.execute(
+                db.insert(FulltextExtractedData).values(
+                    review_id=target.review_id, fulltext_id=fulltext_id))
+            logging.warning('inserted <FulltextExtractedData(fulltext_id={})>'.format(
+                fulltext_id))
+
+
+@event.listens_for(FulltextScreening, 'after_delete')
+def update_fulltext_status_after_delete(mapper, connection, target):
+    fulltext_id = target.fulltext_id
+    fulltext = target.fulltext
+    status = assign_status(
+        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
+        fulltext.review.num_fulltext_screening_reviewers)
+    with connection.begin():
+        connection.execute(
+            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
+    logging.warning('{} deleted for {}, status = {}'.format(
+        target, fulltext, status))
+    if status != 'included' and fulltext.extracted_data is None:
+        with connection.begin():
+            connection.execute(
+                db.delete(FulltextExtractedData)\
+                    .where(FulltextExtractedData.fulltext_id == fulltext_id))
+            logging.warning('deleted <FulltextExtractedData(fulltext_id={})>'.format(
+                fulltext_id))
+
+
+@event.listens_for(Review, 'after_insert')
+def insert_review_plan(mapper, connection, target):
+    review_plan = ReviewPlan(target.id)
+    with connection.begin():
+        connection.execute(
+            db.insert(ReviewPlan).values(review_id=target.id))
+    logging.warning('{} inserted, along with {}'.format(target, review_plan))

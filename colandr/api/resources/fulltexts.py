@@ -11,7 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from webargs import missing
 
 from ...lib import constants
-from ...models import db, Citation, Fulltext, Review
+from ...models import db, Fulltext, Review
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import FulltextSchema
 from ..authentication import auth
@@ -120,6 +120,8 @@ class FulltextsResource(Resource):
             return unauthorized(
                 '{} not authorized to get fulltexts from this review'.format(
                     g.current_user))
+        if fields and 'id' not in fields:
+            fields.append('id')
         # build the query by components
         query = review.fulltexts
         # filters
@@ -141,7 +143,7 @@ class FulltextsResource(Resource):
                         t.status = 'not_screened'
                         OR NOT {user_id} = ANY(t.user_ids)
                     """.format(user_id=g.current_user.id)
-                query = query.filter(Citation.id.in_(text(sql_query)))
+                query = query.filter(Fulltext.id.in_(text(sql_query)))
             elif status == 'awaiting_coscreener':
                 sql_query = """
                     SELECT t.id
@@ -157,16 +159,14 @@ class FulltextsResource(Resource):
                         t.status IN ('screened_once', 'screened_twice')
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=g.current_user.id)
-                query = query.filter(Citation.id.in_(text(sql_query)))
+                query = query.filter(Fulltext.id.in_(text(sql_query)))
         if tag:
             query = query.filter(Fulltext.citation.tags.any(tag, operator=operators.eq))
         if tsquery:
-            query = query.filter(Fulltext.content.match(tsquery))
+            query = query.filter(Fulltext.text_content.match(tsquery))
         # order, offset, and limit
         order_by = Fulltext.id if order_by == 'recency' else Fulltext.id  # TODO: NLP!
         order_by = desc(order_by) if order_dir == 'DESC' else asc(order_by)
         query = query.order_by(order_by)
         query = query.offset(page * per_page).limit(per_page)
-        if fields and 'id' not in fields:
-            fields.append('id')
         return FulltextSchema(many=True, only=fields).dump(query.all()).data

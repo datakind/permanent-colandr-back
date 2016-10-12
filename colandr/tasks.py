@@ -1,4 +1,5 @@
 # import logging
+import itertools
 import os
 from time import sleep
 
@@ -10,16 +11,30 @@ import redis_lock
 from sqlalchemy import create_engine, func, types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import case, delete, exists, select, text
+from sqlalchemy.sql import case, delete, exists, select, text, update
+import textacy
 
 from . import celery, mail
+from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (db, Citation, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
-                     User)
+                     ReviewPlan, User)
 
 
 REDIS_CONN = redis.StrictRedis()
+
+
+def wait_for_lock(name, expire=60):
+    lock = redis_lock.Lock(REDIS_CONN, name, expire=expire, auto_renewal=True)
+    while True:
+        if lock.acquire() is False:
+            print('waiting on existing {} job...'.format(name))
+            sleep(10)
+        else:
+            print('starting new {} job...'.format(name))
+            break
+    return lock
 
 
 @celery.task
@@ -60,19 +75,8 @@ def get_candidate_dupes(results):
 @celery.task
 def deduplicate_citations(review_id):
 
-    lock = redis_lock.Lock(
-        REDIS_CONN, 'deduplicate_citations_{}'.format(review_id),
-        expire=60, auto_renewal=True)
+    lock = wait_for_lock('deduplicate_citations_review{}'.format(review_id), expire=60)
 
-    while True:
-        if lock.acquire() is False:
-            print('an existing job for <Review(id={})> is running, waiting...'.format(review_id))
-            sleep(30)
-        else:
-            print('starting job for <Review(id={})>...'.format(review_id))
-            break
-
-    # TODO: see about setting this path in app config
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
                      'dedupe_citations_settings'))
@@ -97,7 +101,8 @@ def deduplicate_citations(review_id):
             [exists().where(Citation.review_id == review_id).where(Citation.deduplication == {})])
         un_deduped_citations = conn.execute(stmt).fetchone()[0]
         if un_deduped_citations is False:
-            raise Exception
+            print('all citations for <Review(id={})> already deduped!'.format(review_id))
+            return
 
         # remove rows for this review
         # which we'll add back with the latest citations included
@@ -211,25 +216,29 @@ def deduplicate_citations(review_id):
             threshold=dupe_threshold)
         print('found {} duplicate clusters'.format(len(clustered_dupes)))
 
+        # get *all* citation ids for this review
+        stmt = select([Citation.id]).where(Citation.review_id == review_id)
+        all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
+        duplicate_cids = set()
+
         citations_to_update = []
         for cids, scores in clustered_dupes:
             cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
-            stmt = select([
-                    Citation.id,
-                    (case([(Citation.title == None, 1)]) +
-                     case([(Citation.abstract == None, 1)]) +
-                     case([(Citation.pub_year == None, 1)]) +
-                     case([(Citation.pub_month == None, 1)]) +
-                     case([(Citation.authors == {}, 1)]) +
-                     case([(Citation.keywords == {}, 1)]) +
-                     case([(Citation.type_of_reference == None, 1)]) +
-                     case([(Citation.journal_name == None, 1)]) +
-                     case([(Citation.issue_number == None, 1)]) +
-                     case([(Citation.doi == None, 1)]) +
-                     case([(Citation.issn == None, 1)]) +
-                     case([(Citation.publisher == None, 1)]) +
-                     case([(Citation.language == None, 1)])
-                     ).label('n_null_cols')])\
+            stmt = select([Citation.id,
+                           (case([(Citation.title == None, 1)]) +
+                            case([(Citation.abstract == None, 1)]) +
+                            case([(Citation.pub_year == None, 1)]) +
+                            case([(Citation.pub_month == None, 1)]) +
+                            case([(Citation.authors == {}, 1)]) +
+                            case([(Citation.keywords == {}, 1)]) +
+                            case([(Citation.type_of_reference == None, 1)]) +
+                            case([(Citation.journal_name == None, 1)]) +
+                            case([(Citation.issue_number == None, 1)]) +
+                            case([(Citation.doi == None, 1)]) +
+                            case([(Citation.issn == None, 1)]) +
+                            case([(Citation.publisher == None, 1)]) +
+                            case([(Citation.language == None, 1)])
+                            ).label('n_null_cols')])\
                 .where(Citation.review_id == review_id)\
                 .where(Citation.id.in_([int(cid) for cid in cids]))\
                 .order_by(text('n_null_cols ASC'))\
@@ -237,12 +246,8 @@ def deduplicate_citations(review_id):
             result = conn.execute(stmt).fetchone()
             canonical_citation_id = result.id
             for cid, score in cid_scores.items():
-                if cid == canonical_citation_id:
-                    citations_to_update.append(
-                        {'id': cid,
-                         'deduplication': {'is_duplicate': False}
-                         })
-                else:
+                if cid != canonical_citation_id:
+                    duplicate_cids.add(cid)
                     citations_to_update.append(
                         {'id': cid,
                          'status': 'excluded',
@@ -250,8 +255,69 @@ def deduplicate_citations(review_id):
                                            'canonical_id': canonical_citation_id,
                                            'duplicate_score': score}
                          })
+        non_duplicate_cids = all_cids - duplicate_cids
+        citations_to_update.extend(
+            {'id': cid, 'deduplication': {'is_duplicate': False}}
+            for cid in non_duplicate_cids
+            )
         session = Session(bind=conn)
         session.bulk_update_mappings(Citation, citations_to_update)
         session.commit()
+
+    lock.release()
+
+
+@celery.task
+def suggest_keyterms(review_id, sample_size):
+    print('review_id = {}, sample_size = {}'.format(review_id, sample_size))
+
+    lock = wait_for_lock('suggest_keyterms_review{}'.format(review_id), expire=60)
+
+    engine = create_engine(
+        current_app.config['SQLALCHEMY_DATABASE_URI'],
+        server_side_cursors=True, echo=False)
+    with engine.connect() as conn:
+        # get random sample of included citations
+        stmt = select([Citation.status, Citation.text_content])\
+            .where(Citation.review_id == review_id)\
+            .where(Citation.status == 'included')\
+            .order_by(func.random())\
+            .limit(sample_size)
+        included = conn.execute(stmt).fetchall()
+        # get random sample of excluded citations
+        stmt = select([Citation.status, Citation.text_content])\
+            .where(Citation.review_id == review_id)\
+            .where(Citation.status == 'excluded')\
+            .order_by(func.random())\
+            .limit(sample_size)
+        excluded = conn.execute(stmt).fetchall()
+
+        # munge the results into the form needed by textacy
+        included_vec = [status == 'included' for status, _
+                        in itertools.chain(included, excluded)]
+        docs = (textacy.Doc(text, lang='en') for _, text
+                in itertools.chain(included, excluded))
+        terms_lists = (
+            doc.to_terms_list(include_pos={'NOUN', 'VERB'}, as_strings=True)
+            for doc in docs)
+
+        # run the analysis!
+        incl_keyterms, excl_keyterms = textacy.keyterms.most_discriminating_terms(
+            terms_lists, included_vec, top_n_terms=50)
+
+        # munge results into form expected by the database, and validate
+        suggested_keyterms = {
+            'sample_size': sample_size,
+            'incl_keyterms': incl_keyterms,
+            'excl_keyterms': excl_keyterms}
+        errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
+        if errors:
+            raise Exception
+        print('suggested_keyterms:\n{}'.format(suggested_keyterms))
+        # update the review plan
+        stmt = update(ReviewPlan)\
+            .where(ReviewPlan.review_id == review_id)\
+            .values(suggested_keyterms=suggested_keyterms)
+        conn.execute(stmt)
 
     lock.release()

@@ -123,9 +123,9 @@ $ redis-cli ping
 If it replies `PONG`, you should be good to go.
 
 
-## Get the App Code
+## Set Up Colandr
 
-First you'll need access permissions to the GitLab repository — contact DataKind! Then, "clone" the code needed to run the app from its repository hosted on GitLab. Make a new local directory for the repo (if needed) and change your current working directory to it:
+First you'll need access permissions to the GitLab repository — contact DataKind! Then, "clone" the code needed to run the app from its remote repository. Make a new local directory for the repo (if needed) and change your current working directory to it:
 
 ```
 $ mkdir /path/to/cloned_repo
@@ -135,9 +135,10 @@ $ git clone http://gitlab.datakind.org/conservation-intl/conservation-intl.git
 
 This command should create a `conservation-intl` directory, in which the app's code lives.
 
-Now create a few environment variables needed by the app to configure itself and send emails. `COLANDR_SECRET_KEY` acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_. `COLANDR_PASSWORD_SALT` is also like a password, used by the app when sending custom links in account registration confirmation emails. `COLANDR_MAIL_USERNAME` and `COLANDR_MAIL_PASSWORD` are the credentials for the email account that sends those emails.
+Now create a few environment variables needed by the app to configure itself and send emails. `COLANDR_APP_DIR` is the location of the `conservation-intl` directory on disk. `COLANDR_SECRET_KEY` acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_. `COLANDR_PASSWORD_SALT` is also like a password, used by the app when sending custom links in account registration confirmation emails. `COLANDR_MAIL_USERNAME` and `COLANDR_MAIL_PASSWORD` are the credentials for the email account that sends those emails.
 
 ```
+$ export COLANDR_APP_DIR="/path/to/conservation-intl"
 $ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
 $ export COLANDR_PASSWORD_SALT="<YOUR_PASSWORD_SALT>"
 $ export COLANDR_MAIL_USERNAME="<AN_EMAIL_ADDRESS>"
@@ -170,6 +171,15 @@ If you haven't already, change your working directory to your local copy of the 
 $ cd /path/to/conservation-intl
 $ pip3 install -r requirements.txt
 ```
+
+The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
+
+```
+$ python3 -m spacy.en.download --force
+$ python3 -c "import spacy; spacy.load('en'); print('OK')"
+```
+
+The second command will print "OK" if the download was successful.
 
 You may wish to develop within an IPython interpreter and/or Jupyter Notebook. If so:
 

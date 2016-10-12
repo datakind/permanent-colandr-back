@@ -87,7 +87,7 @@ class FulltextScreeningsResource(Resource):
                     g.current_user))
         if fulltext.filename is None:
             return forbidden(
-                "user can't scree {} without first having uploaded its content".format(
+                "user can't screen {} without first having uploaded its content".format(
                     fulltext))
         # validate and add screening
         if args['status'] == 'excluded' and not args['exclude_reasons']:
