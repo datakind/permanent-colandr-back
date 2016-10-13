@@ -1,4 +1,5 @@
 import bcrypt
+import itertools
 import logging
 
 from flask import current_app
@@ -335,6 +336,15 @@ class Fulltext(db.Model):
         db.Unicode(length=30), unique=True, nullable=True)
     text_content = db.Column(
         db.UnicodeText, nullable=True)
+
+    @hybrid_property
+    def exclude_reasons(self):
+        return sorted(set(itertools.chain.from_iterable(
+            screening.exclude_reasons or [] for screening in self.screenings)))
+
+    # @exclude_reasons.expression
+    # def exclude_reasons(self):
+    #     return db.distinct()
 
     # relationships
     review = db.relationship(

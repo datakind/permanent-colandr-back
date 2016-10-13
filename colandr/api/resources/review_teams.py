@@ -57,7 +57,7 @@ class ReviewTeamResource(Resource):
     def put(self, id, user_id, action, test):
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('')
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to modify this review team'.format(g.current_user))

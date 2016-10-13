@@ -32,7 +32,7 @@ from .api.resources.fulltexts import FulltextResource, FulltextsResource
 from .api.resources.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.resources.fulltext_uploads import FulltextUploadResource
 from .api.resources.fulltexts_extracted_data import FulltextExtractedDataResource
-from .api.resources.review_exports import ReviewExportResource
+from .api.resources.review_exports import ReviewExportPrismaResource, ReviewExportRefsResource
 
 
 def create_app(config_name):
@@ -65,7 +65,8 @@ def create_app(config_name):
     api.add_resource(ReviewResource, '/reviews/<int:id>')
     api.add_resource(ReviewTeamResource, '/reviews/<int:id>/team')
     api.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
-    api.add_resource(ReviewExportResource, '/reviews/<int:id>/export')
+    api.add_resource(ReviewExportPrismaResource, '/reviews/<int:id>/export_prisma')
+    api.add_resource(ReviewExportRefsResource, '/reviews/<int:id>/export_refs')
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
     api.add_resource(CitationsResource, '/citations')
     api.add_resource(CitationUploadsResource, '/citations/upload')
