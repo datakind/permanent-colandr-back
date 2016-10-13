@@ -7,7 +7,8 @@ import random
 from pprint import pprint
 import sys
 
-from colandr import create_app
+from colandr import create_app, db
+from colandr.models import Fulltext, FulltextExtractedData
 from colandr.tasks import suggest_keyterms
 import requests
 
@@ -422,6 +423,15 @@ def main():
             json=screenings, params={'review_id': review_id},
             auth=auth)
         print('POST:', response.url)
+
+    # HACK: normally, these are added automatically when a fulltext is marked
+    # as "included", but that doesn't work when bulk importing as above
+    with app.app_context():
+        extracted_data_to_insert = [
+            FulltextExtractedData(1, fid[0]) for fid
+            in db.session.query(Fulltext.id).filter_by(status='included')]
+        db.session.bulk_save_objects(extracted_data_to_insert)
+        db.session.commit()
 
     if args['last'] == 'fulltext_screenings':
         LOGGER.warning('stopping db repopulation at "fulltext_screenings"')
