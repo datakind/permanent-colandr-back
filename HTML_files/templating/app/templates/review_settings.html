@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Colandr: My Reviews</title>
+
+    <meta name="description" content="Source code generated using layoutit.com">
+    <meta name="author" content="LayoutIt!">
+
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+
+  </head>
+  <body>
+ <!-- header -->
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-md-12">
+			<nav class="navbar navbar-default" role="navigation">
+				<div class="navbar-header">
+					<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+						 <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>
+					</button> <a class="navbar-brand" href="#">Colandr</a>
+				</div>
+				
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+					<ul class="nav navbar-nav navbar-right">
+						<li>
+							<a href="#">Settings <span class="glyphicon glyphicon-cog"></span></a>
+						</li>
+						<li>
+							<a href="#">Stages <span class="glyphicon glyphicon-list-alt"></span></a>
+						</li>
+					</ul>
+				</div>
+			</nav>
+		</div>
+	</div>
+	<!-- end of header -->
+    <div class="row">      
+      <div class="col-md-12">
+        <h3>
+          <span class="glyphicon glyphicon-cog"></span> Review_Name Settings
+        </h3>
+      </div>
+        <div class="col-md-12">
+            <form role="form">
+                <div class="form-group">
+                     
+                    <label for="Review_Name">
+                        Review Name
+                    </label>
+                    <input type="text" class="form-control" id="Review_Name" />
+                </div>
+                <div class="form-group">
+                     
+                    <label for="Review_Description">
+                        Description
+                    </label>
+                    <textarea class="form-control " id="Review_Description"></textarea>
+
+                    <label for="screeners_citation">
+                        Screeners per citation
+                    </label>
+                        
+                        <select class="form-control" id="screeners_citation">
+                          <option>1</option>
+                          <option>2</option>
+                          <option>3</option>
+                          <option>4</option>
+                          <option>5</option>
+                        </select>
+
+                    <label for="screeners_fulltext">
+                        Screeners per fulltext
+                    </label>
+                        
+                        <select class="form-control" id="screeners_fulltext">
+                          <option>1</option>
+                          <option>2</option>
+                          <option>3</option>
+                          <option>4</option>
+                          <option>5</option>
+                        </select>
+                    <button type="submit" class="btn btn-default">
+                    Save Changes
+                </button>
+                </div>
+            </form>
+                <hr>
+            <form role="form">
+              <div class="col-md-12">
+                <h3>
+                  <span class="glyphicon glyphicon-user"></span> Review_Name Collaborators
+                </h3>
+              </div>
+
+                <div class="form-group">
+                     
+                    <label for="collborators">
+                        Add Collaborator
+                    </label>
+                    <input type="email" class="form-control" id="collborators" />
+                        <button type="submit" class="btn btn-default">
+                            Add Collaborator
+                        </button>
+                </div>
+
+
+                <!-- start table -->
+                <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        Name
+                                    </th>
+                                    <th>
+                                        Email
+                                    </th>
+                                    <th>
+                                        Owner
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        Caitlin Marina Augustin
+                                    </td>
+                                    <td>
+                                        caugustin@rsmas.miami.edu
+                                    </td>
+                                    <td>
+                                        True
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Ray Shah
+                                    </td>
+                                    <td>
+                                        rayshah@thinkdesign.com
+                                    </td>
+                                    <td>
+                                        False
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        Robert Carl Minnich
+                                    </td>
+                                    <td>
+                                        rcm2164@columbia.edu
+                                    </td>
+                                    <td>
+                                        false
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                        <!-- end of table -->
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+    <script src="js/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/scripts.js"></script>
+  </body>
+</html>

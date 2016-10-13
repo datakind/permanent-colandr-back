@@ -1,0 +1,14 @@
+<html>
+  <head>
+    {% if title %}
+    <title>{{user.name}} A - microblog</title>
+    {% else %}
+    <title>Display This {{user.email}}</title>
+    {% endif %}
+  </head>
+  <body>
+    <div>Microblog: <a href="/index">Changed From This </a></div>
+    <hr>
+    {% block content %}{% endblock %}
+  </body>
+</html>
