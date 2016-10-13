@@ -63,7 +63,8 @@ class FulltextUploadResource(Resource):
                     current_app.config['COLANDR_APP_DIR'],
                     'pdfestrian/bin/extractText.sh')
                 text_content = subprocess.check_output(
-                    [extract_text_script, '--filename', filepath])
+                    [extract_text_script, '--filename', filepath],
+                    stderr=subprocess.STDOUT)
             fulltext.text_content = fix_bad_unicode(
                 text_content.decode(errors='ignore'))
             db.session.commit()

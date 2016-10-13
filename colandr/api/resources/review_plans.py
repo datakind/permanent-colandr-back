@@ -40,15 +40,17 @@ class ReviewPlanResource(Resource):
 
     # NOTE: since review plans are created automatically upon review insertion
     # and deleted automatically upon review deletion, "delete" here amounts
-    # to nulling out its non-required fields
+    # to nulling out some or all of its non-required fields
     @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
+        'fields': DelimitedList(
+            ma_fields.String, delimiter=',', missing=None),
         'test': ma_fields.Boolean(missing=False)
         })
-    def delete(self, id, test):
+    def delete(self, id, fields, test):
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -56,14 +58,22 @@ class ReviewPlanResource(Resource):
             return unauthorized(
                 '{} not authorized to delete this review plan'.format(g.current_user))
         review_plan = review.review_plan
-        review_plan.objective = ''
-        review_plan.research_questions = []
-        review_plan.pico = {}
-        review_plan.keyterms = []
-        review_plan.selection_criteria = []
-        review_plan.data_extraction_form = []
+        if fields:
+            for field in fields:
+                if field == 'objective':
+                    review_plan.objective = ''
+                elif field == 'pico':
+                    review_plan.pico = {}
+                else:
+                    setattr(review_plan, field, [])
+        else:
+            review_plan.objective = ''
+            review_plan.research_questions = []
+            review_plan.pico = {}
+            review_plan.keyterms = []
+            review_plan.selection_criteria = []
+            review_plan.data_extraction_form = []
         if test is False:
-            # db.session.delete(review_plan)
             db.session.commit()
         else:
             db.session.rollback()

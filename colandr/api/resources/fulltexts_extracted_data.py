@@ -6,12 +6,11 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
-from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, sanitizers
-from ...models import db, Fulltext, FulltextExtractedData, ReviewPlan
+from ...models import db, FulltextExtractedData, ReviewPlan
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import FulltextExtractedDataItem, FulltextExtractedDataSchema
 from ..authentication import auth
@@ -42,7 +41,7 @@ class FulltextExtractedDataResource(Resource):
 
     # NOTE: since extracted data are created automatically upon fulltext inclusion
     # and deleted automatically upon fulltext exclusion, "delete" here amounts
-    # to nulling out its non-required fields
+    # to nulling out some or all of its non-required fields
     @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
