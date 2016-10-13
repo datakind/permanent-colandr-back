@@ -1,3 +1,5 @@
+import arrow
+
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
@@ -5,12 +7,13 @@ from flask_restful_swagger import swagger
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs import missing
+from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants
-from ...models import db, Fulltext  # , FulltextExtractedData
-from ..errors import no_data_found, unauthorized
-from ..schemas import FulltextExtractedDataSchema
+from ...lib import constants, sanitizers
+from ...models import db, Fulltext, FulltextExtractedData, ReviewPlan
+from ..errors import forbidden, no_data_found, unauthorized, validation
+from ..schemas import FulltextExtractedDataItem, FulltextExtractedDataSchema
 from ..authentication import auth
 
 
@@ -26,14 +29,16 @@ class FulltextExtractedDataResource(Resource):
         })
     def get(self, id):
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
-        if not fulltext:
-            return no_data_found('<Fulltext(id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        extracted_data = db.session.query(FulltextExtractedData)\
+            .filter_by(fulltext_id=id).one_or_none()
+        if not extracted_data:
+            return no_data_found(
+                '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
+        if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
                     g.current_user))
-        return FulltextExtractedDataSchema().dump(fulltext.extracted_data).data
+        return FulltextExtractedDataSchema().dump(extracted_data).data
 
     # NOTE: since extracted data are created automatically upon fulltext inclusion
     # and deleted automatically upon fulltext exclusion, "delete" here amounts
@@ -43,19 +48,27 @@ class FulltextExtractedDataResource(Resource):
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'labels': DelimitedList(
+            ma_fields.String, delimiter=',', missing=None),
         'test': ma_fields.Boolean(missing=False)
         })
-    def delete(self, id, test):
+    def delete(self, id, labels, test):
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
-        if not fulltext:
-            return no_data_found('<Fulltext(id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        extracted_data = db.session.query(FulltextExtractedData)\
+            .filter_by(fulltext_id=id).one_or_none()
+        if not extracted_data:
+            return no_data_found(
+                '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
+        if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
                     g.current_user))
-        extracted_data = fulltext.extracted_data
-        extracted_data.extracted_data = {}
+        if labels:
+            extracted_data.extracted_data = [
+                item for item in extracted_data.extracted_data
+                if item['label'] not in labels]
+        else:
+            extracted_data.extracted_data = []
         if test is False:
             db.session.commit()
         else:
@@ -63,7 +76,7 @@ class FulltextExtractedDataResource(Resource):
         return '', 204
 
     @swagger.operation()
-    @use_args(FulltextExtractedDataSchema(partial=True))
+    @use_args(FulltextExtractedDataItem(many=True))
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -72,27 +85,88 @@ class FulltextExtractedDataResource(Resource):
         })
     def put(self, args, id, test):
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
-        if not fulltext:
-            return no_data_found('<Fulltext(id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to get extracted data for this fulltext'.format(
-                    g.current_user))
-        extracted_data = fulltext.extracted_data
+        extracted_data = db.session.query(FulltextExtractedData)\
+            .filter_by(fulltext_id=id).one_or_none()
         if not extracted_data:
             return no_data_found(
                 '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
-        # TODO: validation of data based on ReviewPlan.data_extraction_form
-        import logging
-        logging.critical('BURTON: finish PUT => FulltextExtractedDataResource!')
-        # for key, value in args.items():
-        #     if key is missing:
-        #         continue
-        #     else:
-        #         setattr(review_plan, key, value)
-        # if test is False:
-        #     db.session.commit()
-        # else:
-        #     db.session.rollback()
+        if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to get extracted data for this fulltext'.format(
+                    g.current_user))
+        data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
+            .filter_by(review_id=extracted_data.review_id).one_or_none()
+        if not data_extraction_form:
+            return forbidden(
+                '<ReviewPlan({})> does not have a data extraction form'.format(
+                    extracted_data.review_id))
+        labels_map = {item['label']: (item['field_type'],
+                                      set(item.get('allowed_values', [])))
+                      for item in data_extraction_form[0]}
+        # manually validate inputs, given data extraction form specification
+        if isinstance(extracted_data.extracted_data, dict):
+            extracted_data.extracted_data = []
+        extracted_data_map = {
+            item['label']: item['value']
+            for item in extracted_data.extracted_data}
+        for item in args:
+            label = item['label']
+            value = item['value']
+            if label not in labels_map:
+                return validation(
+                    'label "{}" invalid; available choices are {}'.format(
+                        label, list(labels_map.keys())))
+            field_type, allowed_values = labels_map[label]
+            if field_type == 'bool':
+                if value in (1, True, 'true', 't'):
+                    validated_value = True
+                elif value in (0, False, 'false', 'f'):
+                    validated_value = False
+                else:
+                    return validation(
+                        'value "{}" for label "{}" invalid; must be {}'.format(
+                            value, label, field_type))
+            elif field_type == 'date':
+                try:
+                    validated_value = arrow.get(value).naive
+                except arrow.parser.ParserError:
+                    return validation(
+                        'value "{}" for label "{}" invalid; must be ISO-formatted {}'.format(
+                            value, label, field_type))
+            elif field_type in ('int', 'float', 'str'):
+                type_ = int if field_type == 'int' \
+                    else float if field_type == 'float' \
+                    else str
+                validated_value = sanitizers.sanitize_type(value, type_)
+                if validated_value is None:
+                    return validation(
+                        'value "{}" for label "{}" invalid; must be {}'.format(
+                            value, label, field_type))
+            elif field_type == 'select_one':
+                if value not in allowed_values:
+                    return validation(
+                        'value "{}" for label "{}" invalid; must be one of {}'.format(
+                            value, label, allowed_values))
+                validated_value = value
+            elif field_type == 'select_many':
+                validated_value = []
+                for val in value:
+                    if val not in allowed_values:
+                        return validation(
+                            'value "{}" for label "{}" invalid; must be one of {}'.format(
+                                val, label, allowed_values))
+                    validated_value.append(val)
+            # TODO
+            elif field_type == 'country':
+                raise NotImplementedError('burton apologizes for this inconvenience')
+            else:
+                raise ValueError('an unexpected field_type has been encountered')
+            extracted_data_map[label] = validated_value
+        extracted_data.extracted_data = [
+            {'label': label, 'value': value}
+            for label, value in extracted_data_map.items()]
+        if test is False:
+            db.session.commit()
+        else:
+            db.session.rollback()
         return FulltextExtractedDataSchema().dump(extracted_data).data

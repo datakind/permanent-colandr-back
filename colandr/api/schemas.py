@@ -89,7 +89,7 @@ class ReviewPlanDataExtractionItem(Schema):
     field_type = fields.Str(
         required=True,
         validate=OneOf(['bool', 'date', 'int', 'float', 'str',
-                        'select one', 'select many',
+                        'select_one', 'select_many',
                         'country']))
     allowed_values = fields.List(
         fields.Str())
@@ -258,6 +258,9 @@ class FulltextExtractedDataSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
     extracted_data = fields.Nested(
         FulltextExtractedDataItem, many=True)
+
+    class Meta:
+        strict = True
 
 
 class FulltextSchema(Schema):

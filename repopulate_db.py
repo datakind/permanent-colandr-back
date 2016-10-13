@@ -52,7 +52,8 @@ REVIEW_PLAN = {
              "comparator": "No use of nature conservation interventions either between sites or groups, or over time series (before/after)",
              "outcome": "Positive or negative effects on the multi-dimensional well-being status of human populations"
              },
-    'keyterms': [{"term": "wellbeing", "group": "outcome", "synonyms": ["well-being", "well being"]},                  {"term": "ecosystem service", "group": "outcome", "synonyms": ["ecosystem services"]},
+    'keyterms': [{"term": "wellbeing", "group": "outcome", "synonyms": ["well-being", "well being"]},
+                 {"term": "ecosystem service", "group": "outcome", "synonyms": ["ecosystem services"]},
                  {"term": "nutrition", "group": "outcome"},
                  {"term": "skill", "group": "outcome", "synonyms": ["skills"]},
                  {"term": "empower", "group": "outcome", "synonyms": ["empowering"]},
@@ -113,6 +114,71 @@ REVIEW_PLAN = {
                            {"label": "outcome",
                             "explanation": "studies must measure or describe human well-being outcomes, and can't only focus on biophysical outcomes of conservation"}
                            ],
+    'data_extraction_form': [{'label': 'biblio',
+                              'description': 'bibliographic information',
+                              'field_type': 'str'},
+                             {'label': 'intervention_type',
+                              'description': 'basic information about type of conservation intervention',
+                              'field_type': 'select_many',
+                              'allowed_values': ['area management',
+                                                 'area protection',
+                                                 'awareness and communications',
+                                                 'compliance and enforcement',
+                                                 'conservation finance',
+                                                 'formal education',
+                                                 'institutional and civil society development',
+                                                 'legislation',
+                                                 'enterprises and livelihood alternatives',
+                                                 'market forces',
+                                                 'non-monetary values',
+                                                 'other',
+                                                 'partnership and alliance development',
+                                                 'policies and regulations',
+                                                 'private sector standards and codes',
+                                                 'resource protection and management',
+                                                 'restoration',
+                                                 'species control',
+                                                 'species management',
+                                                 'species recovery',
+                                                 'species re-introduction',
+                                                 'substitution',
+                                                 'sustainable use',
+                                                 'training']},
+                             {'label': 'outcome_type',
+                              'description': 'human well-being outcomes',
+                              'field_type': 'select_many',
+                              'allowed_values': ['economic living standards',
+                                                 'material living standards',
+                                                 'health',
+                                                 'education',
+                                                 'social relations',
+                                                 'security and safety',
+                                                 'governance and empowerment',
+                                                 'subjective well-being',
+                                                 'cultural and spiritual',
+                                                 'freedom of choice/action',
+                                                 'other']},
+                             {'label': 'study_design',
+                              'description': 'basic information on study design and subjects',
+                              'field_type': 'select_many',
+                              'allowed_values': ['before/after, control/intervention',
+                                                 'before/after',
+                                                 'change over time',
+                                                 'comparison group',
+                                                 'before/after, comparison group',
+                                                 'comparison group, control/intervention',
+                                                 'no comparator']},
+                             {'label': 'biome',
+                              'description': 'type of ecosystem',
+                              'field_type': 'select_many',
+                              'allowed_values': ['marine',
+                                                 'freshwater',
+                                                 'forest',
+                                                 'grassland',
+                                                 'desert',
+                                                 'tundra',
+                                                 'mangrove']}
+                             ]
     }
 
 CITATIONS = [
@@ -346,7 +412,7 @@ def main():
             page += 1
     print('# fulltexts to upload = {}'.format(len(all_fulltext_ids)))
 
-    for fulltext_id in all_fulltext_ids[:25]:  # only upload 25
+    for fulltext_id in all_fulltext_ids[:10]:  # only upload 10
         fulltext_file = random.choice(FULLTEXTS)
         filename = os.path.split(fulltext_file)[-1]
         response = session.request(
