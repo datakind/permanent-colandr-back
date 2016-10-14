@@ -206,6 +206,67 @@ class ReviewPlan(db.Model):
         return "<ReviewPlan(review_id={})>".format(self.review_id)
 
 
+# class Study(db.Model):
+#
+#     __tablename__ = 'studies'
+#
+#     # columns
+#     id = db.Column(
+#         db.BigInteger, primary_key=True, autoincrement=True)
+#     created_at = db.Column(
+#         db.TIMESTAMP(timezone=False),
+#         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+#     review_id = db.Column(
+#         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+#         nullable=False, index=True)
+#     # not screened => screened => eligible => included, excluded
+#     status = db.Column(
+#         db.Unicode(length=20), nullable=False, server_default='not_screened',
+#         index=True)
+#     exclude_reasons = db.Column(
+#         postgresql.ARRAY(db.Unicode(length=25)),
+#         nullable=True, server_default='{}')
+#     extracted_data = db.Column(
+#         postgresql.JSONB(none_as_null=True), server_default='{}')
+#
+#     # relationships
+#     review = db.relationship(
+#         'Review', foreign_keys=[review_id], back_populates='citations',
+#         lazy='select')
+#     citation = db.relationship(
+#         'Citation', uselist=False, back_populates='study',
+#         lazy='select', passive_deletes=True)
+#     duplicate
+#     fulltext = db.relationship(
+#         'Fulltext', uselist=False, back_populates='study',
+#         lazy='select', passive_deletes=True)
+#
+#
+# class Duplicate(db.Model):
+#
+#     __tablename__ = 'duplicates'
+#
+#     # columns
+#     id = db.Column(
+#         db.BigInteger, primary_key=True, autoincrement=True)
+#     created_at = db.Column(
+#         db.TIMESTAMP(timezone=False),
+#         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+#     review_id = db.Column(
+#         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+#         nullable=False, index=True)
+#     study_id = db.Column(
+#         db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+#         nullable=False, index=True)
+#     duplicate_of = db.Column(
+#         db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+#         nullable=False, index=True)
+#     duplicate_score = db.Column(
+#         db.Float, nullable=False)
+#     confirmed_by = db.Column(
+#         db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
+#         nullable=True)
+
 class Citation(db.Model):
 
     __tablename__ = 'citations'
@@ -342,9 +403,19 @@ class Fulltext(db.Model):
         return sorted(set(itertools.chain.from_iterable(
             screening.exclude_reasons or [] for screening in self.screenings)))
 
+    # this did not work for reasons unknown
     # @exclude_reasons.expression
     # def exclude_reasons(self):
-    #     return db.distinct()
+    #     query = """
+    #         SELECT DISTINCT array_agg(c)
+    #         FROM (SELECT unnest(exclude_reasons)
+    #               FROM fulltext_screenings
+    #               WHERE fulltext_id = {fulltext_id}
+    #               ) AS t(c)
+    #         """.format(self.fulltext_id)
+    #     with current_app.app_context():
+    #         conn = db.engine.connect()
+    #         return conn.execute(text(query)).fetchone()[0]
 
     # relationships
     review = db.relationship(
