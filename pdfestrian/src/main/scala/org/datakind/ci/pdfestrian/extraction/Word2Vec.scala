@@ -11,10 +11,15 @@ import scala.io.Source
   * Created by sameyeam on 8/3/16.
   */
 object Word2Vec {
-  val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.300d.txt")).getLines().map { word =>
+  /*val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.300d.txt")).getLines().map { word =>
     val split = word.split(" ")
     split.head -> new DenseTensor1(split.takeRight(300).map{_.toDouble}.toArray)
+  }.toMap*/
+  val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt")).getLines().map { word =>
+    val split = word.split(" ")
+    split.head -> new DenseTensor1(split.takeRight(50).map{_.toDouble}.toArray)
   }.toMap
+
   var  i = -1
    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts.old")).getLines().map{ s =>
     val split = s.split(",")
@@ -27,7 +32,7 @@ object Word2Vec {
 
   val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
 
-  val featureSize = 300
+  val featureSize = 50
 
   def clean(string : String) : String = {
     val lower = string.toLowerCase()

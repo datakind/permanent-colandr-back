@@ -69,7 +69,7 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
 
   def docToFeature(aid : AidSeq, pl : Document, labels : Seq[String]) : Seq[OutcomeLabel] =
   {
-    val sentences = pl.sentences.toArray
+    val sentences = pl.sentences.toArray.filter(_.length > 70)
     val length = sentences.length
     sentences.zipWithIndex.map { case (sent, i) =>
       val f = CombinedSent(sent, i.toDouble/length.toDouble, pl.name)//Word2VecSent(sent, i.toDouble/length.toDouble) //Word2Vec(pl)

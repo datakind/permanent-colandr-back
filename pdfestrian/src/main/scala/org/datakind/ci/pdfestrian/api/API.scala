@@ -1,0 +1,123 @@
+package org.datakind.ci.pdfestrian.api
+
+import akka.actor.ActorSystem
+import colossus.IOSystem
+import colossus.core._
+import colossus.protocols.http.HttpMethod._
+import colossus.protocols.http.UrlParsing._
+import colossus.protocols.http._
+import colossus.service.Callback.Implicits._
+import colossus.service.{Callback, ServiceConfig}
+import org.json4s.NoTypeHints
+import org.json4s.jackson.Serialization
+import org.slf4j.LoggerFactory
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+
+/**
+  * Created by sam on 10/15/16.
+  */
+trait API {
+  this: LocationExtraction with MetadataExtraction with FileRetriever with Authorization =>
+  val logger = LoggerFactory.getLogger(this.getClass)
+
+  implicit val formats = Serialization.formats(NoTypeHints)
+
+  val port : Int
+  val headers = HttpHeaders(HttpHeader(HttpHeaders.ContentType, "application/json; charset=utf-8"))
+
+
+  def getLocationsFuture(record : String) = Future {
+    getLocations(record).toString()
+  }
+
+  def getMetaDataFuture(record : String, metaData : String) = Future {
+    getMetaData(record, metaData).toString()
+  }
+
+  class APIService(context : ServerContext) extends HttpService(ServiceConfig.Default, context) {
+
+    def handle = {
+      case request@Get on Root / "isAlive" => {
+        request.ok(""" {"status":"okay"} """)
+      }
+      case request@Get on Root / "getLocations" => {
+        val record  = request.head.parameters.getFirst("record")
+        val app = request.head.headers.firstValue("user").getOrElse("")
+        val key = request.head.headers.firstValue("passwd").getOrElse("")
+        authorize(app, key) match {
+          case false =>
+            logger.info("Unauthorized\t+" + app + "\t" + key)
+            request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
+          case true =>
+            record match {
+              case None => request.error(""" {"error":"Empty Request"} """, headers = headers)
+              case Some(r) =>
+                Callback.fromFuture(
+                  getLocationsFuture(r).map{ result =>
+                    request.ok(new HttpBody(result.getBytes("UTF-8")), headers = headers)
+                  }
+                )
+            }
+        }
+      }
+      case request@Get on Root / "getMetadata" => {
+        val record  = request.head.parameters.getFirst("record")
+        val metaData = request.head.parameters.getFirst("metadata")
+        val app = request.head.headers.firstValue("user").getOrElse("")
+        val key = request.head.headers.firstValue("passwd").getOrElse("")
+        authorize(app, key) match {
+          case false =>
+            logger.info("Unauthorized\t+" + app + "\t" + key)
+            request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
+          case true =>
+            (record, metaData) match {
+              case (None, None) => request.error(""" {"error":"Empty Request"} """, headers = headers)
+              case (Some(r), None) => request.error(""" {"error":"No metadata requested"} """, headers = headers)
+              case (None, Some(m)) => request.error(""" {"error":"No record requested"} """, headers = headers)
+              case (Some(r), Some(m)) =>
+                Callback.fromFuture(
+                  getMetaDataFuture(r,m).map{ result =>
+                    request.ok(new HttpBody(result.getBytes("UTF-8")), headers = headers)
+                  }
+                )
+            }
+        }
+      }
+
+    }
+
+  }
+
+  def start(port : Int)(implicit system : IOSystem) : ServerRef = {
+    Server.start("http-example", port) { implicit worker => new Initializer(worker) {
+      def onConnect = context => new APIService(context)
+    }}
+  }
+
+  def main(args: Array[String]): Unit = {
+    implicit val actorSystem = ActorSystem("COLOSSUS")
+    implicit val iOSystem = IOSystem()
+    start(port)(iOSystem)
+  }
+
+}
+
+case class Locations(country : String, confidence : Double)
+trait LocationExtraction {
+  def getLocations(record : String) : Seq[Locations]
+}
+
+case class Metadata(record : String, metaData : String, value : String, sentence : String, sentenceLocation : Int, confidence : Double)
+
+trait MetadataExtraction {
+  def getMetaData(record : String, metaData : String) : Seq[Metadata]
+}
+
+trait Authorization {
+  def authorize(user : String, passwd : String) : Boolean
+}
+
+trait FileRetriever {
+  def getFile(record : String) : String
+}
