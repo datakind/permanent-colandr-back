@@ -50,6 +50,9 @@ class User(db.Model):
     reviews = db.relationship(
         'Review', secondary=users_reviews, back_populates='users',
         lazy='dynamic')
+    imports = db.relationship(
+        'Import', back_populates='user',
+        lazy='dynamic', passive_deletes=True)
     citation_screenings = db.relationship(
         'CitationScreening', back_populates='user',
         lazy='dynamic')
@@ -129,6 +132,9 @@ class Review(db.Model):
     review_plan = db.relationship(
         'ReviewPlan', uselist=False, back_populates='review',
         lazy='select', passive_deletes=True)
+    imports = db.relationship(
+        'Import', back_populates='review',
+        lazy='dynamic', passive_deletes=True)
     citations = db.relationship(
         'Citation', back_populates='review',
         lazy='dynamic', passive_deletes=True)
@@ -204,6 +210,49 @@ class ReviewPlan(db.Model):
 
     def __repr__(self):
         return "<ReviewPlan(review_id={})>".format(self.review_id)
+
+
+class Import(db.Model):
+
+    __tablename__ = 'imports'
+
+    # columns
+    id = db.Column(
+        db.Integer, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False),
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=False, index=True)
+    record_type = db.Column(
+        db.Unicode(length=10), nullable=False)
+    num_records = db.Column(
+        db.Integer, nullable=False)
+    status = db.Column(
+        db.Unicode(length=20), server_default='not_screened')
+    data_source = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
+
+    # relationships
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='imports',
+        lazy='select')
+    user = db.relationship(
+        'User', foreign_keys=[user_id], back_populates='imports',
+        lazy='subquery')
+
+    def __init__(self, review_id, user_id, record_type, num_records,
+                 status=None, data_source=None):
+        self.review_id = review_id
+        self.user_id = user_id
+        self.record_type = record_type
+        self.num_records = num_records
+        self.status = status
+        self.data_source = data_source
 
 
 # class Study(db.Model):
@@ -291,6 +340,8 @@ class Citation(db.Model):
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
+    data_source = db.Column(
+        postgresql.JSONB(none_as_null=True), server_default='{}')
     deduplication = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
     tags = db.Column(
@@ -344,13 +395,14 @@ class Citation(db.Model):
         'CitationScreening', back_populates='citation',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, review_id, status=None,
+    def __init__(self, review_id, data_source=None, status=None,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
                  pub_year=None, pub_month=None, authors=None, keywords=None,
                  type_of_reference=None, journal_name=None, volume=None,
                  issue_number=None, doi=None, issn=None, publisher=None,
                  language=None, other_fields=None):
         self.review_id = review_id
+        self.data_source = data_source
         self.status = status
         self.type_of_work = type_of_work
         self.title = title

@@ -34,7 +34,7 @@ class ReviewSchema(Schema):
     description = fields.Str(
         missing=None)
     status = fields.Str(
-        validate=OneOf(['active', 'archived']))
+        validate=OneOf(['active', 'frozen']))
     num_citation_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(
@@ -134,6 +134,40 @@ class ReviewPlanSchema(Schema):
         strict = True
 
 
+class DataSourceSchema(Schema):
+    source_type = fields.Str(
+        required=True, validate=OneOf(['database', 'gray literature']))
+    name = fields.Str(
+        missing=None)
+
+    class Meta:
+        strict = True
+
+
+class ImportSchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    record_type = fields.Str(
+        required=True, validate=OneOf(['citation', 'fulltext']))
+    num_records = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    status = fields.Str(
+        validate=OneOf(['not_screened', 'included', 'excluded']))
+    data_source = fields.Nested(
+        DataSourceSchema)
+    user = fields.Nested(
+        UserSchema)
+
+    class Meta:
+        strict = True
+
+
 class Deduplication(Schema):
     is_duplicate = fields.Bool(
         required=True)
@@ -180,6 +214,8 @@ class CitationSchema(Schema):
     status = fields.Str(
         validate=OneOf(['not_screened', 'screened_once', 'screened_twice',
                         'conflict', 'excluded', 'included']))
+    data_source = fields.Nested(
+        DataSourceSchema)
     deduplication = fields.Nested(
         Deduplication)
     tags = fields.List(

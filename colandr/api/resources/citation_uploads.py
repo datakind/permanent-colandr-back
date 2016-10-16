@@ -3,15 +3,16 @@ from flask_restful import Resource
 from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
+from marshmallow import ValidationError
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
 from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
-from ...models import db, Citation, Fulltext, Review
+from ...models import db, Citation, Fulltext, Import, Review
 from ...tasks import deduplicate_citations
 from ..errors import no_data_found, unauthorized, validation
-from ..schemas import CitationSchema
+from ..schemas import CitationSchema, DataSourceSchema
 from ..authentication import auth
 
 
@@ -25,11 +26,13 @@ class CitationUploadsResource(Resource):
             required=True, location='files'),
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
+        'data_source': ma_fields.Dict(
+            missing=None),
         'status': ma_fields.Str(
             missing=None, validate=OneOf(['included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, uploaded_file, review_id, status, test):
+    def post(self, uploaded_file, review_id, data_source, status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
@@ -43,11 +46,18 @@ class CitationUploadsResource(Resource):
             citations_file = RisFile(uploaded_file.stream)
         else:
             return validation('unknown file type: "{}"'.format(fname))
+        if data_source:
+            try:
+                DataSourceSchema().validate(data_source)
+            except ValidationError as e:
+                return validation(e.messages)
         citation_schema = CitationSchema()
         citations_to_insert = []
         fulltexts_to_insert = []
         for record in citations_file.parse():
             record['review_id'] = review_id
+            if data_source:
+                record['data_source'] = data_source
             if status:
                 record['status'] = status
                 if status == 'included':
@@ -55,8 +65,13 @@ class CitationUploadsResource(Resource):
                         Fulltext(record['review_id'], record['citation_id']))
             citation_data = citation_schema.load(record).data
             citations_to_insert.append(Citation(**citation_data))
+        # don't forget about a record of the import
+        citations_import = Import(
+            review_id, g.current_user.id, 'citation', len(citations_to_insert),
+            status=status, data_source=data_source)
         if test is False:
             db.session.bulk_save_objects(citations_to_insert)
+            db.session.add(citations_import)
             if status == 'included':
                 db.session.bulk_save_objects(fulltexts_to_insert)
             db.session.commit()
