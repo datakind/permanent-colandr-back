@@ -12,13 +12,28 @@ from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, Fulltext, Import, Review
 from ...tasks import deduplicate_citations
 from ..errors import no_data_found, unauthorized, validation
-from ..schemas import CitationSchema, DataSourceSchema
+from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
 
 
 class CitationUploadsResource(Resource):
 
     method_decorators = [auth.login_required]
+
+    @swagger.operation()
+    @use_kwargs({
+        'review_id': ma_fields.Int(
+            required=True, validate=Range(min=1, max=constants.MAX_INT))
+        })
+    def get(self, review_id):
+        review = db.session.query(Review).get(review_id)
+        if not review:
+            return no_data_found('<Review(id={})> not found'.format(review_id))
+        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+            return unauthorized(
+                '{} not authorized to add citations to this review'.format(g.current_user))
+        results = review.imports.filter_by(record_type='citation')
+        return ImportSchema(many=True).dump(results.all()).data
 
     @swagger.operation()
     @use_kwargs({
