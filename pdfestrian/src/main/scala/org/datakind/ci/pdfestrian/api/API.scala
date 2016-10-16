@@ -10,9 +10,12 @@ import colossus.service.Callback.Implicits._
 import colossus.service.{Callback, ServiceConfig}
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
+import org.json4s.jackson.Serialization.{read, write}
 import org.slf4j.LoggerFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 
 /**
   * Created by sam on 10/15/16.
@@ -40,6 +43,23 @@ trait APIService {
     def handle = {
       case request@Get on Root / "isAlive" => {
         request.ok(""" {"status":"okay"} """)
+      }
+      case request@Get on Root / "getRecord" / r => {
+        val app = request.head.headers.firstValue("user").getOrElse("")
+        val key = request.head.headers.firstValue("passwd").getOrElse("")
+        authorize(app, key) match {
+          case false =>
+            logger.info("Unauthorized\t+" + app + "\t" + key)
+            request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
+          case true =>
+            getFile(r) match {
+              case None =>
+                logger.info("Requested nonexistant record: " + r)
+                request.error(""" {"error":"nonexistant record"}""")
+              case Some(result) =>
+                request.ok( new HttpBody(write(result).getBytes("UTF-8")), headers = headers)
+            }
+        }
       }
       case request@Get on Root / "getLocations" => {
         val record  = request.head.parameters.getFirst("record")
@@ -113,7 +133,7 @@ object API extends APIService
   val metaDataExtractor = new DummyMetadataExtractor
   val auth = new NoAuth
   val port = 8080
-  val access = new DummyFileRetriever
+  val access = new DBFileExtractor
 }
 
 case class Locations(country : String, confidence : Double)
@@ -124,15 +144,10 @@ trait LocationExtraction {
 trait LocationExtractor {
   def getLocations(record : String) : Seq[Locations]
 }
-class DummyLocationExtractor extends LocationExtractor {
-  def getLocations(record : String) = Seq()
-}
+
 
 case class Metadata(record : String, metaData : String, value : String, sentence : String, sentenceLocation : Int, confidence : Double)
 
-class DummyMetadataExtractor extends MetadataExtractor {
-  def getMetaData(record: String, metaData: String) = Seq()
-}
 
 trait MetadataExtraction {
   val metaDataExtractor : MetadataExtractor
@@ -159,13 +174,9 @@ class NoAuth extends Authorization {
 
 trait FileRetriever {
   val access : Access
-  def getFile(record : String) : String = access.getFile(record)
+  def getFile(record : String) : Option[Record] = access.getFile(record)
 }
 
 trait Access {
-  def getFile(record : String) : String
-}
-
-class DummyFileRetriever extends Access {
-  def getFile(record: String): String = ""
+  def getFile(record : String) : Option[Record]
 }
