@@ -17,8 +17,8 @@ import scala.concurrent.Future
 /**
   * Created by sam on 10/15/16.
   */
-trait API {
-  this: LocationExtraction with MetadataExtraction with FileRetriever with Authorization =>
+trait APIService {
+  this: LocationExtraction with MetadataExtraction with FileRetriever with AuthorizationComponent =>
   val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -103,21 +103,69 @@ trait API {
 
 }
 
+object API extends APIService
+  with LocationExtraction
+  with FileRetriever
+  with MetadataExtraction
+  with AuthorizationComponent {
+
+  val locationExtractor = new DummyLocationExtractor
+  val metaDataExtractor = new DummyMetadataExtractor
+  val auth = new NoAuth
+  val port = 8080
+  val access = new DummyFileRetriever
+}
+
 case class Locations(country : String, confidence : Double)
 trait LocationExtraction {
+  val locationExtractor : LocationExtractor
+  def getLocations(record : String) = locationExtractor.getLocations(record)
+}
+trait LocationExtractor {
   def getLocations(record : String) : Seq[Locations]
+}
+class DummyLocationExtractor extends LocationExtractor {
+  def getLocations(record : String) = Seq()
 }
 
 case class Metadata(record : String, metaData : String, value : String, sentence : String, sentenceLocation : Int, confidence : Double)
 
+class DummyMetadataExtractor extends MetadataExtractor {
+  def getMetaData(record: String, metaData: String) = Seq()
+}
+
 trait MetadataExtraction {
+  val metaDataExtractor : MetadataExtractor
+  def getMetaData(record : String, metaData : String) : Seq[Metadata] = metaDataExtractor.getMetaData(record, metaData)
+}
+trait MetadataExtractor {
   def getMetaData(record : String, metaData : String) : Seq[Metadata]
+}
+
+
+trait AuthorizationComponent {
+  val auth : Authorization
+  def authorize(user : String, passwd : String) : Boolean = auth.authorize(user, passwd)
 }
 
 trait Authorization {
   def authorize(user : String, passwd : String) : Boolean
 }
 
+
+class NoAuth extends Authorization {
+  def authorize(user: String, passwd: String): Boolean = true
+}
+
 trait FileRetriever {
+  val access : Access
+  def getFile(record : String) : String = access.getFile(record)
+}
+
+trait Access {
   def getFile(record : String) : String
+}
+
+class DummyFileRetriever extends Access {
+  def getFile(record: String): String = ""
 }
