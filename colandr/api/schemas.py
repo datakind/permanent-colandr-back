@@ -116,7 +116,7 @@ class ReviewPlanSchema(Schema):
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     objective = fields.Str()
-    research_question = fields.List(
+    research_questions = fields.List(
         fields.Str(validate=Length(max=300)))
     pico = fields.Nested(
         ReviewPlanPICO)
