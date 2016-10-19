@@ -22,7 +22,7 @@ pyyaml>=3.11
 redis==2.10.5
 requests>=2.11.1
 schematics>=2.0.0a1
-sqlalchemy>=1.1.1
+sqlalchemy>=1.1.2
 spacy>=0.101.0,<1.0.0
 git+https://github.com/chartbeat-labs/textacy.git
 webargs>=1.3.4

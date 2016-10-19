@@ -533,7 +533,8 @@ class CitationScreening(db.Model):
         'Citation', foreign_keys=[citation_id], back_populates='screenings',
         lazy='subquery')
 
-    def __init__(self, review_id, user_id, citation_id, status, exclude_reasons):
+    def __init__(self, review_id, user_id, citation_id, status,
+                 exclude_reasons=None):
         self.review_id = review_id
         self.user_id = user_id
         self.citation_id = citation_id
@@ -753,50 +754,14 @@ class DedupeSmallerCoverage(db.Model):
         self.smaller_ids = smaller_ids
 
 
-# events for automatic updating of citation status
-# and insertion/deletion of accompanying fulltexts
+# EVENTS
 
 @event.listens_for(CitationScreening, 'after_insert')
-def update_citation_status_after_insert(mapper, connection, target):
+@event.listens_for(CitationScreening, 'after_delete')
+@event.listens_for(CitationScreening, 'after_update')
+def update_citation_status(mapper, connection, target):
     citation_id = target.citation_id
     review_id = target.review_id
-    citation = target.citation
-    status = assign_status(
-        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
-        citation.review.num_citation_screening_reviewers)
-    with connection.begin_nested() as trans:
-        connection.execute(
-            db.update(Citation).where(Citation.id == citation_id).values(status=status))
-        trans.commit()
-    logging.warning('{} inserted for {}, status = {}'.format(
-        target, citation, status))
-    if status == 'included':
-        if citation.fulltext is None:
-            with connection.begin():
-                connection.execute(
-                    db.insert(Fulltext).values(
-                        citation_id=citation_id, review_id=review_id))
-                logging.warning('inserted <Fulltext(citation_id={})>'.format(
-                    citation_id))
-        with connection.begin() as trans:
-            status_counts = connection.execute(
-                db.select([Citation.status, db.func.count(Citation.id)])\
-                    .where(Citation.review_id == review_id)\
-                    .where(Citation.status.in_(['included', 'excluded']))\
-                    .group_by(Citation.status)
-                ).fetchall()
-            status_counts = dict(status_counts)
-            n_included = status_counts['included']
-            n_excluded = status_counts['excluded']
-            if n_included > 0 and n_excluded > 0 and n_included % 25 == 0:
-                from .tasks import suggest_keyterms
-                sample_size = min(n_included, n_excluded)
-                suggest_keyterms.apply_async(args=[review_id, sample_size])
-
-
-@event.listens_for(CitationScreening, 'after_delete')
-def update_citation_status_after_delete(mapper, connection, target):
-    citation_id = target.citation_id
     citation = target.citation
     status = assign_status(
         [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
@@ -804,14 +769,37 @@ def update_citation_status_after_delete(mapper, connection, target):
     with connection.begin():
         connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
-    logging.warning('{} deleted for {}, status = {}'.format(
-        target, citation, status))
-    if status != 'included' and citation.fulltext is not None:
+    logging.warning('{} => {} with status = {}'.format(target, citation, status))
+    fulltext_inserted_or_deleted = False
+    if status == 'included' and citation.fulltext is None:
+        with connection.begin():
+            connection.execute(
+                db.insert(Fulltext).values(citation_id=citation_id, review_id=review_id))
+            logging.warning(
+                'inserted <Fulltext(citation_id={})>'.format(citation_id))
+            fulltext_inserted_or_deleted = True
+    elif status != 'included' and citation.fulltext is not None:
         with connection.begin():
             connection.execute(
                 db.delete(Fulltext).where(Fulltext.citation_id == citation_id))
-            logging.warning('deleted <Fulltext(citation_id={})>'.format(
-                citation_id))
+            logging.warning(
+                'deleted <Fulltext(citation_id={})>'.format(citation_id))
+            fulltext_inserted_or_deleted = True
+    if fulltext_inserted_or_deleted is True:
+        with connection.begin():
+            status_counts = connection.execute(
+                db.select([Citation.status, db.func.count(1)])\
+                    .where(Citation.review_id == review_id)\
+                    .where(Citation.status.in_(['included', 'excluded']))\
+                    .group_by(Citation.status)
+                ).fetchall()
+            status_counts = dict(status_counts)
+            n_included = status_counts.get('included', 0)
+            n_excluded = status_counts.get('excluded', 0)
+            if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
+                from .tasks import suggest_keyterms
+                sample_size = min(n_included, n_excluded)
+                suggest_keyterms.apply_async(args=[review_id, sample_size])
 
 
 @event.listens_for(FulltextScreening, 'after_insert')

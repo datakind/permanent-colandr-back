@@ -6,7 +6,7 @@
 - **Backend Engineering**
     - [x] finalize database models
     - [x] finish implementing schema validation
-    - [ ] except: figure out data extraction models and validation
+    - [x] except: figure out data extraction models and validation
 - **API**
     - users
         - [x] user authentication

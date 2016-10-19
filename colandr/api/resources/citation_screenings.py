@@ -6,6 +6,7 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
+from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
@@ -93,6 +94,33 @@ class CitationScreeningsResource(Resource):
             return forbidden('{} has already screened {}'.format(
                 g.current_user, citation))
         citation.screenings.append(screening)
+        if test is False:
+            db.session.commit()
+        else:
+            db.session.rollback()
+        return ScreeningSchema().dump(screening).data
+
+    @use_args(ScreeningSchema(only=['status', 'exclude_reasons']))
+    @use_kwargs({
+        'id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def put(self, args, id, test):
+        citation = db.session.query(Citation).get(id)
+        if not citation:
+            return no_data_found('<Citation(id={})> not found'.format(id))
+        screening = citation.screenings.filter_by(user_id=g.current_user.id).one_or_none()
+        if not screening:
+            return no_data_found('{} has not screened this citation'.format(g.current_user))
+        if args['status'] == 'excluded' and not args['exclude_reasons']:
+            return validation('screenings that exclude must provide a reason')
+        for key, value in args.items():
+            if key is missing:
+                continue
+            else:
+                setattr(screening, key, value)
         if test is False:
             db.session.commit()
         else:
