@@ -1,6 +1,6 @@
 ## Set Up System Tools
 
-[Homebrew](http://brew.sh/) installs the stuff you need that Apple didn’t. From a command line (denoted by `$`), enter the following:
+[Homebrew](http://brew.sh/) installs the stuff you need that Apple didn’t. From a command line (denoted by `$`), enter the following to install Homebrew:
 
 ```
 $ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
@@ -10,6 +10,12 @@ Insert the Homebrew directory at the top of your `PATH` environment variable by 
 
 ```
 export PATH=/usr/local/bin:/usr/local/sbin:$PATH
+```
+
+If Homebrew is already installed, just be sure to update it:
+
+```
+$ brew update
 ```
 
 Also install `git`, for version control and (later) access to the app's code:
@@ -24,13 +30,13 @@ $ brew install git
 Install with Homebrew:
 
 ```
-$ brew update && brew install postgres
+$ brew install postgresql
 ```
 
 Or, if already installed,
 
 ```
-$ brew update && brew upgrade postgres
+$ brew upgrade postgresql
 ```
 
 Run `initdb` just once, basically to create the directory structure and such on disk that's needed for creating new databases. Note: The specified path should match the version of Postgres just installed!
@@ -97,13 +103,13 @@ $ export COLANDR_DATABASE_URI="postgresql://colandr_app:<DB_PASS>@<DB_HOST>:<DB_
 Redis is an in-memory data structure store, commonly used as a database, cache, and (as in the case of `colandr`) a message broker. Install it with Homebrew:
 
 ```
-$ brew update && brew install redis
+$ brew install redis
 ```
 
 Or, if already installed,
 
 ```
-$ brew update && brew upgrade redis
+$ brew upgrade redis
 ```
 
 You'll need a way to start and stop a local Redis server from running. The second command starts it (and enables autostart for when the computer starts up), the last command stops it (and disables autostart).
