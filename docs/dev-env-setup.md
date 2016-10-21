@@ -1,3 +1,6 @@
+**Note:** Much of this process can be performed automatically by running the `macos-setup.sh` script at the top level of this directory.
+
+
 ## Set Up System Tools
 
 [Homebrew](http://brew.sh/) installs the stuff you need that Apple didn’t. From a command line (denoted by `$`), enter the following to install Homebrew:
@@ -62,7 +65,7 @@ $ launchctl load ~/Library/LaunchAgents/homebrew.mxcl.postgresql.plist
 
 Open the system paths file, `/etc/paths`, in a text editor, and move the line `/usr/local/bin` from the bottom of the file to the top (if it wasn't like this already). If you had to make a change to the file, reboot the computer. After rebooting, the command `which psql` command should return `/usr/local/bin/psql`.
 
-Homebrew automatically created a database superuser account with the same login as your current Mac OS account. Let's create a dedicated user named `app` for connecting to and owning the app's database:
+Homebrew automatically created a database superuser account with the same login as your current Mac OS account. Let's create a dedicated user named `colandr_app` for connecting to and owning the app's database:
 
 ```
 $ createuser --echo --pwprompt --superuser --createdb colandr_app
@@ -84,14 +87,7 @@ To access the database through an interactive shell:
 $ psql --host=<HOST> --port=<PORT> --username=colandr_app --dbname=colandr
 ```
 
-While we're in the interactive shell, let's create the `pgcrypto` extension for secure password storage and `intarray` extension for integer array handling (**Note:** This may no longer be necessary, but it can't hurt!):
-
-```
-=# CREATE EXTENSION "pgcrypto";
-=# CREATE EXTENSION "intarray";
-```
-
-Lastly, after exiting the Postgres shell, define an environment variable that lets the app know where the Postgres database is. It's probably best to add it to your `~/.profile` (or `~/.bash_profile`, `~/.zshrc`, etc.) file:
+Outside the Postgres shell, define an environment variable that lets colandr know where the Postgres database is. It's probably best to add it to your `~/.profile` (or `~/.bash_profile`, `~/.zshrc`, etc.) file:
 
 ```
 $ export COLANDR_DATABASE_URI="postgresql://colandr_app:<DB_PASS>@<DB_HOST>:<DB_PORT>/colandr"
@@ -181,7 +177,7 @@ $ pip3 install -r requirements.txt
 The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
 
 ```
-$ python3 -m spacy.en.download --force
+$ python3 -m spacy.en.download all --force
 $ python3 -c "import spacy; spacy.load('en'); print('OK')"
 ```
 
