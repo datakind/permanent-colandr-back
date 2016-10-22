@@ -4,13 +4,13 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
-from webargs import missing
+# from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...models import db, Review
 from ...lib import constants
-from ..errors import no_data_found, unauthorized
+from ..errors import no_data_found, unauthorized, validation
 from ..schemas import ReviewPlanSchema
 from ..authentication import auth
 
@@ -85,9 +85,11 @@ class ReviewPlanResource(Resource):
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
+        'fields': DelimitedList(
+            ma_fields.String, delimiter=',', required=True),
         'test': ma_fields.Boolean(missing=False)
         })
-    def put(self, args, id, test):
+    def put(self, args, id, fields, test):
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -100,11 +102,11 @@ class ReviewPlanResource(Resource):
         if review_plan.review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to update this review plan'.format(g.current_user))
-        for key, value in args.items():
-            if key is missing:
-                continue
-            else:
-                setattr(review_plan, key, value)
+        for field in fields:
+            try:
+                setattr(review_plan, field, args[field])
+            except KeyError:
+                return validation('field "{}" value not specified'.format(field))
         if test is False:
             db.session.commit()
         else:
