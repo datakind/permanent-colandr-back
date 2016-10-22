@@ -4,7 +4,6 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
-# from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 

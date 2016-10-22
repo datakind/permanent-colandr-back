@@ -282,9 +282,11 @@ def main():
 
     print('\n\n')
     LOGGER.info('updating review plan in db...')
+    review_plan = REVIEW_PLAN.copy()
+    review_plan['fields'] = ','.join(REVIEW_PLAN.keys())
     response = session.request(
         'PUT', BASE_URL + 'reviews/{}/plan'.format(REVIEW_PLAN['review_id']),
-        json=REVIEW_PLAN, auth=auth)
+        json=review_plan, auth=auth)
     response.raise_for_status()
     print('PUT:', response.url)
     review_plan = response.json()

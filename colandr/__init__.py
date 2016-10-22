@@ -23,7 +23,7 @@ from .api.resources.users import UserResource, UsersResource
 from .api.resources.user_registration import ConfirmUserResource, RegisterUserResource
 from .api.resources.reviews import ReviewResource, ReviewsResource
 from .api.resources.review_plans import ReviewPlanResource
-from .api.resources.review_teams import ReviewTeamResource
+from .api.resources.review_teams import ReviewTeamResource, ConfirmReviewTeamInviteResource
 from .api.resources.review_progress import ReviewProgressResource
 from .api.resources.citations import CitationResource, CitationsResource
 from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
@@ -64,6 +64,7 @@ def create_app(config_name):
     api.add_resource(ReviewsResource, '/reviews')
     api.add_resource(ReviewResource, '/reviews/<int:id>')
     api.add_resource(ReviewTeamResource, '/reviews/<int:id>/team')
+    api.add_resource(ConfirmReviewTeamInviteResource, '/reviews/<int:id>/team/confirm')
     api.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
     api.add_resource(ReviewExportPrismaResource, '/reviews/<int:id>/export_prisma')
     api.add_resource(ReviewExportRefsResource, '/reviews/<int:id>/export_refs')
