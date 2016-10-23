@@ -29,8 +29,12 @@ class User(db.Model):
     id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     name = db.Column(
         db.Unicode(length=200), nullable=False)
     email = db.Column(
@@ -107,8 +111,12 @@ class Review(db.Model):
     id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     owner_user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -167,6 +175,13 @@ class ReviewPlan(db.Model):
     # columns
     id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         unique=True, nullable=False, index=True)
@@ -332,8 +347,12 @@ class Citation(db.Model):
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -434,8 +453,12 @@ class Fulltext(db.Model):
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -504,8 +527,12 @@ class CitationScreening(db.Model):
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -557,8 +584,12 @@ class FulltextScreening(db.Model):
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -605,8 +636,12 @@ class FulltextExtractedData(db.Model):
     id = db.Column(
         db.BigInteger, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
@@ -787,12 +822,11 @@ def update_citation_status(mapper, connection, target):
             fulltext_inserted_or_deleted = True
     if fulltext_inserted_or_deleted is True:
         with connection.begin():
-            status_counts = connection.execute(
-                db.select([Citation.status, db.func.count(1)])\
-                    .where(Citation.review_id == review_id)\
-                    .where(Citation.status.in_(['included', 'excluded']))\
-                    .group_by(Citation.status)
-                ).fetchall()
+            stmt = db.select([Citation.status, db.func.count(1)])\
+                .where(Citation.review_id == review_id)\
+                .where(Citation.status.in_(['included', 'excluded']))\
+                .group_by(Citation.status)
+            status_counts = connection.execute(stmt).fetchall()
             status_counts = dict(status_counts)
             n_included = status_counts.get('included', 0)
             n_excluded = status_counts.get('excluded', 0)
@@ -803,8 +837,11 @@ def update_citation_status(mapper, connection, target):
 
 
 @event.listens_for(FulltextScreening, 'after_insert')
-def update_fulltext_status_after_insert(mapper, connection, target):
+@event.listens_for(FulltextScreening, 'after_delete')
+@event.listens_for(FulltextScreening, 'after_update')
+def update_fulltext_status(mapper, connection, target):
     fulltext_id = target.fulltext_id
+    review_id = target.review_id
     fulltext = target.fulltext
     status = assign_status(
         [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
@@ -812,36 +849,22 @@ def update_fulltext_status_after_insert(mapper, connection, target):
     with connection.begin():
         connection.execute(
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
-    logging.warning('{} inserted for {}, status = {}'.format(
-        target, fulltext, status))
+    logging.warning('{} => {} with status = {}'.format(target, fulltext, status))
     if status == 'included' and fulltext.extracted_data is None:
         with connection.begin():
             connection.execute(
                 db.insert(FulltextExtractedData).values(
-                    review_id=target.review_id, fulltext_id=fulltext_id))
+                    review_id=review_id, fulltext_id=fulltext_id))
             logging.warning('inserted <FulltextExtractedData(fulltext_id={})>'.format(
                 fulltext_id))
-
-
-@event.listens_for(FulltextScreening, 'after_delete')
-def update_fulltext_status_after_delete(mapper, connection, target):
-    fulltext_id = target.fulltext_id
-    fulltext = target.fulltext
-    status = assign_status(
-        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
-        fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
-    logging.warning('{} deleted for {}, status = {}'.format(
-        target, fulltext, status))
-    if status != 'included' and fulltext.extracted_data is None:
+    elif status != 'included' and fulltext.extracted_data is None:
         with connection.begin():
             connection.execute(
-                db.delete(FulltextExtractedData)\
-                    .where(FulltextExtractedData.fulltext_id == fulltext_id))
+                db.delete(FulltextExtractedData).where(
+                    FulltextExtractedData.fulltext_id == fulltext_id))
             logging.warning('deleted <FulltextExtractedData(fulltext_id={})>'.format(
                 fulltext_id))
+    return
 
 
 @event.listens_for(Review, 'after_insert')

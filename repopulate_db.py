@@ -49,7 +49,7 @@ REVIEW_PLAN = {
                            ],
     'pico': {"population": "Human populations, including individuals, households, communities or nation states in non-OECD countries",
              "intervention": "Adoption or implementation of nature conservation interventions",
-             "comparator": "No use of nature conservation interventions either between sites or groups, or over time series (before/after)",
+             "comparison": "No use of nature conservation interventions either between sites or groups, or over time series (before/after)",
              "outcome": "Positive or negative effects on the multi-dimensional well-being status of human populations"
              },
     'keyterms': [{"term": "wellbeing", "group": "outcome", "synonyms": ["well-being", "well being"]},

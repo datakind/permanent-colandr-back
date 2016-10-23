@@ -8,6 +8,7 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
+from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
@@ -100,6 +101,33 @@ class FulltextScreeningsResource(Resource):
                 g.current_user, fulltext))
         if test is False:
             fulltext.screenings.append(screening)
+            db.session.commit()
+        else:
+            db.session.rollback()
+        return ScreeningSchema().dump(screening).data
+
+    @use_args(ScreeningSchema(only=['status', 'exclude_reasons']))
+    @use_kwargs({
+        'id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_BIGINT)),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def put(self, args, id, test):
+        fulltext = db.session.query(Fulltext).get(id)
+        if not fulltext:
+            return no_data_found('<Fulltext(id={})> not found'.format(id))
+        screening = fulltext.screenings.filter_by(user_id=g.current_user.id).one_or_none()
+        if not screening:
+            return no_data_found('{} has not screened this fulltext'.format(g.current_user))
+        if args['status'] == 'excluded' and not args['exclude_reasons']:
+            return validation('screenings that exclude must provide a reason')
+        for key, value in args.items():
+            if key is missing:
+                continue
+            else:
+                setattr(screening, key, value)
+        if test is False:
             db.session.commit()
         else:
             db.session.rollback()
