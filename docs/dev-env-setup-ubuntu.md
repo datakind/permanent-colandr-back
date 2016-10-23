@@ -84,7 +84,7 @@ By default, redis-server is started after installation. You can check using the 
 
 ```
 $ sudo service redis-server status redis-server is running
-``
+```
 
 ## Set Up Colandr
 
