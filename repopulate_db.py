@@ -298,13 +298,17 @@ def main():
 
     print('\n\n')
     LOGGER.info('uploading citations to db...')
+    source_refs = ['scopus', 'web of science', 'pubmed']
     for citations_file in CITATIONS:
         if not os.path.isfile(citations_file):
             raise OSError()
         filename = os.path.split(citations_file)[-1]
         response = session.request(
             'POST', BASE_URL + 'citations/upload',
-            data={'review_id': review_id},
+            data={'review_id': review_id,
+                  'data_source': {'source_type': 'database',
+                                  'source_reference': random.choice(source_refs)}
+                  },
             files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
             auth=auth)
         print('POST:', filename, '=>', response.url)
