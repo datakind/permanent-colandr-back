@@ -27,12 +27,8 @@ And then install postgres:
 ```
 $ sudo apt-get update
 $ sudo apt-get install postgresql postgresql-contrib
-```
-
-Run `initdb` just once, basically to create the directory structure and such on disk that's needed for creating new databases. Note: The specified path should match the version of Postgres just installed!
-
-```
-$ initdb /usr/local/var/postgres9.5 -E utf8
+$ sudo apt-get install python-psycopg2
+$ sudo apt-get install libpq-dev
 ```
 
 Postgres installation automatically created a database superuser account with the login of 'postgres'. Let's create a dedicated user named `colandr_app` for connecting to and owning the app's database:
