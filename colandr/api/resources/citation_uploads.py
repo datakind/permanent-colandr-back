@@ -4,7 +4,7 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
-from marshmallow.validate import OneOf, Range
+from marshmallow.validate import Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
 
 from ...lib import constants
@@ -41,13 +41,16 @@ class CitationUploadsResource(Resource):
             required=True, location='files'),
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
-        'data_source': ma_fields.Dict(
+        'source_type': ma_fields.Str(
+            missing=None, validate=OneOf(['database', 'gray literature'])),
+        'source_reference': ma_fields.Str(
             missing=None),
         'status': ma_fields.Str(
-            missing=None, validate=OneOf(['included', 'excluded'])),
+            missing=None, validate=OneOf(['not_screened', 'included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, uploaded_file, review_id, data_source, status, test):
+    def post(self, uploaded_file, review_id,
+             source_type, source_reference, status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
@@ -61,7 +64,11 @@ class CitationUploadsResource(Resource):
             citations_file = RisFile(uploaded_file.stream)
         else:
             return validation('unknown file type: "{}"'.format(fname))
-        if data_source:
+        data_source = None
+        if source_type is not None or source_reference is not None:
+            data_source = {
+                'source_type': source_type,
+                'source_reference': source_reference or ''}
             try:
                 DataSourceSchema().validate(data_source)
             except ValidationError as e:

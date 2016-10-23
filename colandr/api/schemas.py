@@ -137,7 +137,7 @@ class ReviewPlanSchema(Schema):
 class DataSourceSchema(Schema):
     source_type = fields.Str(
         required=True, validate=OneOf(['database', 'gray literature']))
-    name = fields.Str(
+    source_reference = fields.Str(
         missing=None)
 
     class Meta:
