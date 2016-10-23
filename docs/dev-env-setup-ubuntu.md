@@ -112,7 +112,7 @@ For a fuller guide to everything below, check out [The Hitchhiker's Guide to Pyt
 Python 3 should already be installed, but you will need pip3:
 
 ```
-$ sudo apt-get install pip3
+$ sudo apt-get install python3-pip
 ```
 
 You may wish to develop within a virtual environment. (See [here](http://docs.python-guide.org/en/latest/dev/virtualenvs/?highlight=virtualenv) for more information on working within virtual envs.) If so, install with `pip`, then create a project-specific virtual environment:
@@ -128,11 +128,39 @@ If you haven't already, change your working directory to your local copy of the 
 
 ```
 $ cd /path/to/conservation-intl
-$ sudo apt-get build-dep python-matplotlib
+$ sudo apt-get build-dep python3-matplotlib
+$ sudo apt-get install python3-numpy
+$ sudo apt-get install python3-scipy
+$ sudo apt-get install python3-matplotlib
 $ pip3 install cython
 $ pip3 install semver
+$ sudo apt-get install libatlas-dev
 $ sudo apt-get install libopenblas-dev
 $ pip3 install -r requirements.txt
+$ sudo pip3 install werkzeug
+$ sudo pip3 install jinja2
+$ sudo pip3 install click
+$ sudo pip3 install kombu
+$ sudo pip3 install billiard
+$ sudo pip3 install aniso8601
+$ sudo pip3 install smart_open
+$ sudo pip3 install toolz
+$ sudo pip3 install cycler
+$ sudo pip3 uninstall highered
+$ sudo pip3 install highered
+$ sudo pip3 install flask_restful_swagger
+$ sudo pip3 install werkzeug
+$ sudo pip3 install jinja2
+$ sudo pip3 install click
+$ sudo pip3 install kombu
+$ sudo pip3 install billiard
+$ sudo pip3 install aniso8601
+$ sudo pip3 install smart_open
+$ sudo pip3 install toolz
+$ sudo pip3 install cycler
+$ sudo pip3 uninstall highered
+$ sudo pip3 install highered
+$ sudo pip3 install flask_restful_swagger
 ```
 
 The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
@@ -154,4 +182,21 @@ Lastly add the repository directory to your `PYTHONPATH` environment variable by
 
 ```
 export PYTHONPATH=/path/to/conservation-intl/:$PYTHONPATH
+```
+
+##To install the scala tools that perform some NLP and pdf extraction tasks:
+
+If you need to install java:
+
+```
+$ sudo apt-add-repository ppa:webupd8team/java
+$ sudo apt-get update
+$ sudo apt-get install oracle-java8-installer
+$ sudo apt-get install maven
+```
+
+Go into the pdfestrian directory and install the library:
+```
+$ cd pdfestrian
+$ mvn install
 ```
