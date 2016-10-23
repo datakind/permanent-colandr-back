@@ -27,7 +27,7 @@ from .api.resources.review_teams import ReviewTeamResource, ConfirmReviewTeamInv
 from .api.resources.review_progress import ReviewProgressResource
 from .api.resources.citations import CitationResource, CitationsResource
 from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
-from .api.resources.citation_uploads import CitationUploadsResource
+from .api.resources.citation_imports import CitationsImportsResource
 from .api.resources.fulltexts import FulltextResource, FulltextsResource
 from .api.resources.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.resources.fulltext_uploads import FulltextUploadResource
@@ -70,7 +70,7 @@ def create_app(config_name):
     api.add_resource(ReviewExportRefsResource, '/reviews/<int:id>/export_refs')
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
     api.add_resource(CitationsResource, '/citations')
-    api.add_resource(CitationUploadsResource, '/citations/upload')
+    api.add_resource(CitationsImportsResource, '/citations/imports')
     api.add_resource(CitationResource, '/citations/<int:id>')
     api.add_resource(CitationsScreeningsResource, '/citations/screenings')
     api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')

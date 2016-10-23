@@ -4,7 +4,7 @@ from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
-from marshmallow.validate import Length, OneOf, Range
+from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
 from ...lib import constants
@@ -16,7 +16,7 @@ from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
 
 
-class CitationUploadsResource(Resource):
+class CitationsImportsResource(Resource):
 
     method_decorators = [auth.login_required]
 
