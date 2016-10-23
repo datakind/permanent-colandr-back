@@ -129,6 +129,8 @@ If you haven't already, change your working directory to your local copy of the 
 ```
 $ cd /path/to/conservation-intl
 $ sudo apt-get build-dep python-matplotlib
+$ pip install cython
+$ sudo apt-get install libopenblas-dev
 $ pip3 install -r requirements.txt
 ```
 
