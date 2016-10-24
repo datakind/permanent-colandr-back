@@ -304,7 +304,7 @@ def main():
             raise OSError()
         filename = os.path.split(citations_file)[-1]
         response = session.request(
-            'POST', BASE_URL + 'citations/upload',
+            'POST', BASE_URL + 'citations/imports',
             data={'review_id': review_id,
                   'source_type': 'database',
                   'source_reference': random.choice(source_refs)},
