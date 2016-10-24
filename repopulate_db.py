@@ -306,9 +306,8 @@ def main():
         response = session.request(
             'POST', BASE_URL + 'citations/upload',
             data={'review_id': review_id,
-                  'data_source': {'source_type': 'database',
-                                  'source_reference': random.choice(source_refs)}
-                  },
+                  'source_type': 'database',
+                  'source_reference': random.choice(source_refs)},
             files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
             auth=auth)
         print('POST:', filename, '=>', response.url)
