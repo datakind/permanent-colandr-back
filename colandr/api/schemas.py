@@ -1,5 +1,5 @@
 from marshmallow import Schema, fields, pre_load
-from marshmallow.validate import Email, Length, OneOf, Range
+from marshmallow.validate import Email, Length, OneOf, Range, URL
 from webargs import missing
 
 from ..lib import constants
@@ -13,7 +13,7 @@ class UserSchema(Schema):
         dump_only=True, format='iso')
     name = fields.Str(
         required=True, validate=Length(min=1, max=200))
-    email = fields.Email(
+    email = fields.Str(
         required=True, validate=[Email(), Length(max=200)])
     password = fields.Str(
         load_only=True, required=True, validate=Length(min=6, max=60))
@@ -81,7 +81,7 @@ class ReviewPlanSelectionCriterion(Schema):
         strict = True
 
 
-class ReviewPlanDataExtractionItem(Schema):
+class DataExtractionFormItem(Schema):
     label = fields.Str(
         required=True, validate=Length(max=25))
     description = fields.Str(
@@ -125,7 +125,7 @@ class ReviewPlanSchema(Schema):
     selection_criteria = fields.Nested(
         ReviewPlanSelectionCriterion, many=True)
     data_extraction_form = fields.Nested(
-        ReviewPlanDataExtractionItem, many=True)
+        DataExtractionFormItem, many=True)
     boolean_search_query = fields.Str()
     suggested_keyterms = fields.Nested(
         ReviewPlanSuggestedKeyterms)
@@ -135,10 +135,34 @@ class ReviewPlanSchema(Schema):
 
 
 class DataSourceSchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
     source_type = fields.Str(
         required=True, validate=OneOf(['database', 'gray literature']))
-    source_reference = fields.Str(
-        missing=None)
+    source_name = fields.Str(
+        missing=None, validate=Length(max=100))
+    source_url = fields.Str(
+        missing=None, validate=[URL(relative=False), Length(max=500)])
+    source_type_and_name = fields.Str(
+        dump_only=True)
+
+    class Meta:
+        strict = True
+
+
+class StudySchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    data_source_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
 
     class Meta:
         strict = True
@@ -153,6 +177,8 @@ class ImportSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     user_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
+    data_source_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
     record_type = fields.Str(
         required=True, validate=OneOf(['citation', 'fulltext']))
     num_records = fields.Int(
@@ -206,7 +232,7 @@ class ScreeningSchema(Schema):
 
 class CitationSchema(Schema):
     id = fields.Int(
-        dump_only=True)
+        validate=Range(min=1, max=constants.MAX_BIGINT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     review_id = fields.Int(
@@ -214,8 +240,6 @@ class CitationSchema(Schema):
     status = fields.Str(
         validate=OneOf(['not_screened', 'screened_once', 'screened_twice',
                         'conflict', 'excluded', 'included']))
-    data_source = fields.Nested(
-        DataSourceSchema)
     deduplication = fields.Nested(
         Deduplication)
     tags = fields.List(
@@ -223,9 +247,9 @@ class CitationSchema(Schema):
     type_of_work = fields.Str(
         validate=Length(max=25))
     title = fields.Str(
-        validate=Length(max=250))
+        validate=Length(max=300))
     secondary_title = fields.Str(
-        validate=Length(max=250))
+        validate=Length(max=300))
     abstract = fields.Str()
     pub_year = fields.Int(
         validate=Range(min=1, max=constants.MAX_SMALLINT))
@@ -271,11 +295,11 @@ class CitationSchema(Schema):
         strict = True
 
 
-class FulltextExtractedDataItem(Schema):
+class ExtractedItem(Schema):
     label = fields.Str(
         required=True, validate=Length(max=25))
     # validation handled in API Resource
-    # based on values in ReviewPlanDataExtractionItem
+    # based on values in DataExtractionFormItem
     value = fields.Raw(
         required=True)
 
@@ -283,17 +307,17 @@ class FulltextExtractedDataItem(Schema):
         strict = True
 
 
-class FulltextExtractedDataSchema(Schema):
+class DataExtractionSchema(Schema):
     id = fields.Int(
-        dump_only=True)
+        validate=Range(min=1, max=constants.MAX_BIGINT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     fulltext_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
-    extracted_data = fields.Nested(
-        FulltextExtractedDataItem, many=True)
+    extracted_items = fields.Nested(
+        ExtractedItem, many=True)
 
     class Meta:
         strict = True
@@ -301,7 +325,7 @@ class FulltextExtractedDataSchema(Schema):
 
 class FulltextSchema(Schema):
     id = fields.Int(
-        dump_only=True)
+        validate=Range(min=1, max=constants.MAX_BIGINT))
     created_at = fields.DateTime(
         dump_only=True, format='iso')
     citation_id = fields.Int(
@@ -313,10 +337,6 @@ class FulltextSchema(Schema):
         required=True)
     screenings = fields.Nested(
         ScreeningSchema, many=True)
-    extracted_data = fields.Nested(
-        FulltextExtractedDataSchema)
-    citation = fields.Nested(
-        CitationSchema)
 
     class Meta:
         strict = True

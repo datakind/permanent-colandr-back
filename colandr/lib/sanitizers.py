@@ -47,8 +47,8 @@ def sanitize_string(value, max_length=None, truncate=True):
 CITATION_FIELD_SANITIZERS = {
     'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=constants.MAX_INT),
     'type_of_work': lambda x: sanitize_string(x, max_length=25),
-    'title': lambda x: sanitize_string(x, max_length=250),
-    'secondary_title': lambda x: sanitize_string(x, max_length=250),
+    'title': lambda x: sanitize_string(x, max_length=300),
+    'secondary_title': lambda x: sanitize_string(x, max_length=300),
     'abstract': sanitize_string,
     'pub_year': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
     'pub_month': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),

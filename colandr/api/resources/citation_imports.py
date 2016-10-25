@@ -41,16 +41,20 @@ class CitationsImportsResource(Resource):
             required=True, location='files'),
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
-        'source_type': ma_fields.Str(
-            missing=None, validate=OneOf(['database', 'gray literature'])),
-        'source_reference': ma_fields.Str(
-            missing=None),
+        # 'source_type': ma_fields.Str(
+        #     missing=None, validate=OneOf(['database', 'gray literature'])),
+        # 'source_reference': ma_fields.Str(
+        #     missing=None),
+        'data_source': DataSourceSchema(partial=True),
         'status': ma_fields.Str(
             missing=None, validate=OneOf(['not_screened', 'included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
     def post(self, uploaded_file, review_id,
-             source_type, source_reference, status, test):
+             source_type, source_name, source_url, status, test):
+        import logging
+        logging.warning(source_type, source_name, source_url)
+        return
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
@@ -82,7 +86,7 @@ class CitationsImportsResource(Resource):
                 record['data_source'] = data_source
             if status:
                 record['status'] = status
-                if status == 'included':
+                if status == 'included':  # TODO: fix this!
                     fulltexts_to_insert.append(
                         Fulltext(record['review_id'], record['citation_id']))
             citation_data = citation_schema.load(record).data

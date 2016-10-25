@@ -57,6 +57,9 @@ class User(db.Model):
     imports = db.relationship(
         'Import', back_populates='user',
         lazy='dynamic', passive_deletes=True)
+    studies = db.relationship(
+        'Study', back_populates='user',
+        lazy='dynamic', passive_deletes=True)
     citation_screenings = db.relationship(
         'CitationScreening', back_populates='user',
         lazy='dynamic')
@@ -103,6 +106,48 @@ class User(db.Model):
         return db.session.query(User).get(data['id'])
 
 
+class DataSource(db.Model):
+
+    __tablename__ = 'data_sources'
+    __table_args__ = (
+        db.UniqueConstraint('source_type', 'source_name',
+                            name='source_type_source_name_uc'),
+        )
+
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    source_type = db.Column(
+        db.Unicode(length=20), nullable=False)
+    source_name = db.Column(
+        db.Unicode(length=100))
+    source_url = db.Column(
+        db.Unicode(length=500))
+
+    @hybrid_property
+    def source_type_and_name(self):
+        if self.source_name:
+            return '{}: {}'.format(self.source_type, self.source_name)
+        else:
+            return self.source_type
+
+    # relationships
+    imports = db.relationship(
+        'Import', back_populates='data_source',
+        lazy='dynamic', passive_deletes=True)
+    studies = db.relationship(
+        'Study', back_populates='data_source',
+        lazy='dynamic', passive_deletes=True)
+
+    def __init__(self, source_type, source_name=None, source_url=None):
+        self.source_type = source_type
+        self.source_name = source_name
+        self.source_url = source_url
+
+
 class Review(db.Model):
 
     __tablename__ = 'reviews'
@@ -143,6 +188,9 @@ class Review(db.Model):
     imports = db.relationship(
         'Import', back_populates='review',
         lazy='dynamic', passive_deletes=True)
+    studies = db.relationship(
+        'Study', back_populates='review',
+        lazy='dynamic', passive_deletes=True)
     citations = db.relationship(
         'Citation', back_populates='review',
         lazy='dynamic', passive_deletes=True)
@@ -155,8 +203,8 @@ class Review(db.Model):
     fulltext_screenings = db.relationship(
         'FulltextScreening', back_populates='review',
         lazy='dynamic', passive_deletes=True)
-    fulltexts_extracted_data = db.relationship(
-        'FulltextExtractedData', back_populates='review',
+    data_extractions = db.relationship(
+        'DataExtraction', back_populates='review',
         lazy='dynamic', passive_deletes=True)
 
     def __init__(self, name, owner_user_id, description=None):
@@ -235,7 +283,7 @@ class Import(db.Model):
     id = db.Column(
         db.Integer, primary_key=True, autoincrement=True)
     created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+        db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
@@ -243,14 +291,15 @@ class Import(db.Model):
     user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
         nullable=False, index=True)
+    data_source_id = db.Column(
+        db.Integer, ForeignKey('data_sources.id', ondelete='SET NULL'),
+        nullable=False)
     record_type = db.Column(
         db.Unicode(length=10), nullable=False)
     num_records = db.Column(
         db.Integer, nullable=False)
     status = db.Column(
         db.Unicode(length=20), server_default='not_screened')
-    data_source = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
     review = db.relationship(
@@ -259,53 +308,75 @@ class Import(db.Model):
     user = db.relationship(
         'User', foreign_keys=[user_id], back_populates='imports',
         lazy='subquery')
+    data_source = db.relationship(
+        'DataSource', foreign_keys=[data_source_id], back_populates='imports',
+        lazy='subquery')
 
-    def __init__(self, review_id, user_id, record_type, num_records,
-                 status=None, data_source=None):
+    def __init__(self, review_id, user_id, data_source_id, record_type, num_records,
+                 status=None):
         self.review_id = review_id
         self.user_id = user_id
+        self.data_source_id = data_source_id
         self.record_type = record_type
         self.num_records = num_records
         self.status = status
-        self.data_source = data_source
 
 
-# class Study(db.Model):
-#
-#     __tablename__ = 'studies'
-#
-#     # columns
-#     id = db.Column(
-#         db.BigInteger, primary_key=True, autoincrement=True)
-#     created_at = db.Column(
-#         db.TIMESTAMP(timezone=False),
-#         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-#     review_id = db.Column(
-#         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-#         nullable=False, index=True)
-#     # not screened => screened => eligible => included, excluded
-#     status = db.Column(
-#         db.Unicode(length=20), nullable=False, server_default='not_screened',
-#         index=True)
-#     exclude_reasons = db.Column(
-#         postgresql.ARRAY(db.Unicode(length=25)),
-#         nullable=True, server_default='{}')
-#     extracted_data = db.Column(
-#         postgresql.JSONB(none_as_null=True), server_default='{}')
-#
-#     # relationships
-#     review = db.relationship(
-#         'Review', foreign_keys=[review_id], back_populates='citations',
-#         lazy='select')
-#     citation = db.relationship(
-#         'Citation', uselist=False, back_populates='study',
-#         lazy='select', passive_deletes=True)
-#     duplicate
-#     fulltext = db.relationship(
-#         'Fulltext', uselist=False, back_populates='study',
-#         lazy='select', passive_deletes=True)
-#
-#
+class Study(db.Model):
+
+    __tablename__ = 'studies'
+
+    # columns
+    id = db.Column(
+        db.BigInteger, primary_key=True, autoincrement=True)
+    created_at = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    last_updated = db.Column(
+        db.TIMESTAMP(timezone=False), nullable=False,
+        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
+    user_id = db.Column(
+        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
+        nullable=False, index=True)
+    review_id = db.Column(
+        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    data_source_id = db.Column(
+        db.Integer, ForeignKey('data_sources.id', ondelete='SET NULL'),
+        nullable=False)
+
+    # relationships
+    user = db.relationship(
+        'User', foreign_keys=[user_id], back_populates='studies',
+        lazy='select')
+    review = db.relationship(
+        'Review', foreign_keys=[review_id], back_populates='studies',
+        lazy='select')
+    data_source = db.relationship(
+        'DataSource', foreign_keys=[data_source_id], back_populates='studies',
+        lazy='select')
+    # deduplication = db.relationship(
+    #     'Deduplication')
+    citation = db.relationship(
+        'Citation', uselist=False, back_populates='study',
+        lazy='subquery', passive_deletes=True)
+    fulltext = db.relationship(
+        'Fulltext', uselist=False, back_populates='study',
+        lazy='subquery', passive_deletes=True)
+    data_extraction = db.relationship(
+        'DataExtraction', uselist=False, back_populates='study',
+        lazy='subquery', passive_deletes=True)
+
+    def __init__(self, user_id, review_id, data_source_id):
+        self.user_id = user_id
+        self.review_id = review_id
+        self.data_source_id = data_source_id
+
+    def __repr__(self):
+        return "<Study(id={})>".format(self.id)
+
+
 # class Duplicate(db.Model):
 #
 #     __tablename__ = 'duplicates'
@@ -331,6 +402,7 @@ class Import(db.Model):
 #         db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
 #         nullable=True)
 
+
 class Citation(db.Model):
 
     __tablename__ = 'citations'
@@ -345,7 +417,8 @@ class Citation(db.Model):
 
     # columns
     id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+        primary_key=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
@@ -357,10 +430,8 @@ class Citation(db.Model):
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
     status = db.Column(
-        db.Unicode(length=20), nullable=False, server_default='not_screened',
-        index=True)
-    data_source = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
+        db.Unicode(length=20), server_default='not_screened',
+        nullable=False, index=True)
     deduplication = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
     tags = db.Column(
@@ -368,9 +439,9 @@ class Citation(db.Model):
         index=True)
     type_of_work = db.Column(db.Unicode(length=25))
     title = db.Column(
-        db.Unicode(length=250), nullable=False,
-        server_default='unknown')
-    secondary_title = db.Column(db.Unicode(length=250))
+        db.Unicode(length=300), server_default='untitled',
+        nullable=False)
+    secondary_title = db.Column(db.Unicode(length=300))
     abstract = db.Column(db.UnicodeText)
     pub_year = db.Column(db.SmallInteger)
     pub_month = db.Column(db.SmallInteger)
@@ -404,22 +475,23 @@ class Citation(db.Model):
             )
 
     # relationships
+    study = db.relationship(
+        'Study', foreign_keys=[id], back_populates='citation',
+        lazy='subquery')
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='citations',
         lazy='select')
-    fulltext = db.relationship(
-        'Fulltext', uselist=False, back_populates='citation',
-        lazy='joined', passive_deletes=True)
     screenings = db.relationship(
         'CitationScreening', back_populates='citation',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, review_id, data_source=None, status=None,
+    def __init__(self, id_, review_id, data_source=None, status=None,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
                  pub_year=None, pub_month=None, authors=None, keywords=None,
                  type_of_reference=None, journal_name=None, volume=None,
                  issue_number=None, doi=None, issn=None, publisher=None,
                  language=None, other_fields=None):
+        self.id = id_
         self.review_id = review_id
         self.data_source = data_source
         self.status = status
@@ -451,7 +523,8 @@ class Fulltext(db.Model):
 
     # columns
     id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+        primary_key=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
@@ -462,9 +535,6 @@ class Fulltext(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
-    citation_id = db.Column(
-        db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
-        unique=True, nullable=False, index=True)
     status = db.Column(
         db.Unicode(length=20), nullable=False, server_default='not_screened',
         index=True)
@@ -493,26 +563,24 @@ class Fulltext(db.Model):
     #         return conn.execute(text(query)).fetchone()[0]
 
     # relationships
+    study = db.relationship(
+        'Study', foreign_keys=[id], back_populates='fulltext',
+        lazy='subquery')
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='fulltexts',
         lazy='select')
-    citation = db.relationship(
-        'Citation', foreign_keys=[citation_id], back_populates='fulltext',
-        lazy='joined')
     screenings = db.relationship(
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
-    extracted_data = db.relationship(
-        'FulltextExtractedData', uselist=False, back_populates='fulltext',
-        lazy='select', passive_deletes=True)
 
-    def __init__(self, review_id, citation_id, filename=None):
+    def __init__(self, id_, review_id, citation_id, filename=None):
+        self.id = id_
         self.review_id = review_id
         self.citation_id = citation_id
         self.filename = filename
 
     def __repr__(self):
-        return "<Fulltext(citation_id={})>".format(self.citation_id)
+        return "<Fulltext(id={})>".format(self.id)
 
 
 class CitationScreening(db.Model):
@@ -628,13 +696,14 @@ class FulltextScreening(db.Model):
         return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
 
 
-class FulltextExtractedData(db.Model):
+class DataExtraction(db.Model):
 
-    __tablename__ = 'fulltexts_extracted_data'
+    __tablename__ = 'data_extractions'
 
     # columns
     id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
+        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+        primary_key=True)
     created_at = db.Column(
         db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
@@ -645,27 +714,24 @@ class FulltextExtractedData(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
-    fulltext_id = db.Column(
-        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
-        unique=True, nullable=False, index=True)
-    extracted_data = db.Column(
+    extracted_items = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
 
     # relationships
+    study = db.relationship(
+        'Study', foreign_keys=[id], back_populates='data_extraction',
+        lazy='subquery')
     review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='fulltexts_extracted_data',
-        lazy='select')
-    fulltext = db.relationship(
-        'Fulltext', foreign_keys=[fulltext_id], back_populates='extracted_data',
+        'Review', foreign_keys=[review_id], back_populates='data_extractions',
         lazy='select')
 
-    def __init__(self, review_id, fulltext_id, extracted_data=None):
+    def __init__(self, id_, review_id, extracted_items=None):
+        self.id = id_
         self.review_id = review_id
-        self.fulltext_id = fulltext_id
-        self.extracted_data = extracted_data
+        self.extracted_items = extracted_items
 
     def __repr__(self):
-        return "<FulltextExtractedData(fulltext_id={})>".format(self.fulltext_id)
+        return "<DataExtraction(id={})>".format(self.id)
 
 
 # tables for citation deduplication
@@ -850,19 +916,19 @@ def update_fulltext_status(mapper, connection, target):
         connection.execute(
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
     logging.warning('{} => {} with status = {}'.format(target, fulltext, status))
-    if status == 'included' and fulltext.extracted_data is None:
+    if status == 'included' and fulltext.data_extraction is None:
         with connection.begin():
             connection.execute(
-                db.insert(FulltextExtractedData).values(
+                db.insert(DataExtraction).values(
                     review_id=review_id, fulltext_id=fulltext_id))
-            logging.warning('inserted <FulltextExtractedData(fulltext_id={})>'.format(
+            logging.warning('inserted <DataExtraction(fulltext_id={})>'.format(
                 fulltext_id))
-    elif status != 'included' and fulltext.extracted_data is None:
+    elif status != 'included' and fulltext.data_extraction is None:
         with connection.begin():
             connection.execute(
-                db.delete(FulltextExtractedData).where(
-                    FulltextExtractedData.fulltext_id == fulltext_id))
-            logging.warning('deleted <FulltextExtractedData(fulltext_id={})>'.format(
+                db.delete(DataExtraction).where(
+                    DataExtraction.fulltext_id == fulltext_id))
+            logging.warning('deleted <DataExtraction(fulltext_id={})>'.format(
                 fulltext_id))
     return
 

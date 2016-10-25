@@ -10,13 +10,13 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, sanitizers
-from ...models import db, FulltextExtractedData, ReviewPlan
+from ...models import db, DataExtraction, ReviewPlan
 from ..errors import forbidden, no_data_found, unauthorized, validation
-from ..schemas import FulltextExtractedDataItem, FulltextExtractedDataSchema
+from ..schemas import ExtractedItem, DataExtractionSchema
 from ..authentication import auth
 
 
-class FulltextExtractedDataResource(Resource):
+class DataExtractionResource(Resource):
 
     method_decorators = [auth.login_required]
 
@@ -28,16 +28,16 @@ class FulltextExtractedDataResource(Resource):
         })
     def get(self, id):
         # check current user authorization
-        extracted_data = db.session.query(FulltextExtractedData)\
+        extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()
         if not extracted_data:
             return no_data_found(
-                '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(fulltext_id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
                     g.current_user))
-        return FulltextExtractedDataSchema().dump(extracted_data).data
+        return DataExtractionSchema().dump(extracted_data).data
 
     # NOTE: since extracted data are created automatically upon fulltext inclusion
     # and deleted automatically upon fulltext exclusion, "delete" here amounts
@@ -53,11 +53,11 @@ class FulltextExtractedDataResource(Resource):
         })
     def delete(self, id, labels, test):
         # check current user authorization
-        extracted_data = db.session.query(FulltextExtractedData)\
+        extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()
         if not extracted_data:
             return no_data_found(
-                '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(fulltext_id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
@@ -75,7 +75,7 @@ class FulltextExtractedDataResource(Resource):
         return '', 204
 
     @swagger.operation()
-    @use_args(FulltextExtractedDataItem(many=True))
+    @use_args(ExtractedItem(many=True))
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -84,11 +84,11 @@ class FulltextExtractedDataResource(Resource):
         })
     def put(self, args, id, test):
         # check current user authorization
-        extracted_data = db.session.query(FulltextExtractedData)\
+        extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()
         if not extracted_data:
             return no_data_found(
-                '<FulltextExtractedData(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(fulltext_id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
@@ -168,4 +168,4 @@ class FulltextExtractedDataResource(Resource):
             db.session.commit()
         else:
             db.session.rollback()
-        return FulltextExtractedDataSchema().dump(extracted_data).data
+        return DataExtractionSchema().dump(extracted_data).data

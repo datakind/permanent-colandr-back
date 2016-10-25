@@ -11,7 +11,7 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
-from ...models import (db, Citation, Fulltext, FulltextExtractedData,
+from ...models import (db, Citation, Fulltext, DataExtraction,
                        FulltextScreening, Review, ReviewPlan)
 from ...lib import constants
 from ..errors import no_data_found, unauthorized
@@ -67,9 +67,9 @@ class ReviewExportPrismaResource(Resource):
         exclude_reason_counts = dict(collections.Counter(
             itertools.chain.from_iterable(result[1] for result in results)))
 
-        n_studies_data_extracted = db.session.query(FulltextExtractedData)\
+        n_studies_data_extracted = db.session.query(DataExtraction)\
             .filter_by(review_id=id)\
-            .filter(FulltextExtractedData.extracted_data != {})\
+            .filter(DataExtraction.extracted_items != {})\
             .count()
 
         return {
