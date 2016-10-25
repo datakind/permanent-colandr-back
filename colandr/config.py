@@ -67,14 +67,14 @@ class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
     # TODO: use different databases for different configs?
-    SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
+    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
 
 
 class TestingConfig(Config):
     DEBUG = False
     TESTING = True
     # TODO: use different databases for difference configs?
-    SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
+    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
     SQLALCHEMY_ECHO = True
 
 
@@ -89,5 +89,5 @@ config = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
-    'default': DevelopmentConfig,
+    'default': ProductionConfig,
     }
