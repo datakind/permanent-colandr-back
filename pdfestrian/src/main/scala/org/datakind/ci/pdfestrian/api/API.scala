@@ -128,7 +128,7 @@ object API extends APIService
   with MetadataExtraction
   with AuthorizationComponent {
 
-  val locationExtractor = new DummyLocationExtractor
+  val locationExtractor = new org.datakind.ci.pdfestrian.extraction.LocationExtraction("/locationModel")
   val metaDataExtractor = new DummyMetadataExtractor
   val auth = new NoAuth
   val port = 8080
