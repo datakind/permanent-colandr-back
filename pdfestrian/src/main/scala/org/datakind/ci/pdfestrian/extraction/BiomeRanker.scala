@@ -1,6 +1,6 @@
 package org.datakind.ci.pdfestrian.extraction
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io._
 
 import cc.factorie.{DenseTensor1, DenseTensor2}
 import cc.factorie.app.classify.backend.{LinearMulticlassClassifier, _}
@@ -11,7 +11,7 @@ import cc.factorie.la._
 import cc.factorie.model.{DotTemplateWithStatistics2, Parameters}
 import cc.factorie.optimize.OptimizableObjectives.Multiclass
 import cc.factorie.optimize._
-import cc.factorie.util.DoubleAccumulator
+import cc.factorie.util.{BinarySerializer, DoubleAccumulator}
 import cc.factorie.variable._
 import cc.factorie.variable._
 import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Biome}
@@ -137,7 +137,7 @@ class BiomeRanker(distMap : Map[String,Int], length : Int) {
 
 
   def train(trainData : Seq[BiomeLabel], testData : Seq[BiomeLabel], l2 : Double) :
-  (MulticlassClassifier[Tensor1], Double) = {
+  (LinearVectorClassifier[BiomeLabel,BiomeFeatures], Double) = {
     //val classifier = new DecisionTreeMulticlassTrainer(new C45DecisionTreeTrainer).train(trainData, (l : BiomeLabel) => l.feature, (l : BiomeLabel) => 1.0)
     //val optimizer = new LBFGS// with L2Regularization //
     val rda = new AdaGradRDA(l1 = l2)
@@ -200,6 +200,13 @@ object BiomeRanker {
 
     val (klass, reg) = (0.00005 to 0.005 by 0.00003).map{ e => (extractor.train(trainData,testData,e),e) }.maxBy(_._1._2)
     val (classifier, f1) = klass
+
+    val dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("biomeExtractorModel")))
+    BinarySerializer.serialize(extractor.BiomeLabelDomain, dos)
+    BinarySerializer.serialize(classifier, dos)
+    dos.flush()
+    dos.close()
+
     println(f1)
     println(extractor.evaluate(testData, classifier)._1)
     //val classifier = extractor.train(trainData,testData,0.1)

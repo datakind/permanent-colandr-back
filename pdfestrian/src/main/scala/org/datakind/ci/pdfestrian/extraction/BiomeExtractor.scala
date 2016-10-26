@@ -58,7 +58,7 @@ object BiomeMap {
   def apply(s : String) = map(s)
 }
 
-class LinearVectorClassifier[L<:DiscreteVar,F<:VectorVar](numLabels:Int, numFeatures:Int, val labelToFeatures:L=>F) extends LinearMulticlassClassifier(numLabels, numFeatures) with VectorClassifier[L,F] with Serializable {
+/*class LinearVectorClassifier[L<:DiscreteVar,F<:VectorVar](numLabels:Int, numFeatures:Int, val labelToFeatures:L=>F) extends LinearMulticlassClassifier(numLabels, numFeatures) with VectorClassifier[L,F] with Serializable {
   def classification(v:L): cc.factorie.app.classify.Classification[L] = new cc.factorie.app.classify.Classification(v, predict(labelToFeatures(v).value))
   override def bestLabelIndex(v:L): Int = predict(labelToFeatures(v).value).maxIndex
 }
@@ -72,7 +72,7 @@ class LinearMulticlassClassifier(val labelSize: Int, val featureSize: Int) exten
     def unroll2(v: TensorVar) = Nil
     val weights = LinearMulticlassClassifier.this.weights
   }
-}
+}*/
 
 class SigmoidalLoss extends MultivariateOptimizableObjective[Tensor1] {
   def sigmoid(d : Double) : Double = {

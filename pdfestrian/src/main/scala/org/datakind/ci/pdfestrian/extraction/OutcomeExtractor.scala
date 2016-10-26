@@ -2,6 +2,7 @@ package org.datakind.ci.pdfestrian.extraction
 
 import java.io.{BufferedWriter, FileWriter}
 
+import cc.factorie.app.classify.LinearVectorClassifier
 import cc.factorie.{DenseTensor1, DenseTensor2}
 import cc.factorie.app.classify.backend.{C45DecisionTreeTrainer, DecisionTreeMulticlassTrainer, MulticlassClassifier, RandomForestMulticlassTrainer}
 import cc.factorie.app.nlp.Document
