@@ -121,9 +121,11 @@ class DataSource(db.Model):
         db.TIMESTAMP(timezone=False), nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     source_type = db.Column(
-        db.Unicode(length=20), nullable=False)
+        db.Unicode(length=20),
+        nullable=False, index=True)
     source_name = db.Column(
-        db.Unicode(length=100))
+        db.Unicode(length=100),
+        nullable=True, index=True)
     source_url = db.Column(
         db.Unicode(length=500))
 
@@ -485,7 +487,7 @@ class Citation(db.Model):
         'CitationScreening', back_populates='citation',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, id_, review_id, data_source=None, status=None,
+    def __init__(self, id_, review_id, status=None,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
                  pub_year=None, pub_month=None, authors=None, keywords=None,
                  type_of_reference=None, journal_name=None, volume=None,
@@ -573,10 +575,9 @@ class Fulltext(db.Model):
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, id_, review_id, citation_id, filename=None):
+    def __init__(self, id_, review_id, filename=None):
         self.id = id_
         self.review_id = review_id
-        self.citation_id = citation_id
         self.filename = filename
 
     def __repr__(self):

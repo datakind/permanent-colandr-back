@@ -8,7 +8,7 @@ from pprint import pprint
 import sys
 
 from colandr import create_app, db
-from colandr.models import Fulltext, FulltextExtractedData
+from colandr.models import Fulltext, DataExtraction
 from colandr.tasks import suggest_keyterms
 import requests
 
@@ -297,8 +297,8 @@ def main():
         return
 
     print('\n\n')
-    LOGGER.info('uploading citations to db...')
-    source_refs = ['scopus', 'web of science', 'pubmed']
+    LOGGER.info('importing citations...')
+    source_names = ['scopus', 'web of science', 'pubmed']
     for citations_file in CITATIONS:
         if not os.path.isfile(citations_file):
             raise OSError()
@@ -307,7 +307,7 @@ def main():
             'POST', BASE_URL + 'citations/imports',
             data={'review_id': review_id,
                   'source_type': 'database',
-                  'source_reference': random.choice(source_refs)},
+                  'source_name': random.choice(source_names)},
             files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
             auth=auth)
         print('POST:', filename, '=>', response.url)
@@ -499,7 +499,7 @@ def main():
     # as "included", but that doesn't work when bulk importing as above
     with app.app_context():
         extracted_data_to_insert = [
-            FulltextExtractedData(1, fid[0]) for fid
+            DataExtraction(1, fid[0]) for fid
             in db.session.query(Fulltext.id).filter_by(status='included')]
         db.session.bulk_save_objects(extracted_data_to_insert)
         db.session.commit()
