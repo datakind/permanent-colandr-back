@@ -1,17 +1,19 @@
 package org.datakind.ci.pdfestrian.extraction
 
 
+import java.io._
+
 import cc.factorie.Factorie.CategoricalVectorDomain
-import cc.factorie.app.classify.{LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, OptimizingLinearVectorClassifierTrainer}
+import cc.factorie.app.classify.{LinearVectorClassifier, OnlineOptimizingLinearVectorClassifierTrainer, OptimizingLinearVectorClassifierTrainer, Serialize}
 import cc.factorie.app.nlp.{Document, Token}
+import cc.factorie.util.BinarySerializer
 import cc.factorie.variable._
+import org.datakind.ci.pdfestrian.api.{LocationExtractor, Locations, Metadata, Record}
+import org.datakind.ci.pdfestrian.scripts.Aid
 
 import scala.io.Source
 import scala.util.Random
 
-/**
-  * Created by sameyeam on 7/25/16.
-  */
 object LocationClassifier {
 
   implicit val rand = new Random()
@@ -72,8 +74,15 @@ object LocationClassifier {
     val classifier = trainer.train(trainData, l2f)
     println("Train Acc: " + testAccuracy(trainData,classifier) )
     println("Test Acc: " + testAccuracy(testData,classifier) )
+    import cc.factorie.util.CubbieConversions._
+    val is = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("locationModel")))
+    BinarySerializer.serialize(LocationFeaturesDomain, is)
+    BinarySerializer.serialize(classifier, is)
+    is.flush()
+    is.close()
     classifier
   }
+
 
   def train(fullData : Seq[LocationLabel]) : cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures] = {
     val trainSize = (fullData.length.toDouble * 0.8).toInt
@@ -85,10 +94,50 @@ object LocationClassifier {
   }
 
   def main(args: Array[String]): Unit = {
+    val saveTo = args.last
     val trainData = LocationTrainData.fromFile(args.head).filter( _.sentences.exists(_.valid))
     println("Training with: " + trainData.length)
     val labels = trainData.flatMap(trainDataToFeatures)
-    train(labels)
+    val model = train(labels)
+    val os = new DataOutputStream(new BufferedOutputStream(new FileOutputStream(saveTo)))
+    BinarySerializer.serialize(LocationFeaturesDomain, os)
+    BinarySerializer.serialize(model, os)
+    os.flush()
+    os.close()
   }
 
+}
+
+
+class LocationExtraction(modelLoc : String) extends LocationExtractor {
+  import LocationClassifier._
+  val model : cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures] = {
+    val is = new DataInputStream(new BufferedInputStream(getClass.getResourceAsStream(modelLoc)))
+    BinarySerializer.deserialize(LocationFeaturesDomain, is)
+    LocationFeaturesDomain.freeze()
+    val classifier = new cc.factorie.app.classify.LinearVectorClassifier[LocationLabel, LocationFeatures](2,LocationFeaturesDomain.dimensionSize,l2f)
+    BinarySerializer.deserialize(classifier, is)
+    classifier
+  }
+
+  def getLocations(record: Record): Seq[Metadata] = {
+    val labels = GetAllLocations.featureData(record.content).get.sentences.map{ i => (i,sentenceToFeature(i))}
+    val classification = labels.map{ l =>
+      val prob = model.classification(l._2.feature.value).proportions(1)
+      l -> prob
+    }
+    classification.sortBy(-_._2).take(5).map{c =>
+      Metadata(record.id.toString, "location", c._1._1.location, c._1._1.sentences.map{_.sentence}.mkString("\n"), 0, c._2)
+    }
+  }
+
+}
+
+object LocationExtraction {
+  val extractor = new LocationExtraction("/locationModel")
+
+  def main(args: Array[String]): Unit = {
+    val doc = Source.fromFile(args.head)
+    println(extractor.getLocations(Record(1,1,1,args.head,doc.getLines().mkString(""))))
+  }
 }

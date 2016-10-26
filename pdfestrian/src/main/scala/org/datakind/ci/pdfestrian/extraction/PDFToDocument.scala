@@ -34,6 +34,13 @@ object PDFToDocument {
     splitReferences(Reformat(DeterministicSentenceSegmenter.process(tokenized)))
   }
 
+  def fromString(string : String, filename : String) : (Document, Document) = {
+    val docTxt = string
+    val doc = new Document(docTxt).setName(filename)
+    val tokenized = DeterministicNormalizingTokenizer.process(doc)
+    splitReferences(Reformat(DeterministicSentenceSegmenter.process(tokenized)))
+  }
+
   def splitReferences(doc : Document) : (Document, Document) = {
     val document = new Document().setName(doc.name)
     val references = new Document().setName(doc.name)

@@ -12,7 +12,7 @@ import org.datakind.ci.pdfestrian.scripts.{Aid, Interv}
 
 import scala.io.Source
 
-case class LocationTrainData(aid : Aid, location : String, sentences : Array[PredictedLocation]) {
+case class LocationTrainData(aid : Option[Aid] = None, location : String, sentences : Array[PredictedLocation]) {
   def toJson : String = {
     LocationTrainData.mapper.writeValueAsString(this)
   }
@@ -87,7 +87,21 @@ object GetAllLocations {
     }
   }
 
+  def apply(trip : String) : Seq[(String, String, Double)] = {
+    val (d, _) = PDFToDocument.fromString(trip,"")
+    val sentences = d.sentences.toSeq
+    GetLocations(d).map { l =>
+      val percentage = sentences.indexOf(l.sentence).toDouble/sentences.length.toDouble
+      (l.tokensString(" "), l.sentence.tokens.map{ _.string }.mkString(" "), percentage)
+    }
+  }
+
   def grouped(trip : Aid) : Map[String, Seq[(String, Double)]] = {
+    val locations = apply(trip)
+    locations.groupBy(_._1).map{ a => a._1 -> a._2.map{i => (i._2,i._3)}}
+  }
+
+  def grouped(trip : String) : Map[String, Seq[(String, Double)]] = {
     val locations = apply(trip)
     locations.groupBy(_._1).map{ a => a._1 -> a._2.map{i => (i._2,i._3)}}
   }
@@ -104,10 +118,21 @@ object GetAllLocations {
     locations.map{ l => normalize(l._1) -> l._2}
   }
 
+  def featureData(trip : String) : Option[LocationTrainData] = {
+    val locations = grouped(trip)
+    val normalizedLocations = normalizeLocations(locations)
+    val locSentences = normalizedLocations.map{ nl =>
+      val sentences = nl._2.map{ s =>
+        LocationSentence(s._1, s._2)
+      }.toArray
+      PredictedLocation(valid = true, nl._1, sentences)
+    }.toArray
+    Some(LocationTrainData(None, "", locSentences))
+  }
 
-  def trainingData(aid : Aid, locations : Map[String, Seq[(String, Double)]]) : Option[LocationTrainData] = {
-    if(aid.interv.isEmpty) return None
-    val line = aid.interv.get.Int_area
+  def trainingData(aid : Option[Aid], locations : Map[String, Seq[(String, Double)]]) : Option[LocationTrainData] = {
+    if(aid.get.interv.isEmpty) return None
+    val line = aid.get.interv.get.Int_area
     val location = normalize(line)
     val normalizedLocations = normalizeLocations(locations)
     val locSentences = normalizedLocations.map{ nl =>
@@ -142,7 +167,7 @@ object GetAllLocations {
   def main(args: Array[String]): Unit = {
     val out = new BufferedWriter(new FileWriter("locationTraining"))
     Aid.load(args.head).foreach{ a =>
-      trainingData(a,grouped(a)) match {
+      trainingData(Some(a),grouped(a)) match {
         case Some(td) =>
           out.write(td.toJson + "\n")
         case _ =>
@@ -158,7 +183,7 @@ object FindFalse {
   def main(args: Array[String]): Unit = {
     LocationTrainData.fromFile(args.head).foreach{ ltd =>
       if(!ltd.sentences.exists(_.valid) && ltd.sentences.length > 0) {
-        println(ltd.aid.bib.Title + "\n")
+        println(ltd.aid.get.bib.Title + "\n")
         println(ltd.location + "\n")
         println(ltd.sentences.map{ l => "Predicted: " + l.location + "\n" + l.sentences.map{_.sentence}.mkString("\n")}.mkString("\n"))
         println("=========")

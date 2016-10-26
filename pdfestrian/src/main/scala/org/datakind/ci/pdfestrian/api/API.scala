@@ -30,7 +30,7 @@ trait APIService {
   val headers = HttpHeaders(HttpHeader(HttpHeaders.ContentType, "application/json; charset=utf-8"))
 
 
-  def getLocationsFuture(record : String) = Future {
+  def getLocationsFuture(record : Record) = Future {
     getLocations(record).toString()
   }
 
@@ -61,8 +61,7 @@ trait APIService {
             }
         }
       }
-      case request@Get on Root / "getLocations" => {
-        val record  = request.head.parameters.getFirst("record")
+      case request@Get on Root / "getLocations" / r => {
         val app = request.head.headers.firstValue("user").getOrElse("")
         val key = request.head.headers.firstValue("passwd").getOrElse("")
         authorize(app, key) match {
@@ -70,11 +69,11 @@ trait APIService {
             logger.info("Unauthorized\t+" + app + "\t" + key)
             request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
           case true =>
-            record match {
-              case None => request.error(""" {"error":"Empty Request"} """, headers = headers)
-              case Some(r) =>
+            getFile(r) match {
+              case None => request.error(s""" {"error":"Could not find record $r in database"} """, headers = headers)
+              case Some(record) =>
                 Callback.fromFuture(
-                  getLocationsFuture(r).map{ result =>
+                  getLocationsFuture(record).map{ result =>
                     request.ok(new HttpBody(result.getBytes("UTF-8")), headers = headers)
                   }
                 )
@@ -139,12 +138,12 @@ object API extends APIService
 case class Locations(country : String, confidence : Double)
 trait LocationExtraction {
   val locationExtractor : LocationExtractor
-  def getLocations(record : String) = locationExtractor.getLocations(record)
-}
-trait LocationExtractor {
-  def getLocations(record : String) : Seq[Locations]
+  def getLocations(record : Record) = locationExtractor.getLocations(record)
 }
 
+trait LocationExtractor {
+  def getLocations(record : Record) : Seq[Metadata]
+}
 
 case class Metadata(record : String, metaData : String, value : String, sentence : String, sentenceLocation : Int, confidence : Double)
 

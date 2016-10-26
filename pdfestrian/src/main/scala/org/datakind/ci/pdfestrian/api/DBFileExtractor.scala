@@ -9,7 +9,6 @@ import org.apache.commons.dbcp2._
 object Datasource {
   lazy val connectionPool = {
     val cp = new BasicDataSource()
-    println("URI" + System.getenv("COLANDR_DATABASE_URI"))
 
     val dbUri = new URI(System.getenv("COLANDR_DATABASE_URI"))
     val dbUrl = s"jdbc:postgresql://${dbUri.getHost}:${dbUri.getPort}${dbUri.getPath}"
@@ -30,12 +29,14 @@ case class Record(id : Int, reviewId : Int, citationId : Int, filename : String,
 
 class DBFileExtractor extends Access {
   override def getFile(record: String): Option[Record] = {
-    val query = Datasource.getConnection.prepareStatement("select f.id, f.review_id, f.citation_id, f.filename, f.text_content from fulltexts as f where f.id = ?")
+    val cx = Datasource.getConnection
+    val query = cx.prepareStatement("select f.id, f.review_id, f.citation_id, f.filename, f.text_content from fulltexts as f where f.id = ?")
     try {
       query.setInt(1, record.toInt)
       toRecord(query.executeQuery())
     } finally {
       query.close()
+      cx.close()
     }
   }
 
