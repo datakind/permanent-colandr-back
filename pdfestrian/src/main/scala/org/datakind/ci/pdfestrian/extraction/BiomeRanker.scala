@@ -14,6 +14,7 @@ import cc.factorie.optimize._
 import cc.factorie.util.{BinarySerializer, DoubleAccumulator}
 import cc.factorie.variable._
 import cc.factorie.variable._
+import org.datakind.ci.pdfestrian.api.{Metadata, Record}
 import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Biome}
 
 import scala.collection.mutable
@@ -42,7 +43,7 @@ class BiomeRanker(distMap : Map[String,Int], length : Int) {
 
   object BiomeLabelDomain extends CategoricalDomain[String]
 
-  class BiomeLabel(label : String, val feature : BiomeFeatures, val name : String = "", val labels : Seq[String], val aid : AidSeq, val doc : Document, val sentence : Sentence) extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
+  class BiomeLabel(label : String, val feature : BiomeFeatures, val name : String = "", val labels : Seq[String], val aid : Option[AidSeq], val doc : Document, val sentence : Sentence) extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
     def domain = BiomeLabelDomain
     def multiLabel : DenseTensor1 = {
       val dt = new DenseTensor1(BiomeLabelDomain.size)
@@ -67,7 +68,7 @@ class BiomeRanker(distMap : Map[String,Int], length : Int) {
     lower.filter(_.isLetterOrDigit)
   }
 
-  def docToFeature(aid : AidSeq, pl : Document, labels : Seq[String]) : Seq[BiomeLabel] =
+  def docToFeature(aid : Option[AidSeq], pl : Document, labels : Seq[String]) : Seq[BiomeLabel] =
   {
     val sentences = pl.sentences.toArray.filter(_.string.length > 70)
     val length = sentences.length
@@ -77,7 +78,7 @@ class BiomeRanker(distMap : Map[String,Int], length : Int) {
       for (l <- labels) {
         new BiomeLabel(l, features, pl.name, labels, aid, pl, sent)
       }
-      new BiomeLabel(labels.head, features, pl.name, labels, aid, pl, sent)
+      new BiomeLabel(labels.headOption.getOrElse(""), features, pl.name, labels, aid, pl, sent)
     }
   }
 
@@ -172,7 +173,7 @@ class BiomeRanker(distMap : Map[String,Int], length : Int) {
         aid.biome match {
           case a : Seq[Biome] if a.isEmpty => Seq()
           case a: Seq[Biome] =>
-            docToFeature(aid, d._1,a.map(_.biome).map{a => BiomeMap(a)}.distinct)
+            docToFeature(Some(aid), d._1,a.map(_.biome).map{a => BiomeMap(a)}.distinct)
         }
     }
   }
@@ -257,7 +258,7 @@ object BiomeRanker {
     topSentences(testDocuments.filter(_.nonEmpty),classifier,extractor.BiomeLabelDomain.categories)
     def topSentences(testSet : Array[Seq[extractor.BiomeLabel]], classifier : MulticlassClassifier[Tensor1], domain : Seq[String]) = {
       for(testExample <- testSet) {
-        val trueLabels = testExample.head.aid.biome.map(a => BiomeMap(a.biome)).distinct.mkString(",")
+        val trueLabels = testExample.head.aid.get.biome.map(a => BiomeMap(a.biome)).distinct.mkString(",")
         val sentences = testExample.flatMap { sent =>
           val klass = classifier.classification(sent.feature.value).prediction.toArray.zipWithIndex
           klass.map { k => (k._2, k._1, sent.sentence) }
@@ -265,7 +266,7 @@ object BiomeRanker {
         sentences.foreach{ sent =>
           sent._2.take(10).filter(_._2 > -0.05
           ).foreach { example =>
-            println(testExample.head.aid.index + "\t" + testExample.head.aid.bib.Authors + "\t" + testExample.head.name + "\t" + domain(sent._1) + "\t" + example._2 + "\t" + trueLabels + "\t" + example._3.string)
+            println(testExample.head.aid.get.index + "\t" + testExample.head.aid.get.bib.Authors + "\t" + testExample.head.name + "\t" + domain(sent._1) + "\t" + example._2 + "\t" + trueLabels + "\t" + example._3.string)
           }
         }
       }
@@ -275,4 +276,33 @@ object BiomeRanker {
   }
 
 
+}
+
+class BiomeClassifier(val modelLoc : String) {
+  val dis = new DataInputStream(new BufferedInputStream(new FileInputStream(modelLoc)))
+  val extractor = new BiomeRanker(Map[String, Int](),0)
+  BinarySerializer.deserialize(extractor.BiomeLabelDomain, dis)
+  val model = new LinearVectorClassifier[extractor.BiomeLabel, extractor.BiomeFeatures](extractor.BiomeLabelDomain.dimensionSize,extractor.BiomeFeaturesDomain.dimensionSize, (l : extractor.BiomeLabel) => l.feature)
+  BinarySerializer.deserialize(model, dis)
+  val domain = extractor.BiomeLabelDomain.categories
+  def extract(record : Record) : Seq[Metadata] = {
+    val (d, _) = PDFToDocument.fromString(record.content,record.filename)
+    val labels = extractor.docToFeature(None,d,Seq())
+    labels.flatMap{ l =>
+      model.classification(l.feature.value).prediction.toArray
+        .zipWithIndex.map{ p => (p._2, p._1, l.sentence) }
+        .filter(_._2 > -0.05).map{ p =>
+        Metadata(record.id.toString,"biome", domain(p._1),l.sentence.tokensString(" "),l.sentence.indexInSection,p._2)
+      }
+    }
+  }
+}
+
+object BiomeClassifier {
+  def main(args: Array[String]): Unit = {
+    val doc = Source.fromFile(args.head)
+    val record = Record(1, 1, 1, args.head, doc.getLines().mkString(""))
+    val outcome = new OutcomeClassifier("biomeExtractorModel")
+    println(outcome.extract(record))
+  }
 }

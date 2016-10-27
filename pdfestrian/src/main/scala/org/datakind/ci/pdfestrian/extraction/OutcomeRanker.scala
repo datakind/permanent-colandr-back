@@ -1,6 +1,6 @@
 package org.datakind.ci.pdfestrian.extraction
 
-import java.io.{BufferedWriter, FileWriter}
+import java.io._
 
 import cc.factorie.{DenseTensor1, DenseTensor2}
 import cc.factorie.app.classify.backend.{LinearMulticlassClassifier, _}
@@ -11,9 +11,10 @@ import cc.factorie.la._
 import cc.factorie.model.{DotTemplateWithStatistics2, Parameters}
 import cc.factorie.optimize.OptimizableObjectives.Multiclass
 import cc.factorie.optimize._
-import cc.factorie.util.DoubleAccumulator
+import cc.factorie.util.{BinarySerializer, DoubleAccumulator}
 import cc.factorie.variable._
 import cc.factorie.variable._
+import org.datakind.ci.pdfestrian.api.{Metadata, Record}
 import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Outcome}
 
 import scala.collection.mutable
@@ -42,7 +43,7 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
 
   object OutcomeLabelDomain extends CategoricalDomain[String]
 
-  class OutcomeLabel(label : String, val feature : OutcomeFeatures, val name : String = "", val labels : Seq[String], val aid : AidSeq, val doc : Document, val sentence : Sentence) extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
+  class OutcomeLabel(label : String, val feature : OutcomeFeatures, val name : String = "", val labels : Seq[String], val aid : Option[AidSeq], val doc : Document, val sentence : Sentence) extends CategoricalVariable[String](label) with CategoricalLabeling[String] {
     def domain = OutcomeLabelDomain
     def multiLabel : DenseTensor1 = {
       val dt = new DenseTensor1(OutcomeLabelDomain.size)
@@ -67,7 +68,7 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
     lower.filter(_.isLetterOrDigit)
   }
 
-  def docToFeature(aid : AidSeq, pl : Document, labels : Seq[String]) : Seq[OutcomeLabel] =
+  def docToFeature(aid : Option[AidSeq], pl : Document, labels : Seq[String]) : Seq[OutcomeLabel] =
   {
     val sentences = pl.sentences.toArray.filter(_.length > 70)
     val length = sentences.length
@@ -77,9 +78,10 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
       for (l <- labels) {
         new OutcomeLabel(l, features, pl.name, labels, aid, pl, sent)
       }
-      new OutcomeLabel(labels.head, features, pl.name, labels, aid, pl, sent)
+      new OutcomeLabel(labels.headOption.getOrElse(""), features, pl.name, labels, aid, pl, sent)
     }
   }
+
 
   def testAccuracy(testData : Seq[OutcomeLabel], classifier : MulticlassClassifier[Tensor1]) : Double = {
     val (eval, f1) = evaluate(testData,classifier)
@@ -137,7 +139,7 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
 
 
   def train(trainData : Seq[OutcomeLabel], testData : Seq[OutcomeLabel], l2 : Double) :
-  (MulticlassClassifier[Tensor1], Double) = {
+  (LinearVectorClassifier[OutcomeLabel, OutcomeFeatures], Double) = {
     //val classifier = new DecisionTreeMulticlassTrainer(new C45DecisionTreeTrainer).train(trainData, (l : OutcomeLabel) => l.feature, (l : OutcomeLabel) => 1.0)
     //val optimizer = new LBFGS// with L2Regularization //
     val rda = new AdaGradRDA(l1 = l2)
@@ -172,7 +174,7 @@ class OutcomeRanker(distMap : Map[String,Int], length : Int) {
         aid.outcome match {
           case a : Seq[Outcome] if a.isEmpty => Seq()
           case a: Seq[Outcome] =>
-            docToFeature(aid, d._1,a.map(_.Outcome).map{a => a}.distinct)
+            docToFeature(Some(aid), d._1,a.map(_.Outcome).map{a => a}.distinct)
         }
     }
   }
@@ -200,6 +202,12 @@ object OutcomeRanker {
 
     val (klass, reg) = (0.00005 to 0.005 by 0.00003).map{ e => (extractor.train(trainData,testData,e),e) }.maxBy(_._1._2)
     val (classifier, f1) = klass
+    val dos = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("outcomeExtractorModel")))
+    BinarySerializer.serialize(extractor.OutcomeLabelDomain, dos)
+    BinarySerializer.serialize(classifier, dos)
+    dos.flush()
+    dos.close()
+
     println(f1)
     println(extractor.evaluate(testData, classifier)._1)
     //val classifier = extractor.train(trainData,testData,0.1)
@@ -250,7 +258,7 @@ object OutcomeRanker {
     topSentences(testDocuments.filter(_.nonEmpty),classifier,extractor.OutcomeLabelDomain.categories)
     def topSentences(testSet : Array[Seq[extractor.OutcomeLabel]], classifier : MulticlassClassifier[Tensor1], domain : Seq[String]) = {
       for(testExample <- testSet) {
-        val trueLabels = testExample.head.aid.outcome.map(a => a.Outcome).distinct.mkString(",")
+        val trueLabels = testExample.head.aid.get.outcome.map(a => a.Outcome).distinct.mkString(",")
         val sentences = testExample.flatMap { sent =>
           val klass = classifier.classification(sent.feature.value).prediction.toArray.zipWithIndex
           klass.map { k => (k._2, k._1, sent.sentence) }
@@ -258,7 +266,7 @@ object OutcomeRanker {
         sentences.foreach{ sent =>
           sent._2.take(10).filter(_._2 > -0.05
           ).foreach { example =>
-            println(testExample.head.aid.index + "\t" + testExample.head.aid.bib.Authors + "\t" + testExample.head.name + "\t" + domain(sent._1) + "\t" + example._2 + "\t" + trueLabels + "\t" + example._3.string)
+            println(testExample.head.aid.get.index + "\t" + testExample.head.aid.get.bib.Authors + "\t" + testExample.head.name + "\t" + domain(sent._1) + "\t" + example._2 + "\t" + trueLabels + "\t" + example._3.string)
           }
         }
       }
@@ -267,5 +275,33 @@ object OutcomeRanker {
 
   }
 
+}
 
+class OutcomeClassifier(val modelLoc : String) {
+  val dis = new DataInputStream(new BufferedInputStream(new FileInputStream(modelLoc)))
+  val extractor = new OutcomeRanker(Map[String, Int](),0)
+  BinarySerializer.deserialize(extractor.OutcomeLabelDomain, dis)
+  val model = new LinearVectorClassifier[extractor.OutcomeLabel, extractor.OutcomeFeatures](extractor.OutcomeLabelDomain.dimensionSize,extractor.OutcomeFeaturesDomain.dimensionSize, (l : extractor.OutcomeLabel) => l.feature)
+  BinarySerializer.deserialize(model, dis)
+  val domain = extractor.OutcomeLabelDomain.categories
+  def extract(record : Record) : Seq[Metadata] = {
+    val (d, _) = PDFToDocument.fromString(record.content,record.filename)
+    val labels = extractor.docToFeature(None,d,Seq())
+    labels.flatMap{ l =>
+      model.classification(l.feature.value).prediction.toArray
+        .zipWithIndex.map{ p => (p._2, p._1, l.sentence) }
+        .filter(_._2 > -0.05).map{ p =>
+        Metadata(record.id.toString,"outcome", domain(p._1),l.sentence.tokensString(" "),l.sentence.indexInSection,p._2)
+      }
+    }
+  }
+}
+
+object OutcomeClassifier {
+  def main(args: Array[String]): Unit = {
+    val doc = Source.fromFile(args.head)
+    val record = Record(1,1,1,args.head,doc.getLines().mkString(""))
+    val outcome = new OutcomeClassifier("outcomeExtractorModel")
+    println(outcome.extract(record))
+  }
 }
