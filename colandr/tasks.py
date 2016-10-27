@@ -17,9 +17,9 @@ import textacy
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.utils import load_dedupe_model, make_record_immutable
-from .models import (db, Citation, DedupeBlockingMap, DedupeCoveredBlocks,
+from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
-                     ReviewPlan, User)
+                     ReviewPlan, Study, User)
 
 
 REDIS_CONN = redis.StrictRedis()
@@ -92,21 +92,21 @@ def deduplicate_citations(review_id):
             max_created_at = conn.execute(stmt).fetchone()[0]
             print('citation most recently created at {}'.format(max_created_at))
             if (arrow.utcnow().naive - max_created_at).total_seconds() < 60:
-                sleep(15)
+                sleep(10)
             else:
                 break
 
         # if all review citations have been deduped, cancel
         stmt = select(
-            [exists().where(Citation.review_id == review_id).where(Citation.deduplication == {})])
-        un_deduped_citations = conn.execute(stmt).fetchone()[0]
-        if un_deduped_citations is False:
-            print('all citations for <Review(id={})> already deduped!'.format(review_id))
+            [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
+        un_deduped_studies = conn.execute(stmt).fetchone()[0]
+        if un_deduped_studies is False:
+            print('all studies for <Review(id={})> already deduped!'.format(review_id))
             return
 
         # remove rows for this review
         # which we'll add back with the latest citations included
-        for table in [DedupeBlockingMap, DedupePluralKey, DedupePluralBlock,
+        for table in [Dedupe, DedupeBlockingMap, DedupePluralKey, DedupePluralBlock,
                       DedupeCoveredBlocks, DedupeSmallerCoverage]:
             stmt = delete(table).where(getattr(table, 'review_id') == review_id)
             result = conn.execute(stmt)
@@ -221,7 +221,8 @@ def deduplicate_citations(review_id):
         all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
         duplicate_cids = set()
 
-        citations_to_update = []
+        studies_to_update = []
+        dedupes_to_insert = []
         for cids, scores in clustered_dupes:
             cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
             stmt = select([Citation.id,
@@ -248,20 +249,21 @@ def deduplicate_citations(review_id):
             for cid, score in cid_scores.items():
                 if cid != canonical_citation_id:
                     duplicate_cids.add(cid)
-                    citations_to_update.append(
+                    studies_to_update.append(
                         {'id': cid,
-                         'status': 'excluded',
-                         'deduplication': {'is_duplicate': True,
-                                           'canonical_id': canonical_citation_id,
-                                           'duplicate_score': score}
-                         })
+                         'dedupe_status': 'is_duplicate'})
+                    dedupes_to_insert.append(
+                        {'id': cid,
+                         'review_id': review_id,
+                         'duplicate_of': canonical_citation_id,
+                         'duplicate_score': score})
         non_duplicate_cids = all_cids - duplicate_cids
-        citations_to_update.extend(
-            {'id': cid, 'deduplication': {'is_duplicate': False}}
-            for cid in non_duplicate_cids
-            )
+        studies_to_update.extend(
+            {'id': cid, 'dedupe_status': 'not_duplicate'}
+            for cid in non_duplicate_cids)
         session = Session(bind=conn)
-        session.bulk_update_mappings(Citation, citations_to_update)
+        session.bulk_update_mappings(Study, studies_to_update)
+        session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
         session.commit()
 
     lock.release()

@@ -108,19 +108,27 @@ class CitationsImportsResource(Resource):
 
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert
+        citation_schema = CitationSchema()
+        citations_to_insert = []
+        for record in citations_file.parse():
+            record['review_id'] = review_id
+            citations_to_insert.append(citation_schema.load(record).data)
+
         user_id = g.current_user.id
         studies_to_insert = []
-        citations_to_insert = []
-        citation_schema = CitationSchema()
-        for record in citations_file.parse():
-            studies_to_insert.append(
+        if status in {'included', 'excluded'}:
+            studies_to_insert = [
                 {'user_id': user_id,
                  'review_id': review_id,
-                 'data_source_id': data_source_id})
-            record['review_id'] = review_id
-            if status:
-                record['status'] = status
-            citations_to_insert.append(citation_schema.load(record).data)
+                 'data_source_id': data_source_id,
+                 'citation_status': status}
+                for i in range(len(citations_to_insert))]
+        else:
+            studies_to_insert = [
+                {'user_id': user_id,
+                 'review_id': review_id,
+                 'data_source_id': data_source_id}
+                for i in range(len(citations_to_insert))]
 
         # insert studies, and get their primary keys _back_
         stmt = db.insert(Study).values(studies_to_insert)\
@@ -154,5 +162,4 @@ class CitationsImportsResource(Resource):
 
         db.session.commit()
 
-        # TODO: fix this
-        # deduplicate_citations.apply_async(args=[review_id], countdown=60)
+        deduplicate_citations.apply_async(args=[review_id], countdown=60)
