@@ -14,7 +14,7 @@ import cc.factorie.optimize._
 import cc.factorie.util.{BinarySerializer, DoubleAccumulator}
 import cc.factorie.variable._
 import cc.factorie.variable._
-import org.datakind.ci.pdfestrian.api.{Metadata, Record}
+import org.datakind.ci.pdfestrian.api.{Metadata, MetadataExtractor, Record}
 import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Outcome}
 
 import scala.collection.mutable
@@ -277,14 +277,14 @@ object OutcomeRanker {
 
 }
 
-class OutcomeClassifier(val modelLoc : String) {
-  val dis = new DataInputStream(new BufferedInputStream(new FileInputStream(modelLoc)))
+class OutcomeClassifier(val modelLoc : String) extends MetadataExtractor {
+  val dis = new DataInputStream(new BufferedInputStream(getClass.getResourceAsStream(modelLoc)))
   val extractor = new OutcomeRanker(Map[String, Int](),0)
   BinarySerializer.deserialize(extractor.OutcomeLabelDomain, dis)
   val model = new LinearVectorClassifier[extractor.OutcomeLabel, extractor.OutcomeFeatures](extractor.OutcomeLabelDomain.dimensionSize,extractor.OutcomeFeaturesDomain.dimensionSize, (l : extractor.OutcomeLabel) => l.feature)
   BinarySerializer.deserialize(model, dis)
   val domain = extractor.OutcomeLabelDomain.categories
-  def extract(record : Record) : Seq[Metadata] = {
+  def getMetaData(record : Record, m : String) : Seq[Metadata] = {
     val (d, _) = PDFToDocument.fromString(record.content,record.filename)
     val labels = extractor.docToFeature(None,d,Seq())
     labels.flatMap{ l =>
@@ -301,7 +301,7 @@ object OutcomeClassifier {
   def main(args: Array[String]): Unit = {
     val doc = Source.fromFile(args.head)
     val record = Record(1,1,1,args.head,doc.getLines().mkString(""))
-    val outcome = new OutcomeClassifier("outcomeExtractorModel")
-    println(outcome.extract(record))
+    val outcome = new OutcomeClassifier("/outcomeExtractorModel")
+    println(outcome.getMetaData(record, ""))
   }
 }

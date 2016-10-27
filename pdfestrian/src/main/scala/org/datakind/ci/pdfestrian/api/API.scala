@@ -8,10 +8,12 @@ import colossus.protocols.http.UrlParsing._
 import colossus.protocols.http._
 import colossus.service.Callback.Implicits._
 import colossus.service.{Callback, ServiceConfig}
+import org.datakind.ci.pdfestrian.extraction.MetadataClassifier
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.{read, write}
 import org.slf4j.LoggerFactory
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import org.json4s._
@@ -31,11 +33,11 @@ trait APIService {
 
 
   def getLocationsFuture(record : Record) = Future {
-    getLocations(record).toString()
+    write(getLocations(record))
   }
 
-  def getMetaDataFuture(record : String, metaData : String) = Future {
-    getMetaData(record, metaData).toString()
+  def getMetaDataFuture(record : Record, metaData : String) = Future {
+    write(getMetaData(record, metaData))
   }
 
   class APIService(context : ServerContext) extends HttpService(ServiceConfig.Default, context) {
@@ -71,6 +73,7 @@ trait APIService {
           case true =>
             getFile(r) match {
               case None => request.error(s""" {"error":"Could not find record $r in database"} """, headers = headers)
+              case Some(record) if record.content == null => request.error(s""" {"error":"Record $r does not have fulltext attached"} """, headers = headers)
               case Some(record) =>
                 Callback.fromFuture(
                   getLocationsFuture(record).map{ result =>
@@ -80,9 +83,7 @@ trait APIService {
             }
         }
       }
-      case request@Get on Root / "getMetadata" => {
-        val record  = request.head.parameters.getFirst("record")
-        val metaData = request.head.parameters.getFirst("metadata")
+      case request@Get on Root / "getMetadata" / r / meta => {
         val app = request.head.headers.firstValue("user").getOrElse("")
         val key = request.head.headers.firstValue("passwd").getOrElse("")
         authorize(app, key) match {
@@ -90,13 +91,14 @@ trait APIService {
             logger.info("Unauthorized\t+" + app + "\t" + key)
             request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
           case true =>
-            (record, metaData) match {
-              case (None, None) => request.error(""" {"error":"Empty Request"} """, headers = headers)
-              case (Some(r), None) => request.error(""" {"error":"No metadata requested"} """, headers = headers)
-              case (None, Some(m)) => request.error(""" {"error":"No record requested"} """, headers = headers)
-              case (Some(r), Some(m)) =>
+            getFile(r) match {
+              case None =>
+                logger.info("Requested nonexistant record: " + r)
+                request.error(""" {"error":"nonexistant record"}""")
+              case Some(record) if record.content == null => request.error(s""" {"error":"Record $r does not have fulltext attached"} """, headers = headers)
+              case Some(record) =>
                 Callback.fromFuture(
-                  getMetaDataFuture(r,m).map{ result =>
+                  getMetaDataFuture(record, meta).map{ result =>
                     request.ok(new HttpBody(result.getBytes("UTF-8")), headers = headers)
                   }
                 )
@@ -129,7 +131,7 @@ object API extends APIService
   with AuthorizationComponent {
 
   val locationExtractor = new org.datakind.ci.pdfestrian.extraction.LocationExtraction("/locationModel")
-  val metaDataExtractor = new DummyMetadataExtractor
+  val metaDataExtractor = new MetadataClassifier
   val auth = new NoAuth
   val port = 8080
   val access = new DBFileExtractor
@@ -150,10 +152,10 @@ case class Metadata(record : String, metaData : String, value : String, sentence
 
 trait MetadataExtraction {
   val metaDataExtractor : MetadataExtractor
-  def getMetaData(record : String, metaData : String) : Seq[Metadata] = metaDataExtractor.getMetaData(record, metaData)
+  def getMetaData(record : Record, metaData : String) : Seq[Metadata] = metaDataExtractor.getMetaData(record, metaData)
 }
 trait MetadataExtractor {
-  def getMetaData(record : String, metaData : String) : Seq[Metadata]
+  def getMetaData(record : Record, metaData : String) : Seq[Metadata]
 }
 
 

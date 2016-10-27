@@ -14,7 +14,7 @@ import cc.factorie.optimize._
 import cc.factorie.util.{BinarySerializer, DoubleAccumulator}
 import cc.factorie.variable._
 import cc.factorie.variable._
-import org.datakind.ci.pdfestrian.api.{Metadata, Record}
+import org.datakind.ci.pdfestrian.api.{Metadata, MetadataExtractor, Record}
 import org.datakind.ci.pdfestrian.scripts.{Aid, AidSeq, Interv}
 
 import scala.collection.mutable
@@ -277,14 +277,14 @@ object IntervRanker {
 
 }
 
-class IntervClassifier(val modelLoc : String) {
-  val dis = new DataInputStream(new BufferedInputStream(new FileInputStream(modelLoc)))
+class IntervClassifier(val modelLoc : String) extends MetadataExtractor {
+  val dis = new DataInputStream(new BufferedInputStream(getClass.getResourceAsStream(modelLoc)))
   val extractor = new IntervRanker(Map[String, Int](),0)
   BinarySerializer.deserialize(extractor.IntervLabelDomain, dis)
   val model = new LinearVectorClassifier[extractor.IntervLabel, extractor.IntervFeatures](extractor.IntervLabelDomain.dimensionSize,extractor.IntervFeaturesDomain.dimensionSize, (l : extractor.IntervLabel) => l.feature)
   BinarySerializer.deserialize(model, dis)
   val domain = extractor.IntervLabelDomain.categories
-  def extract(record : Record) : Seq[Metadata] = {
+  def getMetaData(record : Record, m : String) : Seq[Metadata] = {
     val (d, _) = PDFToDocument.fromString(record.content,record.filename)
     val labels = extractor.docToFeature(None,d,Seq())
     labels.flatMap{ l =>
@@ -301,7 +301,7 @@ object IntervClassifier {
   def main(args: Array[String]): Unit = {
     val doc = Source.fromFile(args.head)
     val record = Record(1,1,1,args.head,doc.getLines().mkString(""))
-    val outcome = new OutcomeClassifier("intervExtractorModel")
-    println(outcome.extract(record))
+    val interv = new IntervClassifier("/intervExtractorModel")
+    println(interv.getMetaData(record, ""))
   }
 }
