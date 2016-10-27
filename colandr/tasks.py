@@ -83,6 +83,7 @@ def deduplicate_citations(review_id):
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
         server_side_cursors=True, echo=False)
+
     with engine.connect() as conn:
 
         # wait until no more review citations have been created in 60+ seconds
@@ -102,6 +103,7 @@ def deduplicate_citations(review_id):
         un_deduped_studies = conn.execute(stmt).fetchone()[0]
         if un_deduped_studies is False:
             print('all studies for <Review(id={})> already deduped!'.format(review_id))
+            lock.release()
             return
 
         # remove rows for this review

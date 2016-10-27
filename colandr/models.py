@@ -962,5 +962,5 @@ def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
     with connection.begin():
         connection.execute(
-            db.insert(ReviewPlan).values(review_id=target.id))
+            db.insert(ReviewPlan).values(id=target.id))
     logging.warning('{} inserted, along with {}'.format(target, review_plan))

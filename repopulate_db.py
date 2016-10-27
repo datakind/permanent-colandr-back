@@ -38,7 +38,6 @@ REVIEW = {'name': 'Conservation International Demo',
           'description': 'International policy has sought to emphasize and strengthen the link between the conservation of natural ecosystems and human development. Furthermore, international conservation organizations have broadened their objectives beyond nature-based goals to recognize the contribution of conservation interventions in sustaining ecosystem services upon which human populations are dependent. While many indices have been developed to measure various human well-being domains, the strength of evidence to support the effects, both positive and negative, of conservation interventions on human well-being, is still unclear.\n\nThis protocol describes the methodology for examining the research question: What are the impacts of nature conservation interventions on different domains of human well-being in developing countries? Using systematic mapping, this study will scope and identify studies that measure the impacts of nature conservation interventions on human well-being at local to regional scales. The primary objective of this study is to synthesize the state and distribution of the existing evidence base linking conservation and human well-being. In addition, a theory of change approach will be used to identify and characterize the causal linkages between conservation and human well-being, with attention on those studies that examine the role of ecosystem services. Key trends among the resulting studies will be synthesized and the range of studies organized and presented in a graphical matrix illustrating the relationships between types of interventions and types of outcomes. Results of the study are intended to help conservation and development practitioners and the academic community to improve research studies and conservation practices in developing countries in order to achieve both conservation and human well-being outcomes.'}
 
 REVIEW_PLAN = {
-    'review_id': 1,
     'objective': 'To assess and characterize the current state and distribution of the existing evidence base around the causal linkages between both positive and negative effects of nature conservation and human well-being.',
     'research_questions': ["What are the impacts of nature conservation interventions on different domains of human well-being in developing countries?",
                            "What is the current state and distribution of evidence?",
@@ -285,7 +284,7 @@ def main():
     review_plan = REVIEW_PLAN.copy()
     review_plan['fields'] = ','.join(REVIEW_PLAN.keys())
     response = session.request(
-        'PUT', BASE_URL + 'reviews/{}/plan'.format(REVIEW_PLAN['review_id']),
+        'PUT', BASE_URL + 'reviews/{}/plan'.format(review_id),
         json=review_plan, auth=auth)
     response.raise_for_status()
     print('PUT:', response.url)
