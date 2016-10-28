@@ -7,16 +7,17 @@ from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
-from marshmallow.validate import OneOf, Length, Range
+from marshmallow import ValidationError
+from marshmallow.validate import OneOf, Length, Range, URL
 from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants
 from ...lib.nlp import reviewer_terms
-from ...models import db, Citation, Review
-from ..errors import forbidden, no_data_found, unauthorized
-from ..schemas import CitationSchema
+from ...models import db, Citation, DataSource, Review, Study
+from ..errors import forbidden, no_data_found, unauthorized, validation
+from ..schemas import CitationSchema, DataSourceSchema
 from ..authentication import auth
 
 
@@ -209,21 +210,54 @@ class CitationsResource(Resource):
     @use_kwargs({
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
+        'source_type': ma_fields.Str(
+            required=True, validate=OneOf(['database', 'gray literature'])),
+        'source_name': ma_fields.Str(
+            missing=None, validate=Length(max=100)),
+        'source_url': ma_fields.Str(
+            missing=None, validate=[URL(relative=False), Length(max=500)]),
         'status': ma_fields.Str(
             missing=None, validate=OneOf(['included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, args, review_id, status, test):
+    def post(self, args, review_id, source_type, source_name, source_url,
+             status, test):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to add citations to this review'.format(g.current_user))
-        citation = Citation(args.pop('review_id'), **args)
-        db.session.add(citation)
+
+        # upsert the data source
+        try:
+            DataSourceSchema().validate(
+                {'source_type': source_type,
+                 'source_name': source_name,
+                 'source_url': source_url})
+        except ValidationError as e:
+            return validation(e.messages)
+        data_source = db.session.query(DataSource)\
+            .filter_by(source_type=source_type, source_name=source_name).one_or_none()
+        if data_source is None:
+            data_source = DataSource(source_type, source_name, source_url=source_url)
+            db.session.add(data_source)
         if test is False:
             db.session.commit()
         else:
             db.session.rollback()
+            return ''
+
+        # add the study
+        study = Study(g.current_user.id, review_id, data_source.id)
+        db.session.add(study)
+        db.session.commit()
+
+        # *now* add the citation
+        citation = args
+        citation = CitationSchema().load(citation).data  # this sanitizes the data
+        citation = Citation(study.id, **citation)
+        db.session.add(citation)
+        db.session.commit()
+
         return CitationSchema().dump(citation).data

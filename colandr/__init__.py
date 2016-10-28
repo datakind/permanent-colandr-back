@@ -25,6 +25,7 @@ from .api.resources.reviews import ReviewResource, ReviewsResource
 from .api.resources.review_plans import ReviewPlanResource
 from .api.resources.review_teams import ReviewTeamResource, ConfirmReviewTeamInviteResource
 from .api.resources.review_progress import ReviewProgressResource
+from .api.resources.studies import StudyResource, StudiesResource
 from .api.resources.citations import CitationResource, CitationsResource
 from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
 from .api.resources.citation_imports import CitationsImportsResource
@@ -69,6 +70,8 @@ def create_app(config_name):
     api.add_resource(ReviewExportPrismaResource, '/reviews/<int:id>/export_prisma')
     api.add_resource(ReviewExportRefsResource, '/reviews/<int:id>/export_refs')
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
+    api.add_resource(StudiesResource, '/studies')
+    api.add_resource(StudyResource, '/studies/<int:id>')
     api.add_resource(CitationsResource, '/citations')
     api.add_resource(CitationsImportsResource, '/citations/imports')
     api.add_resource(CitationResource, '/citations/<int:id>')

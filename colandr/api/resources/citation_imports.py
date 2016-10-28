@@ -70,41 +70,27 @@ class CitationsImportsResource(Resource):
         else:
             return validation('unknown file type: "{}"'.format(fname))
 
-        if test is True:
-            return ''
-
         # upsert the data source
-        data_source = {
-            'source_type': source_type,
-            'source_name': source_name,
-            'source_url': source_url}
         try:
-            DataSourceSchema().validate(data_source)
+            DataSourceSchema().validate(
+                {'source_type': source_type,
+                 'source_name': source_name,
+                 'source_url': source_url})
         except ValidationError as e:
             return validation(e.messages)
-        # let's try an upsert
-        # TODO: just switch the order, i.e. query for an id, and if not found,
-        # then insert it normally; it's more clear
-        engine = create_engine(current_app.config['SQLALCHEMY_DATABASE_URI'])
-        stmt = insert(DataSource)\
-            .values(source_type=source_type, source_name=source_name, source_url=source_url)\
-            .on_conflict_do_nothing(
-                index_elements=[DataSource.source_type, DataSource.source_name])
-        with engine.connect() as conn:
-            result = conn.execute(stmt)
-            data_source_id = result.inserted_primary_key
-        # result = db.session.connection().execute(stmt)
-        # data_source_id = result.inserted_primary_key
-        # this type-name pair was new and inserted; since the primary key
-        # is only one column, take the first element of the returned list
-        if data_source_id is not None:
-            data_source_id = data_source_id[0]
-        # this type-name pair already exists; for some reason, sqlalchemy
-        # absolutely WILL NOT return it, so we have to query for it ourselves
+        data_source = db.session.query(DataSource)\
+            .filter_by(source_type=source_type, source_name=source_name).one_or_none()
+        if data_source is None:
+            data_source = DataSource(source_type, source_name, source_url=source_url)
+            db.session.add(data_source)
+        if test is False:
+            db.session.commit()
+            data_source_id = data_source.id
         else:
-            data_source_id = db.session.query(DataSource.id)\
-                .filter_by(source_type=source_type).filter_by(source_name=source_name)\
-                .scalar()
+            db.session.rollback()
+            return ''
+
+        engine = create_engine(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert

@@ -187,38 +187,7 @@ class ImportSchema(Schema):
         strict = True
 
 
-class StudySchema(Schema):
-    id = fields.Int(
-        dump_only=True)
-    created_at = fields.DateTime(
-        dump_only=True, format='iso')
-    last_updated = fields.DateTime(
-        dump_only=True, format='iso')
-    user_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    review_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    data_source_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
-    dedupe_status = fields.Str(
-        missing=None, validate=OneOf(['is_duplicate', 'not_duplicate']))
-    citation_status = fields.Str(
-        missing=None, validate=OneOf(['screened_once', 'conflict',
-                                      'included', 'excluded']))
-    fulltext_status = fields.Str(
-        missing=None, validate=OneOf(['screened_once', 'conflict',
-                                      'included', 'excluded']))
-    data_extraction_status = fields.Str(
-        missing=None, validate=OneOf(['incomplete', 'complete']))
-    tags = fields.List(
-        fields.Str(validate=Length(max=25)))
-    # TODO: include dedupe, citation, fulltext, data_extraction fields?
-
-    class Meta:
-        strict = True
-
-
-class Dedupe(Schema):
+class DedupeSchema(Schema):
     id = fields.Int(
         dump_only=True)
     created_at = fields.DateTime(
@@ -229,30 +198,6 @@ class Dedupe(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
     duplicate_score = fields.Float(
         required=True, validate=Range(min=0.0, max=1.0))
-
-    class Meta:
-        strict = True
-
-
-class ScreeningSchema(Schema):
-    id = fields.Int(
-        dump_only=True)
-    created_at = fields.DateTime(
-        dump_only=True, format='iso')
-    last_updated = fields.DateTime(
-        dump_only=True, format='iso')
-    review_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    user_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT))
-    citation_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
-    fulltext_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
-    status = fields.Str(
-        validate=OneOf(['included', 'excluded']))
-    exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)), missing=None)
 
     class Meta:
         strict = True
@@ -299,8 +244,6 @@ class CitationSchema(Schema):
     language = fields.Str(
         validate=Length(max=50))
     other_fields = fields.Dict()
-    screenings = fields.Nested(
-        ScreeningSchema, many=True)
 
     @pre_load(pass_many=False)
     def sanitize_citation_record(self, record):
@@ -329,9 +272,28 @@ class FulltextSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     filename = fields.Str(
         validate=Length(max=30))
-    screenings = fields.Nested(
-        ScreeningSchema, many=True)
-    # TODO: add exclude_reasons list?
+
+    class Meta:
+        strict = True
+
+
+class ScreeningSchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    last_updated = fields.DateTime(
+        dump_only=True, format='iso')
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    study_id = fields.Int(
+        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
+    status = fields.Str(
+        validate=OneOf(['included', 'excluded']))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), missing=None)
 
     class Meta:
         strict = True
@@ -360,6 +322,44 @@ class DataExtractionSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     extracted_items = fields.Nested(
         ExtractedItem, many=True)
+
+    class Meta:
+        strict = True
+
+
+class StudySchema(Schema):
+    id = fields.Int(
+        dump_only=True)
+    created_at = fields.DateTime(
+        dump_only=True, format='iso')
+    last_updated = fields.DateTime(
+        dump_only=True, format='iso')
+    user_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    review_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_INT))
+    data_source_id = fields.Int(
+        required=True, validate=Range(min=1, max=constants.MAX_BIGINT))
+    dedupe_status = fields.Str(
+        missing=None, validate=OneOf(['is_duplicate', 'not_duplicate']))
+    citation_status = fields.Str(
+        missing=None, validate=OneOf(['screened_once', 'conflict',
+                                      'included', 'excluded']))
+    fulltext_status = fields.Str(
+        missing=None, validate=OneOf(['screened_once', 'conflict',
+                                      'included', 'excluded']))
+    data_extraction_status = fields.Str(
+        missing=None, validate=OneOf(['incomplete', 'complete']))
+    tags = fields.List(
+        fields.Str(validate=Length(max=25)))
+    dedupe = fields.Nested(DedupeSchema)
+    citation = fields.Nested(CitationSchema)
+    citation_screenings = fields.Nested(
+        ScreeningSchema, many=True)
+    fulltext = fields.Nested(FulltextSchema)
+    fulltext_screenings = fields.Nested(
+        ScreeningSchema, many=True)
+    data_extraction = fields.Nested(DataExtractionSchema)
 
     class Meta:
         strict = True

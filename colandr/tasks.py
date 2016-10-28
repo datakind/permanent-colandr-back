@@ -282,16 +282,16 @@ def suggest_keyterms(review_id, sample_size):
         server_side_cursors=True, echo=False)
     with engine.connect() as conn:
         # get random sample of included citations
-        stmt = select([Citation.status, Citation.text_content])\
-            .where(Citation.review_id == review_id)\
-            .where(Citation.status == 'included')\
+        stmt = select([Study.citation_status, Study.citation.text_content])\
+            .where(Study.review_id == review_id)\
+            .where(Study.citation_status == 'included')\
             .order_by(func.random())\
             .limit(sample_size)
         included = conn.execute(stmt).fetchall()
         # get random sample of excluded citations
-        stmt = select([Citation.status, Citation.text_content])\
-            .where(Citation.review_id == review_id)\
-            .where(Citation.status == 'excluded')\
+        stmt = select([Study.citation_status, Study.citation.text_content])\
+            .where(Study.review_id == review_id)\
+            .where(Study.citation_status == 'excluded')\
             .order_by(func.random())\
             .limit(sample_size)
         excluded = conn.execute(stmt).fetchall()
