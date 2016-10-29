@@ -1,8 +1,0 @@
-Calvacanti et al. 2013	Social integration, participation, and community resource management	M_TRU	0.5507334274307575
-Stern 2010	Payoffs Versus Process: Expanding the Paradigm for Park/People Studies Beyond Economic Rationality	T_TSTMBF	0.44688511303137024
-Becker et al. 2005	Community-based monitoring of fog capture and biodiversity at Loma Alta, Ecuador enhance social capital and institutional cooperation	T_TSTMBF	0.41801252544080225
-Herrold-Menzies 2012	Spies in the Marsh or Post-Soviet Saviors? Crane Conservation and Community Outreach in the Russian Far East	T_TBMF	0.3864041961780678
-Sassen 2013	Complex contexts and dynamic drivers: Understanding four decades of forest loss and recovery in an East African protected area	T_TSTMBF	0.35810604034206406
-Aymoz et al. 2013	Community management of natural resources: A case study from Ankarafantsika National Park, Madagascar	T_TSTDBF	0.3155217281329311
-Gillingham and Lee 1999	The impact of wildlife-related benefits on the conservation attitudes of local people around the Selous Game Reserve, Tanzania	T_TSTGSS	0.29980015659081727
-Gubbi et al. 2009	Evaluating the legacy of an integrated conservation and development project around a tiger reserve in India	T_TSTMBF	0.2639695883224558

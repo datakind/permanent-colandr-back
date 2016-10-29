@@ -1,9 +1,0 @@
-Jost Robinson et al. 2011	Multi-faceted approaches to understanding changes in wildlife and livelihoods in a protected area: a conservation case study from the Central African Republic	T_TSTMBF	0.6875147433861223
-Robinson 2011	Multi-faceted approaches to understanding changes in wildlife and livelihoods in a protected area: a conservation case study from the Central African Republic	T_TSTMBF	0.6875147433861223
-Vega 2013	Contrasts in Livelihoods and Protein Intake between Commercial and Subsistence Bushmeat Hunters in Two Villages on Bioko Island, Equatorial Guinea		0.5570122641277659
-Van Vliet 2012	The bushmeat market in Kisangani, Democratic Republic of Congo: Implications for conservation and food security		0.5487198163649333
-Buchenrieder and Balgah 2013	Sustaining livelihoods around community forests. What is the potential contribution of wildlife domestication?	T_TSTMBF	0.4488938327414111
-Rao 2010	Hunting, livelihoods and declining wildlife in the Hponkanrazi wildlife sanctuary, North Myanmar	T_TBMF	0.38597035704188404
-Yasuda 2011	The impacts of sport hunting on the livelihoods of local people: A case study of B_nou_ National Park, Cameroon	T_TSTGSS	0.3379545692437583
-Noss 2001	Community attitudes towards wildlife management in the Bolivian Chaco	T_TSTMBF	0.31444737963422975
-Kidegbesbo et al. 2007	Factors influencing conservation attitudes of local people in Western Serengeti, Tanzania	T_TSTGSS	0.22857363795529595

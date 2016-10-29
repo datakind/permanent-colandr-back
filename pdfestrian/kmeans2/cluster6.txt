@@ -1,9 +1,0 @@
-Abbott et al. 2007	Rivers as resources, rivers as borders: community and transboundary management of fisheries in the Upper Zambezi River floodplains	T_FGS	0.5176539980615731
-Jitpakdee 2012	Sustainability Analysis of Ecotourism on Yao Noi Island, Thailand	T_TSTMBF	0.49138861983616416
-Rodriguez 2013	Payment for Environmental Services and Unequal Resource Control in Pimampiro, Ecuador	T_TSTMBF	0.41957926670585666
-Shoo 2013	Contribution of eco-tourism to nature conservation and improvement of livelihoods around Amani nature reserve, Tanzania	T_TSTMBF	0.3478268538343775
-Setiawan et al. 2012	The perceived impact of customary marine resource management on household and community welfare in Northern Sumatra, Indonesia		0.31871575779899053
-Pasquini 2009	Devising appropriate policies and instruments in support of private conservation areas: Lessons learned from the klein Karoo, South Africa	T_MFWS	0.2857056629194107
-Kari and Korhonen-Kurki 2013	Framing local outcomes of biodiversity conservation through ecosystem services: A case study from Ranomafana, Madagascar	T_TSTMBF	0.28109930091215896
-De Groote et al. 2003	Economic impact of biological control of water hyacinth in Southern Benin	T_TSTGSS	0.26187920390988106
-Yuan 2009	Fengshui forest management by the Buyi ethnic minority in China	T_TSTMBF	0.23520484160265342

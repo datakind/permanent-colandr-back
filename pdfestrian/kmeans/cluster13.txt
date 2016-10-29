@@ -1,4 +1,0 @@
-Roshetko 2013	Teak agroforestry systems for livelihood enhancement, industrial timber production, and environmental rehabilitation	T_TSTMBF	0.7151306660475748
-Bremer et al. 2014	What factors influence participation in payment for ecosystem services programs? An evaluation of Ecuador's SocioPÍramo program		0.5726035355857306
-Kaswamila et al. 2007	Impacts of wildlife on household food security and income in Northeastern Tanzania	T_TSTMBF	0.342349592728234
-Hu 2006	Farmer's attitudes towards the Grain-for-Green programme in the Loess hilly area, China: A case study in two small catchments	T_TBMF	0.295871240728037

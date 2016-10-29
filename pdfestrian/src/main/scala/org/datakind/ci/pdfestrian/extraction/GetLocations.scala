@@ -144,26 +144,6 @@ object GetAllLocations {
     Some(LocationTrainData(aid, location, locSentences))
   }
 
-/*
-  def main(args: Array[String]) {
-    val withLocations = this(Aid.load(args.head))
-    withLocations.foreach{ case(aid, locations) =>
-      aid.interv match {
-        case Some(l) => {
-          println(aid.bib.Title)
-          println(l.Int_area)
-          println(locations.mkString(", "))
-          println("======================")
-          println()
-        }
-        case None =>
-          println("No aid")
-          println("======================")
-          println()
-      }
-    }
-  }
-*/
   def main(args: Array[String]): Unit = {
     val out = new BufferedWriter(new FileWriter("locationTraining"))
     Aid.load(args.head).foreach{ a =>

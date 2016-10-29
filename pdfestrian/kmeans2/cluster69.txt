@@ -1,5 +1,0 @@
-Bremer et al. 2014	What factors influence participation in payment for ecosystem services programs? An evaluation of Ecuador's SocioPÍramo program		0.6131486457077387
-Holmes 2003a	Assessing the perceived utility of wood resources in a protected area of Western Tanzania	T_TSTGSS	0.5189867728472113
-Ramcilovic 2013	Do Forest Values Influence Compliance with Forestry Legislation? The Case of Farmers in the Fringes of Forest Reserves in Ghana	T_TSTMBF	0.5125025864950585
-Llambi et al. 2005	Participatory planning for biodiversity conservation in the high tropical Andes: Are farmers interested?	T_TSTGSS	0.4056445136580244
-Mulder 2007	The role of research in evaluating conservation strategies in Tanzania: The case of the Katavi-Rukwa ecosystem	T_TSTMBF	0.39256036610488226

@@ -1,6 +1,0 @@
-Ormsby Mannle 2006	Ecotourism benefits and the role of local guides at Masoala National Park, Madagascar	T_TSTMBF	0.6731882995221437
-Ormsby Kaplin 2005	A framework for understanding community resident perceptions of Masoala National Park, Madagascar	T_TSTMBF	0.6550295955562079
-Holmes 2003	The influence of protected area outreach on conservation attitudes and resource use patterns: A case study from western Tanzania	T_TSTGSS	0.470939159020234
-Nghiem 2013	Biodiversity conservation attitudes and policy tools for promoting biodiversity in tropical planted forests	T_TSTMBF	0.40246449611039153
-Calkins and Thant 2011	Sustainable agro-forestry in Myanmar from intentions to behavior	T_TSTMBF	0.3948522256488299
-Hoehn 2009	Attitudes and perceptions of indigenous fishermen towards marine resource management in Kuna Yala, Panama	M_TRC	0.2238592017512666

@@ -1,7 +1,0 @@
-Fu et al. 2004	Entangling the complexity of protected area management: The case of Wolong Biosphere Reserve, southwestern China	T_TCF	0.7238628290117094
-Xu 2006	Local people's perceptions as decision support for protected area management in Wolong Biosphere Reserve, China	T_TCF	0.6755499448927818
-Xu 2009b	Contribution of tourism development to protected area management: Local stakeholder perspectives	T_TCF	0.4925487210116144
-Aladuwaka and Momsen 2010	Sustainable development, water resources management and women's empowerment: The Wanaraniya water project in Sri Lanka	FW_TSTCR	0.34002988860652344
-Parker 2011	Distribution of benefits based on household participation roles in decentralized conservation within Kanchenjunga Conservation Area Project, Nepal	M_TRC	0.3141619004939488
-Adeyemo et al. 2012	Lake Chad restoration: Communities attitude and expectations	FW_LL	0.29188158611647447
-Elbakidze and Angelstam 2007	Implementing sustainable forest management in Ukraine's Carpathian Mountains: The role of traditional village systems	T_TCF	0.28156749893758876

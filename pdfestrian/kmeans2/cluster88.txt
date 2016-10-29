@@ -1,3 +1,0 @@
-Hagos and Holden 2006	Tenure security, resource poverty, public programs, and household plot-level conservation investments in the highlands of northern Ethiopia	T_TSTMBF	0.7244788788675723
-Constantino et al. 2012	Empowering Local People through Community-based Resource Monitoring: a Comparison of Brazil and Namibia	T_TSTMBF	0.5541192778740573
-Bawa et al. 2007	Poverty, biodiversity and institutions in forest-agriculture ecotones in the Western Ghats and Eastern Himalaya ranges of India	T_TSTDBF	0.46447441319761473

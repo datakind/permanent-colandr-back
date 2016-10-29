@@ -1,5 +1,0 @@
-Spiteri 2008b	Distributing conservation incentives in the buffer zone of Chitwan National Park, Nepal	T_TSTMBF	0.6059928915535105
-Mulyoutami 2009	Local knowledge and management of simpuking (forest gardens) among the Dayak people in East Kalimantan, Indonesia	T_TSTMBF	0.4808302923957178
-Howe et al. 2012	Evaluating the effectiveness of a public awareness campaign as a conservation intervention: The saiga antelope Saiga tatarica in Kalmykia, Russia	T_TGSS	0.47157659393034707
-Phuc 2009	Why did the forest conservation policy fail in the Vietnamese uplands? Forest conflicts in Ba Vi National Park in Northern Region	T_TSTMBF	0.3684611330199038
-de Silva and Freire 2010	Perception and use of fauna resources in communities surrounding a conservation unit in northeast Brazil	T_DXS	0.33525783683987564

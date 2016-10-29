@@ -1,8 +1,0 @@
-Dolins et al. 2010(2)	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.889541200826024
-Dolins et al. 2010(3)	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.889541200826024
-Dolins et al. 2010	Conservation education in Madagascar: Three case studies in the biologically diverse island-continent	T_TSTMBF	0.889541200826024
-Clement and Amezaga 2009	Afforestation and forestry land allocation in northern Vietnam: Analysing the gap between policy intentions and outcomes	T_TSTMBF	0.2865280847443093
-Lam 2011	Cultural perspectives of land and livelihoods: A case study of Shuklaphanta Wildlife Reserve in far-Western Nepal	T_TSTGSS	0.2716900237789448
-Kuhar et al. 2010	Evaluating for long-term impact of an environmental education program at the Kalinzu Forest Reserve, Uganda	T_TSTGSS	0.24523290416726223
-Zhou 2011	National parks in China: Experiments with protecting nature and human livelihoods in Yunnan province, Peoples' Republic of China (PRC)		0.2263769452021278
-Fanwei 2013	An evaluation of residents' perceptions of the creation of a geopark: a case study on the geopark in Mt. Huaying Grand Canyon, Sichuan Province, China	T_TBMF	0.18593769795136084

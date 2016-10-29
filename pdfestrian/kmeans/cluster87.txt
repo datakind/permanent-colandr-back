@@ -1,5 +1,0 @@
-Gelcich et al. 2009a	Artisanal fishers' perceptions regarding coastal co-management policies in Chile and their potentials to scale-up marine biodiversity conservation		0.6006119717866628
-Kumar et al. 2011	Assessing wetland ecosystem services and poverty interlinkages: a general framework and case study	T_TSTMBF	0.585203396915621
-Abbott et al. 2007	Rivers as resources, rivers as borders: community and transboundary management of fisheries in the Upper Zambezi River floodplains	T_FGS	0.5745629222519901
-Karanth et al. 2008	Examining conservation attitudes, perspectives, and challenges in India	T_TSTMBF	0.30860317112536484
-Maroyi 2012	Community attitudes towards the reintroduction programme for the Endangered pepperbark tree Warburgia salutaris: Implications for plant conservation in south-east Zimbabwe	T_TSTGSS	0.17644957434849545

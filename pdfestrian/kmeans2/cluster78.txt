@@ -1,6 +1,0 @@
-Mbaiwa 2010	The effects of tourism development on the sustainable utilisation of natural resources in the Okavango delta, Botswana	T_FGS	0.8927247932130508
-Mbaiwa 2011 Toursim Mgmt	Changes on traditional livelihood activities and lifestyles caused by tourism development in the Okavango Delta, Botswana	T_TSTGSS	0.868056414931242
-Mbaiwa 2011 Soc _ Nat Resources	From collaboration to conservation: Insights from the Okavango Delta, Botswana	T_TSTGSS	0.7263397422447102
-Mbaiwa 2008	Contending with unequal and privileged access to natural resources and land in the Okavango Delta, Botswana	T_FGS	0.6438829678888492
-Magole and Magole 2009	The Okavango: Whose Delta is it?	T_FGS	0.6275802103871295
-Mbaiwa 2012	The success and sustainability of Community-Based Natural Resource Management in the Okavango Delta, Botswana	T_TSTGSS	0.4100559364975006

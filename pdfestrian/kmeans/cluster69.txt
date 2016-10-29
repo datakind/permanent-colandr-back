@@ -1,3 +1,0 @@
-Kalame et al. 2011	Modified taungya system in Ghana: A win-win practice for forestry and adaptation to climate change?	T_TSTMBF	0.7039937358732044
-Ikeda 2004	Economic impacts of livestock depredation by snow leopard Uncia uncia in the Kanchenjunga Conservation Area, Nepal Himalaya	T_TBMF	0.6273379149516597
-Sanginga 2010	Tracking outcomes of social capital and institutional innovations in natural resources management: Methodological issues and empirical evidence from participatory bylaw reform in Uganda		0.3566260186280238

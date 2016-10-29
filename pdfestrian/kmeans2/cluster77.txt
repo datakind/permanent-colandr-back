@@ -1,7 +1,0 @@
-Taylor 2013	Learning in the field: Using community self studies to strengthen forest-based social movements		0.5779520859745484
-Gurung and Seeland 2011	Ecotourism benefits and livelihood improvement for sustainable development in the nature conservation areas of Bhutan	T_TBMF	0.49539819464715223
-Elias 2012	From communal forests to protected areas: The implications of tenure changes in natural resource management in Guatemala	T_TSTMBF	0.4841134311896624
-Lyons 2013	The Rise and Fall of a Second-Generation CBNRM Project in Zambia: Insights from a Project Perspective	T_TSTGSS	0.4564914283679092
-Gillingham and Lee 2003	People and protected areas: A study of local perceptions of wildlife crop-damage conflict in an area bordering the Selous Game Reserve, Tanzania	T_TSTGSS	0.3509211444110726
-Chakrabarti 2011	Transhumance, Livelihood and Sustainable Development and Conflict between Formal institution and Communal Governance: An Evaluative Note on East Himalayan State of Sikkim, India	T_TSTCF	0.3357257673733825
-Petrova 2011	Local nuances in the perception of nature protection and place attachment: a tale of two parks	M_TRC	0.2876397484195316

@@ -1,6 +1,0 @@
-Marschke 2012	Do collective property rights make sense? insights from central Vietnam	T_TSTMBF	0.5675476299807388
-Neupane 2002	Adoption of agroforestry in the hills of Nepal: A logistic regression analysis	T_TSTMBF	0.47823002246567886
-Jalilova et al. 2012	Developing criteria and indicators for evaluating sustainable forest management: A case study in Kyrgyzstan	T_TGSS	0.40748635330133576
-Aladuwaka and Momsen 2010	Sustainable development, water resources management and women's empowerment: The Wanaraniya water project in Sri Lanka	FW_TSTCR	0.3822852199367312
-Novriyanto et al. 2012	Linking coastal community livelihoods to marine conservation in Aceh, Indonesia	M_TRC	0.37416938003769057
-Fujita and Phanvilay 2008	Land and forest allocation in Lao People's Democratic Republic: Comparison of case studies from community-based natural resource management research	T_TSTMBF	0.3318054721492718

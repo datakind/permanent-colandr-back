@@ -1,9 +1,0 @@
-Madhusudan 2005	The Global Village: Linkages between International Coffee Markets and Grazing by Livestock in a South Indian Wildlife Reserve	T_TSTMBF	0.4890946430791087
-Newton 2012a	Consequences of actor level livelihood heterogeneity for additionality in a tropical forest payment for environmental services programme with an undifferentiated reward structure	T_TSTMBF	0.479712344965339
-Dressler and Roth 2011	The Good, the Bad, and the Contradictory: Neoliberal Conservation Governance in Rural Southeast Asia	T_TSTMBF	0.45399357103210713
-Nautiyal 2011	Can conservation and development interventions in the Indian Central Himalaya ensure environmental sustainability? A socioecological evaluation	T_TSTCF	0.403445829435811
-Marchant 2013	Protected areas in northern colombia-on track to sustainable development?	T_TSTMBF	0.395587600580217
-Chhangani et al. 2008	Crop Raiding and Livestock Predation at Kumbhalgarh Wildlife Sanctuary, Rajasthan India	T_TSTDBF	0.35447456336724315
-Ezebilo 2013	Nature conservation in Cross River National Park, south-east Nigeria: Promoting collaboration between local people and conservation authorities	T_TSTMBF	0.3155175407337462
-Krishna et al. 2002	Human dimensions of conservation in the Kangchendzonga biosphere reserve: The need for conflict prevention	T_TBMF	0.24236830056487146
-Khatri 2010	Conservation governance in Nepal: Protecting forest biodiversity and people's livelihoods	T_TSTMBF	0.04743145431084513

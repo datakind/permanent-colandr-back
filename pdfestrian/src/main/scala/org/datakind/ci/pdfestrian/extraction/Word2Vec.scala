@@ -11,13 +11,9 @@ import scala.io.Source
   * Created by sameyeam on 8/3/16.
   */
 object Word2Vec {
-  /*val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.300d.txt")).getLines().map { word =>
-    val split = word.split(" ")
-    split.head -> new DenseTensor1(split.takeRight(300).map{_.toDouble}.toArray)
-  }.toMap*/
   val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt")).getLines().map { word =>
     val split = word.split(" ")
-    split.head -> new DenseTensor1(split.takeRight(50).map{_.toDouble}.toArray)
+    split.head -> split.takeRight(50).map{_.toFloat}.toArray
   }.toMap
 
   var  i = -1
@@ -51,7 +47,7 @@ object Word2Vec {
       if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
         if(wordCounts.contains(current) && vectors.contains(current)) {
           val count = wordCounts(current)
-          tensor += (vectors(current) * idf(count._2))
+          tensor += (new DenseTensor1(vectors(current).map{_.toDouble}) * idf(count._2))
           wordsInTensor += 1
         }
       }

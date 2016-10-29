@@ -1,8 +1,0 @@
-van der Ploeg 2011	What local people think about crocodiles: Challenging environmental policy narratives in the Philippines		0.6392291357777224
-Bolaane 2004	The Impact of Game Reserve Policy on the River BaSarwa/Bushmen of Botswana	T_FGS	0.4520479939085245
-Gelcich et al. 2009	Marine ecosystem-based management in the Southern Cone of South America: Stakeholder perceptions and lessons for implementation	M_TSS	0.37834341044443887
-Purnomo 2005	Analysis of local perspectives on sustainable forest management: An Indonesian case study	M_TRC	0.3560626747765041
-Hajjar et al. 2012	Is decentralization leading to "real" decision-making power for forest-dependent communities? Case studies from mexico and Brazil	T_TSTMBF	0.3315784214973448
-Neef 2003	Access to natural resources in Mainland Southeast Asia and implications for sustaining rural livelihoods - The case of Thailand	T_TSTMBF	0.2761867200234513
-Kumar 2007	Perceptions of incentives for participation: Insights from joint forest management in India	T_DXS	0.08184371578425248
-Rambo 2001	Social organization and the management of natural resources: A case study of Tat Hamlet, a Da Bac Tay ethnic minority settlement in Vietnam's Northwestern mountains	T_TSTMBF	0.027187054816978702

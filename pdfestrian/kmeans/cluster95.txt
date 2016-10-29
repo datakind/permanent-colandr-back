@@ -1,3 +1,0 @@
-Yihune 2008	Human-Ethiopian wolf conflict in and around the Simien Mountains National Park, Ethiopia	T_MGS	0.8248093756786076
-Cao 2011	Impact of China's large-scale ecological restoration program on the environment and society in arid and semiarid areas of China: Achievements, problems, synthesis, and applications	T_TSTMBF	0.48490155219647035
-Kauser et al. 2013	Role of ecotourism in promoting and sustaining conservation of nature: A case study of murree forest recreational resort	T_TSTCF	0.31546781598673923

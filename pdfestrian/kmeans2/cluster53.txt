@@ -1,7 +1,0 @@
-Sills 2010	Subsidies for rubber: Conserving rainforests while sustaining livelihoods in the Amazon?	T_TSTMBF	0.7267239768821155
-Ikeda 2004	Economic impacts of livestock depredation by snow leopard Uncia uncia in the Kanchenjunga Conservation Area, Nepal Himalaya	T_TBMF	0.4375480069433916
-Horton 2009	Buying up nature: Economic and social impacts of Costa Rica's ecotourism boom	T_TSTMBF	0.3516721385328456
-Ghorbani et al. 2012	Diversity of Medicinal and Food Plants as Non-timber Forest Products in Naban River Watershed National Nature Reserve (China): Implications for Livelihood Improvement and Biodiversity Conservation	T_TSTMBF	0.33263833920033
-Padmanaba 2007	Finding and promoting a local conservation consensus in a globally important tropical forest landscape	T_TSTMBF	0.25005661834782533
-Stocking 1992	CONSERVATION-WITH-DEVELOPMENT - AN APPLICATION OF THE CONCEPT IN THE USAMBARA MOUNTAINS, TANZANIA		0.23698155952232303
-Kumar 2007	Perceptions of incentives for participation: Insights from joint forest management in India	T_DXS	0.06188839058490166

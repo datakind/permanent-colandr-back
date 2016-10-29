@@ -1,6 +1,0 @@
-Holmes 2003a	Assessing the perceived utility of wood resources in a protected area of Western Tanzania	T_TSTGSS	0.5791795982521594
-Westermann et al. 2005	Gender and social capital: The importance of gender differences for the maturity and effectiveness of natural resource management groups		0.5487244666697533
-Thuy 2011	Role of social capital in determining conservation attitude: A case study from Cat Tien National Park, Vietnam	T_TSTDBF	0.5405230164830199
-Shrestha 2006	Linking conservation and development: An analysis of local people's attitude towards Koshi Tappu Wildlife Reserve, Nepal	T_TSTGSS	0.46316915941371906
-de Silva and Freire 2010	Perception and use of fauna resources in communities surrounding a conservation unit in northeast Brazil	T_DXS	0.26427162226174483
-Hoffman 2007	The Sajama National Park in Bolivia: A model for cooperation among state and local authorities and the indigenous population	T_MGS	0.19840628587464673

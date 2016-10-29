@@ -1,8 +1,0 @@
-Schumann 2008	Attitudes of Namibian commercial farmers toward large carnivores: The influence of conservancy membership	T_TSTGSS	0.6690489837951901
-Gusset et al. 2008	Conflicting human interests over the re-introduction of endangered wild dogs in South Africa	T_TSTMBF	0.6418030622479668
-Dar et al. 2009	Predicting the patterns, perceptions and causes of human-carnivore conflict in and around Machiara National Park, Pakistan	T_TSTCF	0.626061172210851
-Lagendijk and Gusset 2008	Human-carnivore coexistence on communal land bordering the greater Kruger Area, South Africa	T_TSTGSS	0.5920903055812242
-Dhanwatey 2013	Large carnivore attacks on humans in central India: A case study from the Tadoba-Andhari Tiger Reserve	T_TSTMBF	0.5191160984734987
-Wiggins 2004	Protecting the Forest or the People? Environmental Policies and Livelihoods in the Forest Margins of Southern Ghana	T_TSTMBF	0.2816021821693129
-Balcaiauskas and Kazlauskas 2013	Efficacy of forestry conservation policy on rural livelihoods in Uganda: Evidence from Mabira forest reserve	T_TSTGSS	0.20450268014274392
-Liu et al. 2010	Environmental attitudes of stakeholders and their perceptions regarding protected area-community conflicts: A case study in China	T_TBMF	0.19929942774157478

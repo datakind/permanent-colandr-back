@@ -1,9 +1,0 @@
-Lund 2008	Are We Getting There? Evidence of Decentralized Forest Management from the Tanzanian Miombo Woodlands	T_TSTMBF	0.48648321753363877
-Kreb and Budiono 2005	Conservation management of small core areas: Key to survival of a Critically Endangered population of Irrawaddy river dolphins Orcaella brevirostris in Indonesia	FW_TSTCR	0.4522253374522579
-Hausser et al. 2009	Bees, farmers, tourists and hunters: Conflict dynamics around Western Tanzania protected areas	T_TSTGSS	0.4309901077398273
-Jyotishi and Parthasarathy 2007	Reservoir fisheries management experience of Tawa in Madhya Pradesh	FW_TSTFRW	0.3963584514211366
-Rasul 2012	Poverty and livelihood impacts of a medicinal and aromatic plants project in India and Nepal: An assessment	T_TSTMBF	0.3561516970927708
-Slater 2002	Between a rock and a hard place: Contested livelihoods in Qwaqwa National Park, South Africa		0.30577473990361453
-Bennett and Dearden 2014	Why local people do not support conservation: Community perceptions of marine protected area livelihood impacts, governance and management in Thailand	M_TRC	0.305623819662292
-Koul et al. 2011	Improvement in livestock status through soil and water conservation: Case of two semi-arid districts of Madhya Pradesh in India	T_TSTDBF	0.255452015015702
-Kerley et al. 2003	Jumbos or bust: Do tourists' perceptions lead to an under-appreciation of biodiversity?	T_MFWS	0.21668729263015796

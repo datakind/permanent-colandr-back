@@ -1,3 +1,0 @@
-Locatelli et al. 2011	Forests and climate change in latin America: Linking adaptation and mitigation	T_TSTMBF	0.936796147246677
-Kashaigili 2009	Freshwater management and climate change adaptation: Experiences from the great Ruaha River catchment in Tanzania	FW_TSTCR	0.5524451574505822
-Cesario 1996	Contribution of conservation to sustainable living through health promotion		0.23765048984694084

@@ -1,5 +1,0 @@
-Calvacanti et al. 2013	Social integration, participation, and community resource management	M_TRU	0.5826254794009271
-Dressler 2005	Disentangling Tagbanua lifeways, Swidden and conservation on Palawan Island	T_TSTMBF	0.5486685512237068
-Schwerdtner et al. 2014	Fishing the last frontier: The introduction of the marine aquarium trade and its impact on local fishing communities in Papua New Guinea		0.45556522991284537
-Schelhas 2005	Forest values of national park neighbors in Costa Rica		0.3610030873597252
-Njifonjou 2006	Fisheries co-management and poverty alleviation in the context of the sustainable livelihoods approach: A case study in the fishing communities of Aby lagoon in C_te d'Ivoire	FW_TSTCR	0.3411404543330665

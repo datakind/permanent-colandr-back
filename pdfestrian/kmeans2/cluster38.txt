@@ -1,6 +1,0 @@
-Glen et al. 2013	Eradicating multiple invasive species on inhabited islands: The next big step in island restoration?		0.5131315205353033
-Harada and Wiyono 2013	Certification of a Community-based Forest Enterprise for Improving Institutional Management and Household Income: A Case from Southeast Sulawesi, Indonesia	T_TSTMBF	0.4915770165192033
-Zulu 2013	Bringing people back into protected forests in developing countries: Insights from co-management in Malawi	T_TSTGSS	0.45469195021677633
-Khadka and Nepal 2010	Local responses to participatory conservation in Annapurna Conservation Area, Nepal	T_TSTCF	0.39223989635665546
-Kamoto et al. 2013	Doing more harm than good? Community based natural resource management and the neglect of local institutions in policy development	T_TSTGSS	0.36291495675179075
-Dong et al. 2007	Farmer and professional attitudes to the large-scale ban on livestock grazing of grasslands in China	T_TGSS	0.33902375487980874

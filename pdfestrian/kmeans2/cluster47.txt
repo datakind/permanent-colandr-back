@@ -1,6 +1,0 @@
-Selebatso 2008	Do farmers support cheetah Acinonyx jubatus conservation in Botswana despite livestock depredation?		0.7814004092055686
-HUghes 2013	Exploring Children's Perceptions of Cheetahs through Storytelling: Implications for Cheetah Conservation	T_TSTGSS	0.7727410652149994
-Hazzah et al. 2009	Lions and Warriors: Social factors underlying declining African lion populations and the effect of incentive-based management in Kenya	T_TSTGSS	0.44724453098425837
-Pemunta 2013	The governance of nature as development and the erasure of the Pygmies of Cameroon	T_TSTMBF	0.4237946596276642
-Rust Marker 2013	Attitudes Toward Predators and Conservancies Among Namibian Farmers	T_TSTGSS	0.3819870721291783
-Fisher 2012	No pay, no care? A case study exploring motivations for participation in payments for ecosystem services in Uganda	T_TSTMBF	0.21617826858847045

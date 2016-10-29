@@ -1,4 +1,0 @@
-Islam and Sato 2012	Participatory forestry in Bangladesh: Has it helped to increase the livelihoods of Sal forests-dependent people?	T_TSTMBF	0.6573806495849135
-Nepal Spiteri 2011	Linking livelihoods and conservation: An examination of local residents' perceived linkages between conservation and livelihood benefits around Nepal's Chitwan National Park	T_TSTGSS	0.5744839920487
-Nath Inoue 2014	Forest Villagers in Northeastern Hill Forests of Bangladesh: Examining Their Livelihoods, Livelihood Strategies and Forest Conservation Linkages	T_TSTMBF	0.5645303678173772
-Owino 2012	Socio-economics and wildlife conservation of a peri-urban national park in central Kenya	T_TSTGSS	0.366955042661191

@@ -1,8 +1,0 @@
-Sachedina 2010	Disconnected nature: The scaling up of African wildlife foundation and its impacts on biodiversity conservation and local livelihoods	T_TSTMBF	0.7088398303515119
-Henson et al. 2009	The Heartland Conservation Process: Enhancing biodiversity conservation and livelihoods through landscape-scale conservation planning in Africa	T_TSTMBF	0.607949365029088
-Linkie 2007	Patterns and perceptions of wildlife crop raiding in and around Kerinci Seblat National Park, Sumatra	T_TSTMBF	0.3323949004726526
-Schmidt-Soltau 2004	The costs of rainforest conservation: Local responses towards integrated conservation and development projects in Cameroon		0.32389791121025624
-Antunes Zappes et al. 2012	The conflict between the southern right whale and coastal fisheries on the southern coast of Brazil	M_TSS	0.318596388402417
-Rugendyke 2005	Conservation costs: Nature-based tourism as development at Cue Phuong national park, Vietnam	T_MGS	0.30536084773793726
-Temudo 2012	the white men bought the forests: Conservation and contestation in Guinea-Bissau, Western Africa	T_TSTMBF	0.26210877337315514
-Horowitz 2008	It's up to the clan to protect: Cultural heritage and the micropolitical ecology of conservation in New Caledonia	T_TSTMBF	0.24300011139757408

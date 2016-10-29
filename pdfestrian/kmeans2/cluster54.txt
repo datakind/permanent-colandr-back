@@ -1,5 +1,0 @@
-von Essen et al. 2013	Attitudes and perceptions of villagers toward community-based mariculture in Minahasa, North Sulawesi, Indonesia	M_TRC	0.6375133294268863
-Calkins and Thant 2011	Sustainable agro-forestry in Myanmar from intentions to behavior	T_TSTMBF	0.5160494943090186
-Huber et al. 2010	Livelihood and Conservation Aspects of Non-wood Forest Product Collection in the Shaxi Valley, Southwest China	T_TSTMBF	0.4426058111982904
-Spaling 2011	Best practices for promoting participation and learning for sustainability:lessons from community-based environmental assessment in kenya and tanzania	T_TSTMBF	0.43367504438001847
-Chen et al. 2012	Livelihood sustainability and community based co-management of forest resources in China: Changes and improvement	T_TBMF	0.2588408180904828

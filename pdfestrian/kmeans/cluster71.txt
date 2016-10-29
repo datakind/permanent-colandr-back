@@ -1,8 +1,0 @@
-Jitpakdee 2012	Sustainability Analysis of Ecotourism on Yao Noi Island, Thailand	T_TSTMBF	0.5565618210135675
-Hart et al. 2013	Consumptive versus non-consumptive use of sea turtles? Stakeholder perceptions about sustainable use in three communities near Cahuita National Park, Costa Rica	T_TSTMBF	0.5168738895162773
-Glaser et al. 2010	Whose sustainability? Top-down participation and emergent rules in marine protected area management in Indonesia	M_TRC	0.4407818552675979
-Engel et al. 2014	Perceptions and attitudes of stakeholders towards the wildlife refuge of Ilha dos Lobos, a marine protected area in Brazil	M_TSTSS	0.4276137734001931
-Gurung and Seeland 2011	Ecotourism benefits and livelihood improvement for sustainable development in the nature conservation areas of Bhutan	T_TBMF	0.30432552419583875
-Kalaba et al. 2013	Contribution of forest provisioning ecosystem services to rural livelihoods in the Miombo woodlands of Zambia	T_TSTGSS	0.2979279470337886
-Lescuyer 2013	Sustainable Forest Management at the Local Scale: A Comparative Analysis of Community Forests and Domestic Forests in Cameroon	T_TSTMBF	0.2559108681935191
-Hayati et al. 2009	An empirical model of factors affecting farmers' participation in natural resources conservational programs in Iran	T_TCF	0.2530164651392102

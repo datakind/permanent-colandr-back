@@ -1,5 +1,0 @@
-Pattanayak and Sills 2001	Do tropical forests provide natural insurance? The microeconomics of non-timber forest product collection in the Brazilian Amazon	T_M	0.6860316065983365
-Dinh et al. 2010	Contribution of Forest Resources to Local People's Income: A Case Study in Cat Tien Biosphere Reserve, Vietnam	T_TSTDBF	0.46237404525051146
-Hope 2006	"WATER, WORKFARE AND POVERTY: THE IMPACT OF THE WORKING FOR WATER PROGRAMME ON RURAL POVERTY REDUCTION"	T_TSTGSS	0.4213359745789213
-Malla 1999	Impact of community forestry policy on rural livelihoods and food security in Nepal	T_TSTCF	0.4010609205531205
-Badola 1998	Attitudes of local people towards conservation and alternatives to forest resources: A case study from the lower Himalayas	T_TSTDBF	0.3509799984686404

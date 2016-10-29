@@ -1,5 +1,0 @@
-Sifuna 2010	Wildlife damage and its impact on public attitudes towards conservation: A comparative study of Kenya and Botswana, with particular reference to Kenya's Laikipia Region and Botswana's Okavango Delta Region	T_TSTMBF	0.7030082079682614
-Gillingham and Lee 2003	People and protected areas: A study of local perceptions of wildlife crop-damage conflict in an area bordering the Selous Game Reserve, Tanzania	T_TSTGSS	0.45294845066164574
-Warner and Pomeroy 2012	Paths of influence: The direct and indirect determinants of marine managed area success		0.4480581639860639
-Kaltenborn et al. 2006	Animal preferences and acceptability of wildlife management actions around Serengeti National Park, Tanzania	T_TSTGSS	0.4426099945548419
-Sarkar 2011b	Human attitudes towards the conservation of protected areas: a case study from four protected areas in Bangladesh	T_TSTMBF	0.38829498616653074

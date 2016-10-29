@@ -1,9 +1,0 @@
-Boudreaux and Nelson 2011	Community Conservation in Namibia: Empowering the Poor with Property Rights	T_TSTGSS	0.713163595989365
-Schumann 2008	Attitudes of Namibian commercial farmers toward large carnivores: The influence of conservancy membership	T_TSTGSS	0.6597006542066571
-Lindsey 2009	The importance of conservancies for enhancing the value of game ranch land for large mammal conservation in southern Africa	T_TSTGSS	0.6345570669057929
-Rust Marker 2013	Attitudes Toward Predators and Conservancies Among Namibian Farmers	T_TSTGSS	0.632029540349614
-Collomb et al. 2010	Integrating governance and socioeconomic indicators to assess the performance of community-based natural resources management in Caprivi (Namibia)	T_TSTGSS	0.6229211445857384
-Scanlon 2009	Untangling the links between wildlife benefits and community-based conservation at Torra Conservancy, Namibia		0.5030950273798638
-Naidoo 2011b	Effect of biodiversity on economic benefits from communal lands in Namibia	T_TSTGSS	0.4939852883267789
-Lapeyre 2001	The grootberg lodge partnership in namibia:Towards poverty alleviation and empowerment for long-term sustainability	T_DXS	0.44095146882280867
-Lagendijk and Gusset 2008	Human-carnivore coexistence on communal land bordering the greater Kruger Area, South Africa	T_TSTGSS	0.29382866363337673

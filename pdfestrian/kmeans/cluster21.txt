@@ -1,4 +1,0 @@
-Roy 2013	Attitudes towards current and alternative management of the Sundarbans Mangrove Forest, Bangladesh to achieve sustainability	T_M	0.8662152356266396
-Roy et al. 2013a	Community perceptions of state forest ownership and management: A case study of the Sundarbans Mangrove Forest in Bangladesh	T_M	0.8042666698452858
-Roy et al. 2013	Sustainability through an alternative property-rights regime for Bangladesh's mangrove forest	T_M	0.7009035462250478
-Khatri 2010	Conservation governance in Nepal: Protecting forest biodiversity and people's livelihoods	T_TSTMBF	0.0688781274689649

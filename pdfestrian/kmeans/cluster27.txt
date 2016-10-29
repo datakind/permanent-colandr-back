@@ -1,8 +1,0 @@
-Osano 2013(2)	Why keep lions instead of livestock? Assessing wildlife tourism-based payment for ecosystem services involving herders in the Maasai Mara, Kenya	T_TSTGSS	0.5990667221051664
-Osano 2013	Why keep lions instead of livestock? Assessing wildlife tourism-based payment for ecosystem services involving herders in the Maasai Mara, Kenya	T_TSTGSS	0.5990667221051664
-Heyman and Granados-Dieseldorff 2012	The voice of the fisherman of the Gulf of Honduras: Improving regional fisheries management through fisher participation	T_M	0.5137947940492069
-Idrissou et al. 2011	The discursive construction of conflict in participatory forest management: The case of the Agoua forest restoration in Benin	T_TSTGSS	0.45647834633794304
-Schroeder 2004	Re-claiming land in the Gambia: Gendered property rights and environmental intervention		0.3383970068850131
-Rishi 2004	PLURALISM IN PROTECTED AREA MANAGEMENT: A CASE STUDY ON KEOLADEO NATIONAL PARK IN INDIA	T_TSTMBF	0.23442461719020688
-Heinen and Shrivastava 2010	An analysis of conservation attitudes and awareness around Kaziranga National Park, Assam, India: Implications for conservation and development	T_TSTMBF	0.23226322102781669
-Walpole and Goodwin 2001	Local attitudes towards conservation and tourism around Komodo National Park, Indonesia	T_TSTDBF	0.23053550438783685

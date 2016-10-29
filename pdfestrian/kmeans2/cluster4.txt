@@ -1,8 +1,0 @@
-Sudtongkong and Webb 2008	Outcomes of state- vs. community-based mangrove management in Southern Thailand	T_M	0.5665525595894706
-Fernandez et al. 2000	Coastal area governance system in the Philippines	M_TRC	0.4682805914729379
-Poungngamchuen 2012	People s participation in Dong Na Tham community forest management project, Ubon Ratchathani, Thailand	T_TSTDBF	0.45266086636489605
-Schelhas 2002	Linking community and national park development: A case from the Dominican Republic	T_TSTMBF	0.34258910919075886
-Ezebilo and Mattsson 2010	Socio-economic benefits of protected areas as perceived by local people around Cross River National park, Nigeria	T_TSTMBF	0.33383654757336884
-Eneji et al. 2009	Problems of public participation in biodiversity conservation: the Nigerian scenario	T_TSTMBF	0.3001441135777291
-Ezebilo 2011	Local participation in forest and biodiversity conservation in a Nigerian rain forest	T_TSTMBF	0.2859019228663532
-Fujita and Phanvilay 2008	Land and forest allocation in Lao People's Democratic Republic: Comparison of case studies from community-based natural resource management research	T_TSTMBF	0.2846772003008675

@@ -1,6 +1,0 @@
-Shaanker 2004	Livelihood gains and ecological costs of non-timber forest product dependence: Assessing the roles of dependence, ecological knowledge and market structure in three contrasting human and ecological settings in south India	T_TSTMBF	0.7177668008675473
-Krishna et al. 2002	Human dimensions of conservation in the Kangchendzonga biosphere reserve: The need for conflict prevention	T_TBMF	0.4330698549681752
-Chakrabarti 2011	Transhumance, Livelihood and Sustainable Development and Conflict between Formal institution and Communal Governance: An Evaluative Note on East Himalayan State of Sikkim, India	T_TSTCF	0.41342798571087924
-Bartlett et al. 2009	Marine reserve phenomenon in the Pacific Islands	M_TRC	0.3586024118166652
-Manan Ibrahim 2003	Community-based river management in Southeast Sulawesi, Indonesia: a case study of the Bau-Bau River	T_TSTMBF	0.32691561410536824
-Llambi et al. 2005	Participatory planning for biodiversity conservation in the high tropical Andes: Are farmers interested?	T_TSTGSS	0.30730383395137656

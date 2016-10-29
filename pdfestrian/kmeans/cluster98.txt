@@ -1,8 +1,0 @@
-Walker 2001	Sisterhood and seine-nets: Engendering development and conservation in Ghana's marine fishery		0.5190653107605542
-Huang 2013	Public Perception of Ocean Governance and Marine Resources Management in Taiwan	M_TRC	0.4455395683402878
-Rizek 2012	Impacts of Trade in Non-timber Forest Products on Cooperation among Caboclo Households of the Brazilian Amazon	T_TSTMBF	0.4121735586564371
-McClanahan et al. 2005	Perceptions of resource users and managers towards fisheries management options in Kenyan coral reefs	M_TRC	0.3649313645292307
-Ur-Rehman and Chisholm 2007	Factors affecting households' participation in the natural resource management activities in district abbottabad, NWFP, Pakistan: A multivariate analysis	T_TSTCF	0.3490535573292809
-Marcus 2001	Seeing the forest for the trees: Integrated conservation and development projects and local perceptions of conservations in Madagascar	T_TSTMBF	0.3350983322570392
-Yang 2010	Attitudes towards wild animal conservation: A comparative study of the Yi and Mosuo in China		0.3316525388140389
-Thaworn 2010	Can biodiversity conservation go hand in hand with local livelihoods? A case of conflict resolution in Thailand		0.03852833147646187

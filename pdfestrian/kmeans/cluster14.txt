@@ -1,7 +1,0 @@
-Gelcich et al. 2006	Co-management Policy Can Reduce Resilience in Traditionally Managed Marine Ecosystems		0.6798441037621923
-Gelcich et al. 2008	Engagement in co-management of marine benthic resources influences environmetal perceptions of artisanal fishers		0.6762975514227699
-Khumsri 2010	Pre-existing Inland Fisheries Management in Thailand: The Case of the Lower Songkhram River Basin	FW_TSTUR	0.5540294957381192
-Kundu et al. 2010	Difficulties of fishing at lake Naivasha, Kenya: Is community participation in management the solution?	FW_XFEB	0.40887175303834816
-Spaling 2011	Best practices for promoting participation and learning for sustainability:lessons from community-based environmental assessment in kenya and tanzania	T_TSTMBF	0.3494141624513224
-Hope 2006	"WATER, WORKFARE AND POVERTY: THE IMPACT OF THE WORKING FOR WATER PROGRAMME ON RURAL POVERTY REDUCTION"	T_TSTGSS	0.24676123998061017
-Kuvan and Akan 2012	Conflict and agreement in stakeholder attitudes: Residents' and hotel managers' views of tourism impacts and forest-related tourism development	T_MFWS	0.21827247842262293

@@ -1,5 +1,0 @@
-Lopes et al. 2011	Extractive and sustainable development reserves in Brazil: Resilient alternatives to fisheries?	M_TRC	0.7310164116091156
-Novellino and Dressler 2010	The role of "hybrid" NGOs in the conservation and development of Palawan Island, The Philippines	T_TSTMBF	0.6446043465316271
-Belova 2007	Protected areas and benefits: Russian experience	T_TBMF	0.3306662794795415
-Rambo 2001	Social organization and the management of natural resources: A case study of Tat Hamlet, a Da Bac Tay ethnic minority settlement in Vietnam's Northwestern mountains	T_TSTMBF	0.15809096834252723
-Logan and Moseley 2002	The political ecology of poverty alleviation in Zimbabwe's Communal Areas Management Programme for Indigenous Resources (CAMPFIRE)	T_TSTGSS	0.09541209359498022

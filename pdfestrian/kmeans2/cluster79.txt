@@ -1,8 +1,0 @@
-Taylor 2009	Community based natural resource management in Zimbabwe: the experience of CAMPFIRE	T_TSTGSS	0.6075528979127606
-Li and Huntsinger 2011	China's grassland contract policy and its impacts on herder ability to benefit in Inner Mongolia: Tragic feedbacks	T_TSTGSS	0.5625929679350427
-Mutandwa 2007	Impact of community-based approaches to wildlife management: Case study of the CAMPFIRE programme in Zimbabwe	T_MGS	0.5601829278761293
-Derman 1995	Environmental NGOs, Dispossession, and the State: The Ideology and Praxis of African Nature and Development	T_TSTGSS	0.5279252620130421
-Kemp et al. 2013	Innovative grassland management systems for environmental and livelihood benefits	T_TGSS	0.5222413904390405
-Fu et al. 2012	Climate change adaptation among tibetan pastoralists: Challenges in enhancing local adaptation through policy support	T_TCF	0.4907191866307458
-Child 1996	The role of community-based wild resource management in Zimbabwe	T_TSTGSS	0.47866355017386425
-Murombedzi 1997	Management of the land and resources of the Masoka community of Dande communal lands, Zimbabwe	T_TSTGSS	0.33023782159161447

@@ -1,4 +1,0 @@
-Tropp 2003	Displaced people, replaced narratives: Forest conflicts and historical perspectives in the Tsolo district, Transkei	T_MGS	0.6645081452552195
-Saito-Jensen 2010	Beyond elite capture? Community-based natural resource management and power in Mohammed Nagar village, Andhra Pradesh, India	T_TBMF	0.49122186374790255
-Macura et al. 2011	Local community attitudes toward forests outside protected areas in India. Impact of legal awareness, trust, and participation	T_TSTMBF	0.4863186312621091
-Ezebilo 2012	Community forestry as perceived by local people around cross river national park, Nigeria	T_TSTMBF	0.39880473736292227

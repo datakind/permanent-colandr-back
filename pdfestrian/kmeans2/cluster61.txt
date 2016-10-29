@@ -1,9 +1,0 @@
-Ha et al. 2012	Mangrove conservation or shrimp farmer's livelihood? The devolution of forest management and benefit sharing in the Mekong Delta, Vietnam	T_M	0.8639569586204017
-Tran et al. 2012	Mangrove conservation or shrimp farmer's livelihood? The devolution of forest management and benefit sharing in the Mekong Delta, Vietnam	T_M	0.8639569586204017
-Ha 2013	LIVELIHOOD CAPABILITIES AND PATHWAYS OF SHRIMP FARMERS IN THE MEKONG DELTA, VIETNAM	T_M	0.7841472306625886
-Ha et al. 2014	Impacts of changes in mangrove forest management practices on forest accessibility and livelihood: A case study in mangrove-shrimp farming system in Ca Mau Province, Mekong Delta, Vietnam	T_M	0.7541263810056902
-Le 2008	Economic reforms and mangrove forests in Central Vietnam	T_TSTMBF	0.6891310808844768
-Triet 2010	Combining biodiversity conservation with poverty alleviation - a case study in the Mekong Delta, Vietnam	T_TSTDBF	0.2792419369233872
-Njana 2013	Are miombo woodlands vital to livelihoods of rural households? Evidence from Urumwa and surrounding communities, Tabora, Tanzania	T_TSTMBF	0.19749434497286256
-Sarkar 2011	Beyond parks and reserves: The ethics and politics of conservation with a case study from Peru_	T_TSTMBF	0.1606520792461574
-Mutonyi 2011	Patterns of agroforestry practices among small-holder farmers in the Lake Victoria Crescent Zone (LVCAEZ) of Uganda	T_TSTGSS	0.10761163866179371

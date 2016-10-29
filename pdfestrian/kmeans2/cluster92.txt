@@ -1,6 +1,0 @@
-Weladji 2003	Stakeholder attitudes towards wildlife policy and the B_nou_ Wildlife Conservation Area, North Cameroon		0.5972386655511231
-Sitorus	Linking Conservation of Biodiversity and Community Livelihood in Komodo National Park, Indonesia	T_TSTDBF	0.5948817119844585
-Weladji 2003b	Conflict between people and protected areas within the B_nou_ Wildlife Conservation Area, North Cameroon	T_TSTMBF	0.4118621709339004
-Joshi 2012	Gujjar community resettlement from Rajaji National Park, Uttarakhand, India	T_TSTMBF	0.3373407045818806
-Ma 2009	Rural households' attitude and economic strategies toward the conversion of cropland to forest and grassland program (CCFG): A case study in qira, china	T_MGS	0.33234368558139504
-Neba 2007	Population dynamics, rural livelihoods and forest protection projects in Sub-Saharan Africa: Experiences from Santa, Cameroon	T_TSTMBF	0.2897935861959702

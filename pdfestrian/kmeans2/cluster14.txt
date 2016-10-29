@@ -1,3 +1,0 @@
-Datta 2012	Assessment of community-based initiatives in sustainable management of Indian dry deciduous forests	T_TSTMBF	0.9164128342771125
-Sarkar 2004	Social capital and joint forest management programme: A comparative study of female-headed and joint Forest Protection Committees in west Bengal	T_TSTDBF	0.9078157331848693
-Husain and Bhattacharya 2004	Attitudes and institutions: contrasting experiences of Joint Forest Management in India	T_TSTMBF	0.5042841617024483

@@ -8,7 +8,7 @@ import cc.factorie.app.classify.{LinearVectorClassifier, OnlineOptimizingLinearV
 import cc.factorie.app.nlp.{Document, Token}
 import cc.factorie.util.BinarySerializer
 import cc.factorie.variable._
-import org.datakind.ci.pdfestrian.api.{LocationExtractor, Locations, Metadata, Record}
+import org.datakind.ci.pdfestrian.api.{LocationExtractor, Metadata, Record}
 import org.datakind.ci.pdfestrian.scripts.Aid
 
 import scala.io.Source

@@ -1,7 +1,0 @@
-Bullock and King 2011	Evaluating China's Slope Land Conversion Program as sustainable management in Tianquan and Wuqi Counties	T_TBMF	0.7911227830546381
-Li et al. 2011	Rural household income and inequality under the sloping land conversion program in Western China	T_TBMF	0.7654840810860355
-Weyerhaeuser 2005	Local impacts and responses to regional forest conservation and rehabilitation programs in China's northwest Yunnan province		0.7065872432403404
-He et al. 2009	Participatory technology development for incorporating non-timber forest products into forest restoration in Yunnan, Southwest China	T_TSTMBF	0.6313280422933037
-Walker 2001	Sisterhood and seine-nets: Engendering development and conservation in Ghana's marine fishery		0.3507659385177461
-Baral and Heinen 2007	Resources use, conservation attitudes, management intervention and park-people relations in the Western Terai landscape of Nepal	T_TSTMBF	0.2636010414652817
-Katel and Schmidt-Vogt 2011	Use of forest resources by residents of Jigme Singye Wangchuck National Park, Bhutan: Practices and perceptions in a context of constraints	T_TBMF	0.21642067895499542

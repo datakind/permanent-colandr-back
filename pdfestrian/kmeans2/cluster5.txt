@@ -1,6 +1,0 @@
-Almeyda et al. 2010	Ecotourism impacts in the Nicoya Peninsula, Costa Rica	T_TSTMBF	0.5702649575223399
-Torri 2011	Conservation, relocation and the social consequences of conservation policies in protected areas: Case study of the Sariska Tiger Reserve, India		0.549892790153726
-Sassen 2013	Complex contexts and dynamic drivers: Understanding four decades of forest loss and recovery in an East African protected area	T_TSTMBF	0.4040616678857617
-Oberholzer 2010	The socio-economic impactof Africa's oldestmarine park	T_TSTMBF	0.392662199028127
-Benjaminsen et al. 2008	Between global interests and local needs: Conservation and land reform in Namaqualand, South Africa	T_DXS	0.3777833548783254
-Barker 2005	Improving Local Capacity in Coastal Management:Experiences and Lessons from the Developing World	M_TRC	0.23748361229525633

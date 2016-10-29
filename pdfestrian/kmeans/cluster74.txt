@@ -1,7 +1,0 @@
-Winter 2007	A case study of landholder attitudes and behaviour toward the conservation of renosterveld, a critically endangered vegetation type in Cape Floral Kingdom, South Africa		0.642276232252237
-Ha and van Dijk 2012	Fishery livelihoods and (non- )compliance with fishery regulations- A case study in Ca Mau Province, Mekong Delta, Viet Nam	T_M	0.6243358320184114
-Tran and van Dijk 2013	Fishery livelihoods and (non- )compliance with fishery regulations- A case study in Ca Mau Province, Mekong Delta, Viet Nam	T_M	0.6243358320184114
-Winter 2005	An index to measure the conservation attitudes of landowners towards Overberg Coastal Renosterveld, a critically endangered vegetation type in the Cape Floral Kingdom, South Africa		0.5631583738981786
-Viteri and Chavez 2007	Legitimacy, local participation, and compliance in the Galapagos Marine Reserve		0.3279086090151786
-Hyakumura 2010	'Slippage' in the implementation of forest policy by local officials: A case study of a protected area management in Lao PDR	T_TSTMBF	0.26080728493725885
-Triet 2010	Combining biodiversity conservation with poverty alleviation - a case study in the Mekong Delta, Vietnam	T_TSTDBF	0.19759078806917568

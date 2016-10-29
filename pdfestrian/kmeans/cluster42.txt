@@ -1,8 +1,0 @@
-Lindsey et al. 2013	The bushmeat trade in African savannas: Impacts, drivers, and possible solutions	T_TSTMBF	0.5771933965297368
-Beitl 2012	Shifting policies, access, and the tragedy of enclosures in Ecuadorian mangrove fisheries: towards a political ecology of the commons	T_M	0.4768918257028886
-Yami 2013	The effectiveness of village bylaws in sustainable management of community-managed exclosures in Northern Ethiopia	T_MGS	0.4168648436579599
-Thondhlana 2012	Natural resource use, income and dependence among San and Mier communities bordering Kgalagadi Transfrontier Park, southern Kalahari, South Africa		0.31450907625524777
-Reddy 2004	Participatory watershed development in India: Can it sustain rural livelihoods?	T_TSTMBF	0.29232250000490173
-Mangan 2013	Estimating the recreational value of Pakistan's largest freshwater lake to support sustainable tourism management using a travel cost model	FW_TSTFRW	0.2628638745098872
-Groom and Harris 2008	Conservation on community lands: The importance of equitable revenue sharing	T_TSTGSS	0.2585351443679869
-Bawa et al. 2007	Poverty, biodiversity and institutions in forest-agriculture ecotones in the Western Ghats and Eastern Himalaya ranges of India	T_TSTDBF	0.23880826203265076

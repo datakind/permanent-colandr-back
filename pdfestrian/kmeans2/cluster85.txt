@@ -1,4 +1,0 @@
-Zhou 2011	National parks in China: Experiments with protecting nature and human livelihoods in Yunnan province, Peoples' Republic of China (PRC)		0.5822178375113108
-Luo 2008	The new environmental paradigm and nature-based tourism motivation	T_TSTMBF	0.5551907445393548
-McClanahan et al. 2005	Perceptions of resource users and managers towards fisheries management options in Kenyan coral reefs	M_TRC	0.5171597793228967
-Ting 2012	A survey-based evaluation of community-based co-management of forest resources: a case study of Baishuijiang National Natural Reserve in China	T_TBMF	0.45436199706087477

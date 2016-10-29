@@ -1,8 +1,0 @@
-Pegas et al. 2013	For love or for money? Investigating the impact of an ecotourism programme on local residents' assigned values towards sea turtles	T_TSTMBF	0.8371712481489035
-Hart et al. 2013	Consumptive versus non-consumptive use of sea turtles? Stakeholder perceptions about sustainable use in three communities near Cahuita National Park, Costa Rica	T_TSTMBF	0.8264166936751197
-Vieitas et al. 1999	Local community involvement in conservation_the use of mini-guides in a programme for sea turtles in Brazil	M_TSTSS	0.8016018297858367
-Pegas et al. 2012	An exploration of a mini-guide programme: Training local children in sea turtle conservation and ecotourism in Brazil		0.7125184808579116
-Campbell et al. 2007	Sustainability of community-based conservation: Sea turtle egg harvesting in Ostional (Costa Rica) ten years later	M_TRC	0.6136411984573761
-Campbell 1998	Use them or lose them? Conservation and the consumptive use of marine turtle eggs at Ostional, Costa Rica	T_TSTMBF	0.5978715415770018
-Waylen 2009	Ecotourism positively affects awareness and attitudes but not conservation behaviours: A case study at Grande Riviere, Trinidad		0.489569067150883
-Gockel and Gray 2009	Integrating conservation and development in the Peruvian Amazon	T_TSTMBF	0.4015920136832817

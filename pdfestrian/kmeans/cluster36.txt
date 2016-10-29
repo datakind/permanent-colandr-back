@@ -1,8 +1,0 @@
-Gurung et al. 2013	Community-based forest management and its role in improving forest conditions in Nepal	T_TSTMBF	0.7495347508323844
-Gauli and Hauser 2009	Pro-poor commercial management of non-timber forest products in Nepal's community forest user groups: Factors for success	T_TBMF	0.7342289391872419
-Dhakal and Masuda 2009	Local pricing system of forest products and its relations to equitable benefit sharing and livelihood improvement in the lowland community forestry program in Nepal		0.7064033097355559
-Pandit 2009	Community-based forest enterprises in Nepal: An analysis of their role in increasing income benefits to the poor	T_TSTMBF	0.5318518309389086
-Manandhar Yong Shin 2013	How community-based forest management can improve rural livelihoods: A case of Kabhre district, Nepal	T_TSTMBF	0.4654152258847731
-Khanal 2007	Local-level natural resource management networks in Nepal: An additional burden or agents of change ensuring environmental governance and sustainable livelihoods?	T_TSTMBF	0.3815670199359319
-Everard and Kataria 2011	Recreational angling markets to advance the conservation of a reach of the Western Ramganga River, India	FW_MF	0.26120394225147464
-Luoga 2005	Land cover and use changes in relation to the institutional framework and tenure of land and resources in eastern Tanzania Miombo woodlands	T_TSTGSS	0.23505464117392047

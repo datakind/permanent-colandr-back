@@ -1,7 +1,0 @@
-Gomar et al. 2011	Moving Towards Sustainability? An Analysis of CITES' Conservation Policies		0.659864984899531
-Okello 2011	Community opinions on wildlife, resource use and livelihood competition in Kimana group ranch near Amboseli, Kenya	T_FGS	0.41278019856814896
-Toiller 2011	Livelihood strategies and land use changes in response to conservation: Pitfalls of community-based forest management in madagascar	T_TSTMBF	0.3997820481643295
-Dikgang and Muchapondwa 2012	The valuation of biodiversity conservation by the South African Khomani San "bushmen" community	T_DXS	0.32747017101368103
-Chhetri et al. 2012	Law Enforcement in Community Forestry: Consequences for the Poor	T_TSTCF	0.32568602439398386
-Ogutu 2002	The impact of ecotourism on livelihood and natural resource management in eselenkei, amboseli ecosystem, Kenya	T_TSTGSS	0.3047534545546929
-Ogra 2012	Gender and community-oriented wildlife conservation: Views from project supervisors in India		0.2628036917738855

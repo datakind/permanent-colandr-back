@@ -1,8 +1,0 @@
-Dressler et al. 2006	The politics of decentralizing national parks management in the Philippines	T_TSTMBF	0.5829910637429708
-Nunan 2014	Wealth and welfare? Can fisheries management succeed in achieving multiple objectives? A case study of Lake Victoria, East Africa	FW_LL	0.45498271003265695
-Lambini and Nguyen 2014	A comparative analysis of the effects of institutional property rights on forest livelihoods and forest conditions: Evidence from Ghana and Vietnam	T_TSTMBF	0.4258409696464882
-Rugendyke 2005	Conservation costs: Nature-based tourism as development at Cue Phuong national park, Vietnam	T_MGS	0.3507959561318522
-Jalilova et al. 2012	Developing criteria and indicators for evaluating sustainable forest management: A case study in Kyrgyzstan	T_TGSS	0.3227704230346137
-Sarap et al. 2013	Implementation of forest rights act 2006 in Odisha: Process, constraints and outcome	T_TSTMBF	0.3118250678530767
-Martin 2014	Whose environmental justice? Exploring local and global perspectives in a payments for ecosystem services scheme in Rwanda	T_TSTMBF	0.30170224709159016
-Marcus 2001	Seeing the forest for the trees: Integrated conservation and development projects and local perceptions of conservations in Madagascar	T_TSTMBF	0.22259509541824163

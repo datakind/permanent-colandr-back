@@ -1,9 +1,0 @@
-Lopes 2013	Suggestions for fixing top-down coastal fisheries management through participatory approaches	T_TSTMBF	0.6019534129967897
-Lopes et al. 2013	Suggestions for fixing top-down coastal fisheries management through participatory approaches	T_TSTMBF	0.6019534129967897
-Quaedvlieg 2014	Is Amazon nut certification a solution for increased smallholder empowerment in peruvian amazonia?	T_TSTMBF	0.5517526929057286
-Baticados 2000	Co-management in marine fisheries in Malalison Island, central Philippines	M_TRC	0.4399242681253303
-Nunan 2006	Empowerment and institutions: Managing fisheries in Uganda	FW_LL	0.41370308842469034
-Nuon and Gallardo 2011	Perceptions of the local community on the outcome of community fishery management in Krala Peah village, Cambodia	FW_LRD	0.4046680847509658
-Viteri and Chavez 2007	Legitimacy, local participation, and compliance in the Galapagos Marine Reserve		0.3510832928827429
-Fanwei 2013	An evaluation of residents' perceptions of the creation of a geopark: a case study on the geopark in Mt. Huaying Grand Canyon, Sichuan Province, China	T_TBMF	0.19596438661839097
-Kuhar et al. 2010	Evaluating for long-term impact of an environmental education program at the Kalinzu Forest Reserve, Uganda	T_TSTGSS	0.161700380771138

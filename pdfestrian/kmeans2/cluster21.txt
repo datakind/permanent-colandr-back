@@ -1,6 +1,0 @@
-Ghosh et al. 2006	Chilika Lagoon: Restoring ecological balance and livelihoods through re-salinization	FW_TSTFRW	0.6610794710742466
-Nyenza 2013	Socio-ecological resilience of people evicted for establishment of Uluguru nature reserve in morogoro region, Tanzania	T_FGS	0.4920027321364143
-Groom and Harris 2008	Conservation on community lands: The importance of equitable revenue sharing	T_TSTGSS	0.39999180559894004
-Ijang 2013	Dependency on natural resources: Post-conflict challenges for livelihoods security and environmental sustainability in Goma, The Democratic Republic of Congo	T_TSTMBF	0.32782140069632826
-Scanlon 2009	Untangling the links between wildlife benefits and community-based conservation at Torra Conservancy, Namibia		0.3069325158750957
-Hayati et al. 2009	An empirical model of factors affecting farmers' participation in natural resources conservational programs in Iran	T_TCF	0.25613883902711737

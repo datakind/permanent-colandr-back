@@ -1,5 +1,0 @@
-Ormsby 2013	Analysis of local attitudes toward the sacred groves of Meghalaya and Karnataka, India	T_TSTMBF	0.7961212433384799
-Datta 2012	Assessment of community-based initiatives in sustainable management of Indian dry deciduous forests	T_TSTMBF	0.41345928608193866
-Gomiero et al. 2000	Vietnamese uplands: Environmental and socio-economic perspective of forest land allocation and deforestation process	T_TSTMBF	0.33715085477733486
-Horning 2005	The cost of ignoring rules: Forest conservation and rural livelihood outcomes in Madagascar	T_TSTMBF	0.31021434934504677
-Padmanaba 2007	Finding and promoting a local conservation consensus in a globally important tropical forest landscape	T_TSTMBF	0.25819449810610245

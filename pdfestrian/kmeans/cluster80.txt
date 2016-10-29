@@ -1,6 +1,0 @@
-Kashwan 2013	The politics of rights-based approaches in conservation		0.7031624331771917
-Sarap et al. 2013	Implementation of forest rights act 2006 in Odisha: Process, constraints and outcome	T_TSTMBF	0.6009770403597023
-Pegas et al. 2013	For love or for money? Investigating the impact of an ecotourism programme on local residents' assigned values towards sea turtles	T_TSTMBF	0.6008882566518897
-Pegas et al. 2012	An exploration of a mini-guide programme: Training local children in sea turtle conservation and ecotourism in Brazil		0.5326427723372797
-Vieitas et al. 1999	Local community involvement in conservation_the use of mini-guides in a programme for sea turtles in Brazil	M_TSTSS	0.4962457359400461
-Himley 2009	Nature conservation, rural livelihoods, and territorial control in Andean Ecuador	T_TSTMBF	0.2849723760825606

@@ -1,9 +1,0 @@
-Lindsey et al. 2013	The bushmeat trade in African savannas: Impacts, drivers, and possible solutions	T_TSTMBF	0.6620548507548121
-Buchenrieder and Balgah 2013	Sustaining livelihoods around community forests. What is the potential contribution of wildlife domestication?	T_TSTMBF	0.4692342755649175
-Le et al. 2014	What drives the success of reforestation projects in tropical developing countries? The case of the Philippines	T_TSTMBF	0.46072896935106267
-Hirst et al. 2010	Developing and implementing an innovative biodiversity management strategy for a large energy project at Balhaf, Yemen	T_DXS	0.2871871241449816
-Blay et al. 2008	Involving local farmers in rehabilitation of degraded tropical forests: some lessons from Ghana	T_TSTMBF	0.2690624452174257
-Newton 2012b	Determinants of livelihood strategy variation in two extractive reserves in Amazonian flooded and unflooded forests	T_TSTMBF	0.2690380080770629
-Wunder 2008	When donors get cold feet: The community conservation concession in Setulang (Kalimantan, Indonesia) that never happened	T_TSTMBF	0.2626229042398407
-Marschke Berkes 2009	Local level sustainability planning for livelihoods: A Cambodian experience	T_TSTDBF	0.257209819608363
-Nino-Murcia 2006	Investing in natural capital: A financial assessment of social forestry in Northern India	FW_XFEB	0.23407093438824342

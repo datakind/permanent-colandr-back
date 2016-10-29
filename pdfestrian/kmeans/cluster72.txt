@@ -1,9 +1,0 @@
-Ezebilo 2013	Nature conservation in Cross River National Park, south-east Nigeria: Promoting collaboration between local people and conservation authorities	T_TSTMBF	0.6365802797551001
-Ezebilo and Mattsson 2010	Socio-economic benefits of protected areas as perceived by local people around Cross River National park, Nigeria	T_TSTMBF	0.6245015291145
-Ite and Adams 2000	Expectations, impacts and attitudes: Conservation and development in Cross River National Park, Nigeria	T_TSTMBF	0.6142798983170373
-Ezebilo 2012	Community forestry as perceived by local people around cross river national park, Nigeria	T_TSTMBF	0.6080627328832905
-Ite 1996	Community perceptions of the Cross River National Park, Nigeria	T_TSTMBF	0.5841988459557956
-Eneji et al. 2009	Problems of public participation in biodiversity conservation: the Nigerian scenario	T_TSTMBF	0.49310975118276074
-Ezebilo 2011	Local participation in forest and biodiversity conservation in a Nigerian rain forest	T_TSTMBF	0.48467053864283527
-Ogar 2010	Performance of forest management committees in Cross River state, Nigeria	T_TSTMBF	0.422342368491029
-Garrard et al. 2012	Depicting community perspectives: Repeat photography and participatory research as tools for assessing environmental services in Sagarmatha National Park, Nepal	T_TCF	0.11834651002621155
