@@ -96,25 +96,22 @@ class CitationsImportsResource(Resource):
         # create lists of study and citation dicts to insert
         citation_schema = CitationSchema()
         citations_to_insert = []
-        for record in citations_file.parse():
-            record['review_id'] = review_id
-            citations_to_insert.append(citation_schema.load(record).data)
+        if status in {'included', 'excluded'}:
+            for record in citations_file.parse():
+                record['review_id'] = review_id
+                citations_to_insert.append(citation_schema.load(record).data)
+        else:
+            for record in citations_file.parse():
+                record['review_id'] = review_id
+                record['status'] = status
+                citations_to_insert.append(citation_schema.load(record).data)
 
         user_id = g.current_user.id
-        studies_to_insert = []
-        if status in {'included', 'excluded'}:
-            studies_to_insert = [
-                {'user_id': user_id,
-                 'review_id': review_id,
-                 'data_source_id': data_source_id,
-                 'citation_status': status}
-                for i in range(len(citations_to_insert))]
-        else:
-            studies_to_insert = [
-                {'user_id': user_id,
-                 'review_id': review_id,
-                 'data_source_id': data_source_id}
-                for i in range(len(citations_to_insert))]
+        studies_to_insert = [
+            {'user_id': user_id,
+             'review_id': review_id,
+             'data_source_id': data_source_id}
+            for i in range(len(citations_to_insert))]
 
         # insert studies, and get their primary keys _back_
         stmt = db.insert(Study).values(studies_to_insert)\

@@ -97,9 +97,9 @@ def deduplicate_citations(review_id):
             else:
                 break
 
-        # if all review citations have been deduped, cancel
+        # if all studies have been deduped, cancel
         stmt = select(
-            [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
+            [exists().where(Study.review_id == review_id).where(~Study.dedupe.has())])
         un_deduped_studies = conn.execute(stmt).fetchone()[0]
         if un_deduped_studies is False:
             print('all studies for <Review(id={})> already deduped!'.format(review_id))
@@ -119,7 +119,7 @@ def deduplicate_citations(review_id):
         # we have to take a pass through the data and create indices
         for field in deduper.blocker.index_fields:
             col_type = getattr(Citation, field).property.columns[0].type
-            print('index predicate:', field, col_type)
+            print('index predicate: {} {}'.format(field, col_type))
             stmt = select([getattr(Citation, field)])\
                 .where(Citation.review_id == review_id)\
                 .distinct()
@@ -223,7 +223,7 @@ def deduplicate_citations(review_id):
         all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
         duplicate_cids = set()
 
-        studies_to_update = []
+        # studies_to_update = []
         dedupes_to_insert = []
         for cids, scores in clustered_dupes:
             cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
@@ -251,20 +251,24 @@ def deduplicate_citations(review_id):
             for cid, score in cid_scores.items():
                 if cid != canonical_citation_id:
                     duplicate_cids.add(cid)
-                    studies_to_update.append(
-                        {'id': cid,
-                         'dedupe_status': 'is_duplicate'})
+                    # studies_to_update.append(
+                    #     {'id': cid,
+                    #      'dedupe_status': 'is_duplicate'})
                     dedupes_to_insert.append(
                         {'id': cid,
                          'review_id': review_id,
+                         'status': 'is_duplicate',
                          'duplicate_of': canonical_citation_id,
                          'duplicate_score': score})
         non_duplicate_cids = all_cids - duplicate_cids
-        studies_to_update.extend(
-            {'id': cid, 'dedupe_status': 'not_duplicate'}
+        dedupes_to_insert.extend(
+            {'id': cid, 'review_id': review_id, 'status': 'not_duplicate'}
             for cid in non_duplicate_cids)
+        # studies_to_update.extend(
+        #     {'id': cid, 'dedupe_status': 'not_duplicate'}
+        #     for cid in non_duplicate_cids)
         session = Session(bind=conn)
-        session.bulk_update_mappings(Study, studies_to_update)
+        # session.bulk_update_mappings(Study, studies_to_update)
         session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
         session.commit()
 
@@ -282,16 +286,16 @@ def suggest_keyterms(review_id, sample_size):
         server_side_cursors=True, echo=False)
     with engine.connect() as conn:
         # get random sample of included citations
-        stmt = select([Study.citation_status, Study.citation.text_content])\
-            .where(Study.review_id == review_id)\
-            .where(Study.citation_status == 'included')\
+        stmt = select([Citation.status, Citation.text_content])\
+            .where(Citation.review_id == review_id)\
+            .where(Citation.status == 'included')\
             .order_by(func.random())\
             .limit(sample_size)
         included = conn.execute(stmt).fetchall()
         # get random sample of excluded citations
-        stmt = select([Study.citation_status, Study.citation.text_content])\
-            .where(Study.review_id == review_id)\
-            .where(Study.citation_status == 'excluded')\
+        stmt = select([Citation.status, Citation.text_content])\
+            .where(Citation.review_id == review_id)\
+            .where(Citation.status == 'excluded')\
             .order_by(func.random())\
             .limit(sample_size)
         excluded = conn.execute(stmt).fetchall()
@@ -316,6 +320,7 @@ def suggest_keyterms(review_id, sample_size):
             'excl_keyterms': excl_keyterms}
         errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
         if errors:
+            lock.release()
             raise Exception
         print('suggested_keyterms:\n{}'.format(suggested_keyterms))
         # update the review plan

@@ -232,7 +232,7 @@ class CitationsScreeningsResource(Resource):
             query = """
                 SELECT citation_id, ARRAY_AGG(status)
                 FROM citation_screenings
-                WHERE citation_id IN ({citation_ids})
+                WHERE citation_id IN ({citation_id})
                 GROUP BY citation_id
                 ORDER BY citation_id
                 """.format(citation_ids=','.join(str(cid) for cid in citation_ids))
@@ -248,7 +248,7 @@ class CitationsScreeningsResource(Resource):
             cids_need_fulltexts = """
                 SELECT citations.id
                 FROM citations
-                LEFT JOIN fulltexts ON citations.id = fulltexts.citation_id
+                LEFT JOIN fulltexts ON citations.id = fulltexts.id
                 WHERE
                     citations.review_id = {review_id}
                     AND citations.status = 'included'
@@ -257,5 +257,5 @@ class CitationsScreeningsResource(Resource):
                 """.format(review_id=review_id)
             citation_ids = [row[0] for row in db.engine.execute(cids_need_fulltexts)]
             for cid in citation_ids:
-                db.session.add(Fulltext(review_id, cid))
+                db.session.add(Fulltext(cid, review_id))
             db.session.commit()

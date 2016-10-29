@@ -353,45 +353,9 @@ class Study(db.Model):
     data_source_id = db.Column(
         db.Integer, ForeignKey('data_sources.id', ondelete='SET NULL'),
         nullable=False, index=True)
-    dedupe_status = db.Column(
-        db.Unicode(length=20),
-        nullable=True, index=True)
-    citation_status = db.Column(
-        db.Unicode(length=20),
-        nullable=True, index=True)
-    fulltext_status = db.Column(
-        db.Unicode(length=20),
-        nullable=True, index=True)
-    data_extraction_status = db.Column(
-        db.Unicode(length=20),
-        nullable=True, index=True)
     tags = db.Column(
         postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
         index=True)
-
-    @hybrid_property
-    def citation_exclude_reasons(self):
-        return sorted(set(itertools.chain.from_iterable(
-            scrn.exclude_reasons or [] for scrn in self.citation_screenings)))
-
-    @hybrid_property
-    def fulltext_exclude_reasons(self):
-        return sorted(set(itertools.chain.from_iterable(
-            scrn.exclude_reasons or [] for scrn in self.fulltext_screenings)))
-
-    # this did not work for reasons unknown
-    # @exclude_reasons.expression
-    # def exclude_reasons(self):
-    #     query = """
-    #         SELECT DISTINCT array_agg(c)
-    #         FROM (SELECT unnest(exclude_reasons)
-    #               FROM fulltext_screenings
-    #               WHERE fulltext_id = {fulltext_id}
-    #               ) AS t(c)
-    #         """.format(self.fulltext_id)
-    #     with current_app.app_context():
-    #         conn = db.engine.connect()
-    #         return conn.execute(text(query)).fetchone()[0]
 
     # relationships
     user = db.relationship(
@@ -409,15 +373,9 @@ class Study(db.Model):
     citation = db.relationship(
         'Citation', uselist=False, back_populates='study',
         lazy='joined', passive_deletes=True)
-    citation_screenings = db.relationship(
-        'CitationScreening', back_populates='study',
-        lazy='dynamic', passive_deletes=True)
     fulltext = db.relationship(
         'Fulltext', uselist=False, back_populates='study',
         lazy='joined', passive_deletes=True)
-    fulltext_screenings = db.relationship(
-        'FulltextScreening', back_populates='study',
-        lazy='dynamic', passive_deletes=True)
     data_extraction = db.relationship(
         'DataExtraction', uselist=False, back_populates='study',
         lazy='joined', passive_deletes=True)
@@ -445,12 +403,15 @@ class Dedupe(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
+    status = db.Column(
+        db.Unicode(length=20),
+        nullable=False, index=True)
     duplicate_of = db.Column(
         db.BigInteger,  # ForeignKey('studies.id', ondelete='SET NULL'),
-        nullable=False)
+        nullable=True)
     duplicate_score = db.Column(
         db.Float,
-        nullable=False)
+        nullable=True)
 
     # relationships
     study = db.relationship(
@@ -496,6 +457,9 @@ class Citation(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
+    status = db.Column(
+        db.Unicode(length=20), server_default='not_screened',
+        nullable=False, index=True)
     type_of_work = db.Column(db.Unicode(length=25))
     title = db.Column(
         db.Unicode(length=300), server_default='untitled',
@@ -533,6 +497,11 @@ class Citation(db.Model):
             db.func.array_to_string(self.keywords, ', ')
             )
 
+    @hybrid_property
+    def exclude_reasons(self):
+        return sorted(set(itertools.chain.from_iterable(
+            scrn.exclude_reasons or [] for scrn in self.screenings)))
+
     # relationships
     study = db.relationship(
         'Study', foreign_keys=[id], back_populates='citation',
@@ -540,6 +509,9 @@ class Citation(db.Model):
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='citations',
         lazy='select')
+    screenings = db.relationship(
+        'CitationScreening', back_populates='citation',
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, id_, review_id,
                  type_of_work=None, title=None, secondary_title=None, abstract=None,
@@ -589,10 +561,32 @@ class Fulltext(db.Model):
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
         nullable=False, index=True)
+    status = db.Column(
+        db.Unicode(length=20), server_default='not_screened',
+        nullable=False, index=True)
     filename = db.Column(
         db.Unicode(length=30), unique=True, nullable=True)
     text_content = db.Column(
         db.UnicodeText, nullable=True)
+
+    @hybrid_property
+    def exclude_reasons(self):
+        return sorted(set(itertools.chain.from_iterable(
+            scrn.exclude_reasons or [] for scrn in self.screenings)))
+
+    # this did not work for reasons unknown
+    # @exclude_reasons.expression
+    # def exclude_reasons(self):
+    #     query = """
+    #         SELECT DISTINCT array_agg(c)
+    #         FROM (SELECT unnest(exclude_reasons)
+    #               FROM fulltext_screenings
+    #               WHERE fulltext_id = {fulltext_id}
+    #               ) AS t(c)
+    #         """.format(self.fulltext_id)
+    #     with current_app.app_context():
+    #         conn = db.engine.connect()
+    #         return conn.execute(text(query)).fetchone()[0]
 
     # relationships
     study = db.relationship(
@@ -601,6 +595,9 @@ class Fulltext(db.Model):
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='fulltexts',
         lazy='select')
+    screenings = db.relationship(
+        'FulltextScreening', back_populates='fulltext',
+        lazy='dynamic', passive_deletes=True)
 
     def __init__(self, id_, review_id, filename=None):
         self.id = id_
@@ -615,8 +612,8 @@ class CitationScreening(db.Model):
 
     __tablename__ = 'citation_screenings'
     __table_args__ = (
-        db.UniqueConstraint('review_id', 'user_id', 'study_id',
-                            name='citation_review_user_study_uc'),
+        db.UniqueConstraint('review_id', 'user_id', 'citation_id',
+                            name='review_user_citation_uc'),
         )
 
     # columns
@@ -635,8 +632,8 @@ class CitationScreening(db.Model):
     user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
         nullable=False, index=True)
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+    citation_id = db.Column(
+        db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
         nullable=False, index=True)
     status = db.Column(
         db.Unicode(length=20),
@@ -652,28 +649,28 @@ class CitationScreening(db.Model):
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='citation_screenings',
         lazy='select')
-    study = db.relationship(
-        'Study', foreign_keys=[study_id], back_populates='citation_screenings',
-        lazy='subquery')
+    citation = db.relationship(
+        'Citation', foreign_keys=[citation_id], back_populates='screenings',
+        lazy='select')
 
-    def __init__(self, review_id, user_id, study_id, status,
+    def __init__(self, review_id, user_id, citation_id, status,
                  exclude_reasons=None):
         self.review_id = review_id
         self.user_id = user_id
-        self.study_id = study_id
+        self.citation_id = citation_id
         self.status = status
         self.exclude_reasons = exclude_reasons
 
     def __repr__(self):
-        return "<CitationScreening(study_id={})>".format(self.study_id)
+        return "<CitationScreening(citation_id={})>".format(self.citation_id)
 
 
 class FulltextScreening(db.Model):
 
     __tablename__ = 'fulltext_screenings'
     __table_args__ = (
-        db.UniqueConstraint('review_id', 'user_id', 'study_id',
-                            name='fulltext_review_user_study_uc'),
+        db.UniqueConstraint('review_id', 'user_id', 'fulltext_id',
+                            name='review_user_fulltext_uc'),
         )
 
     # columns
@@ -692,8 +689,8 @@ class FulltextScreening(db.Model):
     user_id = db.Column(
         db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
         nullable=False, index=True)
-    study_id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
+    fulltext_id = db.Column(
+        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
         nullable=False, index=True)
     status = db.Column(
         db.Unicode(length=20),
@@ -709,20 +706,20 @@ class FulltextScreening(db.Model):
     review = db.relationship(
         'Review', foreign_keys=[review_id], back_populates='fulltext_screenings',
         lazy='select')
-    study = db.relationship(
-        'Study', foreign_keys=[study_id], back_populates='fulltext_screenings',
-        lazy='subquery')
+    fulltext = db.relationship(
+        'Fulltext', foreign_keys=[fulltext_id], back_populates='screenings',
+        lazy='select')
 
-    def __init__(self, review_id, user_id, study_id, status,
+    def __init__(self, review_id, user_id, fulltext_id, status,
                  exclude_reasons=None):
         self.review_id = review_id
         self.user_id = user_id
-        self.study_id = study_id
+        self.fulltext_id = fulltext_id
         self.status = status
         self.exclude_reasons = exclude_reasons
 
     def __repr__(self):
-        return "<FulltextScreening(study_id={})>".format(self.study_id)
+        return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
 
 
 class DataExtraction(db.Model):
@@ -742,6 +739,9 @@ class DataExtraction(db.Model):
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
     review_id = db.Column(
         db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
+        nullable=False, index=True)
+    status = db.Column(
+        db.Unicode(length=20), server_default='not_started',
         nullable=False, index=True)
     extracted_items = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
@@ -890,37 +890,40 @@ class DedupeSmallerCoverage(db.Model):
 @event.listens_for(CitationScreening, 'after_delete')
 @event.listens_for(CitationScreening, 'after_update')
 def update_citation_status(mapper, connection, target):
-    study_id = target.study_id
+    citation_id = target.citation_id
     review_id = target.review_id
-    study = target.study
+    citation = target.citation
     status = assign_status(
-        [cs.status for cs in db.session.query(CitationScreening).filter_by(study_id=study_id)],
-        study.review.num_citation_screening_reviewers)
+        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
+        citation.review.num_citation_screening_reviewers)
     with connection.begin():
         connection.execute(
-            db.update(Study).where(Study.id == study_id).values(citation_status=status))
-    logging.warning('{} => {} with status = {}'.format(target, study, status))
+            db.update(Citation).where(Citation.id == citation_id).values(status=status))
+    logging.warning('{} => {} with status = {}'.format(target, citation, status))
+    with connection.begin():
+        fulltext = connection.execute(
+            db.query(Fulltext).where(Fulltext.id == citation_id)).one_or_none()
     fulltext_inserted_or_deleted = False
-    if status == 'included' and study.fulltext is None:
+    if status == 'included' and fulltext is None:
         with connection.begin():
             connection.execute(
-                db.insert(Fulltext).values(id=study_id, review_id=review_id))
+                db.insert(Fulltext).values(id=citation_id, review_id=review_id))
             logging.warning(
-                'inserted <Fulltext(study_id={})>'.format(study_id))
+                'inserted <Fulltext(study_id={})>'.format(citation_id))
             fulltext_inserted_or_deleted = True
-    elif status != 'included' and study.fulltext is not None:
+    elif status != 'included' and fulltext is not None:
         with connection.begin():
             connection.execute(
-                db.delete(Fulltext).where(Fulltext.study_id == study_id))
+                db.delete(Fulltext).where(Fulltext.id == citation_id))
             logging.warning(
-                'deleted <Fulltext(study_id={})>'.format(study_id))
+                'deleted <Fulltext(study_id={})>'.format(citation_id))
             fulltext_inserted_or_deleted = True
     if fulltext_inserted_or_deleted is True:
         with connection.begin():
-            stmt = db.select([Study.citation_status, db.func.count(1)])\
-                .where(Study.review_id == review_id)\
-                .where(Study.citation_status.in_(['included', 'excluded']))\
-                .group_by(Study.citation_status)
+            stmt = db.select([Citation.status, db.func.count(1)])\
+                .where(Citation.review_id == review_id)\
+                .where(Citation.status.in_(['included', 'excluded']))\
+                .group_by(Citation.status)
             status_counts = connection.execute(stmt).fetchall()
             status_counts = dict(status_counts)
             n_included = status_counts.get('included', 0)
@@ -935,30 +938,33 @@ def update_citation_status(mapper, connection, target):
 @event.listens_for(FulltextScreening, 'after_delete')
 @event.listens_for(FulltextScreening, 'after_update')
 def update_fulltext_status(mapper, connection, target):
-    study_id = target.study_id
+    fulltext_id = target.fulltext_id
     review_id = target.review_id
-    study = target.study
+    fulltext = target.fulltext
     status = assign_status(
-        [fs.status for fs in db.session.query(FulltextScreening).filter_by(study_id=study_id)],
-        study.review.num_fulltext_screening_reviewers)
+        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
+        fulltext.review.num_fulltext_screening_reviewers)
     with connection.begin():
         connection.execute(
-            db.update(Study).where(Study.id == study_id).values(fulltext_status=status))
-    logging.warning('{} => {} with status = {}'.format(target, study, status))
-    if status == 'included' and study.data_extraction is None:
+            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
+    logging.warning('{} => {} with status = {}'.format(target, fulltext, status))
+    with connection.begin():
+        data_extraction = connection.execute(
+            db.query(DataExtraction).where(DataExtraction.id == fulltext_id)).one_or_none()
+    if status == 'included' and data_extraction is None:
         with connection.begin():
             connection.execute(
                 db.insert(DataExtraction).values(
-                    id=study_id, review_id=review_id))
+                    id=fulltext_id, review_id=review_id))
             logging.warning('inserted <DataExtraction(study_id={})>'.format(
-                study_id))
-    elif status != 'included' and study.data_extraction is None:
+                fulltext_id))
+    elif status != 'included' and data_extraction is None:
         with connection.begin():
             connection.execute(
                 db.delete(DataExtraction).where(
-                    DataExtraction.study_id == study_id))
+                    DataExtraction.study_id == fulltext_id))
             logging.warning('deleted <DataExtraction(study_id={})>'.format(
-                study_id))
+                fulltext_id))
     return
 
 
