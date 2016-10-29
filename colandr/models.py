@@ -902,7 +902,7 @@ def update_citation_status(mapper, connection, target):
     logging.warning('{} => {} with status = {}'.format(target, citation, status))
     with connection.begin():
         fulltext = connection.execute(
-            db.query(Fulltext).where(Fulltext.id == citation_id)).one_or_none()
+            db.query(Fulltext).where(Fulltext.id == citation_id)).first()
     fulltext_inserted_or_deleted = False
     if status == 'included' and fulltext is None:
         with connection.begin():
@@ -950,7 +950,7 @@ def update_fulltext_status(mapper, connection, target):
     logging.warning('{} => {} with status = {}'.format(target, fulltext, status))
     with connection.begin():
         data_extraction = connection.execute(
-            db.query(DataExtraction).where(DataExtraction.id == fulltext_id)).one_or_none()
+            db.query(DataExtraction).where(DataExtraction.id == fulltext_id)).first()
     if status == 'included' and data_extraction is None:
         with connection.begin():
             connection.execute(

@@ -8,6 +8,7 @@ from pprint import pprint
 import sys
 
 from colandr import create_app, db
+from colandr.config import config
 from colandr.models import Fulltext, DataExtraction
 from colandr.tasks import suggest_keyterms
 import requests
@@ -23,8 +24,6 @@ logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.W
 
 BASE_URL = 'http://localhost:5000/'
 session = requests.Session()
-
-app = create_app('default')
 
 USERS = [
     {'name': 'Burton DeWilde', 'email': 'burtondewilde@gmail.com', 'password': 'password'},
@@ -180,10 +179,7 @@ REVIEW_PLAN = {
                              ]
     }
 
-CITATIONS = [
-    os.path.join(app.config['CITATIONS_FOLDER'], 'ci-full-collection-group1.ris'),
-    os.path.join(app.config['CITATIONS_FOLDER'], 'ci-full-collection-group2.ris')
-    ]
+CITATIONS = ['ci-full-collection-group1.ris', 'ci-full-collection-group2.ris']
 
 FULLTEXTS = [
     'references/Bottrill_et al_2014_systematic protocol.pdf',
@@ -212,12 +208,17 @@ def main():
     parser = argparse.ArgumentParser(
         description='Repopulate the colandr database from scratch.')
     parser.add_argument(
+        '-c', '--config', dest='config_name', type=str,
+        choices=sorted(config.keys()),
+        default=os.getenv('COLANDR_FLASK_CONFIG') or 'default')
+    parser.add_argument(
         '--last', type=str, default='',
         help='last table to populate; subsequent tables will not be filled',
         choices=['users', 'reviews', 'review_plans', 'citations',
                  'citation_screenings', 'fulltexts', 'fulltext_screenings'])
 
     args = vars(parser.parse_args())
+    app = create_app(args['config_name'])
 
     print('\n\n')
     LOGGER.info('adding users to db...')
@@ -298,10 +299,11 @@ def main():
     print('\n\n')
     LOGGER.info('importing citations...')
     source_names = ['scopus', 'web of science', 'pubmed']
-    for citations_file in CITATIONS:
+    for filename in CITATIONS:
+        citations_file = os.path.join(
+            app.config['CITATIONS_FOLDER'], filename)
         if not os.path.isfile(citations_file):
             raise OSError()
-        filename = os.path.split(citations_file)[-1]
         response = session.request(
             'POST', BASE_URL + 'citations/imports',
             data={'review_id': review_id,
@@ -498,7 +500,7 @@ def main():
     # as "included", but that doesn't work when bulk importing as above
     with app.app_context():
         extracted_data_to_insert = [
-            DataExtraction(1, fid[0]) for fid
+            DataExtraction(fid[0], review_id) for fid
             in db.session.query(Fulltext.id).filter_by(status='included')]
         db.session.bulk_save_objects(extracted_data_to_insert)
         db.session.commit()

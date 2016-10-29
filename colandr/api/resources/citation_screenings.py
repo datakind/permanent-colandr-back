@@ -232,7 +232,7 @@ class CitationsScreeningsResource(Resource):
             query = """
                 SELECT citation_id, ARRAY_AGG(status)
                 FROM citation_screenings
-                WHERE citation_id IN ({citation_id})
+                WHERE citation_id IN ({citation_ids})
                 GROUP BY citation_id
                 ORDER BY citation_id
                 """.format(citation_ids=','.join(str(cid) for cid in citation_ids))

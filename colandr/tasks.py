@@ -91,8 +91,10 @@ def deduplicate_citations(review_id):
             .where(Citation.review_id == review_id)
         while True:
             max_created_at = conn.execute(stmt).fetchone()[0]
-            print('citation most recently created at {}'.format(max_created_at))
-            if (arrow.utcnow().naive - max_created_at).total_seconds() < 60:
+            elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
+            if elapsed_time < 60:
+                print('citation most recently created {} seconds ago, sleeping...'.format(
+                    elapsed_time))
                 sleep(10)
             else:
                 break
@@ -325,7 +327,7 @@ def suggest_keyterms(review_id, sample_size):
         print('suggested_keyterms:\n{}'.format(suggested_keyterms))
         # update the review plan
         stmt = update(ReviewPlan)\
-            .where(ReviewPlan.review_id == review_id)\
+            .where(ReviewPlan.id == review_id)\
             .values(suggested_keyterms=suggested_keyterms)
         conn.execute(stmt)
 
