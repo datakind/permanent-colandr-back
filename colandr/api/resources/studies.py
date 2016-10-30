@@ -104,8 +104,7 @@ class StudiesResource(Resource):
         'page': ma_fields.Int(
             missing=0, validate=Range(min=0)),
         })
-    def get(self, review_id, fields, tag,
-            order_by, order_dir, per_page, page):
+    def get(self, review_id, fields, tag, order_dir, per_page, page):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))

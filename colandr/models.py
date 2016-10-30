@@ -574,20 +574,6 @@ class Fulltext(db.Model):
         return sorted(set(itertools.chain.from_iterable(
             scrn.exclude_reasons or [] for scrn in self.screenings)))
 
-    # this did not work for reasons unknown
-    # @exclude_reasons.expression
-    # def exclude_reasons(self):
-    #     query = """
-    #         SELECT DISTINCT array_agg(c)
-    #         FROM (SELECT unnest(exclude_reasons)
-    #               FROM fulltext_screenings
-    #               WHERE fulltext_id = {fulltext_id}
-    #               ) AS t(c)
-    #         """.format(self.fulltext_id)
-    #     with current_app.app_context():
-    #         conn = db.engine.connect()
-    #         return conn.execute(text(query)).fetchone()[0]
-
     # relationships
     study = db.relationship(
         'Study', foreign_keys=[id], back_populates='fulltext',

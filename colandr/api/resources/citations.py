@@ -78,10 +78,8 @@ class CitationResource(Resource):
             return unauthorized(
                 '{} not authorized to modify this citation'.format(g.current_user))
         for key, value in args.items():
-            if key is missing:
+            if key is missing or key == 'other_fields':
                 continue
-            elif key == 'status':
-                return forbidden('citation status can not be updated manually')
             else:
                 setattr(citation, key, value)
         if test is False:
@@ -132,7 +130,7 @@ class CitationsResource(Resource):
         query = review.citations
         # filters
         if status:
-            if status in ('conflict', 'excluded', 'included'):
+            if status in {'conflict', 'excluded', 'included'}:
                 query = query.filter(Citation.status == status)
             elif status == 'pending':
                 sql_query = """
@@ -162,12 +160,13 @@ class CitationsResource(Resource):
                           ON citations.id = screenings.citation_id
                           ) AS t
                     WHERE
-                        t.status IN ('screened_once', 'screened_twice')
+                        t.status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=g.current_user.id)
                 query = query.filter(Citation.id.in_(text(sql_query)))
         if tag:
-            query = query.filter(Citation.tags.any(tag, operator=operators.eq))
+            query = query.join(Study)\
+                .filter(Study.tags.any(tag, operator=operators.eq))
         if tsquery:
             query = query.filter(Citation.text_content.match(tsquery))
 
