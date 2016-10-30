@@ -1,5 +1,7 @@
 package org.datakind.ci.pdfestrian.extraction
 
+import java.util.zip.GZIPInputStream
+
 import cc.factorie.DenseTensor1
 import cc.factorie.app.nlp.{Document, Sentence}
 
@@ -9,7 +11,7 @@ import scala.io.Source
   * Created by sameyeam on 8/3/16.
   */
 object Word2VecSent {
-  val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt")).getLines().map { word =>
+  val vectors = Source.fromInputStream(new GZIPInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt.gz"))).getLines().map { word =>
     val split = word.split(" ")
     split.head -> split.takeRight(50).map{_.toFloat}
   }.toMap

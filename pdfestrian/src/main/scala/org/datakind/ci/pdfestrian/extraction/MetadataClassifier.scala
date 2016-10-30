@@ -8,9 +8,9 @@ import org.datakind.ci.pdfestrian.api.{Metadata, MetadataExtractor, Record}
 class MetadataClassifier extends MetadataExtractor {
 
   val metadataMap = Map(
-    "biome" -> new BiomeClassifier("/biomeExtractorModel"),
-    "interv" -> new IntervClassifier("/intervExtractorModel"),
-    "outcome" -> new OutcomeClassifier("/outcomeExtractorModel")
+    "biome" -> new BiomeClassifier("/biomeRankerTest"),
+    "interv" -> new IntervClassifier("/intervRankerTest"),
+    "outcome" -> new OutcomeClassifier("/OutcomeRankerTest")
   )
 
   override def getMetaData(record: Record, metaData: String): Seq[Metadata] = {
