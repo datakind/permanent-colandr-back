@@ -14,17 +14,15 @@ def verify_password(email_or_token, password):
     # authenticate by token
     if not password:
         g.current_user = User.verify_auth_token(email_or_token)
-        g.token_used = True
+        # g.token_used = True
         return g.current_user is not None
     # authenticate by email + password
     else:
         user = db.session.query(User).filter_by(email=email_or_token).one_or_none()
-        if not user:
-            return False
-        if user.is_confirmed is False:
+        if user is None or user.is_confirmed is False:
             return False
         g.current_user = user
-        g.token_used = False
+        # g.token_used = False
         return user.verify_password(password)
 
 
@@ -37,7 +35,7 @@ class AuthTokenResource(Resource):
 
     @auth.login_required
     def get(self):
-        if g.token_used is True:
-            return unauthorized('invalid authentication credentials')
+        # if g.token_used is True:
+        #     return unauthorized('invalid authentication credentials')
         token = g.current_user.generate_auth_token()
         return jsonify({'token': token})

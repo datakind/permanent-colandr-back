@@ -31,7 +31,7 @@ class ReviewTeamResource(Resource):
     def get(self, id, fields):
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found()
+            return no_data_found('<Review(id={})> not found'.format(id))
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
@@ -63,21 +63,18 @@ class ReviewTeamResource(Resource):
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to modify this review team'.format(g.current_user))
-
         if user_id is not None:
             user = db.session.query(User).get(user_id)
         elif user_email is not None:
             user = db.session.query(User).filter_by(email=user_email).one_or_none()
         else:
             return validation('user_id or user_email is required')
-
         review_users = review.users
-
         # an existing user is being added, without an invite email
         if action == 'add':
             if user is None:
-                return forbidden('user not found')
-            if user not in review_users:
+                return forbidden('<User(id={})> not found'.format(user_id))
+            elif user not in review_users:
                 review_users.append(user)
             else:
                 return forbidden(

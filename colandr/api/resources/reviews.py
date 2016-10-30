@@ -105,9 +105,11 @@ class ReviewsResource(Resource):
     def post(self, args, test):
         name = args.pop('name')
         review = Review(name, g.current_user.id, **args)
+        g.current_user.owned_reviews.append(review)
+        g.current_user.reviews.append(review)
+        db.session.add(review)
         if test is False:
-            g.current_user.owned_reviews.append(review)
-            g.current_user.reviews.append(review)
-            db.session.add(review)
             db.session.commit()
+        else:
+            db.session.rollback()
         return ReviewSchema().dump(review).data

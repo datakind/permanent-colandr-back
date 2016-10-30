@@ -46,11 +46,11 @@
         - [x] improve documentation on all endpoints, as needed
         - [ ] improve interactive swagger html page (optional)
     - deployment
-        - [ ] deploy data and API on Heroku or AWS or OVH or academic server
+        - [x] deploy data and API on Heroku or AWS or OVH or academic server
     - security
         - [ ] enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
 - **NLP (for ranking citations)**
     - [x] improve initial ranking from reviewer terms
-    - [ ] implement automatic term recognition with scoring for 2nd-stage ranking
+    - [x] implement automatic term recognition with scoring for 2nd-stage ranking
     - [ ] implement ML-based ranking based on user-labeled citations
     - [ ] automatically switch and/or hybridize methods depending on metrics, e.g. observed inclusion rate vs. baseline inclusion rate

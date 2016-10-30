@@ -19,8 +19,9 @@ celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
 from .api.authentication import AuthTokenResource
 from .api.errors import no_data_found
+from .api.resources.user_registration import UserRegistrationResource, ConfirmUserRegistrationResource
+from .api.resources.password_reset import PasswordResetResource, ConfirmPasswordResetResource
 from .api.resources.users import UserResource, UsersResource
-from .api.resources.user_registration import ConfirmUserResource, RegisterUserResource
 from .api.resources.reviews import ReviewResource, ReviewsResource
 from .api.resources.review_plans import ReviewPlanResource
 from .api.resources.review_teams import ReviewTeamResource, ConfirmReviewTeamInviteResource
@@ -57,8 +58,10 @@ def create_app(config_name):
     #     description='Colandr API')
     # api = Api(app)
 
-    api.add_resource(RegisterUserResource, '/register')
-    api.add_resource(ConfirmUserResource, '/confirm')
+    api.add_resource(UserRegistrationResource, '/register')
+    api.add_resource(ConfirmUserRegistrationResource, '/register/<token>')
+    api.add_resource(PasswordResetResource, '/reset')
+    api.add_resource(ConfirmPasswordResetResource, '/reset/<token>')
     api.add_resource(AuthTokenResource, '/authtoken')
     api.add_resource(UsersResource, '/users')
     api.add_resource(UserResource, '/users/<int:id>')

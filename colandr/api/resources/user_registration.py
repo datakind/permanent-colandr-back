@@ -12,7 +12,7 @@ from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
 
 
-class RegisterUserResource(Resource):
+class UserRegistrationResource(Resource):
 
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
@@ -26,9 +26,11 @@ class RegisterUserResource(Resource):
                 db.session.rollback()
                 return db_integrity(str(e.orig))
             token = generate_confirmation_token(user.email)
-            confirm_url = url_for('confirmuserresource', token=token, _external=True)
+            confirm_url = url_for(
+                'confirmuserregistrationresource', token=token, _external=True)
             html = render_template(
-                'emails/user_confirmation.html', confirm_url=confirm_url)
+                'emails/user_registration.html',
+                username=user.name, confirm_url=confirm_url)
             send_email.apply_async(
                 args=[[user.email], 'Confirm your email', '', html])
             remove_unconfirmed_user.apply_async(
@@ -37,9 +39,9 @@ class RegisterUserResource(Resource):
         return UserSchema().dump(user).data
 
 
-class ConfirmUserResource(Resource):
+class ConfirmUserRegistrationResource(Resource):
 
-    @use_kwargs({'token': ma_fields.String(required=True)})
+    @use_kwargs({'token': ma_fields.String(required=True, location='view_args')})
     def get(self, token):
         try:
             email = confirm_token(token)

@@ -86,10 +86,12 @@ class UserResource(Resource):
         user = db.session.query(User).get(id)
         if not user:
             return no_data_found('<User(id={})> not found'.format(id))
+        db.session.delete(user)
         if test is False:
-            db.session.delete(user)
             db.session.commit()
             return '', 204
+        else:
+            db.session.rollback()
 
     @swagger.doc({
         'tags': ['users'],
@@ -161,15 +163,19 @@ class UsersResource(Resource):
                 return unauthorized(
                     '{} not authorized to see users for this review'.format(
                         g.current_user))
-            users = review.users
-            return UserSchema(many=True).dump(users).data
+            return UserSchema(many=True).dump(review.users).data
 
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
+        # TODO: enable this
+        # if g.current_user.is_admin is False:
+        #     return unauthorized('only admins can add users without confirmation')
         user = User(**args)
         user.is_confirmed = True
+        db.session.add(user)
         if test is False:
-            db.session.add(user)
             db.session.commit()
+        else:
+            db.session.rollback()
         return UserSchema().dump(user).data
