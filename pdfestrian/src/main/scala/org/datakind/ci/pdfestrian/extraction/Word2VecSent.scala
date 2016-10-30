@@ -9,9 +9,9 @@ import scala.io.Source
   * Created by sameyeam on 8/3/16.
   */
 object Word2VecSent {
-  val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.300d.txt")).getLines().map { word =>
+  val vectors = Source.fromInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt")).getLines().map { word =>
     val split = word.split(" ")
-    split.head -> new DenseTensor1(split.takeRight(300).map{_.toDouble}.toArray)
+    split.head -> split.takeRight(50).map{_.toFloat}
   }.toMap
   var  i = -1
    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts.old")).getLines().map{ s =>
@@ -25,7 +25,7 @@ object Word2VecSent {
 
   val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
 
-  val featureSize = 301
+  val featureSize = 51
 
   def clean(string : String) : String = {
     val lower = string.toLowerCase()
@@ -36,7 +36,6 @@ object Word2VecSent {
   val idf = new DenseTensor1(arrayCounts.map{a => math.log(N.toDouble/a.toDouble)}.toArray)
 
   def apply(sentence : Sentence, location : Double) : DenseTensor1 = {
-    //val counts = new Array[Int](featureSize)
     val tensor = new DenseTensor1(featureSize)
     var wordsInTensor = 0
     for(token <- sentence.tokens) {
@@ -44,15 +43,14 @@ object Word2VecSent {
       if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
         if(wordCounts.contains(current) && vectors.contains(current)) {
           val count = wordCounts(current)
-          tensor += (vectors(current) * idf(count._2))
+          tensor += (new DenseTensor1(vectors(current).map{_.toDouble}) * idf(count._2))
           wordsInTensor += 1
         }
       }
     }
     tensor /= wordsInTensor.toDouble
-    //tensor *= idf
     tensor /= tensor.twoNorm
-    tensor(300) = location
+    tensor(50) = location
     tensor
   }
 

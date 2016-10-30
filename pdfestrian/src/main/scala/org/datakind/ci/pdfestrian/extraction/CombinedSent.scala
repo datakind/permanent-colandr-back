@@ -8,7 +8,7 @@ import cc.factorie.la.SparseTensor1
   * Created by sam on 8/26/16.
   */
 object CombinedSent {
-  val featureSize = Word2Vec.featureSize + TfIdf.featureSize + 1
+  val featureSize = Word2VecSent.featureSize + TfIdfSent.featureSize
 
   def apply(doc : Sentence, location : Double, name : String) : SparseTensor1 = {
     val sparseTensor = new SparseTensor1(featureSize)
@@ -17,13 +17,9 @@ object CombinedSent {
       sparseTensor(i._1) = i._2
     }
     val w2v = Word2VecSent(doc, location)
-    for(i <- 0 until Word2Vec.featureSize) {
-      sparseTensor(i+TfIdf.featureSize) = w2v(i)
+    for(i <- 0 until Word2VecSent.featureSize) {
+      sparseTensor(i+TfIdfSent.featureSize) = w2v(i)
     }
-    //val lda = LDAVectorize(name)
-    //for(i <- 0 until LDAVectorize.featureSize) {
-    //  sparseTensor(i+TfIdf.featureSize + Word2Vec.featureSize) = lda(i)
-    //}
     sparseTensor
   }
 

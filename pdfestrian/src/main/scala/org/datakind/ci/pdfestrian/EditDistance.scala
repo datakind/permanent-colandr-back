@@ -3,11 +3,7 @@ package org.datakind.ci.pdfestrian
 /**
   * Created by samanzaroot on 6/2/16.
   */
-import java.util.HashMap
-import java.util.Scanner
-
 import com.sun.corba.se.spi.orb.StringPair
-
 import scala.collection.mutable
 
 /**
@@ -38,7 +34,7 @@ class EditDistance {
   def memoizedEditDist(s1 : String, s2 : String) : Int = {
     solvedProblems = new mutable.HashMap[StringPair, Integer]()
 
-    return editDist(s1, s2);
+    editDist(s1, s2)
   }
 
 
@@ -57,34 +53,34 @@ class EditDistance {
     var swapDist = 0;    // edit distance for twiddle (first 2 char. must swap).
 
     if(s1.length() == 0)
-      return s2.length();   // Insert the remainder of s2
+      s2.length();   // Insert the remainder of s2
     else  if (s2.length()== 0)
-      return s1.length();   // Delete the remainder of s1
+      s1.length();   // Delete the remainder of s1
     else {
-      val pair =new  StringPair(s1, s2);
-      val result = solvedProblems.get(pair);
+      val pair =new  StringPair(s1, s2)
+      val result = solvedProblems.get(pair)
 
       if(result.isDefined)  // Did we find the subproblem in the map?
-        return result.get;    // If so, return the answer
+         result.get;    // If so, return the answer
       else {
-        matchDist = editDist(s1.substring(1), s2.substring(1));
+        matchDist = editDist(s1.substring(1), s2.substring(1))
         if(s1.charAt(0) != s2.charAt(0))
           matchDist += 1;  // If first 2 char. don't match must replace
 
-        insertDist = editDist(s1.substring(1), s2) + 1;
-        deleteDist = editDist(s1, s2.substring(1)) + 1;
+        insertDist = editDist(s1.substring(1), s2) + 1
+        deleteDist = editDist(s1, s2.substring(1)) + 1
 
         if(s1.length() > 1 && s2.length() > 1 &&
           s1.charAt(0) == s2.charAt(1) && s1.charAt(1) == s2.charAt(0))
-          swapDist = editDist(s1.substring(2), s2.substring(2)) + 1;
+          swapDist = editDist(s1.substring(2), s2.substring(2)) + 1
         else
           swapDist = Integer.MAX_VALUE;  // Can't swap if first 2 char. don't match
 
-        val dist = Math.min(matchDist, Math.min(insertDist, Math.min(deleteDist, swapDist)));
+        val dist = Math.min(matchDist, Math.min(insertDist, Math.min(deleteDist, swapDist)))
 
-        solvedProblems.put(pair, dist);  // Save the result for future
+        solvedProblems.put(pair, dist)  // Save the result for future
 
-        return dist;
+        dist
       }
     }
   }
