@@ -8,14 +8,13 @@ from marshmallow.validate import Length, OneOf, Range, URL
 from webargs.flaskparser import use_kwargs
 
 from sqlalchemy import create_engine
-from sqlalchemy.dialects.postgresql import insert
 
 from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations
 from ..errors import no_data_found, unauthorized, validation
-from ..schemas import CitationSchema, DataSourceSchema, ImportSchema, StudySchema
+from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
 
 
@@ -87,35 +86,33 @@ class CitationsImportsResource(Resource):
             db.session.commit()
             data_source_id = data_source.id
         else:
-            db.session.rollback()
-            return ''
+            data_source_id = 0
 
+        # TODO: make this an async task
         engine = create_engine(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert
         citation_schema = CitationSchema()
         citations_to_insert = []
-        if status in {'included', 'excluded'}:
-            for record in citations_file.parse():
-                record['review_id'] = review_id
-                citations_to_insert.append(citation_schema.load(record).data)
-        else:
-            for record in citations_file.parse():
-                record['review_id'] = review_id
-                record['status'] = status
-                citations_to_insert.append(citation_schema.load(record).data)
+        for record in citations_file.parse():
+            record['review_id'] = review_id
+            citations_to_insert.append(citation_schema.load(record).data)
 
         user_id = g.current_user.id
         studies_to_insert = [
             {'user_id': user_id,
              'review_id': review_id,
-             'data_source_id': data_source_id}
+             'data_source_id': data_source_id,
+             'citation_status': status}
             for i in range(len(citations_to_insert))]
 
+        if test is True:
+            db.session.rollback()
+            return
+
         # insert studies, and get their primary keys _back_
-        stmt = db.insert(Study).values(studies_to_insert)\
-            .returning(Study.id)
+        stmt = db.insert(Study).values(studies_to_insert).returning(Study.id)
         with engine.connect() as conn:
             study_ids = [result[0] for result in conn.execute(stmt)]
 
@@ -142,7 +139,7 @@ class CitationsImportsResource(Resource):
             review_id, user_id, data_source_id, 'citation', len(study_ids),
             status=status)
         db.session.add(citations_import)
-
         db.session.commit()
 
+        # lastly, don't forget to deduplicate the citations
         deduplicate_citations.apply_async(args=[review_id], countdown=60)

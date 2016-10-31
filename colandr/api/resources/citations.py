@@ -216,7 +216,7 @@ class CitationsResource(Resource):
         'source_url': ma_fields.Str(
             missing=None, validate=[URL(relative=False), Length(max=500)]),
         'status': ma_fields.Str(
-            missing=None, validate=OneOf(['included', 'excluded'])),
+            missing=None, validate=OneOf(['not_screened', 'included', 'excluded'])),
         'test': ma_fields.Boolean(missing=False)
         })
     def post(self, args, review_id, source_type, source_name, source_url,
@@ -249,6 +249,8 @@ class CitationsResource(Resource):
 
         # add the study
         study = Study(g.current_user.id, review_id, data_source.id)
+        if status is not None:
+            study.citation_status = status
         db.session.add(study)
         db.session.commit()
 
@@ -258,5 +260,8 @@ class CitationsResource(Resource):
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()
+
+        # TODO: what about deduplication?!
+        # TODO: what about adding *multiple* citations via this endpoint?
 
         return CitationSchema().dump(citation).data

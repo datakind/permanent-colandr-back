@@ -11,7 +11,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants
-from ...models import db, Citation, CitationScreening, Fulltext, Review, User
+from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
 from ..utils import assign_status
@@ -224,8 +224,8 @@ class CitationsScreeningsResource(Resource):
         citation_ids = sorted(s['citation_id'] for s in screenings_to_insert)
         # results = db.session.query(CitationScreening)\
         #     .filter(CitationScreening.citation_id.in_(citation_ids))
-        # citations_to_update = [
-        #     {'id': cid, 'status': assign_status(list(scrns), num_screeners)}
+        # studies_to_update = [
+        #     {'id': cid, 'citation_status': assign_status(list(scrns), num_screeners)}
         #     for cid, scrns in itertools.groupby(results, attrgetter('citation_id'))
         #     ]
         with db.engine.connect() as connection:
@@ -237,25 +237,23 @@ class CitationsScreeningsResource(Resource):
                 ORDER BY citation_id
                 """.format(citation_ids=','.join(str(cid) for cid in citation_ids))
             results = connection.execute(query)
-        citations_to_update = [
-            {'id': row[0], 'status': assign_status(row[1], num_screeners)}
+        studies_to_update = [
+            {'id': row[0], 'citation_status': assign_status(row[1], num_screeners)}
             for row in results]
         if test is False:
             db.session.bulk_update_mappings(
-                Citation, citations_to_update)
+                Study, studies_to_update)
             db.session.commit()
-            # add fulltexts for included citations
-            cids_need_fulltexts = """
-                SELECT citations.id
-                FROM citations
-                LEFT JOIN fulltexts ON citations.id = fulltexts.id
-                WHERE
-                    citations.review_id = {review_id}
-                    AND citations.status = 'included'
-                    AND fulltexts.id IS NULL
-                ORDER BY citations.id
-                """.format(review_id=review_id)
-            citation_ids = [row[0] for row in db.engine.execute(cids_need_fulltexts)]
-            for cid in citation_ids:
-                db.session.add(Fulltext(cid, review_id))
+            # now add fulltexts for included citations
+            # normally this is done automatically, but not when we're hacking
+            # and doing bulk changes to the database
+            results = db.session.query(Study.id)\
+                .filter_by(review_id=review_id)\
+                .filter_by(citation_status='included')\
+                .filter(~Study.fulltext.has())\
+                .order_by(Study.id)
+            fulltexts_to_insert = [
+                {'id': result[0], 'review_id': review_id}
+                for result in results]
+            db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
             db.session.commit()

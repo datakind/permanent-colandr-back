@@ -13,7 +13,8 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants
-from ...models import db, FulltextScreening, Fulltext, Review, User
+from ...models import (db, DataExtraction, FulltextScreening, Fulltext,
+                       Review, Study, User)
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
 from ..utils import assign_status
@@ -230,8 +231,8 @@ class FulltextsScreeningsResource(Resource):
         fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
         # results = db.session.query(FulltextScreening)\
         #     .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
-        # fulltexts_to_update = [
-        #     {'id': cid, 'status': assign_status(list(scrns), num_screeners)}
+        # studies_to_update = [
+        #     {'id': cid, 'fulltext_status': assign_status(list(scrns), num_screeners)}
         #     for cid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
         #     ]
         with db.engine.connect() as connection:
@@ -243,54 +244,23 @@ class FulltextsScreeningsResource(Resource):
                 ORDER BY fulltext_id
                 """.format(fulltext_ids=','.join(str(cid) for cid in fulltext_ids))
             results = connection.execute(query)
-        fulltexts_to_update = [
-            {'id': row[0], 'status': assign_status(row[1], num_screeners)}
+        studies_to_update = [
+            {'id': row[0], 'fulltext_status': assign_status(row[1], num_screeners)}
             for row in results]
         if test is False:
             db.session.bulk_update_mappings(
-                Fulltext, fulltexts_to_update)
+                Study, studies_to_update)
             db.session.commit()
-
-    # @swagger.operation()
-    # @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
-    # @use_kwargs({
-    #     'review_id': ma_fields.Int(
-    #         location='query',
-    #         missing=None, validate=Range(min=1, max=constants.MAX_INT)),
-    #     'test': ma_fields.Boolean(
-    #         location='query', missing=False)
-    #     })
-    # def post(self, args, review_id, test):
-    #     # check current user authorization
-    #     review = db.session.query(Review).get(review_id)
-    #     if not review:
-    #         return no_data_found(
-    #             '<Review(id={})> not found'.format(review_id))
-    #     if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
-    #         return unauthorized(
-    #             '{} not authorized to screen fulltexts for {}'.format(
-    #                 g.current_user, review))
-    #     # bulk insert fulltext screenings
-    #     user_id = g.current_user.id
-    #     screenings_to_insert = []
-    #     for screening in args:
-    #         screening['review_id'] = review_id
-    #         screening['user_id'] = user_id
-    #         screenings_to_insert.append(screening)
-    #     if test is False:
-    #         db.session.bulk_insert_mappings(
-    #             FulltextScreening, screenings_to_insert)
-    #         db.session.commit()
-    #     # bulk update fulltext statuses
-    #     num_screeners = review.num_fulltext_screening_reviewers
-    #     fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
-    #     results = db.session.query(FulltextScreening)\
-    #         .filter(FulltextScreening.fulltext_id.in_(fulltext_ids))
-    #     fulltexts_to_update = [
-    #         {'id': fid, 'status': assign_status(list(scrns), num_screeners)}
-    #         for fid, scrns in itertools.groupby(results, attrgetter('fulltext_id'))
-    #         ]
-    #     if test is False:
-    #         db.session.bulk_update_mappings(
-    #             Fulltext, fulltexts_to_update)
-    #         db.session.commit()
+            # now add data extractions for included fulltexts
+            # normally this is done automatically, but not when we're hacking
+            # and doing bulk changes to the database
+            results = db.session.query(Study.id)\
+                .filter_by(review_id=review_id)\
+                .filter_by(fulltext_status='included')\
+                .filter(~Study.data_extraction.has())\
+                .order_by(Study.id)
+            data_extractions_to_insert = [
+                {'id': result[0], 'review_id': review_id}
+                for result in results]
+            db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
+            db.session.commit()

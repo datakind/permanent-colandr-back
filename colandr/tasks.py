@@ -101,7 +101,7 @@ def deduplicate_citations(review_id):
 
         # if all studies have been deduped, cancel
         stmt = select(
-            [exists().where(Study.review_id == review_id).where(~Study.dedupe.has())])
+            [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
         un_deduped_studies = conn.execute(stmt).fetchone()[0]
         if un_deduped_studies is False:
             print('all studies for <Review(id={})> already deduped!'.format(review_id))
@@ -225,7 +225,7 @@ def deduplicate_citations(review_id):
         all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
         duplicate_cids = set()
 
-        citations_to_update = []
+        studies_to_update = []
         dedupes_to_insert = []
         for cids, scores in clustered_dupes:
             cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
@@ -253,20 +253,21 @@ def deduplicate_citations(review_id):
             for cid, score in cid_scores.items():
                 if cid != canonical_citation_id:
                     duplicate_cids.add(cid)
-                    citations_to_update.append(
-                        {'id': cid, 'status': 'excluded'})
+                    studies_to_update.append(
+                        {'id': cid,
+                         'dedupe_status': 'duplicate',
+                         'citation_status': 'excluded'})
                     dedupes_to_insert.append(
                         {'id': cid,
                          'review_id': review_id,
-                         'status': 'is_duplicate',
                          'duplicate_of': canonical_citation_id,
                          'duplicate_score': score})
         non_duplicate_cids = all_cids - duplicate_cids
-        dedupes_to_insert.extend(
-            {'id': cid, 'review_id': review_id, 'status': 'not_duplicate'}
+        studies_to_update.extend(
+            {'id': cid, 'dedupe_status': 'not_duplicate'}
             for cid in non_duplicate_cids)
         session = Session(bind=conn)
-        session.bulk_update_mappings(Citation, citations_to_update)
+        session.bulk_update_mappings(Study, studies_to_update)
         session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
         session.commit()
 

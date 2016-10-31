@@ -496,18 +496,11 @@ def main():
             auth=auth)
         print('POST:', response.url)
 
-    # HACK: normally, these are added automatically when a fulltext is marked
-    # as "included", but that doesn't work when bulk importing as above
-    with app.app_context():
-        extracted_data_to_insert = [
-            DataExtraction(fid[0], review_id) for fid
-            in db.session.query(Fulltext.id).filter_by(status='included')]
-        db.session.bulk_save_objects(extracted_data_to_insert)
-        db.session.commit()
-
     if args['last'] == 'fulltext_screenings':
         LOGGER.warning('stopping db repopulation at "fulltext_screenings"')
         return
+
+    # TODO: data extraction stuff
 
     # let's get an authentication token for our current user, again again
     auth = get_auth_token(

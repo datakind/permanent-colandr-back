@@ -7,7 +7,7 @@ from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
 from ...lib import constants
-from ...models import db, Citation, Fulltext, Review
+from ...models import db, Review, Study
 from ..errors import no_data_found, unauthorized
 from ..authentication import auth
 
@@ -22,7 +22,8 @@ class ReviewProgressResource(Resource):
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'step': ma_fields.Str(
-            validate=OneOf(['planning', 'citations', 'fulltexts', 'extraction', 'all']),
+            validate=OneOf(['planning', 'citation_screening', 'fulltext_screening',
+                            'data_extraction', 'all']),
             missing='all'),
         'user_view': ma_fields.Bool(missing=False),
         })
@@ -45,62 +46,70 @@ class ReviewProgressResource(Resource):
                         }
             response['planning'] = {key: val for key, val in progress.items()
                                     if val is True}
-        if step in ('citations', 'all'):
+        if step in ('citation_screening', 'all'):
             if user_view is False:
-                progress = db.session.query(Citation.status, db.func.count(1))\
+                progress = db.session.query(Study.citation_status, db.func.count(1))\
                     .filter_by(review_id=id)\
-                    .group_by(Citation.status)\
+                    .group_by(Study.citation_status)\
+                    .having(Study.citation_status != None)\
                     .all()
             else:
                 query = """
                     SELECT
                         (CASE
-                             WHEN status IN ('included', 'excluded', 'conflict') THEN status
-                             WHEN status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
-                             WHEN status IN ('screened_once', 'screened_twice') AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
+                             WHEN citation_status IN ('included', 'excluded', 'conflict') THEN citation_status
+                             WHEN citation_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
+                             WHEN citation_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
                          END) AS user_status,
-                         COUNT(1)
-                    FROM (SELECT citations.id, citations.status, screenings.user_ids
-                          FROM citations
+                         COUNT(*)
+                    FROM (SELECT studies.id, studies.citation_status, screenings.user_ids
+                          FROM studies
                           LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM citation_screenings
                                      GROUP BY citation_id
                                      ) AS screenings
-                          ON citations.id = screenings.citation_id
+                          ON studies.id = screenings.citation_id
                           ) AS t
+                    WHERE citation_status IS NOT NULL
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]
-            response['citations'] = dict(progress)
-        if step in ('fulltexts', 'all'):
+            response['citation_screening'] = dict(progress)
+        if step in ('fulltext_screening', 'all'):
             if user_view is False:
-                progress = db.session.query(Fulltext.status, db.func.count(1))\
+                progress = db.session.query(Study.fulltext_status, db.func.count(1))\
                     .filter_by(review_id=id)\
-                    .group_by(Fulltext.status)\
+                    .group_by(Study.fulltext_status)\
+                    .having(Study.fulltext_status != None)\
                     .all()
             else:
                 query = """
                     SELECT
                         (CASE
-                             WHEN status IN ('included', 'excluded', 'conflict') THEN status
-                             WHEN status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
-                             WHEN status IN ('screened_once', 'screened_twice') AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
+                             WHEN fulltext_status IN ('included', 'excluded', 'conflict') THEN fulltext_status
+                             WHEN fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
+                             WHEN fulltext_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
                          END) AS user_status,
                          COUNT(1)
-                    FROM (SELECT fulltexts.id, fulltexts.status, screenings.user_ids
-                          FROM fulltexts
+                    FROM (SELECT studies.id, studies.fulltext_status, screenings.user_ids
+                          FROM studies
                           LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM fulltext_screenings
                                      GROUP BY fulltext_id
                                      ) AS screenings
-                          ON fulltexts.id = screenings.fulltext_id
+                          ON studies.id = screenings.fulltext_id
                           ) AS t
+                    WHERE fulltext_status IS NOT NULL
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]
-            response['fulltexts'] = dict(progress)
-        if step == 'extraction':
-            # TODO
-            raise NotImplementedError('working on it! -- Burton')
+            response['fulltext_screening'] = dict(progress)
+        if step in ('data_extraction', 'all'):
+            progress = db.session.query(Study.data_extraction_status, db.func.count(1))\
+                .filter_by(review_id=id)\
+                .group_by(Study.data_extraction_status)\
+                .having(Study.data_extraction_status != None)\
+                .all()
+            response['data_extraction'] = dict(progress)
 
         return response

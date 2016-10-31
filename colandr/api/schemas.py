@@ -194,8 +194,6 @@ class DedupeSchema(Schema):
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
-    status = fields.Str(
-        required=True, validate=OneOf(['is_duplicate', 'not_duplicate']))
     duplicate_of = fields.Int(
         missing=None, validate=Range(min=1, max=constants.MAX_BIGINT))
     duplicate_score = fields.Float(
@@ -238,9 +236,6 @@ class CitationSchema(Schema):
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
-    status = fields.Str(
-        dump_only=True,
-        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
     type_of_work = fields.Str(
         validate=Length(max=25))
     title = fields.Str(
@@ -301,14 +296,10 @@ class FulltextSchema(Schema):
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
-    status = fields.Str(
-        dump_only=True,
-        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
     filename = fields.Str(
         validate=Length(max=30))
     screenings = fields.Nested(
         ScreeningSchema, many=True, dump_only=True)
-    # study = fields.Nested(StudySchema, dump_only=True)
 
     class Meta:
         strict = True
@@ -317,10 +308,8 @@ class FulltextSchema(Schema):
 class ExtractedItem(Schema):
     label = fields.Str(
         required=True, validate=Length(max=25))
-    # validation handled in API Resource
-    # based on values in DataExtractionFormItem
-    value = fields.Raw(
-        required=True)
+    # validation handled in API Resource based on values in DataExtractionFormItem
+    value = fields.Raw(required=True)
 
     class Meta:
         strict = True
@@ -335,8 +324,6 @@ class DataExtractionSchema(Schema):
         dump_only=True, format='iso')
     review_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
-    status = fields.Str(
-        dump_only=True, validate=OneOf(['not_started', 'incomplete', 'complete']))
     extracted_items = fields.Nested(
         ExtractedItem, many=True)
 
@@ -363,10 +350,21 @@ class StudySchema(Schema):
         DedupeSchema, dump_only=True)
     citation = fields.Nested(
         CitationSchema, dump_only=True)
+    dedupe_status = fields.Str(
+        dump_only=True,
+        validate=OneOf(['duplicate', 'not_duplicate']))
+    citation_status = fields.Str(
+        dump_only=True,
+        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
     fulltext = fields.Nested(
         FulltextSchema, dump_only=True)
+    fulltext_status = fields.Str(
+        dump_only=True,
+        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
     data_extraction = fields.Nested(
         DataExtractionSchema, dump_only=True)
+    data_extraction_status = fields.Str(
+        dump_only=True, validate=OneOf(['not_started', 'incomplete', 'complete']))
 
     class Meta:
         strict = True
