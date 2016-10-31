@@ -11,8 +11,8 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
-from ...models import (db, Citation, Fulltext, DataExtraction,
-                       FulltextScreening, Review, ReviewPlan)
+from ...models import (db, Citation, Fulltext, DataExtraction, DataSource, Dedupe,
+                       FulltextScreening, Import, Review, ReviewPlan, Study)
 from ...lib import constants
 from ..errors import no_data_found, unauthorized
 from ..authentication import auth
@@ -36,51 +36,57 @@ class ReviewExportPrismaResource(Resource):
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
         # get counts by step, i.e. prisma
-        n_citations_by_status = dict(
-            db.session.query(Citation.status, db.func.count(1))
-            .filter_by(review_id=id)
-            .group_by(Citation.status)
+        n_studies_by_source = dict(
+            db.session.query(DataSource.source_type, db.func.sum(Import.num_records))
+            .filter(Import.data_source_id == DataSource.id)
+            .filter(Import.review_id == 1)
+            .group_by(DataSource.source_type)
             .all())
-        n_dupe_citations = db.session.query(Citation)\
-            .filter_by(review_id=id)\
-            .filter(Citation.deduplication['is_duplicate'].astext == 'true')\
+
+        n_unique_studies = db.session.query(Study)\
+            .filter(Study.review_id == 1)\
+            .filter_by(dedupe_status='not_duplicate')\
             .count()
-        n_all_citations = sum(n_citations_by_status.values())
-        n_unique_citations = n_all_citations - n_dupe_citations
-        n_screened_citations = n_citations_by_status['included'] + n_citations_by_status['excluded']
-        n_excluded_citations = n_citations_by_status['excluded']
 
-        n_incl_excl_fulltexts = dict(
-            db.session.query(Fulltext.status, db.func.count(1))
-            .filter_by(review_id=id)
-            .filter(Fulltext.status.in_(['included', 'excluded']))
-            .group_by(Fulltext.status)
+        n_citations_by_status = dict(
+            db.session.query(Study.citation_status, db.func.count(1))
+            .filter(Study.review_id == 1)
+            .filter(Study.citation_status.in_(['included', 'excluded']))
+            .group_by(Study.citation_status)
             .all())
-        n_screened_fulltexts = sum(n_incl_excl_fulltexts.values())
-        n_excluded_fulltexts = n_incl_excl_fulltexts['excluded']
+        n_citations_screened = sum(n_citations_by_status.values())
+        n_citations_excluded = n_citations_by_status.get('excluded', 0)
 
-        results = db.session.query(Fulltext.id, FulltextScreening.exclude_reasons)\
-            .filter(Fulltext.id == FulltextScreening.fulltext_id)\
-            .filter(Fulltext.review_id == id)\
-            .filter(Fulltext.status == 'excluded')\
+        n_fulltexts_by_status = dict(
+            db.session.query(Study.fulltext_status, db.func.count(1))
+            .filter(Study.review_id == 1)
+            .filter(Study.fulltext_status.in_(['included', 'excluded']))
+            .group_by(Study.fulltext_status)
+            .all())
+        n_fulltexts_screened = sum(n_fulltexts_by_status.values())
+        n_fulltexts_excluded = n_fulltexts_by_status.get('excluded', 0)
+
+        results = db.session.query(FulltextScreening.exclude_reasons)\
+            .filter(FulltextScreening.review_id == 1)\
             .all()
         exclude_reason_counts = dict(collections.Counter(
-            itertools.chain.from_iterable(result[1] for result in results)))
+            itertools.chain.from_iterable(
+                [result[0] for result in results if result[0] is not None])))
 
-        n_studies_data_extracted = db.session.query(DataExtraction)\
-            .filter_by(review_id=id)\
-            .filter(DataExtraction.extracted_items != {})\
+        n_data_extractions = db.session.query(Study)\
+            .filter(Study.review_id == 1)\
+            .filter_by(data_extraction_status='complete')\
             .count()
 
         return {
-            'n_all_citations': n_all_citations,
-            'n_unique_citations': n_unique_citations,
-            'n_screened_citations': n_screened_citations,
-            'n_excluded_citations': n_excluded_citations,
-            'n_screened_fulltexts': n_screened_fulltexts,
-            'n_excluded_fulltexts': n_excluded_fulltexts,
+            'num_studies_by_source': n_studies_by_source,
+            'num_unique_studies': n_unique_studies,
+            'num_screened_citations': n_citations_screened,
+            'num_excluded_citations': n_citations_excluded,
+            'num_screened_fulltexts': n_fulltexts_screened,
+            'num_excluded_fulltexts': n_fulltexts_excluded,
             'exclude_reason_counts': exclude_reason_counts,
-            'n_studies_data_extracted': n_studies_data_extracted
+            'num_studies_data_extracted': n_data_extractions
             }
 
 
