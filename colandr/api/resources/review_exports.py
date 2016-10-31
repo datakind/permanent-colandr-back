@@ -90,7 +90,7 @@ class ReviewExportPrismaResource(Resource):
             }
 
 
-class ReviewExportRefsResource(Resource):
+class ReviewExportStudiesResource(Resource):
 
     method_decorators = [auth.login_required]
 
@@ -99,24 +99,25 @@ class ReviewExportRefsResource(Resource):
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
-        'status': ma_fields.Str(
-            missing=None, validate=OneOf(['included', 'excluded'])),
         'extracted_data': ma_fields.Bool(missing=False)
         })
-    def get(self, id, status, extracted_data):
+    def get(self, id, extracted_data):
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
         if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get this review'.format(g.current_user))
+
+        query = db.session.query(Study)\
+            .filter_by(review_id=id)\
+            .all()
+
         query = db.session.query(Fulltext)\
             .filter_by(review_id=id)\
             .options(db.joinedload(Fulltext.citation))
         if extracted_data is True:
             query = query.options(db.joinedload(Fulltext.extracted_data))
-        if status is not None:
-            query = query.filter(Fulltext.status == status)
 
         fieldnames = ['title', 'authors', 'journal_name', 'journal_volume', 'pub_year',
                       'status', 'exclude_reasons']
