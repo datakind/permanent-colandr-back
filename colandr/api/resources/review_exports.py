@@ -8,10 +8,10 @@ from flask_restful import Resource
 from flask_restful_swagger import swagger
 
 from marshmallow import fields as ma_fields
-from marshmallow.validate import OneOf, Range
+from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
-from ...models import (db, Citation, Fulltext, DataExtraction, DataSource, Dedupe,
+from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
 from ...lib import constants
 from ..errors import no_data_found, unauthorized
@@ -99,9 +99,8 @@ class ReviewExportStudiesResource(Resource):
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
-        'extracted_data': ma_fields.Bool(missing=False)
         })
-    def get(self, id, extracted_data):
+    def get(self, id):
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -111,63 +110,79 @@ class ReviewExportStudiesResource(Resource):
 
         query = db.session.query(Study)\
             .filter_by(review_id=id)\
-            .all()
+            .order_by(Study.id)
 
-        query = db.session.query(Fulltext)\
-            .filter_by(review_id=id)\
-            .options(db.joinedload(Fulltext.citation))
-        if extracted_data is True:
-            query = query.options(db.joinedload(Fulltext.extracted_data))
+        fieldnames = [
+            'study_id',
+            'deduplication_status',
+            'citation_screening_status',
+            'fulltext_screening_status',
+            'data_extraction_screening_status',
+            'data_source_type',
+            'data_source_name',
+            'data_source_url',
+            'citation_title',
+            'citation_abstract',
+            'citation_authors',
+            'citation_journal_name',
+            'citation_journal_volume',
+            'citation_pub_year',
+            'citation_keywords',
+            'fulltext_filename',
+            'fulltext_exclude_reasons'
+            ]
 
-        fieldnames = ['title', 'authors', 'journal_name', 'journal_volume', 'pub_year',
-                      'status', 'exclude_reasons']
-        rows = []
-        if extracted_data is False:
-            rows.append(fieldnames)
-            for result in query:
-                rows.append([result.citation.title,
-                             '; '.join(result.citation.authors),
-                             result.citation.journal_name,
-                             result.citation.volume,
-                             result.citation.pub_year,
-                             result.status,
-                             '; '.join(result.exclude_reasons)
-                             ])
-        else:
-            rows.append(fieldnames)
-            data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
-                .filter(ReviewPlan.review_id == id).one_or_none()
-            if not data_extraction_form:
-                raise Exception
-            extraction_labels = sorted(item['label'] for item in data_extraction_form[0])
+        data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
+            .filter_by(id=1).one_or_none()
+        if data_extraction_form:
+            extraction_labels = [item['label'] for item in data_extraction_form[0]]
+            extraction_types = [item['field_type'] for item in data_extraction_form[0]]
             fieldnames.extend(extraction_labels)
-            for result in query:
-                row = [result.citation.title,
-                       '; '.join(result.citation.authors),
-                       result.citation.journal_name,
-                       result.citation.volume,
-                       result.citation.pub_year,
-                       result.status,
-                       '; '.join(result.exclude_reasons)
-                       ]
-                try:
-                    extracted_data = {item['label']: item['value']
-                                      for item in result.extracted_data.extracted_data}
-                except (AttributeError, TypeError):
+
+        rows = []
+        for study in query:
+            row = [
+                study.id,
+                study.dedupe_status,
+                study.citation_status,
+                study.fulltext_status,
+                study.data_extraction_status,
+                study.data_source.source_type,
+                study.data_source.source_name,
+                study.data_source.source_url,
+                study.citation.title,
+                study.citation.abstract,
+                '; '.join(study.citation.authors) if study.citation.authors else None,
+                study.citation.journal_name,
+                study.citation.volume,
+                study.citation.pub_year,
+                '; '.join(study.citation.keywords) if study.citation.keywords else None,
+                ]
+            if study.fulltext:
+                row.extend(
+                    [None,  # TODO: study.fulltext.original_filename
+                     '; '.join(study.fulltext.exclude_reasons) if study.fulltext.exclude_reasons else None]
+                    )
+            else:
+                row.extend([None, None])
+            if data_extraction_form:
+                if study.data_extraction:
+                    extracted_data = {
+                        item['label']: item['value']
+                        for item in study.data_extraction.extracted_items}
+                    row.extend(
+                        '; '.join(extracted_data.get(label, [])) if type_ in ('select_one', 'select_many')
+                        else extracted_data.get(label, None)
+                        for label, type_ in zip(extraction_labels, extraction_types)
+                        )
+                else:
                     row.extend(None for _ in range(len(extraction_labels)))
-                    rows.append(row)
-                    continue
-                for label in extraction_labels:
-                    value = extracted_data.get(label)
-                    if isinstance(value, list):
-                        row.append('; '.join(value))
-                    else:
-                        row.append(value)
-                rows.append(row)
+            rows.append(row)
 
         f = io.StringIO()
         writer = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
+        writer.writerow(fieldnames)
         writer.writerows(rows)
-        resp = make_response(f.getvalue(), 200)
-        resp.headers['Content-type'] = 'text/csv'
-        return resp
+        response = make_response(f.getvalue(), 200)
+        response.headers['Content-type'] = 'text/csv'
+        return response
