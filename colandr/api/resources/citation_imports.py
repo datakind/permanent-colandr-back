@@ -100,12 +100,19 @@ class CitationsImportsResource(Resource):
             citations_to_insert.append(citation_schema.load(record).data)
 
         user_id = g.current_user.id
-        studies_to_insert = [
-            {'user_id': user_id,
-             'review_id': review_id,
-             'data_source_id': data_source_id,
-             'citation_status': status}
-            for i in range(len(citations_to_insert))]
+        if status is None:
+            studies_to_insert = [
+                {'user_id': user_id,
+                 'review_id': review_id,
+                 'data_source_id': data_source_id}
+                for i in range(len(citations_to_insert))]
+        else:
+            studies_to_insert = [
+                {'user_id': user_id,
+                 'review_id': review_id,
+                 'data_source_id': data_source_id,
+                 'citation_status': status}
+                for i in range(len(citations_to_insert))]
 
         if test is True:
             db.session.rollback()

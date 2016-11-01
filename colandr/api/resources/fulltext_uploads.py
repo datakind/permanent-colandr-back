@@ -5,6 +5,7 @@ import subprocess
 from flask import current_app, g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
+from werkzeug.utils import secure_filename
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -49,6 +50,7 @@ class FulltextUploadResource(Resource):
         # assign filename based an id, and full path
         filename = '{}{}'.format(id, ext)
         fulltext.filename = filename
+        fulltext.original_filename = secure_filename(uploaded_file.filename)
         filepath = os.path.join(
             current_app.config['FULLTEXT_UPLOAD_FOLDER'], filename)
         if test is False:

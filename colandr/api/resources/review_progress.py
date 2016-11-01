@@ -70,7 +70,7 @@ class ReviewProgressResource(Resource):
                                      ) AS screenings
                           ON studies.id = screenings.citation_id
                           ) AS t
-                    WHERE citation_status IS NOT NULL
+                    -- WHERE citation_status IS NOT NULL
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]
@@ -99,7 +99,7 @@ class ReviewProgressResource(Resource):
                                      ) AS screenings
                           ON studies.id = screenings.fulltext_id
                           ) AS t
-                    WHERE fulltext_status IS NOT NULL
+                    -- WHERE fulltext_status IS NOT NULL
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]

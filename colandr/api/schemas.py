@@ -298,6 +298,8 @@ class FulltextSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     filename = fields.Str(
         validate=Length(max=30))
+    original_filename = fields.Str(
+        dump_only=True)
     screenings = fields.Nested(
         ScreeningSchema, many=True, dump_only=True)
 

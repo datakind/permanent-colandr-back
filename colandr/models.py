@@ -352,7 +352,7 @@ class Study(db.Model):
         nullable=False, index=True)
     tags = db.Column(
         postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
-        index=True)
+        index=False)
     data_source_id = db.Column(
         db.Integer, ForeignKey('data_sources.id', ondelete='SET NULL'),
         nullable=False, index=True)
@@ -361,13 +361,13 @@ class Study(db.Model):
         nullable=True, index=True)
     citation_status = db.Column(
         db.Unicode(length=20), server_default='not_screened',
-        nullable=True, index=True)
+        nullable=False, index=True)
     fulltext_status = db.Column(
         db.Unicode(length=20), server_default='not_screened',
-        nullable=True, index=True)
+        nullable=False, index=True)
     data_extraction_status = db.Column(
         db.Unicode(length=20), server_default='not_started',
-        nullable=True, index=True)
+        nullable=False, index=True)
 
     # relationships
     user = db.relationship(
@@ -569,6 +569,8 @@ class Fulltext(db.Model):
         nullable=False, index=True)
     filename = db.Column(
         db.Unicode(length=30), unique=True, nullable=True)
+    original_filename = db.Column(
+        db.Unicode, unique=False, nullable=True)
     text_content = db.Column(
         db.UnicodeText, nullable=True)
 
@@ -588,10 +590,12 @@ class Fulltext(db.Model):
         'FulltextScreening', back_populates='fulltext',
         lazy='dynamic', passive_deletes=True)
 
-    def __init__(self, id_, review_id, filename=None):
+    def __init__(self, id_, review_id,
+                 filename=None, original_filename=None):
         self.id = id_
         self.review_id = review_id
         self.filename = filename
+        self.original_filename = original_filename
 
     def __repr__(self):
         return "<Fulltext(study_id={})>".format(self.id)
