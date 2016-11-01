@@ -497,10 +497,10 @@ class Citation(db.Model):
             ).strip()
 
     @text_content.expression
-    def text_content(self):
+    def text_content(cls):
         return db.func.concat_ws(
-            '\n\n', self.title, self.abstract,
-            db.func.array_to_string(self.keywords, ', ')
+            '\n\n', cls.title, cls.abstract,
+            db.func.array_to_string(cls.keywords, ', ')
             )
 
     @hybrid_property

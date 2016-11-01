@@ -160,7 +160,7 @@ class ReviewExportStudiesResource(Resource):
                 ]
             if study.fulltext:
                 row.extend(
-                    [None,  # TODO: study.fulltext.original_filename
+                    [study.fulltext.original_filename,
                      '; '.join(study.fulltext.exclude_reasons) if study.fulltext.exclude_reasons else None]
                     )
             else:
