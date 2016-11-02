@@ -178,7 +178,11 @@ class StudiesResource(Resource):
             elif fulltext_status == 'pending':
                 stmt = """
                     SELECT t.id
-                    FROM (SELECT studies.id, studies.fulltext_status, screenings.user_ids
+                    FROM (SELECT
+                              studies.id,
+                              studies.citation_status,
+                              studies.fulltext_status,
+                              screenings.user_ids
                           FROM studies
                           LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM fulltext_screenings
@@ -187,8 +191,8 @@ class StudiesResource(Resource):
                           ON studies.id = screenings.fulltext_id
                           ) AS t
                     WHERE
-                        t.fulltext_status = 'not_screened'
-                        OR NOT {user_id} = ANY(t.user_ids)
+                        t.citation_status = 'included' -- this is necessary!
+                        AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=g.current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif fulltext_status == 'awaiting_coscreener':
@@ -209,7 +213,11 @@ class StudiesResource(Resource):
                 query = query.filter(Study.id.in_(text(stmt)))
 
         if data_extraction_status is not None:
-            query = query.filter(Study.data_extraction_status == data_extraction_status)
+            if data_extraction_status == 'not_started':
+                query = query.filter(Study.data_extraction_status == data_extraction_status)\
+                    .filter(Study.fulltext_status == 'included')  # this is necessary!
+            else:
+                query = query.filter(Study.data_extraction_status == data_extraction_status)
 
         if tag:
             query = query.filter(Study.tags.any(tag, operator=operators.eq))

@@ -51,7 +51,6 @@ class ReviewProgressResource(Resource):
                 progress = db.session.query(Study.citation_status, db.func.count(1))\
                     .filter_by(review_id=id)\
                     .group_by(Study.citation_status)\
-                    .having(Study.citation_status != None)\
                     .all()
             else:
                 query = """
@@ -70,7 +69,6 @@ class ReviewProgressResource(Resource):
                                      ) AS screenings
                           ON studies.id = screenings.citation_id
                           ) AS t
-                    -- WHERE citation_status IS NOT NULL
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]
@@ -79,8 +77,8 @@ class ReviewProgressResource(Resource):
             if user_view is False:
                 progress = db.session.query(Study.fulltext_status, db.func.count(1))\
                     .filter_by(review_id=id)\
+                    .filter_by(citation_status='included')\
                     .group_by(Study.fulltext_status)\
-                    .having(Study.fulltext_status != None)\
                     .all()
             else:
                 query = """
@@ -91,7 +89,11 @@ class ReviewProgressResource(Resource):
                              WHEN fulltext_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
                          END) AS user_status,
                          COUNT(1)
-                    FROM (SELECT studies.id, studies.fulltext_status, screenings.user_ids
+                    FROM (SELECT
+                              studies.id,
+                              studies.citation_status,
+                              studies.fulltext_status,
+                              screenings.user_ids
                           FROM studies
                           LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM fulltext_screenings
@@ -99,7 +101,7 @@ class ReviewProgressResource(Resource):
                                      ) AS screenings
                           ON studies.id = screenings.fulltext_id
                           ) AS t
-                    -- WHERE fulltext_status IS NOT NULL
+                    WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id)
                 progress = [row for row in db.engine.execute(query)]
@@ -107,8 +109,8 @@ class ReviewProgressResource(Resource):
         if step in ('data_extraction', 'all'):
             progress = db.session.query(Study.data_extraction_status, db.func.count(1))\
                 .filter_by(review_id=id)\
+                .filter_by(fulltext_status='included')\
                 .group_by(Study.data_extraction_status)\
-                .having(Study.data_extraction_status != None)\
                 .all()
             response['data_extraction'] = dict(progress)
 
