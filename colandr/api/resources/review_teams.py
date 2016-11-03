@@ -89,7 +89,7 @@ class ReviewTeamResource(Resource):
                 id=id, token=token, _external=True)
             html = render_template(
                 'emails/invite_user_to_review.html',
-                url=url, inviter_name=g.current_user.email, review_name=review.name)
+                url=url, inviter_email=g.current_user.email, review_name=review.name)
             if test is False:
                 send_email.apply_async(
                     args=[[user_email], "Let's collaborate!", '', html])
