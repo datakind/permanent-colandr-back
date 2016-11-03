@@ -30,10 +30,10 @@ from .api.resources.studies import StudyResource, StudiesResource
 from .api.resources.citations import CitationResource, CitationsResource
 from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
 from .api.resources.citation_imports import CitationsImportsResource
-from .api.resources.fulltexts import FulltextResource, FulltextsResource
+from .api.resources.fulltexts import FulltextResource
 from .api.resources.fulltext_screenings import FulltextScreeningsResource, FulltextsScreeningsResource
 from .api.resources.fulltext_uploads import FulltextUploadResource
-from .api.resources.fulltexts_extracted_data import DataExtractionResource
+from .api.resources.data_extractions import DataExtractionResource
 from .api.resources.review_exports import ReviewExportPrismaResource, ReviewExportStudiesResource
 
 
@@ -80,7 +80,6 @@ def create_app(config_name):
     api.add_resource(CitationResource, '/citations/<int:id>')
     api.add_resource(CitationsScreeningsResource, '/citations/screenings')
     api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')
-    api.add_resource(FulltextsResource, '/fulltexts')
     api.add_resource(FulltextResource, '/fulltexts/<int:id>')
     api.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
     api.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
