@@ -335,8 +335,9 @@ def main():
     page = 0
     while True:
         response = session.request(
-            'GET', BASE_URL + 'citations',
+            'GET', BASE_URL + 'studies',
             params={'review_id': review_id, 'fields': 'id',
+                    'citation_status': 'pending',
                     'order_by': 'recency', 'order_dir': 'ASC',
                     'per_page': 5000, 'page': page},
             auth=auth)
@@ -405,9 +406,11 @@ def main():
     page = 0
     while True:
         response = session.request(
-            'GET', BASE_URL + 'fulltexts',
+            'GET', BASE_URL + 'studies',
             params={'review_id': review_id, 'fields': 'id',
-                    'order_dir': 'ASC', 'per_page': 1000, 'page': page},
+                    'fulltext_status': 'pending',
+                    'order_by': 'recency', 'order_dir': 'ASC',
+                    'per_page': 5000, 'page': page},
             auth=auth)
         print('GET:', response.url)
         fulltext_ids = [result['id'] for result in response.json()]
@@ -452,9 +455,11 @@ def main():
     page = 0
     while True:
         response = session.request(
-            'GET', BASE_URL + 'fulltexts',
+            'GET', BASE_URL + 'studies',
             params={'review_id': review_id, 'fields': 'id',
-                    'order_dir': 'ASC', 'per_page': 1000, 'page': page},
+                    'fulltext_status': 'pending',
+                    'order_by': 'pending', 'order_dir': 'ASC',
+                    'per_page': 5000, 'page': page},
             auth=auth)
         print('GET:', response.url)
         fulltext_ids = [result['id'] for result in response.json()]
