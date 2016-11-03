@@ -88,7 +88,7 @@ class CitationsImportsResource(Resource):
         else:
             data_source_id = 0
 
-        # TODO: make this an async task
+        # TODO: make this an async task?
         engine = create_engine(current_app.config['SQLALCHEMY_DATABASE_URI'])
 
         # parse and iterate over imported citations

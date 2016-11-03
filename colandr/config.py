@@ -1,4 +1,4 @@
-# config options taken from environment variables:
+# config options taken from environment variables: see .env.example
 # - COLANDR_DATABASE_URI
 #     - format: 'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 # - COLANDR_SECRET_KEY
@@ -66,14 +66,12 @@ class Config(object):
 class DevelopmentConfig(Config):
     DEBUG = True
     TESTING = False
-    # TODO: use different databases for different configs?
     SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
 
 
 class TestingConfig(Config):
     DEBUG = False
     TESTING = True
-    # TODO: use different databases for difference configs?
     SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
     SQLALCHEMY_ECHO = True
 
@@ -81,7 +79,6 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
-    # TODO: use different databases for difference configs?
     SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
 
 

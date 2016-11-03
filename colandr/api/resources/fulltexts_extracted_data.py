@@ -155,11 +155,11 @@ class DataExtractionResource(Resource):
                             'value "{}" for label "{}" invalid; must be one of {}'.format(
                                 val, label, allowed_values))
                     validated_value.append(val)
-            # TODO
+            # TODO: implement this country validation
             elif field_type == 'country':
                 raise NotImplementedError('burton apologizes for this inconvenience')
             else:
-                raise ValueError('an unexpected field_type has been encountered')
+                return validation('field_type "{}" is not valid'.format(field_type))
             extracted_data_map[label] = validated_value
         extracted_data.extracted_data = [
             {'label': label, 'value': value}

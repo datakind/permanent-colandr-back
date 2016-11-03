@@ -135,7 +135,7 @@ def deduplicate_citations(review_id):
         # now we're ready to write our blocking map table by creating a generator
         # that yields unique (block_key, citation_id, review_id) tuples
         stmt = select([Citation.id, Citation.title, Citation.authors,
-                       Citation.pub_year.label('publication_year'),  # HACK for now
+                       Citation.pub_year.label('publication_year'),  # HACK: trained model expects this field
                        Citation.abstract, Citation.doi])\
             .where(Citation.review_id == review_id)
         results = conn.execute(stmt)
@@ -195,7 +195,7 @@ def deduplicate_citations(review_id):
 
         # set dedupe model similarity threshold from the data
         stmt = select([Citation.id, Citation.title, Citation.authors,
-                       Citation.pub_year.label('publication_year'),  # HACK for now
+                       Citation.pub_year.label('publication_year'),  # HACK: trained model expects this field
                        Citation.abstract, Citation.doi])\
             .where(Citation.review_id == review_id)\
             .order_by(func.random())\
@@ -207,7 +207,7 @@ def deduplicate_citations(review_id):
 
         # apply dedupe model to get clusters of duplicate records
         stmt = select([Citation.id.label('citation_id'), Citation.title, Citation.authors,
-                       Citation.pub_year.label('publication_year'),  # HACK for now
+                       Citation.pub_year.label('publication_year'),  # HACK: trained model expects this field
                        Citation.abstract, Citation.doi,
                        DedupeSmallerCoverage.block_id, DedupeSmallerCoverage.smaller_ids])\
             .where(Citation.id == DedupeSmallerCoverage.citation_id)\
