@@ -458,7 +458,7 @@ def main():
             'GET', BASE_URL + 'studies',
             params={'review_id': review_id, 'fields': 'id',
                     'fulltext_status': 'pending',
-                    'order_by': 'pending', 'order_dir': 'ASC',
+                    'order_by': 'recency', 'order_dir': 'ASC',
                     'per_page': 5000, 'page': page},
             auth=auth)
         print('GET:', response.url)
