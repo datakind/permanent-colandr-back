@@ -30,7 +30,8 @@ class FulltextResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
-        if fulltext.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                fulltext.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get this fulltext'.format(g.current_user))
         return FulltextSchema(only=fields).dump(fulltext).data

@@ -31,7 +31,8 @@ class CitationsImportsResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                g.current_user.reviews.filter_by(id=review_id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to add citations to this review'.format(g.current_user))
         results = review.imports.filter_by(record_type='citation')

@@ -38,7 +38,8 @@ class FulltextScreeningsResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get fulltext screenings for this review'.format(
                     g.current_user))
@@ -159,7 +160,8 @@ class FulltextsScreeningsResource(Resource):
             if not fulltext:
                 return no_data_found(
                     '<Fulltext(id={})> not found'.format(fulltext_id))
-            if fulltext.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            if (g.current_user.is_admin is False and
+                    fulltext.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
                 return unauthorized(
                     '{} not authorized to get screenings for {}'.format(
                         g.current_user, fulltext))
@@ -170,9 +172,10 @@ class FulltextsScreeningsResource(Resource):
             if not user:
                 return no_data_found(
                     '<User(id={})> not found'.format(user_id))
-            if not any(user_id == user.id
-                       for review in g.current_user.reviews
-                       for user in review.users):
+            if (g.current_user.is_admin is False and
+                    not any(user_id == user.id
+                            for review in g.current_user.reviews
+                            for user in review.users)):
                 return unauthorized(
                     '{} not authorized to get screenings for {}'.format(
                         g.current_user, user))
@@ -183,7 +186,8 @@ class FulltextsScreeningsResource(Resource):
             if not review:
                 return no_data_found(
                     '<Review(id={})> not found'.format(review_id))
-            if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            if (g.current_user.is_admin is False and
+                    review.users.filter_by(id=g.current_user.id).one_or_none() is None):
                 return unauthorized(
                     '{} not authorized to get screenings for {}'.format(
                         g.current_user, review))

@@ -30,7 +30,8 @@ class ReviewPlanResource(Resource):
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
-        if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                review.users.filter_by(id=g.current_user.id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get this review plan'.format(g.current_user))
         if fields and 'id' not in fields:

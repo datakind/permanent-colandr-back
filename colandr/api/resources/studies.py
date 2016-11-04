@@ -35,7 +35,8 @@ class StudyResource(Resource):
         study = db.session.query(Study).get(id)
         if not study:
             return no_data_found('<Study(id={})> not found'.format(id))
-        if study.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                study.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get this study'.format(g.current_user))
         if fields and 'id' not in fields:
@@ -127,7 +128,8 @@ class StudiesResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                g.current_user.reviews.filter_by(id=review_id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get studies from this review'.format(
                     g.current_user))

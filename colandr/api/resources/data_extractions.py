@@ -33,7 +33,8 @@ class DataExtractionResource(Resource):
         if not extracted_data:
             return no_data_found(
                 '<DataExtraction(fulltext_id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
+        if (g.current_user.is_admin is False and
+                g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get extracted data for this fulltext'.format(
                     g.current_user))

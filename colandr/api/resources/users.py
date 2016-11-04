@@ -44,7 +44,7 @@ class UserResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
-        if (id != g.current_user.id and
+        if (g.current_user.is_admin is False and id != g.current_user.id and
                 any(review.users.filter_by(id=id).one_or_none()
                     for review in g.current_user.reviews) is False):
             return unauthorized(
@@ -159,7 +159,8 @@ class UsersResource(Resource):
             review = db.session.query(Review).get(review_id)
             if not review:
                 return no_data_found('<Review(id={})> not found'.format(review_id))
-            if review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+            if (g.current_user.is_admin is False and
+                    review.users.filter_by(id=g.current_user.id).one_or_none() is None):
                 return unauthorized(
                     '{} not authorized to see users for this review'.format(
                         g.current_user))
