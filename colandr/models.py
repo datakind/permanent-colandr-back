@@ -1,6 +1,5 @@
 import bcrypt
 import itertools
-import logging
 
 from flask import current_app
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
@@ -11,6 +10,10 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from . import db
 from .api.utils import assign_status, get_boolean_search_query
+from .lib.utils import get_console_logger
+
+
+logger = get_console_logger(__name__)
 
 
 # association table for users-reviews many-to-many relationship
@@ -889,7 +892,7 @@ def update_citation_status(mapper, connection, target):
     with connection.begin():
         connection.execute(
             db.update(Citation).where(Citation.id == citation_id).values(status=status))
-    logging.warning('{} => {} with status = {}'.format(target, citation, status))
+    logger.info('%s => %s with status = %s', target, citation, status)
     with connection.begin():
         fulltext = connection.execute(
             db.query(Fulltext).where(Fulltext.id == citation_id)).first()
@@ -898,15 +901,13 @@ def update_citation_status(mapper, connection, target):
         with connection.begin():
             connection.execute(
                 db.insert(Fulltext).values(id=citation_id, review_id=review_id))
-            logging.warning(
-                'inserted <Fulltext(study_id={})>'.format(citation_id))
+            logger.info('inserted <Fulltext(study_id=%s)>', citation_id)
             fulltext_inserted_or_deleted = True
     elif status != 'included' and fulltext is not None:
         with connection.begin():
             connection.execute(
                 db.delete(Fulltext).where(Fulltext.id == citation_id))
-            logging.warning(
-                'deleted <Fulltext(study_id={})>'.format(citation_id))
+            logger.info('deleted <Fulltext(study_id=%s)>', citation_id)
             fulltext_inserted_or_deleted = True
     if fulltext_inserted_or_deleted is True:
         with connection.begin():
@@ -937,7 +938,7 @@ def update_fulltext_status(mapper, connection, target):
     with connection.begin():
         connection.execute(
             db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
-    logging.warning('{} => {} with status = {}'.format(target, fulltext, status))
+    logger.info('%s => %s with status = %s', target, fulltext, status)
     with connection.begin():
         data_extraction = connection.execute(
             db.query(DataExtraction).where(DataExtraction.id == fulltext_id)).first()
@@ -946,15 +947,13 @@ def update_fulltext_status(mapper, connection, target):
             connection.execute(
                 db.insert(DataExtraction).values(
                     id=fulltext_id, review_id=review_id))
-            logging.warning('inserted <DataExtraction(study_id={})>'.format(
-                fulltext_id))
+            logger.info('inserted <DataExtraction(study_id=%s)>', fulltext_id)
     elif status != 'included' and data_extraction is None:
         with connection.begin():
             connection.execute(
                 db.delete(DataExtraction).where(
                     DataExtraction.study_id == fulltext_id))
-            logging.warning('deleted <DataExtraction(study_id={})>'.format(
-                fulltext_id))
+            logger.info('deleted <DataExtraction(study_id=%s)>', fulltext_id)
     return
 
 
@@ -964,4 +963,4 @@ def insert_review_plan(mapper, connection, target):
     with connection.begin():
         connection.execute(
             db.insert(ReviewPlan).values(id=target.id))
-    logging.warning('{} inserted, along with {}'.format(target, review_plan))
+    logger.info('inserted %s and %s', target, review_plan)

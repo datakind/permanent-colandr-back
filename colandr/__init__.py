@@ -17,6 +17,7 @@ from .config import config, Config
 
 celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
+from .lib.utils import get_rotating_file_logger
 from .api.authentication import AuthTokenResource
 from .api.errors import no_data_found
 from .api.resources.user_registration import UserRegistrationResource, ConfirmUserRegistrationResource
@@ -37,8 +38,12 @@ from .api.resources.data_extractions import DataExtractionResource
 from .api.resources.review_exports import ReviewExportPrismaResource, ReviewExportStudiesResource
 
 
+logger = get_rotating_file_logger(
+    'colandr', os.path.join(Config.LOGS_FOLDER, 'colandr.log'), level='info')
+
+
 def create_app(config_name):
-    app = Flask(__name__)
+    app = Flask('colandr')
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
     os.makedirs(config[config_name].FULLTEXT_UPLOAD_FOLDER, exist_ok=True)

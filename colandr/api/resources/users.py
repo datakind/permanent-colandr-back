@@ -9,11 +9,14 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...lib import constants, utils
 from ...models import db, User, Review
-from ...lib import constants
 from ..errors import no_data_found, unauthorized
 from ..schemas import UserSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class UserResource(Resource):
@@ -89,6 +92,7 @@ class UserResource(Resource):
         db.session.delete(user)
         if test is False:
             db.session.commit()
+            logger.info('deleted %s', user)
             return '', 204
         else:
             db.session.rollback()
@@ -177,6 +181,7 @@ class UsersResource(Resource):
         db.session.add(user)
         if test is False:
             db.session.commit()
+            logger.info('inserted %s', user)
         else:
             db.session.rollback()
         return UserSchema().dump(user).data

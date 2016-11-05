@@ -1,6 +1,4 @@
-import itertools
 import logging
-from operator import attrgetter
 
 from flask import g
 from flask_restful import Resource
@@ -12,13 +10,16 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants
+from ...lib import constants, utils
 from ...models import (db, DataExtraction, FulltextScreening, Fulltext,
                        Review, Study, User)
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
 from ..utils import assign_status
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class FulltextScreeningsResource(Resource):
@@ -68,6 +69,7 @@ class FulltextScreeningsResource(Resource):
         db.session.delete(screening)
         if test is False:
             db.session.commit()
+            logger.info('deleted %s', screening)
         else:
             db.session.rollback()
 
@@ -104,6 +106,7 @@ class FulltextScreeningsResource(Resource):
         if test is False:
             fulltext.screenings.append(screening)
             db.session.commit()
+            logger.info('inserted %s', screening)
         else:
             db.session.rollback()
         return ScreeningSchema().dump(screening).data
@@ -230,6 +233,8 @@ class FulltextsScreeningsResource(Resource):
             db.session.bulk_insert_mappings(
                 FulltextScreening, screenings_to_insert)
             db.session.commit()
+            logger.info(
+                'inserted %s fulltext screenings', len(screenings_to_insert))
         # bulk update fulltext statuses
         num_screeners = review.num_fulltext_screening_reviewers
         fulltext_ids = sorted(s['fulltext_id'] for s in screenings_to_insert)
@@ -255,6 +260,8 @@ class FulltextsScreeningsResource(Resource):
             db.session.bulk_update_mappings(
                 Study, studies_to_update)
             db.session.commit()
+            logger.info(
+                'updated fulltext_status for %s studies', len(studies_to_update))
             # now add data extractions for included fulltexts
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
@@ -268,3 +275,4 @@ class FulltextsScreeningsResource(Resource):
                 for result in results]
             db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
             db.session.commit()
+            logger.info('inserted %s data extractions', len(data_extractions_to_insert))

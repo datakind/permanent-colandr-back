@@ -13,11 +13,14 @@ from webargs.flaskparser import use_kwargs
 
 from textacy.preprocess import fix_bad_unicode
 
-from ...lib import constants
+from ...lib import constants, utils
 from ...models import db, Fulltext
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import FulltextSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class FulltextUploadResource(Resource):
@@ -70,6 +73,8 @@ class FulltextUploadResource(Resource):
             fulltext.text_content = fix_bad_unicode(
                 text_content.decode(errors='ignore'))
             db.session.commit()
+            logger.info(
+                'uploaded "%s" for %s', fulltext.original_filename, fulltext)
         return FulltextSchema().dump(fulltext).data
 
     @swagger.operation()
@@ -95,3 +100,4 @@ class FulltextUploadResource(Resource):
             os.remove(filepath)
             fulltext.filename = None
             db.session.commit()
+            logger.info('deleted uploaded file for %s', fulltext)

@@ -38,12 +38,13 @@ class Config(object):
 
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR')
+    LOGS_FOLDER = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
     DEDUPE_MODELS_FOLDER = os.path.join(
-        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/dedupe')
+        COLANDR_APP_DIR, 'colandr_data', 'dedupe')
     CITATIONS_FOLDER = os.path.join(
-        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/citations')
+        COLANDR_APP_DIR, 'colandr_data', 'citations')
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
-        os.environ.get('COLANDR_APP_DIR'), 'colandr_data/fulltexts/uploads')
+        COLANDR_APP_DIR, 'colandr_data', 'fulltexts', 'uploads')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
@@ -77,7 +78,7 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    DEBUG = False
+    DEBUG = True
     TESTING = False
     SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
 

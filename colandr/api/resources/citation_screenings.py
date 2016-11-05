@@ -10,12 +10,15 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants
+from ...lib import constants, utils
 from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
 from ..utils import assign_status
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class CitationScreeningsResource(Resource):
@@ -65,6 +68,7 @@ class CitationScreeningsResource(Resource):
         db.session.delete(screening)
         if test is False:
             db.session.commit()
+            logger.info('deleted %s', screening)
         else:
             db.session.rollback()
 
@@ -97,6 +101,7 @@ class CitationScreeningsResource(Resource):
         citation.screenings.append(screening)
         if test is False:
             db.session.commit()
+            logger.info('inserted %s', screening)
         else:
             db.session.rollback()
         return ScreeningSchema().dump(screening).data
@@ -202,7 +207,7 @@ class CitationsScreeningsResource(Resource):
             location='query', missing=False)
         })
     def post(self, args, review_id, test):
-        logging.warning('the "citations/screenings" endpoint is for dev use only')
+        logger.warning('the "citations/screenings" endpoint is for dev use only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)
         if not review:
@@ -223,6 +228,8 @@ class CitationsScreeningsResource(Resource):
             db.session.bulk_insert_mappings(
                 CitationScreening, screenings_to_insert)
             db.session.commit()
+            logger.info(
+                'inserted %s citation screenings', len(screenings_to_insert))
         # bulk update citation statuses
         num_screeners = review.num_citation_screening_reviewers
         citation_ids = sorted(s['citation_id'] for s in screenings_to_insert)
@@ -248,6 +255,8 @@ class CitationsScreeningsResource(Resource):
             db.session.bulk_update_mappings(
                 Study, studies_to_update)
             db.session.commit()
+            logger.info(
+                'updated citation_status for %s studies', len(studies_to_update))
             # now add fulltexts for included citations
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
@@ -261,3 +270,4 @@ class CitationsScreeningsResource(Resource):
                 for result in results]
             db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
             db.session.commit()
+            logger.info('inserted %s fulltexts', len(fulltexts_to_insert))

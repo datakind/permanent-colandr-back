@@ -7,11 +7,14 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...lib import constants, utils
 from ...models import db, Review
-from ...lib import constants
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import ReviewPlanSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class ReviewPlanResource(Resource):
@@ -75,6 +78,7 @@ class ReviewPlanResource(Resource):
             review_plan.data_extraction_form = []
         if test is False:
             db.session.commit()
+            logger.info('deleted contents of %s', review_plan)
         else:
             db.session.rollback()
         return '', 204

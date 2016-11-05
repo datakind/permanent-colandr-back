@@ -5,10 +5,14 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_kwargs
 
+from ...lib import utils
 from ...models import db, User
 from ...tasks import send_email
 from ..errors import forbidden, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class PasswordResetResource(Resource):
@@ -37,6 +41,7 @@ class PasswordResetResource(Resource):
             if test is False:
                 send_email.apply_async(
                     args=[[email], 'Reset Password', '', html])
+                logger.info('password reset email sent to %s', email)
 
 
 class ConfirmPasswordResetResource(Resource):
@@ -53,3 +58,4 @@ class ConfirmPasswordResetResource(Resource):
         if user.is_confirmed is False:
             return forbidden('user not confirmed! please first confirm your email address.')
         # TODO: now what???
+        logger.info('password reset confirmed by %s', email)

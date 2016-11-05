@@ -5,11 +5,15 @@ from sqlalchemy import exc
 from marshmallow import fields as ma_fields
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...lib import utils
 from ...models import db, User
 from ...tasks import remove_unconfirmed_user, send_email
 from ..errors import db_integrity, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class UserRegistrationResource(Resource):
@@ -36,6 +40,7 @@ class UserRegistrationResource(Resource):
             remove_unconfirmed_user.apply_async(
                 args=[user.email],
                 countdown=current_app.config['CONFIRM_TOKEN_EXPIRATION'])
+            logger.info('user registration email sent to %s', user.email)
         return UserSchema().dump(user).data
 
 
@@ -54,3 +59,4 @@ class ConfirmUserRegistrationResource(Resource):
             return validation('user already confirmed! please login')
         user.is_confirmed = True
         db.session.commit()
+        logger.info('user registration confirmed by %s', email)

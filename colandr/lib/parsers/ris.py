@@ -1,13 +1,15 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
-import logging
 import re
 
 from dateutil.parser import parse as parse_date
 
+from .. import utils
 
-LOGGER = logging.getLogger(__name__)
+
+logger = utils.get_console_logger(__name__)
+
 
 KEY_MAP = {
     'A1': 'primary_authors',  # special: Lastname, Firstname, Suffix
@@ -317,7 +319,7 @@ class RisFile(object):
                         self.tag_re = TAGv2_RE
                     else:
                         msg = 'tags in file {}, lineno {}, line {} not formatted as expected!'.format(self.path, i, line)
-                        LOGGER.error(msg)
+                        logger.error(msg)
                         raise IOError(msg)
 
                 tag_match = self.tag_re.match(line)
@@ -333,7 +335,7 @@ class RisFile(object):
                     elif tag == END_TAG:
                         if self.in_record is False:
                             msg = 'found end tag, but not in a record!\nline: {} {}'.format(i, line.strip())
-                            LOGGER.error(msg)
+                            logger.error(msg)
                             raise IOError(msg)
 
                         self._sort_multi_values()
@@ -348,7 +350,7 @@ class RisFile(object):
                     elif tag in START_TAGS:
                         if self.in_record is True:
                             msg = 'found start tag, but already in a record!\nline: {} {}'.format(i, line.strip())
-                            LOGGER.error(msg)
+                            logger.error(msg)
                             raise IOError(msg)
                         self.in_record = True
                         self._add_tag_line(tag, line, tag_match.end())
@@ -357,7 +359,7 @@ class RisFile(object):
 
                     if self.in_record is False:
                         msg = 'start/end tag mismatch!\nline: {} {}'.format(i, line.strip())
-                        LOGGER.error(msg)
+                        logger.error(msg)
                         raise IOError(msg)
 
                     if self.key_map and tag in self.key_map:
@@ -371,7 +373,7 @@ class RisFile(object):
                         continue
 
                     # no idea what this is, but might as well save it
-                    LOGGER.debug('unknown tag: tag=%s, line=%s "%s"', tag, i, line.strip())
+                    logger.debug('unknown tag: tag=%s, line=%s "%s"', tag, i, line.strip())
                     self.record[tag] = line[tag_match.end():].strip()
                     self._stash_prev_info(tag, len(line))
                     continue
@@ -388,7 +390,7 @@ class RisFile(object):
                     self.record[key] += ' ' + line.strip()
 
                 else:
-                    LOGGER.error(
+                    logger.error(
                         'bad line: prev_tag=%s, line=%s "%s"',
                         self.prev_tag, i, line.strip())
 
@@ -408,7 +410,7 @@ class RisFile(object):
         except KeyError:
             pass
         except Exception:
-            LOGGER.exception(
+            logger.exception(
                 'value sanitization error: key=%s, value=%s',
                 key, value)
         # for multi-value tags, append to a list
@@ -420,7 +422,7 @@ class RisFile(object):
         # otherwise, add key:value to record
         else:
             if key in self.record:
-                LOGGER.error('duplicate key error: key=%s, value=%s', key, value)
+                logger.error('duplicate key error: key=%s, value=%s', key, value)
             self.record[key] = value
 
     def _stash_prev_info(self, tag, line_len):
@@ -439,7 +441,7 @@ class RisFile(object):
             except KeyError:
                 pass
             except Exception:
-                LOGGER.exception(
+                logger.exception(
                     'multi-value sort error: key=%s, value=%s',
                     key, self.record[key])
 
@@ -450,7 +452,7 @@ class RisFile(object):
             except KeyError:
                 pass
             except Exception:
-                LOGGER.exception(
+                logger.exception(
                     'record sanitization error: key=%s, value=%s',
                     key, self.record[key])
         if not self.record.get('journal_name'):
@@ -480,6 +482,6 @@ class RisFile(object):
                 if self.record.get(y1_key):
                     self.record['pub_year'] = self.record[y1_key].year
             except Exception:
-                LOGGER.exception(
+                logger.exception(
                     'record sanitization error: key=%s, value=%s',
                     y1_key, self.record[y1_key])

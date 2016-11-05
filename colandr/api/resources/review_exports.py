@@ -11,9 +11,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
+from ...lib import constants
 from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
-from ...lib import constants
 from ..errors import no_data_found, unauthorized
 from ..authentication import auth
 

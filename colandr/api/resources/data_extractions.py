@@ -9,11 +9,14 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants, sanitizers
+from ...lib import constants, sanitizers, utils
 from ...models import db, DataExtraction, ReviewPlan
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import ExtractedItem, DataExtractionSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class DataExtractionResource(Resource):
@@ -71,6 +74,7 @@ class DataExtractionResource(Resource):
             extracted_data.extracted_data = []
         if test is False:
             db.session.commit()
+            logger.info('deleted contents of %s', extracted_data)
         else:
             db.session.rollback()
         return '', 204

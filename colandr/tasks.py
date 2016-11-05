@@ -4,6 +4,7 @@ import os
 from time import sleep
 
 import arrow
+from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 import redis
@@ -16,7 +17,7 @@ import textacy
 
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
-from .lib.utils import load_dedupe_model, make_record_immutable
+from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
 from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
                      ReviewPlan, Study, User)
@@ -24,15 +25,18 @@ from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlock
 
 REDIS_CONN = redis.StrictRedis()
 
+logger = get_task_logger(__name__)
+console_logger = get_console_logger('colandr_celery_tasks')
+
 
 def wait_for_lock(name, expire=60):
     lock = redis_lock.Lock(REDIS_CONN, name, expire=expire, auto_renewal=True)
     while True:
         if lock.acquire() is False:
-            print('waiting on existing {} job...'.format(name))
+            console_logger.info('waiting on existing %s job...', name)
             sleep(10)
         else:
-            print('starting new {} job...'.format(name))
+            console_logger.info('starting new %s job...', name)
             break
     return lock
 
@@ -93,8 +97,8 @@ def deduplicate_citations(review_id):
             max_created_at = conn.execute(stmt).fetchone()[0]
             elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
             if elapsed_time < 60:
-                print('citation most recently created {} seconds ago, sleeping...'.format(
-                    elapsed_time))
+                logger.info(
+                    'citation last created %s seconds ago, sleeping...', elapsed_time)
                 sleep(10)
             else:
                 break
@@ -104,7 +108,7 @@ def deduplicate_citations(review_id):
             [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
         un_deduped_studies = conn.execute(stmt).fetchone()[0]
         if un_deduped_studies is False:
-            print('all studies for <Review(id={})> already deduped!'.format(review_id))
+            logger.info('all studies for <Review(id=%s)> already deduped!', review_id)
             lock.release()
             return
 
@@ -115,13 +119,14 @@ def deduplicate_citations(review_id):
             stmt = delete(table).where(getattr(table, 'review_id') == review_id)
             result = conn.execute(stmt)
             rows_deleted = result.rowcount
-            print('deleted {} rows from {}'.format(rows_deleted, table.__tablename__))
+            logger.info('deleted %s rows from %s', rows_deleted, table.__tablename__)
 
         # if deduper learned an Index Predicate
         # we have to take a pass through the data and create indices
         for field in deduper.blocker.index_fields:
             col_type = getattr(Citation, field).property.columns[0].type
-            print('index predicate: {} {}'.format(field, col_type))
+            # print('index predicate: {} {}'.format(field, col_type))
+            logger.info('index predicate: %s %s', field, col_type)
             stmt = select([getattr(Citation, field)])\
                 .where(Citation.review_id == review_id)\
                 .distinct()
@@ -218,7 +223,7 @@ def deduplicate_citations(review_id):
         clustered_dupes = deduper.matchBlocks(
             get_candidate_dupes(results),
             threshold=dupe_threshold)
-        print('found {} duplicate clusters'.format(len(clustered_dupes)))
+        logger.info('found %s duplicate clusters', len(clustered_dupes))
 
         # get *all* citation ids for this review
         stmt = select([Citation.id]).where(Citation.review_id == review_id)
@@ -276,9 +281,11 @@ def deduplicate_citations(review_id):
 
 @celery.task
 def suggest_keyterms(review_id, sample_size):
-    print('review_id = {}, sample_size = {}'.format(review_id, sample_size))
 
     lock = wait_for_lock('suggest_keyterms_review{}'.format(review_id), expire=60)
+    logger.info(
+        'computing keyterms for <Review(id=%s)> with sample size = %s',
+        review_id, sample_size)
 
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
@@ -323,7 +330,7 @@ def suggest_keyterms(review_id, sample_size):
         if errors:
             lock.release()
             raise Exception
-        print('suggested_keyterms:\n{}'.format(suggested_keyterms))
+        logger.info('suggested_keyterms:\n%s', suggested_keyterms)
         # update the review plan
         stmt = update(ReviewPlan)\
             .where(ReviewPlan.id == review_id)\

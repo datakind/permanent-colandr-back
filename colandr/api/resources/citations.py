@@ -1,10 +1,8 @@
-from operator import itemgetter
+import logging
 
 from flask import g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
-from sqlalchemy import asc, desc, text
-from sqlalchemy.sql import operators
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
@@ -13,12 +11,14 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants
-from ...lib.nlp import reviewer_terms
+from ...lib import constants, utils
 from ...models import db, Citation, DataSource, Review, Study
-from ..errors import forbidden, no_data_found, unauthorized, validation
+from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema, DataSourceSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class CitationResource(Resource):
@@ -61,6 +61,7 @@ class CitationResource(Resource):
                 '{} not authorized to delete this citation'.format(g.current_user))
         if test is False:
             db.session.delete(citation)
+            logger.info('deleted %s', citation)
             db.session.commit()
 
     @swagger.operation()
@@ -133,6 +134,7 @@ class CitationsResource(Resource):
             db.session.add(data_source)
         if test is False:
             db.session.commit()
+            logger.info('inserted %s', data_source)
         else:
             db.session.rollback()
             return ''
@@ -150,6 +152,7 @@ class CitationsResource(Resource):
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()
+        logger.info('inserted %s', citation)
 
         # TODO: what about deduplication?!
         # TODO: what about adding *multiple* citations via this endpoint?

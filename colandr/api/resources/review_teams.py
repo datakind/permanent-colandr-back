@@ -8,12 +8,15 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
+from ...lib import constants, utils
 from ...models import db, Review, User
-from ...lib import constants
 from ...tasks import send_email
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import UserSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class ReviewTeamResource(Resource):
@@ -105,6 +108,7 @@ class ReviewTeamResource(Resource):
 
         if test is False:
             db.session.commit()
+            logger.info('for %s, %s %s', review, action, user)
         else:
             db.session.rollback()
         users = UserSchema(many=True).dump(review.users).data
@@ -142,6 +146,7 @@ class ConfirmReviewTeamInviteResource(Resource):
                 '{} is already on this review'.format(user))
 
         db.session.commit()
+        logger.info('invitation to %s confirmed by %s', review, user_email)
         users = UserSchema(many=True).dump(review.users).data
         owner_user_id = review.owner_user_id
         for user in users:

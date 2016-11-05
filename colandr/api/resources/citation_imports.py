@@ -1,3 +1,5 @@
+import logging
+
 from flask import g, current_app
 from flask_restful import Resource
 from flask_restful_swagger import swagger
@@ -9,13 +11,16 @@ from webargs.flaskparser import use_kwargs
 
 from sqlalchemy import create_engine
 
-from ...lib import constants
+from ...lib import constants, utils
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class CitationsImportsResource(Resource):
@@ -85,6 +90,7 @@ class CitationsImportsResource(Resource):
             db.session.add(data_source)
         if test is False:
             db.session.commit()
+            logger.info('inserted %s', data_source)
             data_source_id = data_source.id
         else:
             data_source_id = 0
@@ -99,6 +105,7 @@ class CitationsImportsResource(Resource):
         for record in citations_file.parse():
             record['review_id'] = review_id
             citations_to_insert.append(citation_schema.load(record).data)
+        n_citations = len(citations_to_insert)
 
         user_id = g.current_user.id
         if status is None:
@@ -106,14 +113,14 @@ class CitationsImportsResource(Resource):
                 {'user_id': user_id,
                  'review_id': review_id,
                  'data_source_id': data_source_id}
-                for i in range(len(citations_to_insert))]
+                for i in range(n_citations)]
         else:
             studies_to_insert = [
                 {'user_id': user_id,
                  'review_id': review_id,
                  'data_source_id': data_source_id,
                  'citation_status': status}
-                for i in range(len(citations_to_insert))]
+                for i in range(n_citations)]
 
         if test is True:
             db.session.rollback()
@@ -144,10 +151,13 @@ class CitationsImportsResource(Resource):
 
         # don't forget about a record of the import
         citations_import = Import(
-            review_id, user_id, data_source_id, 'citation', len(study_ids),
+            review_id, user_id, data_source_id, 'citation', n_citations,
             status=status)
         db.session.add(citations_import)
         db.session.commit()
+        logger.info(
+            'imported %s citations from file "%s" into %s',
+            n_citations, fname, review)
 
         # lastly, don't forget to deduplicate the citations
         deduplicate_citations.apply_async(args=[review_id], countdown=60)

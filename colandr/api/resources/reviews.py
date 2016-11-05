@@ -8,11 +8,14 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...lib import constants, utils
 from ...models import db, Review
-from ...lib import constants
 from ..errors import no_data_found, unauthorized
 from ..schemas import ReviewSchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class ReviewResource(Resource):
@@ -56,6 +59,7 @@ class ReviewResource(Resource):
         if test is False:
             db.session.delete(review)
             db.session.commit()
+            logger.info('deleted %s', review)
             return '', 204
 
     @swagger.operation()
@@ -111,6 +115,7 @@ class ReviewsResource(Resource):
         db.session.add(review)
         if test is False:
             db.session.commit()
+            logger.info('inserted %s', review)
         else:
             db.session.rollback()
         return ReviewSchema().dump(review).data

@@ -11,12 +11,15 @@ from marshmallow.validate import OneOf, Length, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants
+from ...lib import constants, utils
 from ...models import db, Citation, Study, Review
 from ...lib.nlp import reviewer_terms
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import StudySchema
 from ..authentication import auth
+
+
+logger = utils.get_console_logger(__name__)
 
 
 class StudyResource(Resource):
@@ -60,6 +63,7 @@ class StudyResource(Resource):
         db.session.delete(study)
         if test is False:
             db.session.commit()
+            logger.info('deleted %s', study)
         else:
             db.session.rollback()
 
