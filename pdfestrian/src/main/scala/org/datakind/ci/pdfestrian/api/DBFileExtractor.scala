@@ -30,7 +30,7 @@ case class Record(id : Int, reviewId : Int, citationId : Int, filename : String,
 class DBFileExtractor extends Access {
   override def getFile(record: String): Option[Record] = {
     val cx = Datasource.getConnection
-    val query = cx.prepareStatement("select f.id, f.review_id, f.citation_id, f.filename, f.text_content from fulltexts as f where f.id = ?")
+    val query = cx.prepareStatement("select f.id, f.review_id, f.filename, f.text_content from fulltexts as f where f.id = ?")
     try {
       query.setInt(1, record.toInt)
       toRecord(query.executeQuery())
@@ -41,7 +41,7 @@ class DBFileExtractor extends Access {
   }
 
   def toRecord(results : ResultSet) : Option[Record] = {
-    getItems(results, results => Record(results.getInt(1), results.getInt(2), results.getInt(3), results.getString(4), results.getString(5))).toArray.headOption
+    getItems(results, results => Record(results.getInt(1), results.getInt(2), results.getInt(1), results.getString(3), results.getString(4))).toArray.headOption
   }
 
   def getItems[E](results : ResultSet, getItem : ResultSet => E) : Traversable[E] = {
