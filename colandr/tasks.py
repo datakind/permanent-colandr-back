@@ -330,7 +330,7 @@ def suggest_keyterms(review_id, sample_size):
         if errors:
             lock.release()
             raise Exception
-        logger.info('suggested_keyterms:\n%s', suggested_keyterms)
+        logger.info('suggested keyterms: %s', suggested_keyterms)
         # update the review plan
         stmt = update(ReviewPlan)\
             .where(ReviewPlan.id == review_id)\
