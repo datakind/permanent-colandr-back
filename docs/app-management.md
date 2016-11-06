@@ -12,7 +12,9 @@ And to get help for a specific command:
 $ python3 manage.py <command> --help
 ```
 
-For all commands, you can specify the particular app configuration to act upon. This is particularly important if different configs are associated with different databases! Running the `help` command above also shows the available configurations; if desired, specify the config name _before_ the command name, like so:
+For all commands, you can specify the particular app configuration to act upon. This is particularly important if different configs are associated with different databases! This command line option will override the value given by the environment variable 'COLANDR_FLASK_CONFIG' or, lacking that, just 'default'.
+
+Running the `help` command above also shows the available configurations; if desired, specify the config name _before_ the command name, like so:
 
 ```
 $ python3 manage.py --config=<config_name> <command>
@@ -47,16 +49,24 @@ Any time you change the database models, run the `db migrate` and `db upgrade` c
 
 ## Run the App
 
-To order to run the app, you'll need to have both Postgres and Redis running as services on your machine; refer to the `dev-env-setup` document for the start/stop commands. To run the flask server:
+To order to run the app, you'll need to have both Postgres and Redis running as services on your machine; refer to the `dev-env-setup` document for the start/stop commands.
+
+In order to send registration emails, de-duplicate citations, or suggest keyterms, you'll need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
+
+```
+$ celery worker --app=celery_worker.celery
+```
+
+For day-to-day development, it's fine to run the app using flask's regular server, which serves only one request at a time:
 
 ```
 $ python3 manage.py runserver
 ```
 
-In order to send registration emails or de-duplicate citations, you'll also need to run the celery worker that listens for asynchronous tasks sent by the flask app. From within the `conservation-intl` directory, just do this:
+In production, however, we'll run our app using a more scalable server: `gunicorn`, which handles multiple requests at once and complicated things like threading. The gunicorn server's configuration is specified in `gunicorn_config.py`; for a full explanation of the options, check out [the docs](http://docs.gunicorn.org/en/stable/index.html). To run the app via gunicorn, just do this:
 
 ```
-$ celery worker --app=celery_worker.celery
+$ gunicorn --config=python:gunicorn_config runserver:app
 ```
 
 
