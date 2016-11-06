@@ -1,0 +1,404 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Colandr</title>
+
+    <!-- stylesheets -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="css/materialize.css">
+    <link rel="stylesheet" href="css/main.css">
+    
+  	<link rel="stylesheet" href="css/reviews.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+	<style>
+	   #meta {
+		   position:absolute;
+	   }
+	   #meta div {
+		   display: inline-block;
+	   }
+	   #metadata-list {
+		   position:relative;
+		   width:65%;
+		   display: inline-block;
+	   }
+	   #accepted-metadata {
+		   position:fixed;
+		   width:30%;
+		   display: inline-block;
+	   }
+	   #accepted-metadata li {
+	   	   display:inline;
+	   }
+	   
+	   
+	</style>
+	<script>
+	var locationSet = new Set();
+	var biomeSet = new Set();
+	var intervSet = new Set();
+	var outcomesSet = new Set();
+	
+	function populateSets() {
+			$("#alocations ul").text("")
+			$("#abiomes ul").text("")
+			$("#ainterv ul").text("")
+			$("#aoutcome ul").text("")
+		
+		    var lul = $("#alocations ul")
+		    var bul = $("#abiomes ul")
+		    var iul = $("#ainterv ul")
+		    var oul = $("#aoutcome ul")
+		
+			var loc_entries = Array.from( locationSet.keys() )
+			var bio_entries = Array.from( biomeSet.keys() )
+			var int_entries = Array.from( intervSet.keys() )
+			var out_entries = Array.from( outcomesSet.keys() )
+		
+	 		$.each(loc_entries, function(i)
+	 		{		 
+	     	   $('<li/>')
+				  .text(loc_entries[i])
+			 	  .appendTo(lul);
+	 		 });
+ 	 		$.each(bio_entries, function(i)
+ 	 		{		 
+ 	     	   $('<li/>')
+ 				  .text(bio_entries[i])
+ 			 	  .appendTo(bul);
+ 	 		 });		
+ 	 		$.each(int_entries, function(i)
+ 	 		{		 
+ 	     	   $('<li/>')
+ 				  .text(int_entries[i])
+ 			 	  .appendTo(iul);
+ 	 		 });		
+ 	 		$.each(out_entries, function(i)
+ 	 		{		 
+ 	     	   $('<li/>')
+ 				  .text(out_entries[i])
+ 			 	  .appendTo(oul);
+ 	 		 });		
+			 	
+	};
+	
+	$( document ).ready(function() {
+	  // Handler for .ready() called.
+				
+		$("#metadata").submit(function(event) {
+			var value = $("#metadata").serializeArray()[0].value
+			$.ajax({
+			         url: "http://localhost:8080/getLocations/"+value,
+			         type: "GET",
+					 // headers: { "user" : "colandr", "passwd" : "thepassword"},
+				     // Work with the response
+				     success: function( response ) {
+				         //console.log( response ); // server response
+						 //$("#locationsd").text("")
+						 $("#locationsd").append($('<h3/>').text("Locations"))
+						 $("#locationsd").append($('<table/>', {'id':"locations"}))
+						 var locations = $("#locations")
+						 $.each(response, function(i)
+						 {
+							 
+							var confidence = parseFloat(response[i].confidence*100).toFixed(2)
+							 
+						     var li = $('<tr/>')
+						         .addClass('ui-menu-item')
+						         .attr('role', 'menuitem')
+								 .appendTo(locations);
+								 var loc = $('<td/>')
+								 .addClass('loc')
+							     .text(response[i].value)
+								 .appendTo(li)
+								 var sent = $('<td/>')
+								 .addClass('sentence')
+							     .text(response[i].sentence)
+								 .appendTo(li)
+								 
+								 
+								 
+								 var conf = $('<td/>')
+								 .addClass('confidence')
+							     .text(confidence)
+								 .appendTo(li)
+								 var ac = $('<td/>')
+								 .addClass('ac')
+								 .appendTo(li)
+								 
+								 var reject = $('<button/>')
+								 .addClass('reject')
+								 .text("reject")
+								 .appendTo(ac)
+								 var accept = $('<button/>')
+								 .addClass('accept')
+								 .text("accept")
+								 .appendTo(ac)
+						 });
+				 		$( "#locationsd .accept" ).click(function() {
+				 		  console.log( "accepted." );
+						  var newLoc = $(this).parent().parent().children(".loc").text()
+						  locationSet.add(newLoc)
+						  $(this).parent().parent().slideUp()
+						  populateSets()
+				 		});
+				
+				 		$( "#locationsd .reject" ).click(function() {
+				 		  console.log( "reject." );
+						  $(this).parent().parent().slideUp()
+				 		});		
+				     }
+			      });		
+	  			$.ajax({
+	  			         url: "http://localhost:8080/getMetadata/"+value+"/biome",
+	  			         type: "GET",
+	  					 //headers: { "user" : "colandr", "passwd" : "thepassword"},
+	  				     // Work with the response
+	  				     success: function( response ) {
+	  				         //console.log( response ); // server response
+	  						 //$("#biomed").text("")
+	  						 $("#biomesd").append($('<h3/>').text("Biomes"))
+	  						 $("#biomesd").append($('<table/>', {'id':"biomes"}))
+	  						 var biomes = $("#biomes")
+	  						 $.each(response, function(i)
+	  						 {
+								var confidence = parseFloat(response[i].confidence*100).toFixed(2)
+								
+	  						     var li = $('<tr/>')
+	  						         .addClass('ui-menu-item')
+	  						         .attr('role', 'menuitem')
+	  								 .appendTo(biomes);
+	  								 var loc = $('<td/>')
+	  								 .addClass('loc')
+	  							     .text(response[i].value)
+	  								 .appendTo(li)
+	  								 var sent = $('<td/>')
+	  								 .addClass('sentence')
+	  							     .text(response[i].sentence)
+	  								 .appendTo(li)
+	  								 var conf = $('<td/>')
+	  								 .addClass('confidence')
+	  							     .text(confidence)
+	  								 .appendTo(li)
+	  								 var ac = $('<td/>')
+	  								 .addClass('ac')
+	  								 .appendTo(li)
+								 
+	  								 var reject = $('<button/>')
+	  								 .addClass('reject')
+	  								 .text("reject")
+	  								 .appendTo(ac)
+	  								 var accept = $('<button/>')
+	  								 .addClass('accept')
+	  								 .text("accept")
+	  								 .appendTo(ac)
+	  						 });
+					 		$( "#biomesd .accept" ).click(function() {
+					 		  	console.log( "accepted." );
+						  	  	var newLoc = $(this).parent().parent().children(".loc").text()
+						  	  	biomeSet.add(newLoc)
+						  	  	$(this).parent().parent().slideUp()
+						  	  	populateSets()
+					 		});
+				
+					 		$( "#biomesd .reject" ).click(function() {
+					 		  console.log( "reject." );
+						  	  $(this).parent().parent().slideUp()
+							  
+					 		});		
+	  				     }
+	  			      });		
+		  			$.ajax({
+		  			         url: "http://localhost:8080/getMetadata/"+value +"/interv",
+		  			         type: "GET",
+		  					 //headers: { "user" : "colandr", "passwd" : "thepassword"},
+		  				     // Work with the response
+		  				     success: function( response ) {
+		  				         //console.log( response ); // server response
+		  						 //$("#intervd").text("")
+		  						 $("#intervd").append($('<h3/>').text("Intervention Types"))
+		  						 $("#intervd").append($('<table/>', {'id':"interv"}))
+		  						 var interv = $("#interv")
+		  						 $.each(response, function(i)
+		  						 {
+		  						     var li = $('<tr/>')
+		  						         .addClass('ui-menu-item')
+		  						         .attr('role', 'menuitem')
+		  								 .appendTo(interv);
+		  								 var loc = $('<td/>')
+		  								 .addClass('loc')
+		  							     .text(response[i].value)
+		  								 .appendTo(li)
+		  								 var sent = $('<td/>')
+		  								 .addClass('sentence')
+		  							     .text(response[i].sentence)
+		  								 .appendTo(li)
+										 
+									     var confidence = parseFloat(response[i].confidence*100).toFixed(2)
+										 
+		  								 var conf = $('<td/>')
+		  								 .addClass('confidence')
+		  							     .text(confidence)
+		  								 .appendTo(li)
+		  								 var ac = $('<td/>')
+		  								 .addClass('ac')
+		  								 .appendTo(li)
+								 
+		  								 var reject = $('<button/>')
+		  								 .addClass('reject')
+		  								 .text("reject")
+		  								 .appendTo(ac)
+		  								 var accept = $('<button/>')
+		  								 .addClass('accept')
+		  								 .text("accept")
+		  								 .appendTo(ac)
+		  						 });
+	 					 		$( "#intervd .accept" ).click(function() {
+	 					 		  console.log( "accepted." );
+							  	  var newLoc = $(this).parent().parent().children(".loc").text()
+							  	  intervSet.add(newLoc)
+							  	  $(this).parent().parent().slideUp()
+							  	  populateSets()
+	 					 		});
+				
+	 					 		$( "#intervd .reject" ).click(function() {
+	 					 		  console.log( "reject." );
+							  	  $(this).parent().parent().slideUp()
+	 					 		});		
+				
+		  				     }
+		  			      });		
+			  			$.ajax({
+			  			         url: "http://localhost:8080/getMetadata/"+value+"/outcome",
+			  			         type: "GET",
+			  					 //headers: { "user" : "colandr", "passwd" : "thepassword"},
+			  				     // Work with the response
+			  				     success: function( response ) {
+			  				         //console.log( response ); // server response
+			  						 //$("#outcomed").text("")
+			  						 $("#outcomed").append($('<h3/>').text("Outcome Type"))
+			  						 $("#outcomed").append($('<table/>', {'id':"outcomes"}))
+			  						 var outcomes = $("#outcomes")
+			  						 $.each(response, function(i)
+			  						 {
+			  						     var li = $('<tr/>')
+			  						         .addClass('ui-menu-item')
+			  						         .attr('role', 'menuitem')
+			  								 .appendTo(outcomes);
+			  								 var loc = $('<td/>')
+			  								 .addClass('loc')
+			  							     .text(response[i].value)
+			  								 .appendTo(li)
+			  								 var sent = $('<td/>')
+			  								 .addClass('sentence')
+			  							     .text(response[i].sentence)
+			  								 .appendTo(li)
+											 
+											 var confidence = parseFloat(response[i].confidence*100).toFixed(2)
+											 
+			  								 var conf = $('<td/>')
+			  								 .addClass('confidence')
+			  							     .text(confidence)
+			  								 .appendTo(li)
+			  								 var ac = $('<td/>')
+			  								 .addClass('ac')
+			  								 .appendTo(li)
+								 
+			  								 var reject = $('<button/>')
+			  								 .addClass('reject')
+			  								 .text("reject")
+			  								 .appendTo(ac)
+			  								 var accept = $('<button/>')
+			  								 .addClass('accept')
+			  								 .text("accept")
+			  								 .appendTo(ac)
+			  						 });
+	 	 					 		$( "#outcomed .accept" ).click(function() {
+	 	 					 		  console.log( "accepted." );
+								  	  var newLoc = $(this).parent().parent().children(".loc").text()
+								  	  outcomesSet.add(newLoc)
+								  	  $(this).parent().parent().slideUp()
+								  	  populateSets()
+									  
+	 	 					 		});
+				
+	 	 					 		$( "#outcomed .reject" ).click(function() {
+	 	 					 		  console.log( "reject." );
+								  	  $(this).parent().parent().slideUp()
+									 
+	 	 					 		});															
+									 
+			  				     }
+			  			      });		
+				  
+		    event.preventDefault();
+		});
+	});
+	</script>
+  </head>
+  <body>
+    <nav class="colandr-color z-depth-0">
+  <div class="nav-wrapper container">
+    <a href="#" class="brand-logo">Colandr</a>
+    <ul id="nav-mobile" class="right hide-on-med-and-down">
+        <li><a href="/logout">Logout</a></li>
+    </ul>
+  </div>
+</nav>
+
+    
+
+  <div class="reviews reviews-page container">
+    <div class="row">
+      <div class="col s6">
+        <h1>Metadata Extraction</h1>
+      </div>
+    </div>
+    <hr>
+	<form id = "metadata">
+		<input type = "text" name = "citationid" value = "Citation Id #"/>
+		<input type = "submit" value="Submit" />
+	</form>
+	<div "meta">
+    <div id="metadata-list">
+		<div id = "locationsd"></div>
+		<div id = "biomesd"></div>
+		<div id = "intervd"></div>
+		<div id = "outcomed"></div>
+    </div>
+	<div id = "accepted-metadata">
+		<div id = "alocations">
+			<h4>Locations</h4>
+			<ul></ul>
+		</div>
+		<div id = "abiomes">
+			<h4>Biomes</h4>
+			<ul></ul>
+		</div>
+		<div id = "ainterv">
+			<h4>Interventions</h4>
+			<ul></ul>
+		</div>
+		<div id = "aoutcome">
+			<h4>Outcomes</h4>
+			<ul></ul>
+		</div>
+	</div>
+  </div>
+  <div class = "clearfix"></div>
+</div>
+
+
+    <!-- vendor scripts -->
+    <script type="text/javascript" src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.7/js/materialize.min.js"></script>
+    <!-- main -->
+    
+  </body>
+</html>
