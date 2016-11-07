@@ -25,18 +25,68 @@
 	   }
 	   #metadata-list {
 		   position:relative;
-		   width:65%;
+		   width:75%;
 		   display: inline-block;
 	   }
-	   #accepted-metadata {
-		   position:fixed;
-		   width:30%;
-		   display: inline-block;
-	   }
-	   #accepted-metadata li {
-	   	   display:inline;
-	   }
-	   
+		 
+		 #metadata-list table {
+		     padding: 5px;
+		     background-color: #eef;
+		     border-bottom: 1px solid #333;
+				 }		 
+				 
+		#metadata-list table tr {
+				 border-bottom: 1px solid #333;
+		}
+		
+		#metadata-list table td {
+			padding:10px;
+			vertical-align:top;
+		}
+		 #accepted-metadata {
+		     position: fixed;
+		     right: 5%;
+		     width: 26%;
+		     top: 200px;
+		     display: inline-block;
+		     border: 1px solid #000;
+		     padding: 10px;
+				 background-color:#fff;
+		 }
+		 		 
+		 #accepted-metadata h4 {
+			 font-size:20px;
+			 margin-bottom:0;
+			 padding-bottom:0;
+			 border-bottom: 1px solid #000;
+		 }
+		 
+		 #accepted-metadata li {
+		     display: inline;
+		     padding: 5px;
+		     background-color: #CCF;
+		     margin-right: 3px;
+				 border: 1px solid #000;
+				 border-top:0;
+				 border-left:0;
+		     cursor: pointer;
+				 padding-right:0;
+		 }
+		 
+		 #accepted-metadata ul {
+				 display:block;
+		 }
+		 
+		 #accepted-metadata li span.delete {
+		     background-color: #f00;
+		     padding: 5px;
+		     border-left: 2px solid #000;
+		 }
+		 
+		 #accepted-metadata li span.label {
+		     padding-right: 5px;
+		 }
+		
 	   
 	</style>
 	<script>
@@ -63,28 +113,82 @@
 		
 	 		$.each(loc_entries, function(i)
 	 		{		 
-	     	   $('<li/>')
-				  .text(loc_entries[i])
-			 	  .appendTo(lul);
+ 	     	   var li = $('<li/>')
+						.appendTo(lul);
+					
+					var label = $('<span class = "label"/>')
+										.text(loc_entries[i])
+										.appendTo(li)
+					
+					var x = $('<span class = "delete"/>')
+									.text('x')
+									.appendTo(li)
+					
 	 		 });
  	 		$.each(bio_entries, function(i)
  	 		{		 
- 	     	   $('<li/>')
- 				  .text(bio_entries[i])
- 			 	  .appendTo(bul);
+ 	     	   var li = $('<li/>')
+						.appendTo(bul);
+					
+					var label = $('<span class = "label"/>')
+										.text(bio_entries[i])
+										.appendTo(li)
+					
+					var x = $('<span class = "delete"/>')
+									.text('x')
+									.appendTo(li)
+					
  	 		 });		
  	 		$.each(int_entries, function(i)
  	 		{		 
- 	     	   $('<li/>')
- 				  .text(int_entries[i])
- 			 	  .appendTo(iul);
+ 	     	   var li = $('<li/>')
+										.appendTo(iul)
+					
+					var label = $('<span class = "label"/>')
+										.text(int_entries[i])
+										.appendTo(li)
+					
+					var x = $('<span class = "delete"/>')
+									.text('x')
+									.appendTo(li)
  	 		 });		
  	 		$.each(out_entries, function(i)
  	 		{		 
- 	     	   $('<li/>')
- 				  .text(out_entries[i])
- 			 	  .appendTo(oul);
+ 	     	   var li = $('<li/>')
+						.appendTo(oul);
+					
+					var label = $('<span class = "label"/>')
+										.text(out_entries[i])
+										.appendTo(li)
+					
+					var x = $('<span class = "delete"/>')
+									.text('x')
+									.appendTo(li)
+					
  	 		 });		
+			 
+			 $("#alocations ul li span.delete").click(function() {
+				 var removeLocation = $(this).parent().children(".label").text();
+				 locationSet.delete(removeLocation);
+				 populateSets();
+			 });
+			 $("#abiomes ul li span.delete").click(function() {
+				 var removeBiome = $(this).parent().children(".label").text();
+				 biomeSet.delete(removeBiome);
+				 populateSets();
+			 });
+			 $("#ainterv ul li span.delete").click(function() {
+				 var removeInterv = $(this).parent().children(".label").text();
+				 console.log(removeInterv)
+				 intervSet.delete(removeInterv);
+				 populateSets();
+			 });
+			 $("#aoutcome ul li span.delete").click(function() {
+				 var removeOutcome = $(this).parent().children(".label").text();
+				 outcomesSet.delete(removeOutcome);
+				 populateSets();
+			 });
+			 
 			 	
 	};
 	
