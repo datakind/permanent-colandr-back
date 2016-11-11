@@ -891,11 +891,11 @@ def update_citation_status(mapper, connection, target):
         citation.review.num_citation_screening_reviewers)
     with connection.begin():
         connection.execute(
-            db.update(Citation).where(Citation.id == citation_id).values(status=status))
+            db.update(Study).where(Study.id == citation_id).values(citation_status=status))
     logger.info('%s => %s with status = %s', target, citation, status)
     with connection.begin():
         fulltext = connection.execute(
-            db.query(Fulltext).where(Fulltext.id == citation_id)).first()
+            db.select([Fulltext]).where(Fulltext.id == citation_id)).first()
     fulltext_inserted_or_deleted = False
     if status == 'included' and fulltext is None:
         with connection.begin():
@@ -937,11 +937,11 @@ def update_fulltext_status(mapper, connection, target):
         fulltext.review.num_fulltext_screening_reviewers)
     with connection.begin():
         connection.execute(
-            db.update(Fulltext).where(Fulltext.id == fulltext_id).values(status=status))
+            db.update(Study).where(Study.id == fulltext_id).values(fulltext_status=status))
     logger.info('%s => %s with status = %s', target, fulltext, status)
     with connection.begin():
         data_extraction = connection.execute(
-            db.query(DataExtraction).where(DataExtraction.id == fulltext_id)).first()
+            db.select([DataExtraction]).where(DataExtraction.id == fulltext_id)).first()
     if status == 'included' and data_extraction is None:
         with connection.begin():
             connection.execute(
