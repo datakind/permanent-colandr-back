@@ -14,7 +14,7 @@ from sqlalchemy import create_engine
 from ...lib import constants, utils
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
-from ...tasks import deduplicate_citations
+from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
@@ -159,5 +159,7 @@ class CitationsImportsResource(Resource):
             'imported %s citations from file "%s" into %s',
             n_citations, fname, review)
 
-        # lastly, don't forget to deduplicate the citations
+        # lastly, don't forget to deduplicate the citations and get their word2vecs
         deduplicate_citations.apply_async(args=[review_id], countdown=60)
+        get_citations_text_content_vectors.apply_async(
+            args=[review_id], countdown=120)

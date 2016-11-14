@@ -491,6 +491,8 @@ class Citation(db.Model):
     language = db.Column(db.Unicode(length=50))
     other_fields = db.Column(
         postgresql.JSONB(none_as_null=True), server_default='{}')
+    text_content_vector_rep = db.Column(
+        postgresql.ARRAY(db.Float), server_default='{}')
 
     @hybrid_property
     def text_content(self):

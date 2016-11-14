@@ -103,7 +103,7 @@ def deduplicate_citations(review_id):
             else:
                 break
 
-        # if all studies have been deduped, cancel
+        # if all studies have been deduped, cancel task
         stmt = select(
             [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
         un_deduped_studies = conn.execute(stmt).fetchone()[0]
@@ -275,6 +275,72 @@ def deduplicate_citations(review_id):
         session.bulk_update_mappings(Study, studies_to_update)
         session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
         session.commit()
+
+    lock.release()
+
+
+@celery.task
+def get_citations_text_content_vectors(review_id):
+
+    lock = wait_for_lock(
+        'get_citations_text_content_vectors_review{}'.format(review_id), expire=60)
+
+    en_nlp = textacy.load_spacy(
+        'en', tagger=False, parser=False, entity=False, matcher=False)
+    engine = create_engine(
+        current_app.config['SQLALCHEMY_DATABASE_URI'],
+        server_side_cursors=True, echo=False)
+
+    with engine.connect() as conn:
+
+        # wait until no more review citations have been created in 60+ seconds
+        stmt = select([func.max(Citation.created_at)])\
+            .where(Citation.review_id == review_id)
+        while True:
+            max_created_at = conn.execute(stmt).fetchone()[0]
+            elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
+            if elapsed_time < 60:
+                logger.info(
+                    'citation last created %s seconds ago, sleeping...', elapsed_time)
+                sleep(10)
+            else:
+                break
+
+        stmt = select([Citation.id, Citation.text_content])\
+            .where(Citation.review_id == review_id)\
+            .where(Citation.text_content_vector_rep == [])\
+            .order_by(Citation.id)
+        results = conn.execute(stmt)
+        citations_to_update = []
+        for id_, text_content in results:
+            lang = textacy.text_utils.detect_language(text_content)
+            if lang == 'en':
+                try:
+                    spacy_doc = en_nlp(text_content)
+                except Exception as e:
+                    logger.exception(
+                        'unable to tokenize text content for <Citation(study_id=%s)>', id_)
+                    continue
+                citations_to_update.append(
+                    {'id': id_, 'text_content_vector_rep': spacy_doc.vector.tolist()})
+            else:
+                logger.warning(
+                    'lang %s detected for <Citation(study_id=%s)>', lang, id_)
+
+        # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
+        # filter to those that can be tokenized and word2vec-torized
+        # group by lang, then load the necessary models to do this for groups
+
+        if not citations_to_update:
+            logger.warning('no citation text_content_vector_reps to update')
+            lock.release()
+            return
+
+        session = Session(bind=conn)
+        session.bulk_update_mappings(Citation, citations_to_update)
+        session.commit()
+        logger.info(
+            '%s citation text_content_vector_reps updated', len(citations_to_update))
 
     lock.release()
 
