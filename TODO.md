@@ -2,7 +2,7 @@
 
 - **Documentation**
     - [x] write engineering environment setup guide
-    - [ ] contribute to app usage guide, as needed
+    - [x] contribute to app usage guide, as needed
 - **Backend Engineering**
     - [x] finalize database models
     - [x] finish implementing schema validation
@@ -54,3 +54,5 @@
     - [x] implement automatic term recognition with scoring for 2nd-stage ranking
     - [ ] implement ML-based ranking based on user-labeled citations
     - [ ] automatically switch and/or hybridize methods depending on metrics, e.g. observed inclusion rate vs. baseline inclusion rate
+- **Fixups:**
+    - [ ] Remove `fields` param from certain API endpoints, e.g. PUT `reviews/{id}/plan` and change logic to check for `if not missing`
