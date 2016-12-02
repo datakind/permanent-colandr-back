@@ -37,6 +37,8 @@ class FulltextResource(Resource):
                 fulltext.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
             return unauthorized(
                 '{} not authorized to get this fulltext'.format(g.current_user))
+        if fields and 'id' not in fields:
+            fields.append('id')
         return FulltextSchema(only=fields).dump(fulltext).data
 
     @swagger.operation()
