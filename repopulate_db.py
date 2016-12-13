@@ -7,9 +7,8 @@ import random
 from pprint import pprint
 import sys
 
-from colandr import create_app, db
+from colandr import create_app
 from colandr.config import config
-from colandr.models import Fulltext, DataExtraction
 from colandr.tasks import suggest_keyterms
 import requests
 
@@ -186,6 +185,8 @@ FULLTEXTS = [
     'references/OMara_2015_Text_mining_and_SRs.pdf'
     ]
 
+TAGS = ['tag1', 'tag2', 'tag3', 'tag4', 'tag5']
+
 
 def get_auth_token(email, password):
     """For your convenience."""
@@ -312,6 +313,18 @@ def main():
             files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
             auth=auth)
         print('POST:', filename, '=>', response.url)
+
+    # add tags to a small random sample of studies
+    results = session.request(
+        'GET', BASE_URL + 'studies', auth=auth,
+        params={'fields': 'id',
+                'review_id': 1,
+                'order_by': 'recency',
+                'per_page': 5000})
+    for result in random.sample(results, 100):
+        response = session.request(
+            'PUT', BASE_URL + 'studies/{}'.format(result['id']), auth=auth,
+            json={'tags': random.sample(TAGS, random.randint(1, 3))})
 
     if args['last'] == 'citations':
         LOGGER.warning('stopping db repopulation at "citations"')

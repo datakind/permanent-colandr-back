@@ -28,6 +28,7 @@ from .api.resources.review_plans import ReviewPlanResource
 from .api.resources.review_teams import ReviewTeamResource, ConfirmReviewTeamInviteResource
 from .api.resources.review_progress import ReviewProgressResource
 from .api.resources.studies import StudyResource, StudiesResource
+from .api.resources.study_tags import StudyTagsResource
 from .api.resources.citations import CitationResource, CitationsResource
 from .api.resources.citation_screenings import CitationScreeningsResource, CitationsScreeningsResource
 from .api.resources.citation_imports import CitationsImportsResource
@@ -79,6 +80,7 @@ def create_app(config_name):
     api.add_resource(ReviewExportStudiesResource, '/reviews/<int:id>/export_studies')
     api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
     api.add_resource(StudiesResource, '/studies')
+    api.add_resource(StudyTagsResource, '/studies/tags')
     api.add_resource(StudyResource, '/studies/<int:id>')
     api.add_resource(CitationsResource, '/citations')
     api.add_resource(CitationsImportsResource, '/citations/imports')
