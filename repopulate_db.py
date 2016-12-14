@@ -321,9 +321,9 @@ def main():
                 'review_id': 1,
                 'order_by': 'recency',
                 'per_page': 5000})
-    for result in random.sample(results, 100):
+    for result in random.sample([result['id'] for result in results.json()], 100):
         response = session.request(
-            'PUT', BASE_URL + 'studies/{}'.format(result['id']), auth=auth,
+            'PUT', BASE_URL + 'studies/{}'.format(result), auth=auth,
             json={'tags': random.sample(TAGS, random.randint(1, 3))})
 
     if args['last'] == 'citations':

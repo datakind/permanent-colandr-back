@@ -298,6 +298,9 @@ def get_citations_text_content_vectors(review_id):
             .where(Citation.review_id == review_id)
         while True:
             max_created_at = conn.execute(stmt).fetchone()[0]
+            if not max_created_at:
+                logger.warning('no citations found for <Review(id={})>'.format(review_id))
+                return
             elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
             if elapsed_time < 60:
                 logger.info(
