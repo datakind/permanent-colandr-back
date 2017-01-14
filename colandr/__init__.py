@@ -5,7 +5,7 @@ from flask import Flask, jsonify, send_from_directory
 # from flask_restful import Api
 # from flask_restful_swagger import swagger
 from flask_mail import Mail
-from flask_migrate import Migrate  # check
+from flask_migrate import Migrate
 from flask_restful_swagger_2 import Api
 from flask_sqlalchemy import SQLAlchemy
 
@@ -93,7 +93,7 @@ def create_app(config_name):
     api.add_resource(FulltextUploadResource, '/fulltexts/<int:id>/upload')
     api.add_resource(DataExtractionResource, '/data_extracton/<int:id>')
 
-    @app.route('/fulltexts/<id>/upload', methods=['GET'])
+    @app.route('/fulltexts/<int:id>/upload', methods=['GET'])
     def get_uploaded_fulltext_file(id):
         filename = None
         upload_dir = app.config['FULLTEXT_UPLOAD_FOLDER']

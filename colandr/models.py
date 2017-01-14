@@ -578,6 +578,8 @@ class Fulltext(db.Model):
         db.Unicode, unique=False, nullable=True)
     text_content = db.Column(
         db.UnicodeText, nullable=True)
+    text_content_vector_rep = db.Column(
+        postgresql.ARRAY(db.Float), server_default='{}')
 
     @hybrid_property
     def exclude_reasons(self):

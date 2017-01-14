@@ -174,13 +174,14 @@ If you haven't already, change your working directory to your local copy of the 
 
 ```
 $ cd /path/to/conservation-intl
+$ pip3 install "numpy>=1.9"
 $ pip3 install -r requirements.txt
 ```
 
 The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
 
 ```
-$ python3 -m spacy.en.download all --force
+$ python3 -m spacy.en.download
 $ python3 -c "import spacy; spacy.load('en'); print('OK')"
 ```
 

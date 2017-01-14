@@ -15,6 +15,7 @@ from textacy.preprocess import fix_bad_unicode
 
 from ...lib import constants, utils
 from ...models import db, Fulltext
+from ...tasks import get_fulltext_text_content_vector
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import FulltextSchema
 from ..authentication import auth
@@ -75,6 +76,11 @@ class FulltextUploadResource(Resource):
             db.session.commit()
             logger.info(
                 'uploaded "%s" for %s', fulltext.original_filename, fulltext)
+
+            # parse the fulltext text content and get its word2vec vector
+            get_fulltext_text_content_vector.apply_async(
+                args=[fulltext.review_id, id], countdown=5)
+
         return FulltextSchema().dump(fulltext).data
 
     @swagger.operation()

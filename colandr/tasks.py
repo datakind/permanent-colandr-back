@@ -20,7 +20,7 @@ from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
 from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
-                     ReviewPlan, Study, User)
+                     Fulltext, ReviewPlan, Study, User)
 
 
 REDIS_CONN = redis.StrictRedis()
@@ -79,7 +79,7 @@ def get_candidate_dupes(results):
 @celery.task
 def deduplicate_citations(review_id):
 
-    lock = wait_for_lock('deduplicate_citations_review{}'.format(review_id), expire=60)
+    lock = wait_for_lock('deduplicate_citations_review_id={}'.format(review_id), expire=60)
 
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
@@ -283,7 +283,7 @@ def deduplicate_citations(review_id):
 def get_citations_text_content_vectors(review_id):
 
     lock = wait_for_lock(
-        'get_citations_text_content_vectors_review{}'.format(review_id), expire=60)
+        'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
 
     en_nlp = textacy.load_spacy(
         'en', tagger=False, parser=False, entity=False, matcher=False)
@@ -349,9 +349,59 @@ def get_citations_text_content_vectors(review_id):
 
 
 @celery.task
+def get_fulltext_text_content_vector(review_id, fulltext_id):
+
+    lock = wait_for_lock(
+        'get_fulltext_text_content_vector_review_id={}'.format(review_id), expire=60)
+
+    engine = create_engine(
+        current_app.config['SQLALCHEMY_DATABASE_URI'],
+        server_side_cursors=True, echo=False)
+
+    with engine.connect() as conn:
+
+        # wait until no more review citations have been created in 60+ seconds
+        stmt = select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
+        text_content = conn.execute(stmt).fetchone()[0]
+        if not text_content:
+            logger.warning(
+                'no fulltext text content found for <Fulltext(study_id={})>'.format(
+                    fulltext_id))
+            lock.release()
+            return
+
+        lang = textacy.text_utils.detect_language(text_content)
+        try:
+            nlp = textacy.load_spacy(
+                lang, tagger=False, parser=False, entity=False, matcher=False)
+        except RuntimeError:
+            logger.warning(
+                'unable to load spacy lang "{}" for <Fulltext(study_id={})>'.format(
+                    lang, fulltext_id))
+            lock.release()
+            return
+        spacy_doc = nlp(text_content)
+        try:
+            text_content_vector_rep = spacy_doc.vector.tolist()
+        except ValueError:
+            logger.warning(
+                'unable to get lang "{}" word vectors for <Fulltext(study_id={})>'.format(
+                    lang, fulltext_id))
+            lock.release()
+            return
+
+        stmt = update(Fulltext)\
+            .where(Fulltext.id == fulltext_id)\
+            .values(text_content_vector_rep=text_content_vector_rep)
+        conn.execute(stmt)
+
+        lock.release()
+
+
+@celery.task
 def suggest_keyterms(review_id, sample_size):
 
-    lock = wait_for_lock('suggest_keyterms_review{}'.format(review_id), expire=60)
+    lock = wait_for_lock('suggest_keyterms_review_id={}'.format(review_id), expire=60)
     logger.info(
         'computing keyterms for <Review(id=%s)> with sample size = %s',
         review_id, sample_size)
