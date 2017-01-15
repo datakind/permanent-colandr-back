@@ -66,12 +66,13 @@ class ReviewProgressResource(Resource):
                           FROM studies
                           LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM citation_screenings
+                                     WHERE review_id = {review_id}
                                      GROUP BY citation_id
                                      ) AS screenings
                           ON studies.id = screenings.citation_id
                           ) AS t
                     GROUP BY user_status;
-                    """.format(user_id=g.current_user.id)
+                    """.format(user_id=g.current_user.id, review_id=id)
                 progress = [row for row in db.engine.execute(query)]
             response['citation_screening'] = dict(progress)
         if step in ('fulltext_screening', 'all'):
@@ -98,13 +99,14 @@ class ReviewProgressResource(Resource):
                           FROM studies
                           LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM fulltext_screenings
+                                     WHERE review_id = {review_id}
                                      GROUP BY fulltext_id
                                      ) AS screenings
                           ON studies.id = screenings.fulltext_id
                           ) AS t
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
-                    """.format(user_id=g.current_user.id)
+                    """.format(user_id=g.current_user.id, review_id=id)
                 progress = [row for row in db.engine.execute(query)]
             response['fulltext_screening'] = dict(progress)
         if step in ('data_extraction', 'all'):
