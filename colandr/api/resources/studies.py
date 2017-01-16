@@ -103,6 +103,9 @@ class StudiesResource(Resource):
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
             ma_fields.String(), delimiter=',', missing=None),
+        'dedupe_status': ma_fields.String(
+            missing=None,
+            validate=OneOf(['duplicate', 'not_duplicate'])),
         'citation_status': ma_fields.String(
             missing=None,
             validate=OneOf(['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'])),
@@ -126,7 +129,7 @@ class StudiesResource(Resource):
             missing=25, validate=OneOf([10, 25, 50, 100, 5000])),
         })
     def get(self, review_id, fields,
-            citation_status, fulltext_status, data_extraction_status,
+            dedupe_status, citation_status, fulltext_status, data_extraction_status,
             tag, tsquery,
             order_by, order_dir, page, per_page):
         review = db.session.query(Review).get(review_id)
@@ -141,6 +144,9 @@ class StudiesResource(Resource):
             fields.append('id')
         # build the query by components
         query = review.studies
+
+        if dedupe_status is not None:
+            query = query.filter(Study.dedupe_status == dedupe_status)
 
         if citation_status is not None:
             if citation_status in {'conflict', 'excluded', 'included'}:
