@@ -350,11 +350,11 @@ class StudySchema(Schema):
         fields.Str(validate=Length(max=25)))
     dedupe = fields.Nested(
         DedupeSchema, dump_only=True)
-    citation = fields.Nested(
-        CitationSchema, dump_only=True)
     dedupe_status = fields.Str(
         dump_only=True,
         validate=OneOf(['duplicate', 'not_duplicate']))
+    citation = fields.Nested(
+        CitationSchema, dump_only=True)
     citation_status = fields.Str(
         dump_only=True,
         validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
@@ -366,7 +366,7 @@ class StudySchema(Schema):
     data_extraction = fields.Nested(
         DataExtractionSchema, dump_only=True)
     data_extraction_status = fields.Str(
-        dump_only=True, validate=OneOf(['not_started', 'incomplete', 'complete']))
+        dump_only=True, validate=OneOf(['not_started', 'started', 'finished']))
 
     class Meta:
         strict = True

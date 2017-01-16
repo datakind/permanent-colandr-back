@@ -59,7 +59,7 @@ def remove_unconfirmed_user(email):
         db.session.commit()
 
 
-def get_candidate_dupes(results):
+def _get_candidate_dupes(results):
     block_id = None
     records = []
     for row in results:
@@ -221,7 +221,7 @@ def deduplicate_citations(review_id):
         results = conn.execute(stmt)
 
         clustered_dupes = deduper.matchBlocks(
-            get_candidate_dupes(results),
+            _get_candidate_dupes(results),
             threshold=dupe_threshold)
         logger.info('found %s duplicate clusters', len(clustered_dupes))
 
@@ -260,8 +260,7 @@ def deduplicate_citations(review_id):
                     duplicate_cids.add(cid)
                     studies_to_update.append(
                         {'id': cid,
-                         'dedupe_status': 'duplicate',
-                         'citation_status': 'excluded'})
+                         'dedupe_status': 'duplicate'})
                     dedupes_to_insert.append(
                         {'id': cid,
                          'review_id': review_id,
@@ -362,13 +361,15 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 
         # wait until no more review citations have been created in 60+ seconds
         stmt = select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
-        text_content = conn.execute(stmt).fetchone()[0]
+        text_content = conn.execute(stmt).fetchone()
         if not text_content:
             logger.warning(
                 'no fulltext text content found for <Fulltext(study_id={})>'.format(
                     fulltext_id))
             lock.release()
             return
+        else:
+            text_content = text_content[0]
 
         lang = textacy.text_utils.detect_language(text_content)
         try:

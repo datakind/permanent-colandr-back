@@ -276,3 +276,13 @@ class FulltextsScreeningsResource(Resource):
             db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
             db.session.commit()
             logger.info('inserted %s data extractions', len(data_extractions_to_insert))
+            # now update include/exclude counts on review
+            status_counts = db.session.query(Study.fulltext_status, db.func.count(1))\
+                .filter(Study.review_id == review_id)\
+                .filter(Study.fulltext_status.in_(['included', 'excluded']))\
+                .group_by(Study.fulltext_status)\
+                .all()
+            status_counts = dict(status_counts)
+            review.num_fulltexts_included = status_counts.get('included', 0)
+            review.num_fulltexts_excluded = status_counts.get('excluded', 0)
+            db.session.commit()

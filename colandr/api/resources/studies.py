@@ -148,7 +148,11 @@ class StudiesResource(Resource):
             elif citation_status == 'pending':
                 stmt = """
                     SELECT t.id
-                    FROM (SELECT studies.id, studies.citation_status, screenings.user_ids
+                    FROM (SELECT
+                              studies.id,
+                              studies.dedupe_status,
+                              studies.citation_status,
+                              screenings.user_ids
                           FROM studies
                           LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM citation_screenings
@@ -157,8 +161,8 @@ class StudiesResource(Resource):
                           ON studies.id = screenings.citation_id
                           ) AS t
                     WHERE
-                        t.citation_status = 'not_screened'
-                        OR NOT {user_id} = ANY(t.user_ids)
+                        t.dedupe_status = 'not_duplicate' -- this is necessary!
+                        AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=g.current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif citation_status == 'awaiting_coscreener':

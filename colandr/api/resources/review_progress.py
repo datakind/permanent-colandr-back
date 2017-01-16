@@ -16,7 +16,7 @@ SCREENING_STATUSES = (
 USER_SCREENING_STATUSES = (
     'pending', 'awaiting_coscreener', 'conflict', 'included', 'excluded')
 EXTRACTION_STATUSES = (
-    'not_started', 'incomplete', 'complete')
+    'not_started', 'started', 'finished')
 
 
 class ReviewProgressResource(Resource):
