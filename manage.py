@@ -22,14 +22,15 @@ manager.add_command('db', MigrateCommand)
 def reset_db():
     """
     Drop and then create all tables in the database, clear out all uploaded
-    fulltext files on disk, and create an admin user.
+    fulltext files and ranking models on disk, and create an admin user.
     """
     if prompt_bool("Are you sure you want to reset all db data?") is False:
         return
     db.drop_all()
     db.create_all()
-    shutil.rmtree(manager.app.config['FULLTEXT_UPLOAD_FOLDER'])
-    os.makedirs(manager.app.config['FULLTEXT_UPLOAD_FOLDER'], exist_ok=True)
+    for dirkey in ('FULLTEXT_UPLOAD_FOLDER', 'RANKING_MODELS_FOLDER'):
+        shutil.rmtree(manager.app.config[dirkey], ignore_errors=True)
+        os.makedirs(manager.app.config[dirkey], exist_ok=True)
     user = User('ADMIN', 'burtdewilde@gmail.com', 'password')
     user.is_confirmed = True
     user.is_admin = True

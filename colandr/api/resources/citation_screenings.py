@@ -279,6 +279,18 @@ class CitationsScreeningsResource(Resource):
                 .group_by(Study.citation_status)\
                 .all()
             status_counts = dict(status_counts)
-            review.num_citations_included = status_counts.get('included', 0)
-            review.num_citations_excluded = status_counts.get('excluded', 0)
+            n_included = status_counts.get('included', 0)
+            n_excluded = status_counts.get('excluded', 0)
+            review.num_citations_included = n_included
+            review.num_citations_excluded = n_excluded
             db.session.commit()
+            # do we have to suggest keyterms?
+            if n_included >= 25 and n_excluded >= 25:
+                from colandr.tasks import suggest_keyterms
+                sample_size = min(n_included, n_excluded)
+                suggest_keyterms.apply_async(args=[review_id, sample_size])
+            # do we have to train a ranking model?
+            if n_included >= 100 and n_excluded >= 100:
+                from colandr.tasks import train_citation_ranking_model
+                train_citation_ranking_model.apply_async(
+                    args=[review_id], countdown=30)

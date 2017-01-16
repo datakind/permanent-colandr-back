@@ -162,4 +162,4 @@ class CitationsImportsResource(Resource):
         # lastly, don't forget to deduplicate the citations and get their word2vecs
         deduplicate_citations.apply_async(args=[review_id], countdown=60)
         get_citations_text_content_vectors.apply_async(
-            args=[review_id], countdown=120)
+            args=[review_id], countdown=60)

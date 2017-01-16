@@ -959,12 +959,20 @@ def update_citation_status(mapper, connection, target):
             logger.info(
                 '<Review(id=%s)> citation_status counts = %s',
                 review_id, status_counts)
-            n_included = status_counts[0]
-            n_excluded = status_counts[1]
+            n_included, n_excluded = status_counts
+            # if at least 25 citations have been included AND excluded
+            # and only once every 25 included citations
+            # (re-)compute the suggested keyterms
             if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
                 from .tasks import suggest_keyterms
                 sample_size = min(n_included, n_excluded)
                 suggest_keyterms.apply_async(args=[review_id, sample_size])
+            # if at least 100 citations have been included AND excluded
+            # and only once ever 50 included citations
+            # (re-)train a citation ranking model
+            if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
+                from .tasks import train_citation_ranking_model
+                train_citation_ranking_model.apply_async(args=[review_id])
 
 
 @event.listens_for(FulltextScreening, 'after_insert')
@@ -1037,8 +1045,7 @@ def update_fulltext_status(mapper, connection, target):
             logger.info(
                 '<Review(id=%s)> fulltext_status counts = %s',
                 review_id, status_counts)
-            n_included = status_counts[0]
-            n_excluded = status_counts[1]
+            n_included, n_excluded = status_counts
             # TODO: do something now
             # if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
             #     from .tasks import suggest_keyterms

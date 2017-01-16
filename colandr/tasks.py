@@ -13,6 +13,10 @@ from sqlalchemy import create_engine, func, types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
+
+import numpy as np
+from sklearn.externals import joblib
+from sklearn.linear_model import SGDClassifier
 import textacy
 
 from . import celery, mail
@@ -350,6 +354,9 @@ def get_citations_text_content_vectors(review_id):
 @celery.task
 def get_fulltext_text_content_vector(review_id, fulltext_id):
 
+    # HACK: let's skip this for now, actually
+    return
+
     lock = wait_for_lock(
         'get_fulltext_text_content_vector_review_id={}'.format(review_id), expire=60)
 
@@ -402,7 +409,8 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 @celery.task
 def suggest_keyterms(review_id, sample_size):
 
-    lock = wait_for_lock('suggest_keyterms_review_id={}'.format(review_id), expire=60)
+    lock = wait_for_lock(
+        'suggest_keyterms_review_id={}'.format(review_id), expire=60)
     logger.info(
         'computing keyterms for <Review(id=%s)> with sample size = %s',
         review_id, sample_size)
@@ -456,5 +464,62 @@ def suggest_keyterms(review_id, sample_size):
             .where(ReviewPlan.id == review_id)\
             .values(suggested_keyterms=suggested_keyterms)
         conn.execute(stmt)
+
+    lock.release()
+
+
+@celery.task
+def train_citation_ranking_model(review_id):
+
+    lock = wait_for_lock(
+        'train_citation_ranking_model_review_id={}'.format(review_id), expire=60)
+    logger.info('training citation ranking model for <Review(id=%s)>', review_id)
+
+    engine = create_engine(
+        current_app.config['SQLALCHEMY_DATABASE_URI'],
+        server_side_cursors=True, echo=False)
+    with engine.connect() as conn:
+
+        # make sure at least some citations have had their
+        n_iters = 1
+        while True:
+            stmt = select(
+                [exists().where(Citation.review_id == review_id).where(Citation.text_content_vector_rep != [])])
+            citations_ready = conn.execute(stmt).fetchone()[0]
+            if citations_ready is True:
+                break
+            else:
+                logger.warning(
+                    'waiting for vectorized text content for <Review(id={})>, %s'.format(
+                        review_id, n_iters))
+                sleep(30)
+            if n_iters > 6:
+                logger.error(
+                    'no citations with vectorized text content found for <Review(id={})>'.format(review_id))
+                lock.release()
+                return
+            n_iters += 1
+
+        # get random sample of included citations
+        stmt = select([Citation.text_content_vector_rep, Study.citation_status])\
+            .where(Study.id == Citation.id)\
+            .where(Study.review_id == review_id)\
+            .where(Study.dedupe_status == 'not_duplicate')\
+            .where(Study.citation_status.in_(['included', 'excluded']))\
+            .where(Citation.text_content_vector_rep != [])
+        results = conn.execute(stmt).fetchall()
+
+    # build features matrix and labels vector
+    X = np.vstack(tuple(result[0] for result in results))
+    y = np.array(tuple(1 if result[1] == 'included' else 0 for result in results))
+
+    # train the classifier
+    clf = SGDClassifier(class_weight='balanced').fit(X, y)
+
+    # save to disk!
+    fname = 'citation_ranking_review_{}.pkl'.format(review_id)
+    filepath = os.path.join(current_app.config['RANKING_MODELS_FOLDER'], fname)
+    joblib.dump(clf, filepath)
+    logger.info('citation ranking model saved to %s', filepath)
 
     lock.release()

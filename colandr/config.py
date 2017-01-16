@@ -41,6 +41,8 @@ class Config(object):
     LOGS_FOLDER = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
     DEDUPE_MODELS_FOLDER = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'dedupe')
+    RANKING_MODELS_FOLDER = os.path.join(
+        COLANDR_APP_DIR, 'colandr_data', 'ranking_models')
     CITATIONS_FOLDER = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'citations')
     FULLTEXT_UPLOAD_FOLDER = os.path.join(
