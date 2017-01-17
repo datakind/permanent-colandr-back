@@ -21,6 +21,7 @@ import textacy
 
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
+from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
 from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlocks,
                      DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
@@ -534,7 +535,7 @@ def train_citation_ranking_model(review_id):
     clf = SGDClassifier(class_weight='balanced').fit(X, y)
 
     # save to disk!
-    fname = 'citation_ranking_review_{}.pkl'.format(review_id)
+    fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
     filepath = os.path.join(current_app.config['RANKING_MODELS_FOLDER'], fname)
     joblib.dump(clf, filepath)
     logger.info(

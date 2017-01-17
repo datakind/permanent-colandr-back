@@ -1,6 +1,8 @@
 from operator import itemgetter
+import os
+import random
 
-from flask import g
+from flask import current_app, g
 from flask_restful import Resource
 from flask_restful_swagger import swagger
 from sqlalchemy import asc, desc, text
@@ -11,8 +13,12 @@ from marshmallow.validate import OneOf, Length, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+import numpy as np
+from sklearn.externals import joblib
+
 from ...lib import constants, utils
 from ...models import db, Citation, Study, Review
+from ...lib.constants import CITATION_RANKING_MODEL_FNAME
 from ...lib.nlp import reviewer_terms
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import StudySchema
@@ -254,24 +260,51 @@ class StudiesResource(Resource):
             query = query.join(Citation, Citation.id == Study.id)
             if tsquery:
                 query = query.filter(Citation.text_content.match(tsquery))
-            results = query.order_by(db.func.random()).limit(1000).all()
 
-            review_plan = review.review_plan
-            suggested_keyterms = review_plan.suggested_keyterms
-            if suggested_keyterms:
-                incl_regex, excl_regex = reviewer_terms.get_incl_excl_terms_regex(
-                    review_plan.suggested_keyterms)
-                scores = (
-                    reviewer_terms.get_incl_excl_terms_score(
-                        incl_regex, excl_regex, result.citation.text_content)
-                    for result in results)
-            else:
-                keyterms_regex = reviewer_terms.get_keyterms_regex(
-                    review_plan.keyterms)
-                scores = (
-                    reviewer_terms.get_keyterms_score(
-                        keyterms_regex, result.citation.text_content)
-                    for result in results)
+            # get results and corresponding relevance scores
+            results = query.order_by(db.func.random()).limit(1000).all()
+            scores = None
+
+            # best option: we have a trained citation ranking model
+            fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
+            filepath = os.path.join(current_app.config['RANKING_MODELS_FOLDER'], fname)
+            if os.path.isfile(filepath):
+                clf = joblib.load(filepath)
+                X = np.vstack(
+                    tuple(result.citation.text_content_vector_rep
+                          for result in results
+                          if result.citation.text_content_vector_rep)
+                    )
+                scores = clf.decision_function(X).tolist()
+
+            # next best option: both positive and negative keyterms
+            if not scores:
+                review_plan = review.review_plan
+                suggested_keyterms = review_plan.suggested_keyterms
+                if suggested_keyterms:
+                    incl_regex, excl_regex = reviewer_terms.get_incl_excl_terms_regex(
+                        review_plan.suggested_keyterms)
+                    scores = [
+                        reviewer_terms.get_incl_excl_terms_score(
+                            incl_regex, excl_regex, result.citation.text_content)
+                        for result in results]
+
+            # last option: just reviewer terms
+            if not scores:
+                keyterms = review_plan.keyterms
+                if keyterms:
+                    keyterms_regex = reviewer_terms.get_keyterms_regex(keyterms)
+                    scores = [
+                        reviewer_terms.get_keyterms_score(
+                            keyterms_regex, result.citation.text_content)
+                        for result in results]
+
+            # well fuck, we're out of options! let's order results randomly...
+            if not scores:
+                scores = list(range(len(results)))
+                random.shuffle(scores)
+
+            # zip the results and scores together, sort and offset accordingly
             sorted_results = [
                 result for result, _
                 in sorted(zip(results, scores),
@@ -280,5 +313,3 @@ class StudiesResource(Resource):
             offset = page * per_page
             return StudySchema(many=True, only=fields).dump(
                 sorted_results[offset: offset + per_page]).data
-        else:
-            raise ValueError()

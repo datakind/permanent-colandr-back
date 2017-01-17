@@ -9,3 +9,5 @@ DEDUPE_FIELDS = [
     {'field': 'abstract', 'type': 'Text', 'has missing': True},
     {'field': 'pub_year', 'type': 'Exact', 'has missing': True},  # NOTE: used to be publication_year
     {'field': 'doi', 'type': 'String', 'has missing': True}]
+
+CITATION_RANKING_MODEL_FNAME = 'citation_ranking_model_review_{review_id}.pkl'
