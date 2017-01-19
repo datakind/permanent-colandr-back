@@ -1,6 +1,5 @@
 from flask import g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -22,7 +21,6 @@ class ReviewResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -42,7 +40,6 @@ class ReviewResource(Resource):
             fields.append('id')
         return ReviewSchema(only=fields).dump(review).data
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -62,7 +59,6 @@ class ReviewResource(Resource):
             logger.info('deleted %s', review)
             return '', 204
 
-    @swagger.operation()
     @use_args(ReviewSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -93,7 +89,6 @@ class ReviewsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'fields': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
@@ -104,7 +99,6 @@ class ReviewsResource(Resource):
             fields.append('id')
         return ReviewSchema(only=fields, many=True).dump(reviews).data
 
-    @swagger.operation()
     @use_args(ReviewSchema(partial=['owner_user_id']))
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):

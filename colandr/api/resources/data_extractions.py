@@ -1,8 +1,7 @@
 import arrow
 
 from flask import g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -23,7 +22,6 @@ class DataExtractionResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -46,7 +44,6 @@ class DataExtractionResource(Resource):
     # NOTE: since extracted data are created automatically upon fulltext inclusion
     # and deleted automatically upon fulltext exclusion, "delete" here amounts
     # to nulling out some or all of its non-required fields
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -79,7 +76,6 @@ class DataExtractionResource(Resource):
             db.session.rollback()
         return '', 204
 
-    @swagger.operation()
     @use_args(ExtractedItem(many=True))
     @use_kwargs({
         'id': ma_fields.Int(

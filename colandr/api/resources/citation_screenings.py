@@ -1,8 +1,5 @@
-import logging
-
 from flask import g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -25,7 +22,6 @@ class CitationScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -45,7 +41,6 @@ class CitationScreeningsResource(Resource):
                     g.current_user))
         return ScreeningSchema(many=True, only=fields).dump(citation.screenings).data
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -72,7 +67,6 @@ class CitationScreeningsResource(Resource):
         else:
             db.session.rollback()
 
-    @swagger.operation()
     @use_args(ScreeningSchema(partial=['user_id', 'review_id']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -138,7 +132,6 @@ class CitationsScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'citation_id': ma_fields.Int(
             missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)),
@@ -197,7 +190,6 @@ class CitationsScreeningsResource(Resource):
             return dict(query.all())
         return ScreeningSchema(partial=True, many=True).dump(query.all()).data
 
-    @swagger.operation()
     @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
     @use_kwargs({
         'review_id': ma_fields.Int(

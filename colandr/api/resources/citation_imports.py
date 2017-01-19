@@ -1,8 +1,5 @@
-import logging
-
 from flask import g, current_app
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
@@ -27,7 +24,6 @@ class CitationsImportsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT))
@@ -43,7 +39,6 @@ class CitationsImportsResource(Resource):
         results = review.imports.filter_by(record_type='citation')
         return ImportSchema(many=True).dump(results.all()).data
 
-    @swagger.operation()
     @use_kwargs({
         'uploaded_file': ma_fields.Raw(
             required=True, location='files'),

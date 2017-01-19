@@ -1,6 +1,6 @@
 from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
-from flask_restful import Resource
+from flask_restplus import Resource
 
 from ..models import db, User
 from .errors import unauthorized

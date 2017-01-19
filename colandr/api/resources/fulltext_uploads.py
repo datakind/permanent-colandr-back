@@ -3,8 +3,7 @@ import os
 import subprocess
 
 from flask import current_app, g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 from werkzeug.utils import secure_filename
 
 from marshmallow import fields as ma_fields
@@ -31,7 +30,6 @@ class FulltextUploadResource(Resource):
     # NOTE: the get method for this resource is actually in the app's __init__.py
     # it required using flask-style routes instead of flask-restful
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -83,7 +81,6 @@ class FulltextUploadResource(Resource):
 
         return FulltextSchema().dump(fulltext).data
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',

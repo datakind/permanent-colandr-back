@@ -1,5 +1,5 @@
 from flask import current_app, render_template, url_for
-from flask_restful import Resource
+from flask_restplus import Resource
 from sqlalchemy import exc
 
 from marshmallow import fields as ma_fields

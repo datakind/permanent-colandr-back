@@ -1,7 +1,5 @@
 from flask import g
-from flask_restful import Resource
-# from flask_restful_swagger import swagger
-from flask_restful_swagger_2 import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
@@ -14,31 +12,35 @@ from ...models import db, User, Review
 from ..errors import no_data_found, unauthorized
 from ..schemas import UserSchema
 from ..authentication import auth
-
+# from colandr import api_
 
 logger = utils.get_console_logger(__name__)
 
 
+# @api_.doc(
+#     tags=['users'],
+#     summary='get, delete, and modify data for single users',
+#     produces=['application/json'],
+#     # security='apikey',
+#     # authorizations={'apikey': {'type': 'apiKey', 'in': 'header', 'name': 'X-API-KEY'}}
+#     )
 class UserResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.doc({
-        'tags': ['users'],
-        'description': 'get a single user by id',
-        'produces': ['application/json'],
-        'parameters': [
-            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
-             'description': 'unique identifier for user'},
-            {'name': 'fields', 'in': 'query', 'type': 'string',
-             'description': 'comma-delimited list-as-string of user fields to return'},
-            ],
-        'responses': {
-            '200': {'description': 'successfuly got user'},
-            '401': {'description': 'current app user not authorized to get user'},
-            '404': {'description': 'no user with matching id was found'},
-            }
-        })
+    # @api_.doc(
+    #     # description='',
+    #     tags=['users'],
+    #     params={'id': {'in': 'path', 'type': 'integer', 'required': True,
+    #                    'description': 'unique identifier for user'},
+    #             'fields': {'in': 'query', 'type': 'string',
+    #                        'description': 'comma-delimited list-as-string of user fields to return'},
+    #             },
+    #     responses={200: 'successfully got user record',
+    #                401: 'current app user not authorized to get user record',
+    #                404: 'no user with matching id was found',
+    #                }
+    #     )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -47,6 +49,7 @@ class UserResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get record for a single user by id"""
         if (g.current_user.is_admin is False and id != g.current_user.id and
                 any(review.users.filter_by(id=id).one_or_none()
                     for review in g.current_user.reviews) is False):
@@ -59,23 +62,19 @@ class UserResource(Resource):
             fields.append('id')
         return UserSchema(only=fields).dump(user).data
 
-    @swagger.doc({
-        'tags': ['users'],
-        'description': 'delete a single user by id',
-        'produces': ['application/json'],
-        'parameters': [
-            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
-             'description': 'unique identifier for user'},
-            {'name': 'test', 'in': 'query', 'type': 'boolean',
-             'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
-            ],
-        'responses': {
-            '200': {'description': 'user would have been deleted, if test had been False'},
-            '204': {'description': 'successfuly deleted user'},
-            '401': {'description': 'current app user not authorized to delete user'},
-            '404': {'description': 'no user with matching id was found'}
-            }
-        })
+    # @api_.doc(
+    #     # description='',
+    #     tags=['users'],
+    #     params={'id': {'in': 'path', 'type': 'integer', 'required': True,
+    #                    'description': 'unique identifier for user'},
+    #             'test': {'in': 'query', 'type': 'boolean',
+    #                      'description': 'if True, request will be validated but no data will be affected'},
+    #             },
+    #     responses={204: 'successfully deleted user record',
+    #                401: 'current app user not authorized to delete user record',
+    #                404: 'no user with matching id was found',
+    #                }
+    #     )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -83,6 +82,7 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
+        """delete record for a single user by id"""
         if id != g.current_user.id:
             return unauthorized(
                 '{} not authorized to delete this user'.format(g.current_user))
@@ -97,24 +97,24 @@ class UserResource(Resource):
         else:
             db.session.rollback()
 
-    @swagger.doc({
-        'tags': ['users'],
-        'description': 'modify a single user by id',
-        'produces': ['application/json'],
-        'parameters': [
-            {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
-             'description': 'unique identifier for user'},
-            {'name': 'args', 'in': 'body', 'schema': '', 'required': True,
-             'description': 'field: value pairs to be updated for user'},
-            {'name': 'test', 'in': 'query', 'type': 'boolean',
-             'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
-            ],
-        'responses': {
-            '200': {'description': 'user would have been modified, if test had been False'},
-            '401': {'description': 'current app user not authorized to modify user'},
-            '404': {'description': 'no user with matching id was found'}
-            }
-        })
+    # @swagger.doc({
+    #     'tags': ['users'],
+    #     'description': 'modify a single user by id',
+    #     'produces': ['application/json'],
+    #     'parameters': [
+    #         {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
+    #          'description': 'unique identifier for user'},
+    #         {'name': 'args', 'in': 'body', 'schema': '', 'required': True,
+    #          'description': 'field: value pairs to be updated for user'},
+    #         {'name': 'test', 'in': 'query', 'type': 'boolean',
+    #          'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
+    #         ],
+    #     'responses': {
+    #         '200': {'description': 'user would have been modified, if test had been False'},
+    #         '401': {'description': 'current app user not authorized to modify user'},
+    #         '404': {'description': 'no user with matching id was found'}
+    #         }
+    #     })
     @use_args(UserSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(

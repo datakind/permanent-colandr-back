@@ -1,5 +1,5 @@
 from flask import render_template, url_for
-from flask_restful import Resource
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email

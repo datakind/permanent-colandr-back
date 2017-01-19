@@ -1,6 +1,5 @@
 from flask import g, current_app, render_template, url_for
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from itsdangerous import URLSafeSerializer
 from marshmallow import fields as ma_fields
@@ -23,7 +22,6 @@ class ReviewTeamResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -48,7 +46,6 @@ class ReviewTeamResource(Resource):
                 user['is_owner'] = True
         return users
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',

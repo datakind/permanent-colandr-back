@@ -2,13 +2,16 @@ import os
 
 from celery import Celery
 from flask import Flask, jsonify, send_from_directory
-# from flask_restful import Api
-# from flask_restful_swagger import swagger
+from flask_restplus import Api
 from flask_mail import Mail
 from flask_migrate import Migrate
-from flask_restful_swagger_2 import Api
 from flask_sqlalchemy import SQLAlchemy
 
+# api_ = Api(version='1.0', prefix='/api', doc='/',
+#            default_mediatype='application/json',
+#            title='colandr', description='REST API powering the colandr app',
+#            #tags=[{'name': 'users', 'description': 'foo bar'}]
+#            )
 db = SQLAlchemy()
 mail = Mail()
 migrate = Migrate()
@@ -55,45 +58,42 @@ def create_app(config_name):
     mail.init_app(app)
     migrate.init_app(app, db)
 
-    api = Api(app, api_version='0.1.0', api_spec_url='/api/spec',
-              title='colandr', description='REST API powering the colandr app')
-    # api = swagger.docs(
-    #     Api(app),
-    #     apiVersion='0.1',
-    #     api_spec_url='/spec',
-    #     description='Colandr API')
-    # api = Api(app)
+    api_ = Api(app, version='1.0', prefix='/api', doc='/',
+               default_mediatype='application/json',
+               title='colandr', description='REST API powering the colandr app')
+    # api_.init_app(app)
 
-    api.add_resource(UserRegistrationResource, '/register')
-    api.add_resource(ConfirmUserRegistrationResource, '/register/<token>')
-    api.add_resource(PasswordResetResource, '/reset')
-    api.add_resource(ConfirmPasswordResetResource, '/reset/<token>')
-    api.add_resource(AuthTokenResource, '/authtoken')
-    api.add_resource(UsersResource, '/users')
-    api.add_resource(UserResource, '/users/<int:id>')
-    api.add_resource(ReviewsResource, '/reviews')
-    api.add_resource(ReviewResource, '/reviews/<int:id>')
-    api.add_resource(ReviewTeamResource, '/reviews/<int:id>/team')
-    api.add_resource(ConfirmReviewTeamInviteResource, '/reviews/<int:id>/team/confirm')
-    api.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
-    api.add_resource(ReviewExportPrismaResource, '/reviews/<int:id>/export_prisma')
-    api.add_resource(ReviewExportStudiesResource, '/reviews/<int:id>/export_studies')
-    api.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
-    api.add_resource(StudiesResource, '/studies')
-    api.add_resource(StudyTagsResource, '/studies/tags')
-    api.add_resource(StudyResource, '/studies/<int:id>')
-    api.add_resource(CitationsResource, '/citations')
-    api.add_resource(CitationsImportsResource, '/citations/imports')
-    api.add_resource(CitationResource, '/citations/<int:id>')
-    api.add_resource(CitationsScreeningsResource, '/citations/screenings')
-    api.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')
-    api.add_resource(FulltextResource, '/fulltexts/<int:id>')
-    api.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
-    api.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
-    api.add_resource(FulltextUploadResource, '/fulltexts/<int:id>/upload')
-    api.add_resource(DataExtractionResource, '/data_extracton/<int:id>')
+    api_.add_resource(UserRegistrationResource, '/register')
+    api_.add_resource(ConfirmUserRegistrationResource, '/register/<token>')
+    api_.add_resource(PasswordResetResource, '/reset')
+    api_.add_resource(ConfirmPasswordResetResource, '/reset/<token>')
+    api_.add_resource(AuthTokenResource, '/authtoken')
+    api_.add_resource(UsersResource, '/users')
+    api_.add_resource(UserResource, '/users/<int:id>')
+    api_.add_resource(ReviewsResource, '/reviews')
+    api_.add_resource(ReviewResource, '/reviews/<int:id>')
+    api_.add_resource(ReviewTeamResource, '/reviews/<int:id>/team')
+    api_.add_resource(ConfirmReviewTeamInviteResource, '/reviews/<int:id>/team/confirm')
+    api_.add_resource(ReviewProgressResource, '/reviews/<int:id>/progress')
+    api_.add_resource(ReviewExportPrismaResource, '/reviews/<int:id>/export_prisma')
+    api_.add_resource(ReviewExportStudiesResource, '/reviews/<int:id>/export_studies')
+    api_.add_resource(ReviewPlanResource, '/reviews/<int:id>/plan')
+    api_.add_resource(StudiesResource, '/studies')
+    api_.add_resource(StudyTagsResource, '/studies/tags')
+    api_.add_resource(StudyResource, '/studies/<int:id>')
+    api_.add_resource(CitationsResource, '/citations')
+    api_.add_resource(CitationsImportsResource, '/citations/imports')
+    api_.add_resource(CitationResource, '/citations/<int:id>')
+    api_.add_resource(CitationsScreeningsResource, '/citations/screenings')
+    api_.add_resource(CitationScreeningsResource, '/citations/<int:id>/screenings')
+    api_.add_resource(FulltextResource, '/fulltexts/<int:id>')
+    api_.add_resource(FulltextsScreeningsResource, '/fulltexts/screenings')
+    api_.add_resource(FulltextScreeningsResource, '/fulltexts/<int:id>/screenings')
+    api_.add_resource(FulltextUploadResource, '/fulltexts/<int:id>/upload')
+    api_.add_resource(DataExtractionResource, '/data_extracton/<int:id>')
 
     @app.route('/fulltexts/<int:id>/upload', methods=['GET'])
+    @api_.doc(tags=['fulltexts'], params={'id': 'study id'})
     def get_uploaded_fulltext_file(id):
         filename = None
         upload_dir = app.config['FULLTEXT_UPLOAD_FOLDER']

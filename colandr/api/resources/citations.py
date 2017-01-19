@@ -1,8 +1,5 @@
-import logging
-
 from flask import g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
@@ -25,7 +22,6 @@ class CitationResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -45,7 +41,6 @@ class CitationResource(Resource):
             fields.append('id')
         return CitationSchema(only=fields).dump(citation).data
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -64,7 +59,6 @@ class CitationResource(Resource):
             logger.info('deleted %s', citation)
             db.session.commit()
 
-    @swagger.operation()
     @use_args(CitationSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -95,7 +89,6 @@ class CitationsResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_args(CitationSchema(partial=True))
     @use_kwargs({
         'review_id': ma_fields.Int(

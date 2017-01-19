@@ -3,8 +3,7 @@ import os
 import random
 
 from flask import current_app, g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 
@@ -32,7 +31,6 @@ class StudyResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -52,7 +50,6 @@ class StudyResource(Resource):
             fields.append('id')
         return StudySchema(only=fields).dump(study).data
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -73,7 +70,6 @@ class StudyResource(Resource):
         else:
             db.session.rollback()
 
-    @swagger.operation()
     @use_args(StudySchema(only=['tags']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -103,7 +99,6 @@ class StudiesResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),

@@ -1,6 +1,5 @@
 from flask import g
-from flask_restful import Resource
-from flask_restful_swagger import swagger
+from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -21,7 +20,6 @@ class ReviewPlanResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -44,7 +42,6 @@ class ReviewPlanResource(Resource):
     # NOTE: since review plans are created automatically upon review insertion
     # and deleted automatically upon review deletion, "delete" here amounts
     # to nulling out some or all of its non-required fields
-    @swagger.operation()
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -83,7 +80,6 @@ class ReviewPlanResource(Resource):
             db.session.rollback()
         return '', 204
 
-    @swagger.operation()
     @use_args(ReviewPlanSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
