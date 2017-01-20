@@ -11,16 +11,22 @@ from ...tasks import remove_unconfirmed_user, send_email
 from ..errors import db_integrity, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
+from colandr import api_
 
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'user registration', path='/register',
+    description='register and confirm new users')
 
 
+@ns.route('/')
 class UserRegistrationResource(Resource):
 
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
+        """submit new user registration"""
         user = User(**args)
         if test is False:
             try:
@@ -44,10 +50,12 @@ class UserRegistrationResource(Resource):
         return UserSchema().dump(user).data
 
 
+@ns.route('/<token>')
 class ConfirmUserRegistrationResource(Resource):
 
     @use_kwargs({'token': ma_fields.String(required=True, location='view_args')})
     def get(self, token):
+        """confirm new user registration via emailed token"""
         try:
             email = confirm_token(token)
         except Exception:

@@ -10,37 +10,37 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...lib import constants, utils
 from ...models import db, User, Review
 from ..errors import no_data_found, unauthorized
+from ..swagger import user_model
 from ..schemas import UserSchema
 from ..authentication import auth
-# from colandr import api_
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'users', path='/users',
+    description='get, create, delete, update users')
 
 
-# @api_.doc(
-#     tags=['users'],
-#     summary='get, delete, and modify data for single users',
-#     produces=['application/json'],
-#     # security='apikey',
-#     # authorizations={'apikey': {'type': 'apiKey', 'in': 'header', 'name': 'X-API-KEY'}}
-#     )
+@ns.route('/<int:id>')
+@ns.doc(
+    tags=['users'],
+    summary='get, delete, and modify data for single users',
+    produces=['application/json'],
+    )
 class UserResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    # @api_.doc(
-    #     # description='',
-    #     tags=['users'],
-    #     params={'id': {'in': 'path', 'type': 'integer', 'required': True,
-    #                    'description': 'unique identifier for user'},
-    #             'fields': {'in': 'query', 'type': 'string',
-    #                        'description': 'comma-delimited list-as-string of user fields to return'},
-    #             },
-    #     responses={200: 'successfully got user record',
-    #                401: 'current app user not authorized to get user record',
-    #                404: 'no user with matching id was found',
-    #                }
-    #     )
+    @ns.doc(
+        # description='',
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of user fields to return'},
+                },
+        responses={200: 'successfully got user record',
+                   401: 'current app user not authorized to get user record',
+                   404: 'no user with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -62,19 +62,16 @@ class UserResource(Resource):
             fields.append('id')
         return UserSchema(only=fields).dump(user).data
 
-    # @api_.doc(
-    #     # description='',
-    #     tags=['users'],
-    #     params={'id': {'in': 'path', 'type': 'integer', 'required': True,
-    #                    'description': 'unique identifier for user'},
-    #             'test': {'in': 'query', 'type': 'boolean',
-    #                      'description': 'if True, request will be validated but no data will be affected'},
-    #             },
-    #     responses={204: 'successfully deleted user record',
-    #                401: 'current app user not authorized to delete user record',
-    #                404: 'no user with matching id was found',
-    #                }
-    #     )
+    @ns.doc(
+        # description='',
+        params={'test': {'in': 'query', 'type': 'boolean',
+                         'description': 'if True, request will be validated but no data will be affected'},
+                },
+        responses={204: 'successfully deleted user record',
+                   401: 'current app user not authorized to delete user record',
+                   404: 'no user with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -97,24 +94,19 @@ class UserResource(Resource):
         else:
             db.session.rollback()
 
-    # @swagger.doc({
-    #     'tags': ['users'],
-    #     'description': 'modify a single user by id',
-    #     'produces': ['application/json'],
-    #     'parameters': [
-    #         {'name': 'id', 'in': 'path', 'type': 'integer', 'required': True,
-    #          'description': 'unique identifier for user'},
-    #         {'name': 'args', 'in': 'body', 'schema': '', 'required': True,
-    #          'description': 'field: value pairs to be updated for user'},
-    #         {'name': 'test', 'in': 'query', 'type': 'boolean',
-    #          'description': 'if True, no changes to the database are made; if False (default), the db is changed'},
-    #         ],
-    #     'responses': {
-    #         '200': {'description': 'user would have been modified, if test had been False'},
-    #         '401': {'description': 'current app user not authorized to modify user'},
-    #         '404': {'description': 'no user with matching id was found'}
-    #         }
-    #     })
+    @ns.doc(
+        # description='',
+        params={
+            'test': {'in': 'query', 'type': 'boolean',
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=user_model,
+        responses={
+            200: 'user would have been modified, if test had been False',
+            401: 'current app user not authorized to modify user',
+            404: 'no user with matching id was found',
+            }
+        )
     @use_args(UserSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -123,6 +115,7 @@ class UserResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify record for a single user by id"""
         if id != g.current_user.id:
             return unauthorized(
                 '{} not authorized to update this user'.format(g.current_user))
@@ -143,9 +136,22 @@ class UserResource(Resource):
         return UserSchema().dump(user).data
 
 
+@ns.route('/')
 class UsersResource(Resource):
 
     @auth.login_required
+    @ns.doc(
+        # description='',
+        params={'email': {'in': 'query', 'type': 'string',
+                          'description': 'email address of user'},
+                'review_id': {'in': 'query', 'type': 'integer',
+                              'description': 'unique review id on which users are collaborators'},
+                },
+        responses={200: 'successfully got user record(s)',
+                   401: 'current app user not authorized to get user record(s)',
+                   404: 'no matching user(s) found',
+                   }
+        )
     @use_kwargs({
         'email': ma_fields.Email(
             missing=None, validate=Email()),
@@ -153,6 +159,7 @@ class UsersResource(Resource):
             missing=None, validate=Range(min=1, max=constants.MAX_INT))
         })
     def get(self, email, review_id):
+        """get user record(s) for one or more matching users"""
         if email:
             user = db.session.query(User).filter_by(email=email).one_or_none()
             if not user:
@@ -170,9 +177,22 @@ class UsersResource(Resource):
                         g.current_user))
             return UserSchema(many=True).dump(review.users).data
 
+    @ns.doc(
+        # description='',
+        params={
+            'test': {'in': 'query', 'type': 'boolean',
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(user_model, 'user data to be created'),
+        responses={
+            200: 'user was created (or would have been created if test had been False)',
+            401: 'current app user not authorized to create user',
+            }
+        )
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
+        """create new user record *without* confirmation"""
         # TODO: enable this
         # if g.current_user.is_admin is False:
         #     return unauthorized('only admins can add users without confirmation')
