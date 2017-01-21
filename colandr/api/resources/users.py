@@ -23,7 +23,6 @@ ns = api_.namespace(
 
 @ns.route('/<int:id>')
 @ns.doc(
-    tags=['users'],
     summary='get, delete, and modify data for single users',
     produces=['application/json'],
     )
@@ -64,7 +63,7 @@ class UserResource(Resource):
 
     @ns.doc(
         # description='',
-        params={'test': {'in': 'query', 'type': 'boolean',
+        params={'test': {'in': 'query', 'type': 'boolean', 'default': False,
                          'description': 'if True, request will be validated but no data will be affected'},
                 },
         responses={204: 'successfully deleted user record',
@@ -97,7 +96,7 @@ class UserResource(Resource):
     @ns.doc(
         # description='',
         params={
-            'test': {'in': 'query', 'type': 'boolean',
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
         body=user_model,
@@ -180,7 +179,7 @@ class UsersResource(Resource):
     @ns.doc(
         # description='',
         params={
-            'test': {'in': 'query', 'type': 'boolean',
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
         body=(user_model, 'user data to be created'),

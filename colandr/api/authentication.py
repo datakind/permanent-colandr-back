@@ -4,7 +4,11 @@ from flask_restplus import Resource
 
 from ..models import db, User
 from .errors import unauthorized
+from colandr import api_
 
+ns = api_.namespace(
+    'authtoken', path='/authtoken',
+    description='get an api authentication token')
 
 auth = HTTPBasicAuth()
 
@@ -31,10 +35,19 @@ def auth_error():
     return unauthorized('invalid or expired authentication credentials')
 
 
+@ns.route('/')
+@ns.doc(
+    summary='get an api authentication token',
+    produces=['application/json'],
+    responses={200: 'successfully got authentication token',
+               401: 'current app user not authorized to get authentication token',
+               }
+    )
 class AuthTokenResource(Resource):
 
     @auth.login_required
     def get(self):
+        """get an api authentication token"""
         # if g.token_used is True:
         #     return unauthorized('invalid authentication credentials')
         token = g.current_user.generate_auth_token()

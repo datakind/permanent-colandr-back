@@ -44,6 +44,8 @@ logger = get_rotating_file_logger(
     'colandr', os.path.join(Config.LOGS_FOLDER, 'colandr.log'), level='info')
 
 from colandr.api.resources.user_registration import ns as register_ns
+from colandr.api.resources.password_reset import ns as reset_ns
+from colandr.api.authentication import ns as authtoken_ns
 from colandr.api.resources.users import ns as users_ns
 
 
@@ -61,6 +63,8 @@ def create_app(config_name):
     api_.init_app(app)
 
     api_.add_namespace(register_ns)
+    api_.add_namespace(reset_ns)
+    api_.add_namespace(authtoken_ns)
     api_.add_namespace(users_ns)
 
     # api_.add_resource(UserRegistrationResource, '/register')

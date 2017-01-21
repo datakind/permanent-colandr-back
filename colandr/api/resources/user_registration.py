@@ -1,4 +1,4 @@
-from flask import current_app, render_template, url_for
+from flask import current_app, render_template  # , url_for
 from flask_restplus import Resource
 from sqlalchemy import exc
 
@@ -11,6 +11,7 @@ from ...tasks import remove_unconfirmed_user, send_email
 from ..errors import db_integrity, no_data_found, validation
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
+from ..swagger import user_model
 from colandr import api_
 
 
@@ -23,6 +24,13 @@ ns = api_.namespace(
 @ns.route('/')
 class UserRegistrationResource(Resource):
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'}
+            },
+        body=(user_model, 'user data to be registered'),
+        )
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
@@ -36,8 +44,10 @@ class UserRegistrationResource(Resource):
                 db.session.rollback()
                 return db_integrity(str(e.orig))
             token = generate_confirmation_token(user.email)
-            confirm_url = url_for(
-                'confirmuserregistrationresource', token=token, _external=True)
+            # confirm_url = url_for(
+            #     'confirmuserregistrationresource', token=token, _external=True)
+            confirm_url = api_.url_for(
+                ConfirmUserRegistrationResource, token=token, _external=True)
             html = render_template(
                 'emails/user_registration.html',
                 username=user.name, confirm_url=confirm_url)
