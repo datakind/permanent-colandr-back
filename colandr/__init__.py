@@ -47,6 +47,8 @@ from colandr.api.resources.user_registration import ns as register_ns
 from colandr.api.resources.password_reset import ns as reset_ns
 from colandr.api.authentication import ns as authtoken_ns
 from colandr.api.resources.users import ns as users_ns
+from colandr.api.resources.reviews import ns as reviews_ns
+from colandr.api.resources.review_teams import ns as review_teams_ns
 
 
 def create_app(config_name):
@@ -66,6 +68,8 @@ def create_app(config_name):
     api_.add_namespace(reset_ns)
     api_.add_namespace(authtoken_ns)
     api_.add_namespace(users_ns)
+    api_.add_namespace(reviews_ns)
+    api_.add_namespace(review_teams_ns)
 
     # api_.add_resource(UserRegistrationResource, '/register')
     # api_.add_resource(ConfirmUserRegistrationResource, '/register/<token>')

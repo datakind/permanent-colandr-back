@@ -13,15 +13,32 @@ from ...tasks import send_email
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import UserSchema
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'review_teams', path='/reviews',
+    description='get, modify, and confirm review teams')
 
 
+@ns.route('/<int:id>/team')
+@ns.doc(
+    summary='get and modify review teams',
+    produces=['application/json'],
+    )
 class ReviewTeamResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of user fields to return'},
+                },
+        responses={
+            200: 'successfully got review team member\'s records',
+            401: 'current app user not authorized to get review team member\'s records',
+            404: 'no review with matching id was found'}
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -30,6 +47,7 @@ class ReviewTeamResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get members of a single review's team"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -46,6 +64,23 @@ class ReviewTeamResource(Resource):
                 user['is_owner'] = True
         return users
 
+    @ns.doc(
+        params={
+            'action': {'in': 'query', 'type': 'string', 'required': True,
+                       'enum': ['add', 'invite', 'remove', 'make_owner'],
+                       'description': 'add, invite, remove, or promote to owner a particular user'},
+            'user_id': {'in': 'query', 'type': 'integer', 'min': 1, 'max': constants.MAX_INT,
+                        'description': 'unique id of the user on which to act'},
+            'user_email': {'in': 'query', 'type': 'string', 'format': 'email',
+                           'description': 'email address of the user to invite'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'successfully modified review team member\'s record',
+            401: 'current app user not authorized to modify review team',
+            404: 'no review with matching id was found'}
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -58,6 +93,7 @@ class ReviewTeamResource(Resource):
         'test': ma_fields.Bool(missing=False)
         })
     def put(self, id, action, user_id, user_email, test):
+        """add, invite, remove, or promote a review team member"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -116,8 +152,23 @@ class ReviewTeamResource(Resource):
         return users
 
 
+@ns.route('/<int:id>/team/confirm')
+@ns.doc(
+    summary='confirm an emailed invitation to join a review team',
+    produces=['application/json'],
+    )
 class ConfirmReviewTeamInviteResource(Resource):
 
+    @ns.doc(
+        params={
+            'token': {'in': 'query', 'type': 'string', 'required': True,
+                      'description': 'unique, expiring token included in emailed confirmation url'},
+            },
+        responses={
+            200: 'successfully modified review team member\'s record',
+            403: 'current app user\'s confirmation token is invalid or has expired',
+            404: 'no review with matching id was found'}
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -125,6 +176,7 @@ class ConfirmReviewTeamInviteResource(Resource):
         'token': ma_fields.String(required=True)
         })
     def get(self, id, token):
+        """confirm review team invitation via emailed token"""
         serializer = URLSafeSerializer(current_app.config['SECRET_KEY'])
         user_email = serializer.loads(token, salt=current_app.config['PASSWORD_SALT'])
 

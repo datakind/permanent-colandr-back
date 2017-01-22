@@ -31,7 +31,6 @@ class UserResource(Resource):
     method_decorators = [auth.login_required]
 
     @ns.doc(
-        # description='',
         params={'fields': {'in': 'query', 'type': 'string',
                            'description': 'comma-delimited list-as-string of user fields to return'},
                 },
@@ -62,7 +61,6 @@ class UserResource(Resource):
         return UserSchema(only=fields).dump(user).data
 
     @ns.doc(
-        # description='',
         params={'test': {'in': 'query', 'type': 'boolean', 'default': False,
                          'description': 'if True, request will be validated but no data will be affected'},
                 },
@@ -94,14 +92,13 @@ class UserResource(Resource):
             db.session.rollback()
 
     @ns.doc(
-        # description='',
         params={
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
-        body=user_model,
+        body=(user_model, 'user data to be modified'),
         responses={
-            200: 'user would have been modified, if test had been False',
+            200: 'user data was modified (if test = False)',
             401: 'current app user not authorized to modify user',
             404: 'no user with matching id was found',
             }
@@ -136,11 +133,14 @@ class UserResource(Resource):
 
 
 @ns.route('/')
+@ns.doc(
+    summary='get existing and create new users',
+    produces=['application/json'],
+    )
 class UsersResource(Resource):
 
     @auth.login_required
     @ns.doc(
-        # description='',
         params={'email': {'in': 'query', 'type': 'string',
                           'description': 'email address of user'},
                 'review_id': {'in': 'query', 'type': 'integer',
@@ -177,7 +177,6 @@ class UsersResource(Resource):
             return UserSchema(many=True).dump(review.users).data
 
     @ns.doc(
-        # description='',
         params={
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
@@ -191,7 +190,7 @@ class UsersResource(Resource):
     @use_args(UserSchema())
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
-        """create new user record *without* confirmation"""
+        """create new user (ADMIN ONLY)"""
         # TODO: enable this
         # if g.current_user.is_admin is False:
         #     return unauthorized('only admins can add users without confirmation')
