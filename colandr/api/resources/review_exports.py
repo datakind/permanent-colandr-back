@@ -15,18 +15,35 @@ from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
 from ..errors import no_data_found, unauthorized
 from ..authentication import auth
+from colandr import api_
+
+ns = api_.namespace(
+    'review_exports', path='/reviews/<int:id>/export',
+    description='export review prisma or studies data')
 
 
+@ns.route('/prisma')
+@ns.doc(
+    summary='export numbers needed to make a review PRISMA diagram',
+    produces=['application/json'],
+    )
 class ReviewExportPrismaResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        responses={200: 'successfully got review prisma data',
+                   401: 'current app user not authorized to export review prisma data',
+                   404: 'no review with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT))
         })
     def get(self, id):
+        """export numbers needed to make a review PRISMA diagram"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -89,16 +106,29 @@ class ReviewExportPrismaResource(Resource):
             }
 
 
+@ns.route('/studies')
+@ns.doc(
+    summary='export a CSV of studies metadata and extracted data',
+    produces=['text/csv'],
+    )
 class ReviewExportStudiesResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        description='NOTE: Calling this endpoint via Swagger could cause it to crash on account of #BigData',
+        responses={200: 'successfully got review studies data',
+                   401: 'current app user not authorized to export review studies data',
+                   404: 'no review with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         })
     def get(self, id):
+        """export a CSV of studies metadata and extracted data"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))

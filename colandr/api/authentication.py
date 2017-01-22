@@ -35,7 +35,7 @@ def auth_error():
     return unauthorized('invalid or expired authentication credentials')
 
 
-@ns.route('/')
+@ns.route('')
 @ns.doc(
     summary='get an api authentication token',
     produces=['application/json'],

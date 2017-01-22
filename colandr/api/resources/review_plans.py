@@ -10,16 +10,34 @@ from ...lib import constants, utils
 from ...models import db, Review
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import ReviewPlanSchema
+from ..swagger import review_plan_model
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'review_plans', path='/reviews/<int:id>/plan',
+    description='get, delete, update review plans')
 
 
+@ns.route('')
+@ns.doc(
+    summary='get, delete, update review plans',
+    produces=['application/json'],
+    )
 class ReviewPlanResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of review fields to return'},
+                },
+        responses={200: 'successfully got review plan record',
+                   401: 'current app user not authorized to get review plan record',
+                   404: 'no review with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -39,9 +57,19 @@ class ReviewPlanResource(Resource):
             fields.append('id')
         return ReviewPlanSchema(only=fields).dump(review.review_plan).data
 
-    # NOTE: since review plans are created automatically upon review insertion
-    # and deleted automatically upon review deletion, "delete" here amounts
-    # to nulling out some or all of its non-required fields
+    @ns.doc(
+        description='Since review plans are created automatically upon review creation and deleted automatically upon review deletion, "delete" here amounts eto nulling out some or all of its non-required fields',
+        params={
+            'fields': {'in': 'query', 'type': 'string',
+                       'description': 'comma-delimited list-as-string of review fields to "delete" (set to null)'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={204: 'successfully deleted review plan record',
+                   401: 'current app user not authorized to delete review plan record',
+                   404: 'no review with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -80,6 +108,20 @@ class ReviewPlanResource(Resource):
             db.session.rollback()
         return '', 204
 
+    @ns.doc(
+        params={
+            'fields': {'in': 'query', 'type': 'string',
+                       'description': 'comma-delimited list-as-string of review fields to modify'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(review_plan_model, 'review plan data to be modified'),
+        responses={
+            200: 'review plan data was modified (if test = False)',
+            401: 'current app user not authorized to modify review plan',
+            404: 'no review with matching id was found',
+            }
+        )
     @use_args(ReviewPlanSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -99,9 +141,6 @@ class ReviewPlanResource(Resource):
         review_plan = review.review_plan
         if not review_plan:
             return no_data_found('<ReviewPlan(review_id={})> not found'.format(id))
-        if review_plan.review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to update this review plan'.format(g.current_user))
         for field in fields:
             try:
                 setattr(review_plan, field, args[field])

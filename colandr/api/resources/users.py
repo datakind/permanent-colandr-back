@@ -132,7 +132,7 @@ class UserResource(Resource):
         return UserSchema().dump(user).data
 
 
-@ns.route('/')
+@ns.route('')
 @ns.doc(
     summary='get existing and create new users',
     produces=['application/json'],

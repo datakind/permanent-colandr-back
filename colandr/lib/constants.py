@@ -11,3 +11,10 @@ DEDUPE_FIELDS = [
     {'field': 'doi', 'type': 'String', 'has missing': True}]
 
 CITATION_RANKING_MODEL_FNAME = 'citation_ranking_model_review_{review_id}.pkl'
+
+SCREENING_STATUSES = (
+    'not_screened', 'screened_once', 'conflict', 'included', 'excluded')
+USER_SCREENING_STATUSES = (
+    'pending', 'awaiting_coscreener', 'conflict', 'included', 'excluded')
+EXTRACTION_STATUSES = (
+    'not_started', 'started', 'finished')

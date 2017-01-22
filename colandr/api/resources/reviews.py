@@ -127,7 +127,7 @@ class ReviewResource(Resource):
         return ReviewSchema().dump(review).data
 
 
-@ns.route('/')
+@ns.route('')
 @ns.doc(
     summary='get existing and create new reviews',
     produces=['application/json'],

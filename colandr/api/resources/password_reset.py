@@ -19,7 +19,7 @@ ns = api_.namespace(
     description='reset a user\'s password')
 
 
-@ns.route('/')
+@ns.route('')
 @ns.doc(
     summary='reset a user\'s password by sending an email',
     produces=['application/json'],

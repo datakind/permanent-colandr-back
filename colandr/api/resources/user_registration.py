@@ -21,7 +21,7 @@ ns = api_.namespace(
     description='register and confirm new users')
 
 
-@ns.route('/')
+@ns.route('')
 class UserRegistrationResource(Resource):
 
     @ns.doc(

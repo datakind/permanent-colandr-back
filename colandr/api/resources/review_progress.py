@@ -9,19 +9,34 @@ from ...lib import constants
 from ...models import db, Review, Study
 from ..errors import no_data_found, unauthorized
 from ..authentication import auth
+from colandr import api_
 
-SCREENING_STATUSES = (
-    'not_screened', 'screened_once', 'conflict', 'included', 'excluded')
-USER_SCREENING_STATUSES = (
-    'pending', 'awaiting_coscreener', 'conflict', 'included', 'excluded')
-EXTRACTION_STATUSES = (
-    'not_started', 'started', 'finished')
+ns = api_.namespace(
+    'review_progress', path='/reviews/<int:id>',
+    description='get review progress counts')
 
 
+@ns.route('/progress')
+@ns.doc(
+    summary='get review progress on one or all steps',
+    produces=['application/json'],
+    )
 class ReviewProgressResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'step': {'in': 'query', 'type': 'string', 'default': 'all',
+                         'enum': ['planning', 'citation_screening', 'fulltext_screening', 'data_extraction', 'all'],
+                         'description': 'name of review particular step for which to get progress, or "all" steps'},
+                'user_view': {'in': 'query', 'type': 'boolean', 'default': False,
+                              'description': 'if True, return progress from the current app user\'s perspective; otherwise, use review-oriented progress numbers'}
+                },
+        responses={200: 'successfully got review progress',
+                   401: 'current app user not authorized to get review progress',
+                   404: 'no review with matching id was found',
+                   }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -33,6 +48,7 @@ class ReviewProgressResource(Resource):
         'user_view': ma_fields.Bool(missing=False),
         })
     def get(self, id, step, user_view):
+        """get review progress on one or all steps for a single review by id"""
         response = {}
         review = db.session.query(Review).get(id)
         if not review:
@@ -59,7 +75,7 @@ class ReviewProgressResource(Resource):
                     .all()
                 progress = dict(progress)
                 progress = {status: progress.get(status, 0)
-                            for status in SCREENING_STATUSES}
+                            for status in constants.SCREENING_STATUSES}
             else:
                 query = """
                     SELECT
@@ -82,7 +98,7 @@ class ReviewProgressResource(Resource):
                     """.format(user_id=g.current_user.id, review_id=id)
                 progress = dict(row for row in db.engine.execute(query))
                 progress = {status: progress.get(status, 0)
-                            for status in USER_SCREENING_STATUSES}
+                            for status in constants.USER_SCREENING_STATUSES}
             response['citation_screening'] = progress
         if step in ('fulltext_screening', 'all'):
             if user_view is False:
@@ -93,7 +109,7 @@ class ReviewProgressResource(Resource):
                     .all()
                 progress = dict(progress)
                 progress = {status: progress.get(status, 0)
-                            for status in SCREENING_STATUSES}
+                            for status in constants.SCREENING_STATUSES}
             else:
                 query = """
                     SELECT
@@ -121,7 +137,7 @@ class ReviewProgressResource(Resource):
                     """.format(user_id=g.current_user.id, review_id=id)
                 progress = dict(row for row in db.engine.execute(query))
                 progress = {status: progress.get(status, 0)
-                            for status in USER_SCREENING_STATUSES}
+                            for status in constants.USER_SCREENING_STATUSES}
             response['fulltext_screening'] = progress
         if step in ('data_extraction', 'all'):
             progress = db.session.query(Study.data_extraction_status, db.func.count(1))\
@@ -131,7 +147,7 @@ class ReviewProgressResource(Resource):
                 .all()
             progress = dict(progress)
             progress = {status: progress.get(status, 0)
-                        for status in EXTRACTION_STATUSES}
+                        for status in constants.EXTRACTION_STATUSES}
             response['data_extraction'] = progress
 
         return response
