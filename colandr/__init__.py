@@ -52,6 +52,10 @@ from colandr.api.resources.review_teams import ns as review_teams_ns
 from colandr.api.resources.review_progress import ns as review_progress_ns
 from colandr.api.resources.review_exports import ns as review_exports_ns
 from colandr.api.resources.review_plans import ns as review_plans_ns
+from colandr.api.resources.studies import ns as studies_ns
+from colandr.api.resources.study_tags import ns as study_tags_ns
+from colandr.api.resources.citations import ns as citations_ns
+from colandr.api.resources.citation_imports import ns as citation_imports_ns
 
 
 def create_app(config_name):
@@ -76,6 +80,10 @@ def create_app(config_name):
     api_.add_namespace(review_progress_ns)
     api_.add_namespace(review_exports_ns)
     api_.add_namespace(review_plans_ns)
+    api_.add_namespace(studies_ns)
+    api_.add_namespace(study_tags_ns)
+    api_.add_namespace(citations_ns)
+    api_.add_namespace(citation_imports_ns)
 
     # api_.add_resource(UserRegistrationResource, '/register')
     # api_.add_resource(ConfirmUserRegistrationResource, '/register/<token>')

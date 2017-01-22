@@ -21,16 +21,35 @@ from ...lib.constants import CITATION_RANKING_MODEL_FNAME
 from ...lib.nlp import reviewer_terms
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import StudySchema
+from ..swagger import study_model
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'studies', path='/studies',
+    description='get, delete, update studies')
 
 
+@ns.route('/<int:id>')
+@ns.doc(
+    summary='get, delete, and modify data for single studies',
+    produces=['application/json'],
+    )
 class StudyResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of review fields to return'},
+                },
+        responses={
+            200: 'successfully got study record',
+            401: 'current app user not authorized to get study record',
+            404: 'no study with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -39,6 +58,7 @@ class StudyResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
             return no_data_found('<Study(id={})> not found'.format(id))
@@ -50,6 +70,18 @@ class StudyResource(Resource):
             fields.append('id')
         return StudySchema(only=fields).dump(study).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted study record',
+            401: 'current app user not authorized to delete study record',
+            404: 'no study with matching id was found'
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -57,6 +89,7 @@ class StudyResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
+        """delete record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
             return no_data_found('<Study(id={})> not found'.format(id))
@@ -67,9 +100,24 @@ class StudyResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted %s', study)
+            return '', 204
         else:
             db.session.rollback()
+            return '', 200
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(study_model, 'study data to be modified'),
+        responses={
+            200: 'study data was modified (if test = False)',
+            401: 'current app user not authorized to modify study',
+            403: 'specified field may not be modified',
+            404: 'no study with matching id was found',
+            }
+        )
     @use_args(StudySchema(only=['tags']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -78,6 +126,7 @@ class StudyResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
             return no_data_found('<Study(id={})> not found'.format(id))
@@ -95,10 +144,52 @@ class StudyResource(Resource):
         return StudySchema().dump(study).data
 
 
+@ns.route('')
+@ns.doc(
+    summary='get collections of matching studies',
+    produces=['application/json'],
+    )
 class StudiesResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier for review whose studies are to be fetched'},
+            'fields': {'in': 'query', 'type': 'string',
+                       'description': 'comma-delimited list-as-string of study fields to return'},
+            'dedupe_status': {'in': 'query', 'type': 'string',
+                              'enum': ['duplicate', 'not_duplicate'],
+                              'description': 'filter studies to only those with matching deduplication statuses'},
+            'citation_status': {'in': 'query', 'type': 'string',
+                                'enum': ['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'],
+                                'description': 'filter studies to only those with matching citation statuses'},
+            'fulltext_status': {'in': 'query', 'type': 'string',
+                                'enum': ['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'],
+                                'description': 'filter studies to only those with matching fulltext statuses'},
+            'data_extraction_status': {'in': 'query', 'type': 'string',
+                                       'enum': ['not_started', 'incomplete', 'complete'],
+                                       'description': 'filter studies to only those with matching data extraction statuses'},
+            'tag': {'in': 'query', 'type': 'string',
+                    'description': 'filter studies to only those with a matching (user-assigned) tag'},
+            'tsquery': {'in': 'query', 'type': 'string',
+                        'description': 'filter studies to only those whose text content contains this word or phrase'},
+            'order_by': {'in': 'query', 'type': 'string', 'enum': ['recency', 'relevance'],
+                         'description': 'order matching studies by either date imported or expected relevance'},
+            'order_dir': {'in': 'query', 'type': 'string', 'enum': ['ASC', 'DESC'],
+                          'description': 'direction of ordering, either in ascending or descending order'},
+            'page': {'in': 'query', 'type': 'integer',
+                     'description': 'page number of the collection of ordered, matching studies, starting at 0'},
+            'per_page': {'in': 'query', 'type': 'integer',
+                         'description': 'number of studies to include per page'},
+            },
+        responses={
+            200: 'successfully got matching study record(s)',
+            401: 'current app user not authorized to get studies for this review',
+            404: 'no review with matching id was found'
+            }
+        )
     @use_kwargs({
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT)),
@@ -133,6 +224,7 @@ class StudiesResource(Resource):
             dedupe_status, citation_status, fulltext_status, data_extraction_status,
             tag, tsquery,
             order_by, order_dir, page, per_page):
+        """get study record(s) for one or more matching studies"""
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))

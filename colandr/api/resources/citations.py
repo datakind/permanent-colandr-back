@@ -12,16 +12,35 @@ from ...lib import constants, utils
 from ...models import db, Citation, DataSource, Review, Study
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema, DataSourceSchema
+from ..swagger import citation_model
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'citations', path='/citations',
+    description='get, delete, update citations')
 
 
+@ns.route('/<int:id>')
+@ns.doc(
+    summary='get, delete, and modify data for single citations',
+    produces=['application/json'],
+    )
 class CitationResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of citation fields to return'},
+                },
+        responses={
+            200: 'successfully got citation record',
+            401: 'current app user not authorized to get citation record',
+            404: 'no citation with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -30,6 +49,7 @@ class CitationResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
             return no_data_found('<Citation(id={})> not found'.format(id))
@@ -41,6 +61,18 @@ class CitationResource(Resource):
             fields.append('id')
         return CitationSchema(only=fields).dump(citation).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted citation record',
+            401: 'current app user not authorized to delete citation record',
+            404: 'no citation with matching id was found'
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -48,17 +80,34 @@ class CitationResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
+        """delete record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
             return no_data_found('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to delete this citation'.format(g.current_user))
+        db.session.delete(citation)
         if test is False:
-            db.session.delete(citation)
             logger.info('deleted %s', citation)
             db.session.commit()
+            return '', 204
+        else:
+            db.session.rollback()
+            return '', 200
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(citation_model, 'citation data to be modified'),
+        responses={
+            200: 'citation data was modified (if test = False)',
+            401: 'current app user not authorized to modify citation',
+            404: 'no citation with matching id was found',
+            }
+        )
     @use_args(CitationSchema(partial=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -67,6 +116,7 @@ class CitationResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
             return no_data_found('<Citation(id={})> not found'.format(id))
@@ -85,10 +135,38 @@ class CitationResource(Resource):
         return CitationSchema().dump(citation).data
 
 
+@ns.route('')
+@ns.doc(
+    summary='create a single citation (ADMIN ONLY)',
+    produces=['application/json'],
+    )
 class CitationsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier for review for which a citation will be created'},
+            'source_type': {'in': 'query', 'type': 'string',
+                            'enum': ['database', 'gray literature'],
+                            'description': 'type of source through which citation was found'},
+            'source_name': {'in': 'query', 'type': 'string',
+                            'description': 'name of source through which citation was found'},
+            'source_url': {'in': 'query', 'type': 'string', 'format': 'url',
+                           'description': 'url of source through which citation was found'},
+            'status': {'in': 'query', 'type': 'string',
+                       'enum': ['not_screened', 'included', 'excluded'],
+                       'description': 'known screening status of citation, if anything'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'successfully created citation record',
+            401: 'current app user not authorized to create citation for this review',
+            404: 'no review with matching id was found'
+            }
+        )
     @use_args(CitationSchema(partial=True))
     @use_kwargs({
         'review_id': ma_fields.Int(
@@ -105,6 +183,7 @@ class CitationsResource(Resource):
         })
     def post(self, args, review_id, source_type, source_name, source_url,
              status, test):
+        """create a single citation (ADMIN ONLY)"""
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))

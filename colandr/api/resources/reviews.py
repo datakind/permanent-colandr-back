@@ -34,10 +34,11 @@ class ReviewResource(Resource):
         params={'fields': {'in': 'query', 'type': 'string',
                            'description': 'comma-delimited list-as-string of review fields to return'},
                 },
-        responses={200: 'successfully got review record',
-                   401: 'current app user not authorized to get review record',
-                   404: 'no review with matching id was found',
-                   }
+        responses={
+            200: 'successfully got review record',
+            401: 'current app user not authorized to get review record',
+            404: 'no review with matching id was found',
+            }
         )
     @use_kwargs({
         'id': ma_fields.Int(
@@ -63,10 +64,12 @@ class ReviewResource(Resource):
         params={'test': {'in': 'query', 'type': 'boolean', 'default': False,
                          'description': 'if True, request will be validated but no data will be affected'},
                 },
-        responses={204: 'successfully deleted review record',
-                   401: 'current app user not authorized to delete review record',
-                   404: 'no review with matching id was found',
-                   }
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted review record',
+            401: 'current app user not authorized to delete review record',
+            404: 'no review with matching id was found'
+            }
         )
     @use_kwargs({
         'id': ma_fields.Int(
@@ -82,11 +85,14 @@ class ReviewResource(Resource):
         if review.owner is not g.current_user:
             return unauthorized(
                 '{} not authorized to delete this review'.format(g.current_user))
+        db.session.delete(review)
         if test is False:
-            db.session.delete(review)
             db.session.commit()
             logger.info('deleted %s', review)
             return '', 204
+        else:
+            db.session.rollback()
+            return '', 200
 
     @ns.doc(
         params={

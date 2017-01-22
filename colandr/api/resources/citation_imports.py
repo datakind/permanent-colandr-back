@@ -15,20 +15,40 @@ from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'citation_imports', path='/citations/imports',
+    description='import citations in bulk and get import history')
 
 
+@ns.route('')
+@ns.doc(
+    summary='import citations in bulk and get import history',
+    produces=['application/json'],
+    )
 class CitationsImportsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier of review for which citations were imported'},
+            },
+        responses={
+            200: 'successfully got citation import history',
+            401: 'current app user not authorized to get citation import history',
+            404: 'no review with matching id was found',
+            }
+        )
     @use_kwargs({
         'review_id': ma_fields.Int(
             required=True, validate=Range(min=1, max=constants.MAX_INT))
         })
     def get(self, review_id):
+        """get citation import history for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
@@ -39,6 +59,31 @@ class CitationsImportsResource(Resource):
         results = review.imports.filter_by(record_type='citation')
         return ImportSchema(many=True).dump(results.all()).data
 
+    @ns.doc(
+        params={
+            'uploaded_file': {'in': 'formData', 'type': 'file', 'required': True,
+                              'description': 'file containing one or many citations in a standard format (.ris or .bib)'},
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier for review for which citations will be imported'},
+            'source_type': {'in': 'query', 'type': 'string',
+                            'enum': ['database', 'gray literature'],
+                            'description': 'type of source through which citations were found'},
+            'source_name': {'in': 'query', 'type': 'string',
+                            'description': 'name of source through which citations were found'},
+            'source_url': {'in': 'query', 'type': 'string', 'format': 'url',
+                           'description': 'url of source through which citations were found'},
+            'status': {'in': 'query', 'type': 'string',
+                       'enum': ['not_screened', 'included', 'excluded'],
+                       'description': 'known screening status of citations, if anything'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'successfully imported citations in bulk',
+            401: 'current app user not authorized to import citations for this review',
+            404: 'no review with matching id was found'
+            }
+        )
     @use_kwargs({
         'uploaded_file': ma_fields.Raw(
             required=True, location='files'),
@@ -56,6 +101,7 @@ class CitationsImportsResource(Resource):
         })
     def post(self, uploaded_file, review_id,
              source_type, source_name, source_url, status, test):
+        """import citations in bulk for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
