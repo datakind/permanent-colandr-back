@@ -11,17 +11,36 @@ from ...lib import constants, utils
 from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
+from ..swagger import screening_model
 from ..utils import assign_status
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'citation_screenings', path='/citations',
+    description='get, create, delete, modify citation screenings')
 
 
+@ns.route('/<int:id>/screenings')
+@ns.doc(
+    summary='get, create, delete, and modify data for a single citations\'s screenings',
+    produces=['application/json'],
+    )
 class CitationScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of screening fields to return'},
+                },
+        responses={
+            200: 'successfully got citation screening record(s)',
+            401: 'current app user not authorized to get citation screening record(s)',
+            404: 'no citation with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -30,6 +49,7 @@ class CitationScreeningsResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get screenings for a single citation by id"""
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
@@ -41,6 +61,19 @@ class CitationScreeningsResource(Resource):
                     g.current_user))
         return ScreeningSchema(many=True, only=fields).dump(citation.screenings).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted citation screening record',
+            401: 'current app user not authorized to delete citation screening record',
+            403: 'current app user has not screened citation, so nothing to delete',
+            404: 'no citation with matching id was found'
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -48,6 +81,7 @@ class CitationScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False),
         })
     def delete(self, id, test):
+        """delete current app user's screening for a single citation by id"""
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
@@ -64,9 +98,25 @@ class CitationScreeningsResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted %s', screening)
+            return '', 204
         else:
             db.session.rollback()
+            return '', 200
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(screening_model, 'citation screening record to be created'),
+        responses={
+            200: 'citation screening record was created (if test = False)',
+            401: 'current app user not authorized to create citation screening',
+            403: 'current app user has already created a screening for this citation',
+            404: 'no citation with matching id was found',
+            422: 'invalid citation screening record',
+            }
+        )
     @use_args(ScreeningSchema(partial=['user_id', 'review_id']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -75,6 +125,7 @@ class CitationScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False),
         })
     def post(self, args, id, test):
+        """create a screening for a single citation by id"""
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
@@ -100,6 +151,19 @@ class CitationScreeningsResource(Resource):
             db.session.rollback()
         return ScreeningSchema().dump(screening).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(screening_model, 'citation screening data to be modified'),
+        responses={
+            200: 'citation screening data was modified (if test = False)',
+            401: 'current app user not authorized to modify citation screening',
+            404: 'no citation with matching id was found, or no citation screening exists for current app user',
+            422: 'invalid modified citation screening data',
+            }
+        )
     @use_args(ScreeningSchema(only=['status', 'exclude_reasons']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -108,6 +172,7 @@ class CitationScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify current app user's screening of a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
             return no_data_found('<Citation(id={})> not found'.format(id))
@@ -128,10 +193,33 @@ class CitationScreeningsResource(Resource):
         return ScreeningSchema().dump(screening).data
 
 
+@ns.route('/screenings')
+@ns.doc(
+    summary='get one or many citation screenings',
+    produces=['application/json'],
+    )
 class CitationsScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={
+            'citation_id': {'in': 'query', 'type': 'integer',
+                            'description': 'unique identifier of citation for which to get all citation screenings'},
+            'user_id': {'in': 'query', 'type': 'integer',
+                        'description': 'unique identifier of user for which to get all citation screenings'},
+            'review_id': {'in': 'query', 'type': 'integer',
+                          'description': 'unique identifier of review for which to get citation screenings'},
+            'status_counts': {'in': 'query', 'type': 'boolean', 'default': False,
+                              'description': 'if True, group screenings by status and return the counts; if False, return the screening records themselves'}
+            },
+        responses={
+            200: 'successfully got citation screening record(s)',
+            400: 'bad request: citation_id, user_id, or review_id required',
+            401: 'current app user not authorized to get citation screening record(s)',
+            404: 'no citation with matching id was found',
+            }
+        )
     @use_kwargs({
         'citation_id': ma_fields.Int(
             missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)),
@@ -142,6 +230,7 @@ class CitationsScreeningsResource(Resource):
         'status_counts': ma_fields.Bool(missing=False),
         })
     def get(self, citation_id, user_id, review_id, status_counts):
+        """get all citation screenings by citation, user, or review id"""
         if not any([citation_id, user_id, review_id]):
             return bad_request('citation, user, and/or review id must be specified')
         query = db.session.query(CitationScreening)
@@ -190,15 +279,30 @@ class CitationsScreeningsResource(Resource):
             return dict(query.all())
         return ScreeningSchema(partial=True, many=True).dump(query.all()).data
 
+    @ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier of review for which to create citation screenings'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=([screening_model], 'citation screening records to create'),
+        responses={
+            200: 'successfully created citation screening record(s)',
+            401: 'current app user not authorized to create citation screening records',
+            404: 'no review with matching id was found',
+            }
+        )
     @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
     @use_kwargs({
         'review_id': ma_fields.Int(
-            location='query',
-            missing=None, validate=Range(min=1, max=constants.MAX_INT)),
+            required=True, location='query',
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(
             location='query', missing=False)
         })
     def post(self, args, review_id, test):
+        """create one or more citation screenings (ADMIN ONLY)"""
         logger.warning('the "citations/screenings" endpoint is for dev use only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)

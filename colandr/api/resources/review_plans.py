@@ -46,6 +46,7 @@ class ReviewPlanResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -58,17 +59,19 @@ class ReviewPlanResource(Resource):
         return ReviewPlanSchema(only=fields).dump(review.review_plan).data
 
     @ns.doc(
-        description='Since review plans are created automatically upon review creation and deleted automatically upon review deletion, "delete" here amounts eto nulling out some or all of its non-required fields',
+        description='Since review plans are created automatically upon review creation and deleted automatically upon review deletion, "delete" here amounts to nulling out some or all of its non-required fields',
         params={
             'fields': {'in': 'query', 'type': 'string',
                        'description': 'comma-delimited list-as-string of review fields to "delete" (set to null)'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
-        responses={204: 'successfully deleted review plan record',
-                   401: 'current app user not authorized to delete review plan record',
-                   404: 'no review with matching id was found',
-                   }
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted (nulled) review plan record',
+            401: 'current app user not authorized to delete review plan record',
+            404: 'no review with matching id was found',
+            }
         )
     @use_kwargs({
         'id': ma_fields.Int(
@@ -79,6 +82,7 @@ class ReviewPlanResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, fields, test):
+        """delete review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))
@@ -104,9 +108,10 @@ class ReviewPlanResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted contents of %s', review_plan)
+            return '', 204
         else:
             db.session.rollback()
-        return '', 204
+            return '', 200
 
     @ns.doc(
         params={
@@ -132,6 +137,7 @@ class ReviewPlanResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, fields, test):
+        """modify review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(id))

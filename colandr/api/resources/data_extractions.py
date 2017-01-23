@@ -12,22 +12,39 @@ from ...lib import constants, sanitizers, utils
 from ...models import db, DataExtraction, ReviewPlan
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import ExtractedItem, DataExtractionSchema
+from ..swagger import data_extraction_model
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'data_extractions', path='/data_extractons',
+    description='get, delete, and modify data extractions')
 
 
+@ns.route('/<int:id>')
+@ns.doc(
+    summary='get, delete, and modify data extractions',
+    produces=['application/json'],
+    )
 class DataExtractionResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        responses={
+            200: 'successfully got data extraction record',
+            401: 'current app user not authorized to get data extraction record',
+            404: 'no data extraction with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_BIGINT)),
         })
     def get(self, id):
+        """get data extraction record for a single study by id"""
         # check current user authorization
         extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()
@@ -41,9 +58,21 @@ class DataExtractionResource(Resource):
                     g.current_user))
         return DataExtractionSchema().dump(extracted_data).data
 
-    # NOTE: since extracted data are created automatically upon fulltext inclusion
-    # and deleted automatically upon fulltext exclusion, "delete" here amounts
-    # to nulling out some or all of its non-required fields
+    @ns.doc(
+        description='Since data extractions are automatically created upon fulltext inclusion and deleted upon fulltext exclusion, "delete" here amounts to nulling out some or all of its non-required fields',
+        params={
+            'labels': {'in': 'query', 'type': 'string',
+                       'description': 'comma-delimited list-as-string of data extraction labels to "delete" (set to null)'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted (nulled) data extraction record',
+            401: 'current app user not authorized to delete data extraction record',
+            404: 'no data extraction with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -53,6 +82,7 @@ class DataExtractionResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, labels, test):
+        """delete data extraction record for a single study by id"""
         # check current user authorization
         extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()
@@ -72,10 +102,23 @@ class DataExtractionResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted contents of %s', extracted_data)
+            return '', 204
         else:
             db.session.rollback()
-        return '', 204
+            return '', 200
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(data_extraction_model, 'data extraction data to be modified'),
+        responses={
+            200: 'data extraction data was modified (if test = False)',
+            401: 'current app user not authorized to modify data extraction',
+            404: 'no data extraction with matching id was found',
+            }
+        )
     @use_args(ExtractedItem(many=True))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -84,6 +127,7 @@ class DataExtractionResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify data extraction record for a single study by id"""
         # check current user authorization
         extracted_data = db.session.query(DataExtraction)\
             .filter_by(fulltext_id=id).one_or_none()

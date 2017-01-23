@@ -14,17 +14,36 @@ from ...models import (db, DataExtraction, FulltextScreening, Fulltext,
                        Review, Study, User)
 from ..errors import bad_request, forbidden, no_data_found, unauthorized, validation
 from ..schemas import ScreeningSchema
+from ..swagger import screening_model
 from ..utils import assign_status
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'fulltext_screenings', path='/fulltexts',
+    description='get, create, delete, modify fulltext screenings')
 
 
+@ns.route('/<int:id>/screenings')
+@ns.doc(
+    summary='get, create, delete, and modify data for a single fulltext\'s screenings',
+    produces=['application/json'],
+    )
 class FulltextScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of screening fields to return'},
+                },
+        responses={
+            200: 'successfully got fulltext screening record(s)',
+            401: 'current app user not authorized to get fulltext screening record(s)',
+            404: 'no fulltext with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -33,6 +52,7 @@ class FulltextScreeningsResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get screenings for a single fulltext by id"""
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
@@ -44,6 +64,19 @@ class FulltextScreeningsResource(Resource):
                     g.current_user))
         return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted fulltext screening record',
+            401: 'current app user not authorized to delete fulltext screening record',
+            403: 'current app user has not screened fulltext, so nothing to delete',
+            404: 'no fulltext with matching id was found'
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -51,6 +84,7 @@ class FulltextScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False),
         })
     def delete(self, id, test):
+        """delete current app user's screening for a single fulltext by id"""
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
@@ -67,9 +101,25 @@ class FulltextScreeningsResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted %s', screening)
+            return '', 204
         else:
             db.session.rollback()
+            return '', 200
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(screening_model, 'fulltext screening record to be created'),
+        responses={
+            200: 'fulltext screening record was created (if test = False)',
+            401: 'current app user not authorized to create fulltext screening',
+            403: 'current app user has already created a screening for this fulltext, or no screening can be created because the full-text has not yet been uploaded',
+            404: 'no fulltext with matching id was found',
+            422: 'invalid citation screening record',
+            }
+        )
     @use_args(ScreeningSchema(partial=['user_id', 'review_id']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -78,6 +128,7 @@ class FulltextScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False),
         })
     def post(self, args, id, test):
+        """create a screenings for a single fulltext by id"""
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
@@ -107,6 +158,19 @@ class FulltextScreeningsResource(Resource):
             db.session.rollback()
         return ScreeningSchema().dump(screening).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=(screening_model, 'fulltext screening data to be modified'),
+        responses={
+            200: 'fulltext screening data was modified (if test = False)',
+            401: 'current app user not authorized to modify fulltext screening',
+            404: 'no fulltext with matching id was found, or no fulltext screening exists for current app user',
+            422: 'invalid modified fulltext screening data',
+            }
+        )
     @use_args(ScreeningSchema(only=['status', 'exclude_reasons']))
     @use_kwargs({
         'id': ma_fields.Int(
@@ -115,6 +179,7 @@ class FulltextScreeningsResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, test):
+        """modify current app user's screening of a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
@@ -135,10 +200,33 @@ class FulltextScreeningsResource(Resource):
         return ScreeningSchema().dump(screening).data
 
 
+@ns.route('/screenings')
+@ns.doc(
+    summary='get one or many fulltext screenings',
+    produces=['application/json'],
+    )
 class FulltextsScreeningsResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={
+            'fulltext_id': {'in': 'query', 'type': 'integer',
+                            'description': 'unique identifier of fulltext for which to get all fulltext screenings'},
+            'user_id': {'in': 'query', 'type': 'integer',
+                        'description': 'unique identifier of user for which to get all fulltext screenings'},
+            'review_id': {'in': 'query', 'type': 'integer',
+                          'description': 'unique identifier of review for which to get fulltext screenings'},
+            'status_counts': {'in': 'query', 'type': 'boolean', 'default': False,
+                              'description': 'if True, group screenings by status and return the counts; if False, return the screening records themselves'}
+            },
+        responses={
+            200: 'successfully got fulltext screening record(s)',
+            400: 'bad request: fulltext_id, user_id, or review_id required',
+            401: 'current app user not authorized to get fulltext screening record(s)',
+            404: 'no fulltext with matching id was found',
+            }
+        )
     @use_kwargs({
         'fulltext_id': ma_fields.Int(
             missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)),
@@ -149,6 +237,7 @@ class FulltextsScreeningsResource(Resource):
         'status_counts': ma_fields.Bool(missing=False),
         })
     def get(self, fulltext_id, user_id, review_id, status_counts):
+        """get all fulltext screenings by citation, user, or review id"""
         if not any([fulltext_id, user_id, review_id]):
             return bad_request('fulltext, user, and/or review id must be specified')
         query = db.session.query(FulltextScreening)
@@ -197,15 +286,30 @@ class FulltextsScreeningsResource(Resource):
             return dict(query.all())
         return ScreeningSchema(partial=True, many=True).dump(query.all()).data
 
+    @ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': True,
+                          'description': 'unique identifier of review for which to create fulltext screenings'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        body=([screening_model], 'fulltext screening records to create'),
+        responses={
+            200: 'successfully created fulltext screening record(s)',
+            401: 'current app user not authorized to create fulltext screening records',
+            404: 'no review with matching id was found',
+            }
+        )
     @use_args(ScreeningSchema(many=True, partial=['user_id', 'review_id']))
     @use_kwargs({
         'review_id': ma_fields.Int(
-            location='query',
-            missing=None, validate=Range(min=1, max=constants.MAX_INT)),
+            required=True, location='query',
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(
             location='query', missing=False)
         })
     def post(self, args, review_id, test):
+        """create one or more fulltext screenings (ADMIN ONLY)"""
         logging.warning('the "fulltexts/screenings" endpoint is for dev use only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)

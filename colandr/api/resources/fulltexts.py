@@ -11,15 +11,33 @@ from ...models import db, Fulltext
 from ..errors import no_data_found, unauthorized
 from ..schemas import FulltextSchema
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'fulltexts', path='/fulltexts',
+    description='get and delete fulltexts')
 
 
+@ns.route('/<int:id>')
+@ns.doc(
+    summary='get and delete fulltexts',
+    produces=['application/json'],
+    )
 class FulltextResource(Resource):
 
     method_decorators = [auth.login_required]
 
+    @ns.doc(
+        params={'fields': {'in': 'query', 'type': 'string',
+                           'description': 'comma-delimited list-as-string of fulltext fields to return'},
+                },
+        responses={
+            200: 'successfully got fulltext record',
+            401: 'current app user not authorized to get fulltext record',
+            404: 'no fulltext with matching id was found',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -28,6 +46,7 @@ class FulltextResource(Resource):
             ma_fields.String, delimiter=',', missing=None)
         })
     def get(self, id, fields):
+        """get record for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
@@ -39,6 +58,18 @@ class FulltextResource(Resource):
             fields.append('id')
         return FulltextSchema(only=fields).dump(fulltext).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted fulltext record',
+            401: 'current app user not authorized to delete fulltext record',
+            404: 'no fulltext with matching id was found'
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -46,6 +77,7 @@ class FulltextResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
+        """delete record for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
@@ -56,5 +88,7 @@ class FulltextResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted %s', fulltext)
+            return '', 204
         else:
             db.session.rollback()
+            return '', 200

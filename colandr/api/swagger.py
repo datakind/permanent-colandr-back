@@ -67,7 +67,7 @@ review_plan_model = api_.model(
      'keyterms': fields.List(fields.Nested(review_plan_keyterm_model)),
      'selection_criteria': fields.List(fields.Nested(review_plan_selection_criterion_model)),
      'data_extraction_form': fields.List(fields.Nested(data_extraction_form_item_model))}
-     # 'suggested_keyterms': fields.Nested(review_plan_suggested_keyterms)}  # not user-set
+    # 'suggested_keyterms': fields.Nested(review_plan_suggested_keyterms)}  # not user-set
     )
 
 import_model = api_.model(

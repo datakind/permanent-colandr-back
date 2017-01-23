@@ -18,11 +18,19 @@ from ...tasks import get_fulltext_text_content_vector
 from ..errors import no_data_found, unauthorized, validation
 from ..schemas import FulltextSchema
 from ..authentication import auth
-
+from colandr import api_
 
 logger = utils.get_console_logger(__name__)
+ns = api_.namespace(
+    'fulltext_uploads', path='/fulltexts',
+    description='upload or delete fulltext content files')
 
 
+@ns.route('/<int:id>/upload')
+@ns.doc(
+    summary='upload or delete fulltext content files',
+    produces=['application/json'],
+    )
 class FulltextUploadResource(Resource):
 
     method_decorators = [auth.login_required]
@@ -30,6 +38,20 @@ class FulltextUploadResource(Resource):
     # NOTE: the get method for this resource is actually in the app's __init__.py
     # it required using flask-style routes instead of flask-restful
 
+    @ns.doc(
+        params={
+            'uploaded_file': {'in': 'formData', 'type': 'file', 'required': True,
+                              'description': 'full-text content file in a standard format (.pdf or .txt)'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'successfully upload full-text file',
+            401: 'current app user not authorized to upload full-text files for this review',
+            404: 'no fulltext with matching id was found',
+            422: 'invalid fulltext upload file type',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -39,6 +61,7 @@ class FulltextUploadResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def post(self, id, uploaded_file, test):
+        """upload fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
@@ -81,6 +104,19 @@ class FulltextUploadResource(Resource):
 
         return FulltextSchema().dump(fulltext).data
 
+    @ns.doc(
+        params={
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'request was valid, but record not deleted because `test=False`',
+            204: 'successfully deleted fulltext file',
+            401: 'current app user not authorized to delete fulltext files for this review',
+            404: 'no fulltext with matching id was found',
+            422: 'no uploaded content file found for this fulltext',
+            }
+        )
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -88,6 +124,7 @@ class FulltextUploadResource(Resource):
         'test': ma_fields.Boolean(missing=False)
         })
     def delete(self, id, test):
+        """delete fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return no_data_found('<Fulltext(id={})> not found'.format(id))
@@ -104,3 +141,6 @@ class FulltextUploadResource(Resource):
             fulltext.filename = None
             db.session.commit()
             logger.info('deleted uploaded file for %s', fulltext)
+            return '', 204
+        else:
+            return '', 200
