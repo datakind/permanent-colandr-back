@@ -36,6 +36,8 @@ class Config(object):
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
+    RESTPLUS_VALIDATE = False
+
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR')
     LOGS_FOLDER = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
