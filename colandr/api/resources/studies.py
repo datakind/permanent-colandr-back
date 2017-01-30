@@ -261,6 +261,7 @@ class StudiesResource(Resource):
                           ) AS t
                     WHERE
                         t.dedupe_status = 'not_duplicate' -- this is necessary!
+                        AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=g.current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
@@ -301,6 +302,7 @@ class StudiesResource(Resource):
                           ) AS t
                     WHERE
                         t.citation_status = 'included' -- this is necessary!
+                        AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=g.current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
