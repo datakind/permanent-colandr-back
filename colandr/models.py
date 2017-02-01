@@ -1011,7 +1011,7 @@ def update_fulltext_status(mapper, connection, target):
         with connection.begin():
             connection.execute(
                 db.delete(DataExtraction).where(
-                    DataExtraction.study_id == fulltext_id))
+                    DataExtraction.id == fulltext_id))
         logger.info('deleted <DataExtraction(study_id=%s)>', fulltext_id)
         data_extraction_inserted_or_deleted = True
     # we may have to update our counts for review num_fulltexts_included / excluded
