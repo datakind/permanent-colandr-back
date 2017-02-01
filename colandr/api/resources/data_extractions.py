@@ -46,15 +46,14 @@ class DataExtractionResource(Resource):
     def get(self, id):
         """get data extraction record for a single study by id"""
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction)\
-            .filter_by(fulltext_id=id).one_or_none()
+        extracted_data = db.session.query(DataExtraction).get(id)
         if not extracted_data:
             return no_data_found(
-                '<DataExtraction(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(study_id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None):
             return unauthorized(
-                '{} not authorized to get extracted data for this fulltext'.format(
+                '{} not authorized to get extracted data for this study'.format(
                     g.current_user))
         return DataExtractionSchema().dump(extracted_data).data
 
@@ -84,14 +83,13 @@ class DataExtractionResource(Resource):
     def delete(self, id, labels, test):
         """delete data extraction record for a single study by id"""
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction)\
-            .filter_by(fulltext_id=id).one_or_none()
+        extracted_data = db.session.query(DataExtraction).get(id)
         if not extracted_data:
             return no_data_found(
-                '<DataExtraction(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(study_id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
-                '{} not authorized to get extracted data for this fulltext'.format(
+                '{} not authorized to get extracted data for this study'.format(
                     g.current_user))
         if labels:
             extracted_data.extracted_data = [
@@ -129,14 +127,13 @@ class DataExtractionResource(Resource):
     def put(self, args, id, test):
         """modify data extraction record for a single study by id"""
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction)\
-            .filter_by(fulltext_id=id).one_or_none()
+        extracted_data = db.session.query(DataExtraction).get(id)
         if not extracted_data:
             return no_data_found(
-                '<DataExtraction(fulltext_id={})> not found'.format(id))
+                '<DataExtraction(study_id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
             return unauthorized(
-                '{} not authorized to get extracted data for this fulltext'.format(
+                '{} not authorized to get extracted data for this study'.format(
                     g.current_user))
         data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
             .filter_by(review_id=extracted_data.review_id).one_or_none()

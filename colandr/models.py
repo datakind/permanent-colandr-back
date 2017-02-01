@@ -955,7 +955,7 @@ def update_citation_status(mapper, connection, target):
             status_counts = connection.execute(
                 db.select([Review.num_citations_included, Review.num_citations_excluded])\
                 .where(Review.id == review_id)
-                ).fetchone()[0]
+                ).fetchone()
             logger.info(
                 '<Review(id=%s)> citation_status counts = %s',
                 review_id, status_counts)
@@ -1041,12 +1041,12 @@ def update_fulltext_status(mapper, connection, target):
             status_counts = connection.execute(
                 db.select([Review.num_fulltexts_included, Review.num_fulltexts_excluded])\
                 .where(Review.id == review_id)
-                ).fetchone()[0]
+                ).fetchone()
             logger.info(
                 '<Review(id=%s)> fulltext_status counts = %s',
                 review_id, status_counts)
             n_included, n_excluded = status_counts
-            # TODO: do something now
+            # TODO: do something now?
             # if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
             #     from .tasks import suggest_keyterms
             #     sample_size = min(n_included, n_excluded)

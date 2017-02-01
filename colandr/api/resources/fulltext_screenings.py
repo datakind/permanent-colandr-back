@@ -117,7 +117,7 @@ class FulltextScreeningsResource(Resource):
             401: 'current app user not authorized to create fulltext screening',
             403: 'current app user has already created a screening for this fulltext, or no screening can be created because the full-text has not yet been uploaded',
             404: 'no fulltext with matching id was found',
-            422: 'invalid citation screening record',
+            422: 'invalid fulltext screening record',
             }
         )
     @use_args(ScreeningSchema(partial=['user_id', 'review_id']))
