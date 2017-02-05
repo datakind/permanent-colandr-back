@@ -12,13 +12,13 @@ from ...lib import constants, sanitizers, utils
 from ...models import db, DataExtraction, ReviewPlan
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import ExtractedItem, DataExtractionSchema
-from ..swagger import data_extraction_model
+from ..swagger import extracted_item_model
 from ..authentication import auth
 from colandr import api_
 
 logger = utils.get_console_logger(__name__)
 ns = api_.namespace(
-    'data_extractions', path='/data_extractons',
+    'data_extractions', path='/data_extractions',
     description='get, delete, and modify data extractions')
 
 
@@ -110,7 +110,7 @@ class DataExtractionResource(Resource):
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
-        body=(data_extraction_model, 'data extraction data to be modified'),
+        body=([extracted_item_model], 'data extraction data to be modified'),
         responses={
             200: 'data extraction data was modified (if test = False)',
             401: 'current app user not authorized to modify data extraction',
