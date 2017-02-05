@@ -145,11 +145,11 @@ class DataExtractionResource(Resource):
                                       set(item.get('allowed_values', [])))
                       for item in data_extraction_form[0]}
         # manually validate inputs, given data extraction form specification
-        if isinstance(extracted_data.extracted_data, dict):
-            extracted_data.extracted_data = []
+        if isinstance(extracted_data.extracted_items, dict):
+            extracted_data.extracted_items = []
         extracted_data_map = {
             item['label']: item['value']
-            for item in extracted_data.extracted_data}
+            for item in extracted_data.extracted_items}
         for item in args:
             label = item['label']
             value = item['value']
@@ -203,7 +203,7 @@ class DataExtractionResource(Resource):
             else:
                 return validation('field_type "{}" is not valid'.format(field_type))
             extracted_data_map[label] = validated_value
-        extracted_data.extracted_data = [
+        extracted_data.extracted_items = [
             {'label': label, 'value': value}
             for label, value in extracted_data_map.items()]
         if test is False:
