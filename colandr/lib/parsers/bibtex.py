@@ -33,17 +33,20 @@ def _sanitize_month(value):
 
 
 def _sanitize_pages(value):
-    # hyphen, non-breaking hyphen, en dash, em dash, hyphen-minus, minus sign
-    separators = ('‐', '‑', '–', '—', '-', '−')
+    # hyphen, non-breaking hyphen, minus sign, en dash, em dash, hyphen-minus
+    separators = ('‐', '‑', '−', '–', '—', '-')
     for sep in separators:
         if sep in value:
             pages = [i.strip().strip(sep)
                      for i in value.split(sep)
                      if i]
-            if len(pages) > 2:
+            if len(pages) > 2 or not pages:
                 logger.debug('unusual "pages" field value: %s', value)
-            else:
+            elif len(pages) == 2:
                 value = pages[0] + '--' + pages[-1]
+                break
+            else:
+                value = pages[0]
                 break
     return value
 

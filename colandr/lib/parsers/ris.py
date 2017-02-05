@@ -228,6 +228,16 @@ def _sanitize_sn_tag(value):
         return None
 
 
+def _check_isbn_value(value):
+    isbn = [x for x in value if x.isdigit() or x.lower() == 'x']
+    if len(isbn) == 10:
+        num = (10 if isbn[-1] == 'x' else int(isbn[-1])) + sum(int(x) * y for x, y in zip(isbn[:9], range(10, 0, -1)))
+        return num % 11 == 0
+    elif len(isbn) == 13:
+        num = sum(int(x) * y for x, y in zip(isbn, (1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1)))
+        return num % 10 == 0
+
+
 VALUE_SANITIZERS = {
     'DA': lambda x: parse_date(x).strftime('%Y-%m-%d'),
     'PD': _sanitize_pd_tag,
@@ -388,6 +398,10 @@ class RisFile(object):
                     key = (self.key_map.get(self.prev_tag, self.prev_tag) if self.key_map
                            else self.prev_tag)
                     self.record[key] += ' ' + line.strip()
+
+                # HACK: badly formed SN tags that also contain an isbn
+                elif self.prev_tag == 'SN'and _check_isbn_value(line.strip()) is True:
+                    self.record['BN'] = line.strip()
 
                 else:
                     logger.error(
