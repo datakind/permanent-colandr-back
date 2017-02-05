@@ -138,14 +138,25 @@ class CitationsImportsResource(Resource):
 
         # TODO: make this an async task?
         engine = create_engine(current_app.config['SQLALCHEMY_DATABASE_URI'])
-
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert
         citation_schema = CitationSchema()
         citations_to_insert = []
-        for record in citations_file.parse():
-            record['review_id'] = review_id
-            citations_to_insert.append(citation_schema.load(record).data)
+        # rather than doing it in a for loop, we've switched to a while loop
+        # so that parsing errors on individual citations can be caught and logged
+        # for record in citations_file.parse():
+        #     record['review_id'] = review_id
+        #     citations_to_insert.append(citation_schema.load(record).data)
+        records = citations_file.parse()
+        while True:
+            try:
+                record = next(records)
+                record['review_id'] = review_id
+                citations_to_insert.append(citation_schema.load(record).data)
+            except StopIteration:
+                break
+            except Exception as e:
+                logger.warning('parsing error: %s', e)
         n_citations = len(citations_to_insert)
 
         user_id = g.current_user.id
