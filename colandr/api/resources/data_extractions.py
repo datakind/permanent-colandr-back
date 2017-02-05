@@ -128,19 +128,19 @@ class DataExtractionResource(Resource):
         """modify data extraction record for a single study by id"""
         # check current user authorization
         extracted_data = db.session.query(DataExtraction).get(id)
+        review_id = extracted_data.review_id
         if not extracted_data:
             return no_data_found(
                 '<DataExtraction(study_id={})> not found'.format(id))
-        if g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none() is None:
+        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to get extracted data for this study'.format(
                     g.current_user))
         data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
-            .filter_by(review_id=extracted_data.review_id).one_or_none()
+            .filter_by(id=review_id).one_or_none()
         if not data_extraction_form:
             return forbidden(
-                '<ReviewPlan({})> does not have a data extraction form'.format(
-                    extracted_data.review_id))
+                '<ReviewPlan({})> does not have a data extraction form'.format(review_id))
         labels_map = {item['label']: (item['field_type'],
                                       set(item.get('allowed_values', [])))
                       for item in data_extraction_form[0]}
