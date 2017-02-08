@@ -42,6 +42,7 @@ def wait_for_lock(name, expire=60):
             sleep(10)
         else:
             console_logger.info('starting new %s job...', name)
+            logger.info('starting new %s job...', name)
             break
     return lock
 
@@ -237,36 +238,45 @@ def deduplicate_citations(review_id):
             '<Review(id=%s)>: found %s duplicate clusters',
             review_id, len(clustered_dupes))
 
-        # get *all* citation ids for this review
+        # get *all* citation ids for this review, as well as included/excluded
         stmt = select([Citation.id]).where(Citation.review_id == review_id)
         all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
+        stmt = select([Study.id])\
+            .where(Study.review_id == review_id)\
+            .where(Study.citation_status.in_(['included', 'excluded']))
+        incl_excl_cids = {result[0] for result in conn.execute(stmt).fetchall()}
+
         duplicate_cids = set()
 
         studies_to_update = []
         dedupes_to_insert = []
         for cids, scores in clustered_dupes:
-            cid_scores = {int(cid): float(score) for cid, score in zip(cids, scores)}
-            stmt = select([Citation.id,
-                           (case([(Citation.title == None, 1)]) +
-                            case([(Citation.abstract == None, 1)]) +
-                            case([(Citation.pub_year == None, 1)]) +
-                            case([(Citation.pub_month == None, 1)]) +
-                            case([(Citation.authors == {}, 1)]) +
-                            case([(Citation.keywords == {}, 1)]) +
-                            case([(Citation.type_of_reference == None, 1)]) +
-                            case([(Citation.journal_name == None, 1)]) +
-                            case([(Citation.issue_number == None, 1)]) +
-                            case([(Citation.doi == None, 1)]) +
-                            case([(Citation.issn == None, 1)]) +
-                            case([(Citation.publisher == None, 1)]) +
-                            case([(Citation.language == None, 1)])
-                            ).label('n_null_cols')])\
-                .where(Citation.review_id == review_id)\
-                .where(Citation.id.in_([int(cid) for cid in cids]))\
-                .order_by(text('n_null_cols ASC'))\
-                .limit(1)
-            result = conn.execute(stmt).fetchone()
-            canonical_citation_id = result.id
+            int_cids = [int(cid) for cid in cids]
+            cid_scores = {cid: float(score) for cid, score in zip(int_cids, scores)}
+            if any(cid in incl_excl_cids for cid in int_cids):
+                canonical_citation_id = sorted(set(int_cids).intersection(incl_excl_cids))[0]
+            else:
+                stmt = select([Citation.id,
+                               (case([(Citation.title == None, 1)]) +
+                                case([(Citation.abstract == None, 1)]) +
+                                case([(Citation.pub_year == None, 1)]) +
+                                case([(Citation.pub_month == None, 1)]) +
+                                case([(Citation.authors == {}, 1)]) +
+                                case([(Citation.keywords == {}, 1)]) +
+                                case([(Citation.type_of_reference == None, 1)]) +
+                                case([(Citation.journal_name == None, 1)]) +
+                                case([(Citation.issue_number == None, 1)]) +
+                                case([(Citation.doi == None, 1)]) +
+                                case([(Citation.issn == None, 1)]) +
+                                case([(Citation.publisher == None, 1)]) +
+                                case([(Citation.language == None, 1)])
+                                ).label('n_null_cols')])\
+                    .where(Citation.review_id == review_id)\
+                    .where(Citation.id.in_(int_cids))\
+                    .order_by(text('n_null_cols ASC'))\
+                    .limit(1)
+                result = conn.execute(stmt).fetchone()
+                canonical_citation_id = result.id
             for cid, score in cid_scores.items():
                 if cid != canonical_citation_id:
                     duplicate_cids.add(cid)

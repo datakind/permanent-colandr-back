@@ -55,18 +55,18 @@ class ReviewExportPrismaResource(Resource):
         n_studies_by_source = dict(
             db.session.query(DataSource.source_type, db.func.sum(Import.num_records))
             .filter(Import.data_source_id == DataSource.id)
-            .filter(Import.review_id == 1)
+            .filter(Import.review_id == id)
             .group_by(DataSource.source_type)
             .all())
 
         n_unique_studies = db.session.query(Study)\
-            .filter(Study.review_id == 1)\
+            .filter(Study.review_id == id)\
             .filter_by(dedupe_status='not_duplicate')\
             .count()
 
         n_citations_by_status = dict(
             db.session.query(Study.citation_status, db.func.count(1))
-            .filter(Study.review_id == 1)
+            .filter(Study.review_id == id)
             .filter(Study.citation_status.in_(['included', 'excluded']))
             .group_by(Study.citation_status)
             .all())
@@ -75,7 +75,7 @@ class ReviewExportPrismaResource(Resource):
 
         n_fulltexts_by_status = dict(
             db.session.query(Study.fulltext_status, db.func.count(1))
-            .filter(Study.review_id == 1)
+            .filter(Study.review_id == id)
             .filter(Study.fulltext_status.in_(['included', 'excluded']))
             .group_by(Study.fulltext_status)
             .all())
@@ -83,14 +83,14 @@ class ReviewExportPrismaResource(Resource):
         n_fulltexts_excluded = n_fulltexts_by_status.get('excluded', 0)
 
         results = db.session.query(FulltextScreening.exclude_reasons)\
-            .filter(FulltextScreening.review_id == 1)\
+            .filter(FulltextScreening.review_id == id)\
             .all()
         exclude_reason_counts = dict(collections.Counter(
             itertools.chain.from_iterable(
                 [result[0] for result in results if result[0] is not None])))
 
         n_data_extractions = db.session.query(Study)\
-            .filter(Study.review_id == 1)\
+            .filter(Study.review_id == id)\
             .filter_by(data_extraction_status='complete')\
             .count()
 
