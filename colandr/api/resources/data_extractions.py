@@ -92,11 +92,11 @@ class DataExtractionResource(Resource):
                 '{} not authorized to get extracted data for this study'.format(
                     g.current_user))
         if labels:
-            extracted_data.extracted_data = [
-                item for item in extracted_data.extracted_data
+            extracted_data.extracted_items = [
+                item for item in extracted_data.extracted_items
                 if item['label'] not in labels]
         else:
-            extracted_data.extracted_data = []
+            extracted_data.extracted_items = []
         if test is False:
             db.session.commit()
             logger.info('deleted contents of %s', extracted_data)
@@ -169,7 +169,7 @@ class DataExtractionResource(Resource):
                             value, label, field_type))
             elif field_type == 'date':
                 try:
-                    validated_value = arrow.get(value).naive
+                    validated_value = str(arrow.get(value).naive)
                 except arrow.parser.ParserError:
                     return validation(
                         'value "{}" for label "{}" invalid; must be ISO-formatted {}'.format(
