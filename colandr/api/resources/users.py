@@ -1,5 +1,6 @@
 from flask import g
 from flask_restplus import Resource
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
@@ -9,7 +10,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, utils
 from ...models import db, User, Review
-from ..errors import no_data_found, unauthorized
+from ..errors import db_integrity, no_data_found, unauthorized
 from ..swagger import user_model
 from ..schemas import UserSchema
 from ..authentication import auth
@@ -198,8 +199,12 @@ class UsersResource(Resource):
         user.is_confirmed = True
         db.session.add(user)
         if test is False:
-            db.session.commit()
-            logger.info('inserted %s', user)
+            try:
+                db.session.commit()
+                logger.info('inserted %s', user)
+            except (IntegrityError, InvalidRequestError) as e:
+                db.session.rollback()
+                return db_integrity(str(e.orig))
         else:
             db.session.rollback()
         return UserSchema().dump(user).data

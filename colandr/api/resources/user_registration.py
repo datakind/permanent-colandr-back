@@ -1,6 +1,6 @@
 from flask import current_app, render_template  # , url_for
 from flask_restplus import Resource
-from sqlalchemy import exc
+from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from marshmallow import fields as ma_fields
 from webargs.flaskparser import use_args, use_kwargs
@@ -40,7 +40,7 @@ class UserRegistrationResource(Resource):
             try:
                 db.session.add(user)
                 db.session.commit()
-            except exc.IntegrityError as e:
+            except (IntegrityError, InvalidRequestError) as e:
                 db.session.rollback()
                 return db_integrity(str(e.orig))
             token = generate_confirmation_token(user.email)
