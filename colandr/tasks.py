@@ -97,10 +97,15 @@ def deduplicate_citations(review_id):
     with engine.connect() as conn:
 
         # wait until no more review citations have been created in 60+ seconds
-        stmt = select([func.max(Citation.created_at)])\
-            .where(Citation.review_id == review_id)
         while True:
+            stmt = select([func.max(Citation.created_at)])\
+                .where(Citation.review_id == review_id)
             max_created_at = conn.execute(stmt).fetchone()[0]
+            if max_created_at is None:
+                logger.error(
+                    '<Review(id=%s)>: No citations found, so nothing to dedupe...', review_id)
+                lock.release()
+                return
             elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
             if elapsed_time < 60:
                 logger.debug(

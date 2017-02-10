@@ -53,7 +53,7 @@ class Config(object):
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
     # email server config
-    MAIL_SERVER = 'smtp.googlemail.com'
+    MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
