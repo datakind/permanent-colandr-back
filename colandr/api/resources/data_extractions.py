@@ -9,7 +9,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, sanitizers, utils
-from ...models import db, DataExtraction, ReviewPlan
+from ...models import db, DataExtraction, ReviewPlan, Study
 from ..errors import forbidden, no_data_found, unauthorized, validation
 from ..schemas import ExtractedItem, DataExtractionSchema
 from ..swagger import extracted_item_model
@@ -97,6 +97,10 @@ class DataExtractionResource(Resource):
                 if item['label'] not in labels]
         else:
             extracted_data.extracted_items = []
+        # in case of "full" deletion, update study's data_extraction_status
+        if not extracted_data.extracted_items:
+            study = db.session.query(Study).get(id)
+            study.data_extraction_status = 'not_started'
         if test is False:
             db.session.commit()
             logger.info('deleted contents of %s', extracted_data)
@@ -199,13 +203,16 @@ class DataExtractionResource(Resource):
                     validated_value.append(val)
             # TODO: implement this country validation
             elif field_type == 'country':
-                raise NotImplementedError('burton apologizes for this inconvenience')
+                return forbidden('"country" validation has not yet been implemented -- sorry!')
             else:
                 return validation('field_type "{}" is not valid'.format(field_type))
             extracted_data_map[label] = validated_value
         extracted_data.extracted_items = [
             {'label': label, 'value': value}
             for label, value in extracted_data_map.items()]
+        # also update study's data_extraction_status
+        study = db.session.query(Study).get(id)
+        study.data_extraction_status = 'started'
         if test is False:
             db.session.commit()
         else:
