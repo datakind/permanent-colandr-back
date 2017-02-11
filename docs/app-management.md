@@ -66,7 +66,7 @@ $ python3 manage.py runserver
 In production, however, we'll run our app using a more scalable server: `gunicorn`, which handles multiple requests at once and complicated things like threading. The gunicorn server's configuration is specified in `gunicorn_config.py`; for a full explanation of the options, check out [the docs](http://docs.gunicorn.org/en/stable/index.html). To run the app via gunicorn, just do this:
 
 ```
-$ gunicorn --config=python:gunicorn_config runserver:app
+$ gunicorn --config=gunicorn_config.py gunicorn_runserver:app --log-file=colandr.log
 ```
 
 
