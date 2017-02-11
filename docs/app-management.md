@@ -70,6 +70,17 @@ $ gunicorn --config=gunicorn_config.py gunicorn_runserver:app --log-file=colandr
 ```
 
 
+## Add an Administrator
+
+To add an admin user to the database — a user with special powers in the app, and which can't be added via an API call — run the following command:
+
+```
+$ python3 manage.py add_admin --name=[NAME] --email=[EMAIL] --password=[PASSWORD]
+```
+
+**Note:** This used to be done automatically in the ``reset_db`` command. See below.
+
+
 ## Reset and Re-populate the Database
 
 In order to "reset" the database by dropping and then re-creating all of its tables, clearing out files uploaded to disk, and adding an administrator user, run the following command:
@@ -78,7 +89,7 @@ In order to "reset" the database by dropping and then re-creating all of its tab
 $ python3 manage.py reset_db
 ```
 
-**Note:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
+**Warning:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
 
 To re-populate the database from scratch (i.e. after running the above command), a separate script is used — for now. It actually calls the APIs used in the app, so you'll need both the flask app and celery worker running in other terminals (see above). Then, run the script:
 
@@ -88,8 +99,8 @@ $ python3 repopulate_db.py
 
 As above, use `--help` to see run options, and specify an app configuration with the `--config` flag. **Note:** This script expects a few files to exist on disk:
 
-- `~/colandr/citations/ci-full-collection-group1.ris`
-- `~/colandr/citations/ci-full-collection-group2.ris`
-- `~/colandr/dedupe/dedupe_citations_settings`
+- `/path/to/colandr_data/citations/ci-full-collection-group1.ris`
+- `/path/to/colandr_data/citations/ci-full-collection-group2.ris`
+- `/path/to/colandr_data/dedupe/dedupe_citations_settings`
 
 If you don't have these files, the script will not finish successfully. _Ask and ye shall receive_.
