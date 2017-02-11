@@ -6,6 +6,7 @@ from flask_restplus import Api
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+# from sqlalchemy.exc import SQLAlchemyError
 
 api_ = Api(
     version='1.0', prefix='/api', doc='/docs',
@@ -103,7 +104,23 @@ def create_app(config_name):
 
     @app.errorhandler(422)
     def handle_validation_error(err):
-        # The marshmallow.ValidationError is available on err.exc
         return jsonify({'errors': err.exc.messages}), 422
+
+    # @app.errorhandler(Exception)
+    # def handle_db_errors(err):
+    #     print('foooooo')
+    #     logger.error('db unable to handle request! rolling back...')
+    #     db.session.rollback()
+    #     db.session.remove()
+    #     return jsonify({'errors': err.message}), 500
+
+    # @app.teardown_request
+    # def teardown_request(err):
+    #     if err:
+    #         logger.error('got server error while handling request! rolling back...\n%s', err.message)
+    #         db.session.rollback()
+    #         db.session.remove()
+    #         return jsonify({'errors': err.message}), 500
+    #     db.session.remove()
 
     return app

@@ -82,7 +82,7 @@ class TestingConfig(Config):
 
 
 class ProductionConfig(Config):
-    DEBUG = True
+    DEBUG = False
     TESTING = False
     SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
 

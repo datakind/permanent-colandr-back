@@ -127,7 +127,12 @@ class UserResource(Resource):
             else:
                 setattr(user, key, value)
         if test is False:
-            db.session.commit()
+            try:
+                db.session.commit()
+            except (IntegrityError, InvalidRequestError) as e:
+                logger.exception('%s: unexpected db error', 'UserResource.put')
+                db.session.rollback()
+                return db_integrity(str(e.orig))
         else:
             db.session.rollback()
         return UserSchema().dump(user).data
@@ -203,6 +208,7 @@ class UsersResource(Resource):
                 db.session.commit()
                 logger.info('inserted %s', user)
             except (IntegrityError, InvalidRequestError) as e:
+                logger.exception('%s: unexpected db error', 'UsersResource.post')
                 db.session.rollback()
                 return db_integrity(str(e.orig))
         else:

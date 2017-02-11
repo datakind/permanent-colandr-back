@@ -73,7 +73,7 @@ class User(db.Model):
     def __init__(self, name, email, password):
         self.name = name
         self.email = email
-        self.password = self.hash_password(password).decode('utf8')
+        self.password = self.hash_password(password)
 
     def __repr__(self):
         return "<User(id={})>".format(self.id)
@@ -97,7 +97,8 @@ class User(db.Model):
             plaintext_password = plaintext_password.encode('utf8')
         return bcrypt.hashpw(
             plaintext_password,
-            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS']))
+            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS'])
+            ).decode('utf8')
 
     @staticmethod
     def verify_auth_token(token):
