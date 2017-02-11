@@ -58,7 +58,7 @@ class ReviewSchema(Schema):
     description = fields.Str(
         missing=None)
     status = fields.Str(
-        validate=OneOf(['active', 'frozen']))
+        validate=OneOf(constants.REVIEW_STATUSES))
     num_citation_screening_reviewers = fields.Int(
         validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(
@@ -177,7 +177,7 @@ class ImportSchema(Schema):
     num_records = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_INT))
     status = fields.Str(
-        validate=OneOf(['not_screened', 'included', 'excluded']))
+        validate=OneOf(constants.IMPORT_STATUSES))
     data_source = fields.Nested(
         DataSourceSchema)
     user = fields.Nested(
@@ -352,21 +352,21 @@ class StudySchema(Schema):
         DedupeSchema, dump_only=True)
     dedupe_status = fields.Str(
         dump_only=True,
-        validate=OneOf(['duplicate', 'not_duplicate']))
+        validate=OneOf(constants.DEDUPE_STATUSES))
     citation = fields.Nested(
         CitationSchema, dump_only=True)
     citation_status = fields.Str(
         dump_only=True,
-        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
+        validate=OneOf(constants.SCREENING_STATUSES))
     fulltext = fields.Nested(
         FulltextSchema, dump_only=True)
     fulltext_status = fields.Str(
         dump_only=True,
-        validate=OneOf(['not_screened', 'screened_once', 'conflict', 'included', 'excluded']))
+        validate=OneOf(constants.SCREENING_STATUSES))
     data_extraction = fields.Nested(
         DataExtractionSchema, dump_only=True)
     data_extraction_status = fields.Str(
-        dump_only=True, validate=OneOf(['not_started', 'started', 'finished']))
+        validate=OneOf(constants.EXTRACTION_STATUSES))
 
     class Meta:
         strict = True

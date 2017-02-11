@@ -77,7 +77,7 @@ import_model = api_.model(
      'data_source_id': fields.Integer(required=True, min=1, max=constants.MAX_BIGINT),
      'record_type': fields.String(required=True, enum=['citation', 'fulltext']),
      'num_records': fields.Integer(required=True, min=1, max=constants.MAX_INT),
-     'status': fields.String(enum=['not_screened', 'included', 'excluded'])}
+     'status': fields.String(enum=constants.IMPORT_STATUSES)}
     )
 
 dedupe_model = api_.model(
@@ -138,7 +138,6 @@ data_extraction_model = api_.model(
 
 study_model = api_.model(
     'Study',
-    {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
-     'data_source_id': fields.Integer(required=True, min=1, max=constants.MAX_BIGINT),
+    {'data_extraction_status': fields.String(enum=constants.EXTRACTION_STATUSES),
      'tags': fields.List(fields.String(max_length=25))}
     )

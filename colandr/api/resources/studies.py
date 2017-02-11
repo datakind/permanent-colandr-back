@@ -118,7 +118,7 @@ class StudyResource(Resource):
             404: 'no study with matching id was found',
             }
         )
-    @use_args(StudySchema(only=['tags']))
+    @use_args(StudySchema(only=['data_extraction_status', 'tags']))
     @use_kwargs({
         'id': ma_fields.Int(
             required=True, location='view_args',
@@ -134,8 +134,10 @@ class StudyResource(Resource):
             return unauthorized(
                 '{} not authorized to modify this study'.format(g.current_user))
         for key, value in args.items():
-            if key != 'tags':
-                return forbidden('how are you updating the "{}" field?!'.format(key))
+            if key == 'data_extraction_status':
+                if study.fulltext_status != 'included':
+                    return forbidden(
+                        '<Study(id={})> data_extraction_status can\'t be set until fulltext has passed screening'.format(id))
             setattr(study, key, value)
         if test is False:
             db.session.commit()
