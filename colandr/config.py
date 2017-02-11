@@ -14,8 +14,8 @@ import os
 
 
 class Config(object):
-    SECRET_KEY = os.environ.get('COLANDR_SECRET_KEY')
-    PASSWORD_SALT = os.environ.get('COLANDR_PASSWORD_SALT')
+    SECRET_KEY = os.environ['COLANDR_SECRET_KEY']
+    PASSWORD_SALT = os.environ['COLANDR_PASSWORD_SALT']
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
     LOGGER_NAME = 'colandr-api'
@@ -39,7 +39,7 @@ class Config(object):
     RESTPLUS_VALIDATE = False
 
     # files-on-disk config
-    COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR')
+    COLANDR_APP_DIR = os.environ['COLANDR_APP_DIR']
     LOGS_FOLDER = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
     DEDUPE_MODELS_FOLDER = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'dedupe')
@@ -57,8 +57,8 @@ class Config(object):
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ.get('COLANDR_MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('COLANDR_MAIL_PASSWORD')
+    MAIL_USERNAME = os.environ['COLANDR_MAIL_USERNAME']
+    MAIL_PASSWORD = os.environ['COLANDR_MAIL_PASSWORD']
     MAIL_DEFAULT_SENDER = 'Colandr <{}>'.format(MAIL_USERNAME)
     MAIL_SUBJECT_PREFIX = '[Colandr]'
     MAIL_ADMINS = ['burtdewilde@gmail.com']
@@ -87,7 +87,7 @@ class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
 
 
-config = {
+configs = {
     'dev': DevelopmentConfig,
     'test': TestingConfig,
     'prod': ProductionConfig,

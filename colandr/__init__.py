@@ -17,7 +17,7 @@ db = SQLAlchemy()
 mail = Mail()
 migrate = Migrate()
 
-from .config import config, Config
+from .config import configs, Config
 
 celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
@@ -50,9 +50,10 @@ logger = get_rotating_file_logger(
 
 def create_app(config_name):
     app = Flask('colandr')
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
-    os.makedirs(config[config_name].FULLTEXT_UPLOAD_FOLDER, exist_ok=True)
+    config = configs[config_name]
+    app.config.from_object(config)
+    config.init_app(app)
+    os.makedirs(config.FULLTEXT_UPLOAD_FOLDER, exist_ok=True)
 
     celery.conf.update(app.config)
 

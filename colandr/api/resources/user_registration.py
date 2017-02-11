@@ -36,6 +36,12 @@ class UserRegistrationResource(Resource):
     def post(self, args, test):
         """submit new user registration"""
         user = User(**args)
+        token = generate_confirmation_token(user.email)
+        confirm_url = api_.url_for(
+            ConfirmUserRegistrationResource, token=token, _external=True)
+        html = render_template(
+            'emails/user_registration.html',
+            username=user.name, confirm_url=confirm_url)
         if test is False:
             try:
                 db.session.add(user)
@@ -43,14 +49,6 @@ class UserRegistrationResource(Resource):
             except (IntegrityError, InvalidRequestError) as e:
                 db.session.rollback()
                 return db_integrity(str(e.orig))
-            token = generate_confirmation_token(user.email)
-            # confirm_url = url_for(
-            #     'confirmuserregistrationresource', token=token, _external=True)
-            confirm_url = api_.url_for(
-                ConfirmUserRegistrationResource, token=token, _external=True)
-            html = render_template(
-                'emails/user_registration.html',
-                username=user.name, confirm_url=confirm_url)
             send_email.apply_async(
                 args=[[user.email], 'Confirm your email', '', html])
             remove_unconfirmed_user.apply_async(

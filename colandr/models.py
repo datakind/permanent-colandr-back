@@ -1037,21 +1037,17 @@ def update_fulltext_status(mapper, connection, target):
                 connection.execute(
                     db.update(Review).where(Review.id == review_id)\
                         .values(num_fulltexts_included=Review.num_fulltexts_included + 1))
-    if data_extraction_inserted_or_deleted is True:
-        with connection.begin():
-            status_counts = connection.execute(
-                db.select([Review.num_fulltexts_included, Review.num_fulltexts_excluded])\
-                .where(Review.id == review_id)
-                ).fetchone()
-            logger.info(
-                '<Review(id=%s)> fulltext_status counts = %s',
-                review_id, status_counts)
-            n_included, n_excluded = status_counts
-            # TODO: do something now?
-            # if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
-            #     from .tasks import suggest_keyterms
-            #     sample_size = min(n_included, n_excluded)
-            #     suggest_keyterms.apply_async(args=[review_id, sample_size])
+    # TODO: should we do something now?
+    # if data_extraction_inserted_or_deleted is True:
+    #     with connection.begin():
+    #         status_counts = connection.execute(
+    #             db.select([Review.num_fulltexts_included, Review.num_fulltexts_excluded])\
+    #             .where(Review.id == review_id)
+    #             ).fetchone()
+    #         logger.info(
+    #             '<Review(id=%s)> fulltext_status counts = %s',
+    #             review_id, status_counts)
+    #         n_included, n_excluded = status_counts
 
 
 @event.listens_for(Review, 'after_insert')

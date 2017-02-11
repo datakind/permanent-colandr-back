@@ -6,14 +6,14 @@ from flask_migrate import MigrateCommand
 
 from colandr import create_app, db
 from colandr.models import User
-from colandr.config import config
+from colandr.config import configs
 
 
 manager = Manager(create_app)
 manager.add_option(
     '-c', '--config', dest='config_name', type=str,
-    choices=sorted(config.keys()),
-    default=os.getenv('COLANDR_FLASK_CONFIG') or 'default')
+    choices=sorted(configs.keys()),
+    default=os.getenv('COLANDR_FLASK_CONFIG', 'default'))
 
 manager.add_command('db', MigrateCommand)
 
@@ -24,7 +24,7 @@ def reset_db():
     Drop and then create all tables in the database, clear out all uploaded
     fulltext files and ranking models on disk, and create an admin user.
     """
-    if prompt_bool("Are you sure you want to reset all db data?") is False:
+    if prompt_bool("Are you sure you want to reset ALL app data?") is False:
         return
     db.drop_all()
     db.create_all()
