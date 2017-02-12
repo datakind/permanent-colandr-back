@@ -145,7 +145,8 @@ class UserResource(Resource):
     )
 class UsersResource(Resource):
 
-    @auth.login_required
+    method_decorators = [auth.login_required]
+
     @ns.doc(
         params={'email': {'in': 'query', 'type': 'string',
                           'description': 'email address of user'},
@@ -197,9 +198,8 @@ class UsersResource(Resource):
     @use_kwargs({'test': ma_fields.Boolean(missing=False)})
     def post(self, args, test):
         """create new user (ADMIN ONLY)"""
-        # TODO: enable this
-        # if g.current_user.is_admin is False:
-        #     return unauthorized('only admins can add users without confirmation')
+        if g.current_user.is_admin is False:
+            return unauthorized('UsersResource.post is admin-only')
         user = User(**args)
         user.is_confirmed = True
         db.session.add(user)

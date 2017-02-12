@@ -8,7 +8,7 @@ from pprint import pprint
 import sys
 
 from colandr import create_app
-from colandr.config import config
+from colandr.config import configs
 from colandr.tasks import suggest_keyterms
 import requests
 
@@ -209,9 +209,15 @@ def main():
     parser = argparse.ArgumentParser(
         description='Repopulate the colandr database from scratch.')
     parser.add_argument(
+        '-e', '--email', dest='email', type=str, required=True,
+        help='valid email address for an existing admin user')
+    parser.add_argument(
+        '-p', '--password', dest='password', type=str, required=True,
+        help='valid password for an existing admin user')
+    parser.add_argument(
         '-c', '--config', dest='config_name', type=str,
-        choices=sorted(config.keys()),
-        default=os.getenv('COLANDR_FLASK_CONFIG') or 'default')
+        choices=sorted(configs.keys()),
+        default=os.getenv('COLANDR_FLASK_CONFIG', 'default'))
     parser.add_argument(
         '--last', type=str, default='',
         help='last table to populate; subsequent tables will not be filled',
@@ -220,13 +226,14 @@ def main():
 
     args = vars(parser.parse_args())
     app = create_app(args['config_name'])
+    admin_auth = get_auth_token(args['email'], args['password'])
 
     print('\n\n')
     LOGGER.info('adding users to db...')
     current_user = None
     for i, USER in enumerate(USERS):
         response = session.request(
-            'POST', BASE_URL + 'users', json=USER)
+            'POST', BASE_URL + 'users', auth=admin_auth, json=USER)
         print('POST:', response.url)
         user = response.json()
         pprint(user, width=120)
@@ -376,9 +383,10 @@ def main():
     users = response.json()
     for user in users[:2]:
         print('<USER(id={})>'.format(user['id']))
-        auth = get_auth_token(
-            user['email'], get_user_password(user['email']))
+        # auth = get_auth_token(
+        #     user['email'], get_user_password(user['email']))
 
+        user_id = user['id']
         screenings = []
         for citation_id in all_citation_ids:
             if citation_id in included_citation_ids:
@@ -394,10 +402,13 @@ def main():
                  'exclude_reasons': random.sample(exclude_reasons, random.randint(1, 2))}
                 )
 
+        # re-authenticate then POST data as admin
+        admin_auth = get_auth_token(args['email'], args['password'])
         response = session.request(
-            'POST', BASE_URL + 'citations/screenings',
-            json=screenings, params={'review_id': review_id},
-            auth=auth)
+            'POST', BASE_URL + 'citations/screenings', auth=admin_auth,
+            params={'review_id': review_id, 'user_id': user_id},
+            json=screenings)
+        response.raise_for_status()
         print('POST:', response.url)
 
     # run async task to suggest keyterms based on included/excluded citations
@@ -489,9 +500,10 @@ def main():
     users = response.json()
     for user in users[:2]:
         print('<USER(id={})>'.format(user['id']))
-        auth = get_auth_token(
-            user['email'], get_user_password(user['email']))
+        # auth = get_auth_token(
+        #     user['email'], get_user_password(user['email']))
 
+        user_id = user['id']
         screenings = []
         for fulltext_id in all_fulltext_ids:
             # only screen a random sample of 75% of fulltexts
@@ -508,10 +520,12 @@ def main():
                 screenings.append(
                     {'fulltext_id': fulltext_id, 'status': 'included'})
 
+        admin_auth = get_auth_token(args['email'], args['password'])
         response = session.request(
-            'POST', BASE_URL + 'fulltexts/screenings',
-            json=screenings, params={'review_id': review_id},
-            auth=auth)
+            'POST', BASE_URL + 'fulltexts/screenings', auth=admin_auth,
+            params={'review_id': review_id, 'user_id': user_id},
+            json=screenings)
+        response.raise_for_status()
         print('POST:', response.url)
 
     if args['last'] == 'fulltext_screenings':

@@ -183,14 +183,13 @@ class CitationsResource(Resource):
         })
     def post(self, args, review_id, source_type, source_name, source_url,
              status, test):
-        """create a single citation (ADMIN ONLY)"""
+        """create a single citation"""
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return unauthorized(
                 '{} not authorized to add citations to this review'.format(g.current_user))
-
         # upsert the data source
         try:
             DataSourceSchema().validate(

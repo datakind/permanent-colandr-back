@@ -290,6 +290,8 @@ class FulltextsScreeningsResource(Resource):
         params={
             'review_id': {'in': 'query', 'type': 'integer', 'required': True,
                           'description': 'unique identifier of review for which to create fulltext screenings'},
+            'user_id': {'in': 'query', 'type': 'integer',
+                        'description': 'unique identifier of user screening fulltexts, if not current app user'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
@@ -305,27 +307,27 @@ class FulltextsScreeningsResource(Resource):
         'review_id': ma_fields.Int(
             required=True, location='query',
             validate=Range(min=1, max=constants.MAX_INT)),
+        'user_id': ma_fields.Int(
+            missing=None, location='query',
+            validate=Range(min=1, max=constants.MAX_INT)),
         'test': ma_fields.Boolean(
             location='query', missing=False)
         })
-    def post(self, args, review_id, test):
+    def post(self, args, review_id, user_id, test):
         """create one or more fulltext screenings (ADMIN ONLY)"""
-        logging.warning('the "fulltexts/screenings" endpoint is for dev use only')
+        if g.current_user.is_admin is False:
+            return unauthorized('FulltextsScreeningsResource.post is admin-only')
         # check current user authorization
         review = db.session.query(Review).get(review_id)
         if not review:
             return no_data_found(
                 '<Review(id={})> not found'.format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to screen fulltexts for {}'.format(
-                    g.current_user, review))
         # bulk insert fulltext screenings
-        user_id = g.current_user.id
+        screener_user_id = user_id or g.current_user.id
         screenings_to_insert = []
         for screening in args:
             screening['review_id'] = review_id
-            screening['user_id'] = user_id
+            screening['user_id'] = screener_user_id
             screenings_to_insert.append(screening)
         if test is False:
             db.session.bulk_insert_mappings(
