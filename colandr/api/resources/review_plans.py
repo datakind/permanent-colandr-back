@@ -1,3 +1,5 @@
+import warnings
+
 from flask import g
 from flask_restplus import Resource
 
@@ -116,7 +118,7 @@ class ReviewPlanResource(Resource):
     @ns.doc(
         params={
             'fields': {'in': 'query', 'type': 'string',
-                       'description': 'comma-delimited list-as-string of review fields to modify'},
+                       'description': '[DEPRECATED] comma-delimited list-as-string of review fields to modify'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
@@ -133,7 +135,7 @@ class ReviewPlanResource(Resource):
             required=True, location='view_args',
             validate=Range(min=1, max=constants.MAX_INT)),
         'fields': DelimitedList(
-            ma_fields.String, delimiter=',', required=True),
+            ma_fields.String, delimiter=',', missing=None),
         'test': ma_fields.Boolean(missing=False)
         })
     def put(self, args, id, fields, test):
@@ -147,11 +149,20 @@ class ReviewPlanResource(Resource):
         review_plan = review.review_plan
         if not review_plan:
             return no_data_found('<ReviewPlan(review_id={})> not found'.format(id))
-        for field in fields:
-            try:
-                setattr(review_plan, field, args[field])
-            except KeyError:
-                return validation('field "{}" value not specified'.format(field))
+        if fields:
+            with warnings.catch_warnings():
+                warnings.simplefilter('always', DeprecationWarning)
+                warnings.warn(
+                    '"fields" param in ReviewPlanResource.put is no longer needed',
+                    category=DeprecationWarning)
+            for field in fields:
+                try:
+                    setattr(review_plan, field, args[field])
+                except KeyError:
+                    return validation('field "{}" value not specified'.format(field))
+        else:
+            for key, value in args.items():
+                setattr(review_plan, key, value)
         if test is False:
             db.session.commit()
         else:

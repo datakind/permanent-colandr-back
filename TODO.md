@@ -1,58 +1,7 @@
 ## Burton
 
-- **Documentation**
-    - [x] write engineering environment setup guide
-    - [x] contribute to app usage guide, as needed
-- **Backend Engineering**
-    - [x] finalize database models
-    - [x] finish implementing schema validation
-    - [x] except: figure out data extraction models and validation
-- **API**
-    - users
-        - [x] user authentication
-        - [x] create new user
-        - [x] delete an existing user (and update/delete reviews collaborating on/owned), if current user
-        - [x] update an existing user, if current user
-        - [x] email invitation to join as collaborator (?)
-        - [ ] login/logout endpoints (???)
-    - reviews
-        - [x] creation of new review
-        - [x] get all reviews owned or collaborated on by current user
-        - [x] delete an existing review, with owner privileges
-        - [x] update an existing review, with owner privileges
-        - [x] manage the collaborators and change the owner of a review, with owner privileges
-    - review plans
-        - [x] create a new review plan for existing review, with review owner privileges
-        - [x] get an existing review plan, with review collaborator privileges
-        - [x] update an existing review plan, with review owner privileges
-        - [x] delete an existing review plan, with review owner privileges
-        - [x] suggest good/bad key terms based on included/excluded citations
-    - citations
-        - [x] upload batches of citations via POST'd files, with ability to preemptively set status of all citations in batch (and skip the screening process)
-        - [x] get counts by status of all citations to show "review progress"
-        - [x] update de-duplication status of all studies, upon upload and upon upload of subsequent batches of citations; must be asynchronous
-        - [x] add a citation screening for a reviewer, updating status according to review settings and other screenings, and correctly flag conflicts
-        - [x] get collections of citations with a variety of filtering options, e.g. to-be-screened-by-current-user, is-duplicate, has-tag, matches-search-string, ...
-        - [x] enable mass screening status update (?)
-        - [x] sort citations by expected relevance determined by NLP result, which will depend on point in the screening process
-        - [x] add individual citation, manually entered via HTTP POST (?)
-    - fulltexts
-        - [x] facilitate uploads of pdfs and storage on server in standardized form
-        - [x] data extraction stuff
-        - [x] link citation to PDF file uploaded by user
-    - error handling
-        - [x] define custom exceptions and raise them appropriately
-    - documentation
-        - [x] improve documentation on all endpoints, as needed
-        - [ ] improve interactive swagger html page (optional)
-    - deployment
-        - [x] deploy data and API on Heroku or AWS or OVH or academic server
-    - security
-        - [ ] enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
-- **NLP (for ranking citations)**
-    - [x] improve initial ranking from reviewer terms
-    - [x] implement automatic term recognition with scoring for 2nd-stage ranking
-    - [ ] implement ML-based ranking based on user-labeled citations
-    - [ ] automatically switch and/or hybridize methods depending on metrics, e.g. observed inclusion rate vs. baseline inclusion rate
-- **Fixups:**
-    - [ ] Remove `fields` param from certain API endpoints, e.g. PUT `reviews/{id}/plan` and change logic to check for `if not missing`
+- [x] Remove `fields` param from certain API endpoints, e.g. PUT `reviews/{id}/plan` and change logic to check for `if not missing`
+- [ ] enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
+- [ ] Standardize and clean up logging throughout app
+- [ ] Enable admin access throughout app
+- [ ] Add extra fields in users table, e.g. affiliation
