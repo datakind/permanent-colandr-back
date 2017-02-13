@@ -9,6 +9,7 @@ import colossus.protocols.http.UrlParsing._
 import colossus.protocols.http._
 import colossus.service.Callback.Implicits._
 import colossus.service.{Callback, ServiceConfig}
+import org.datakind.ci.pdfestrian.extraction.ReviewTrainer
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
@@ -36,6 +37,16 @@ trait APIService {
 
   def getMetaDataFuture(record: Record, metaData: String) = Future {
     write(getMetaData(record, metaData))
+  }
+
+  def getAllMetaDataFuture(record: Record) = Future {
+    ReviewTrainer.getModel(record.reviewId) match {
+      case None => "[]"
+      case Some(model) => model.classifier match {
+        case None => "[]"
+        case Some(m) => write(m.getMetaData(record))
+      }
+    }
   }
 
   class APIService(context: ServerContext) extends HttpService(ServiceConfig.Default, context) {
@@ -93,6 +104,14 @@ trait APIService {
         withAuthorization(request) { request =>
           withRecord(request, r) { record =>
             getMetaDataFuture(record, meta)
+          }
+        }
+      }
+
+      case request@Get on Root / "getMetadata" / r => {
+        withAuthorization(request) { request =>
+          withRecord(request, r) { record =>
+            getAllMetaDataFuture(record)
           }
         }
       }
