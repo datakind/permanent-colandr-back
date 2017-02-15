@@ -91,7 +91,7 @@ class ReviewExportPrismaResource(Resource):
 
         n_data_extractions = db.session.query(Study)\
             .filter(Study.review_id == id)\
-            .filter_by(data_extraction_status='complete')\
+            .filter_by(data_extraction_status='finished')\
             .count()
 
         return {
