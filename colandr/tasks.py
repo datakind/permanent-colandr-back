@@ -88,7 +88,7 @@ def deduplicate_citations(review_id):
     lock = wait_for_lock('deduplicate_citations_review_id={}'.format(review_id), expire=60)
 
     deduper = load_dedupe_model(
-        os.path.join(current_app.config['DEDUPE_MODELS_FOLDER'],
+        os.path.join(current_app.config['DEDUPE_MODELS_DIR'],
                      'dedupe_citations_settings'))
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
@@ -551,7 +551,8 @@ def train_citation_ranking_model(review_id):
 
     # save to disk!
     fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-    filepath = os.path.join(current_app.config['RANKING_MODELS_FOLDER'], fname)
+    filepath = os.path.join(
+        current_app.config['RANKING_MODELS_DIR'], str(review_id), fname)
     joblib.dump(clf, filepath)
     logger.info(
         '<Review(id=%s)>: citation ranking model saved to %s', review_id, filepath)

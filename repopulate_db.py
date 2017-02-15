@@ -309,7 +309,7 @@ def main():
     source_names = ['scopus', 'web of science', 'pubmed']
     for filename in CITATIONS:
         citations_file = os.path.join(
-            app.config['CITATIONS_FOLDER'], filename)
+            app.config['CITATIONS_DIR'], filename)
         if not os.path.isfile(citations_file):
             raise OSError()
         response = session.request(

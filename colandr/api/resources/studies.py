@@ -358,7 +358,8 @@ class StudiesResource(Resource):
 
             # best option: we have a trained citation ranking model
             fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-            filepath = os.path.join(current_app.config['RANKING_MODELS_FOLDER'], fname)
+            filepath = os.path.join(
+                current_app.config['RANKING_MODELS_DIR'], str(review_id), fname)
             if os.path.isfile(filepath):
                 clf = joblib.load(filepath)
                 X = np.vstack(

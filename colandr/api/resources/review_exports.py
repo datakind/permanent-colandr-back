@@ -162,7 +162,7 @@ class ReviewExportStudiesResource(Resource):
             ]
 
         data_extraction_form = db.session.query(ReviewPlan.data_extraction_form)\
-            .filter_by(id=1).one_or_none()
+            .filter_by(id=id).one_or_none()
         if data_extraction_form:
             extraction_labels = [item['label'] for item in data_extraction_form[0]]
             extraction_types = [item['field_type'] for item in data_extraction_form[0]]

@@ -40,15 +40,15 @@ class Config(object):
 
     # files-on-disk config
     COLANDR_APP_DIR = os.environ['COLANDR_APP_DIR']
-    LOGS_FOLDER = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
-    DEDUPE_MODELS_FOLDER = os.path.join(
+    LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
+    DEDUPE_MODELS_DIR = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'dedupe')
-    RANKING_MODELS_FOLDER = os.path.join(
+    RANKING_MODELS_DIR = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'ranking_models')
-    CITATIONS_FOLDER = os.path.join(
+    CITATIONS_DIR = os.path.join(
         COLANDR_APP_DIR, 'colandr_data', 'citations')
-    FULLTEXT_UPLOAD_FOLDER = os.path.join(
-        COLANDR_APP_DIR, 'colandr_data', 'fulltexts', 'uploads')
+    FULLTEXT_UPLOADS_DIR = os.path.join(
+        COLANDR_APP_DIR, 'colandr_data', 'fulltexts')
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 

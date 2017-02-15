@@ -6,6 +6,7 @@ from flask_restplus import Api
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from webargs.flaskparser import use_kwargs
 # from sqlalchemy.exc import SQLAlchemyError
 
 api_ = Api(
@@ -45,7 +46,7 @@ from colandr.api.resources.data_extractions import ns as data_extractions_ns
 
 
 logger = get_rotating_file_logger(
-    'colandr', os.path.join(Config.LOGS_FOLDER, 'colandr.log'), level='info')
+    'colandr', os.path.join(Config.LOGS_DIR, 'colandr.log'), level='info')
 
 
 def create_app(config_name):
@@ -53,7 +54,8 @@ def create_app(config_name):
     config = configs[config_name]
     app.config.from_object(config)
     config.init_app(app)
-    os.makedirs(config.FULLTEXT_UPLOAD_FOLDER, exist_ok=True)
+    os.makedirs(config.FULLTEXT_UPLOADS_DIR, exist_ok=True)
+    os.makedirs(config.RANKING_MODELS_DIR, exist_ok=True)
 
     celery.conf.update(app.config)
 
@@ -83,21 +85,43 @@ def create_app(config_name):
 
     @app.route('/fulltexts/<int:id>/upload', methods=['GET'])
     @fulltext_uploads_ns.doc(
+        params={
+            'review_id': {'in': 'query', 'type': 'integer', 'required': False,
+                          'description': 'unique identifier for review whose fulltext upload is to be fetched'},
+        },
         produces=['application/json'],
         responses={
             200: 'successfully got uploaded fulltext content file',
             404: 'no fulltext content file with matching id was found',
             }
         )
-    def get_uploaded_fulltext_file(id):
+    @use_kwargs({
+        'id': ma_fields.Int(
+            required=True, location='view_args',
+            validate=Range(min=1, max=constants.MAX_INT)),
+        'review_id': ma_fields.Int(
+            missing=None,
+            validate=Range(min=1, max=constants.MAX_INT)),
+        })
+    def get_uploaded_fulltext_file(id, review_id):
         """get fulltext content file for a single fulltext by id"""
         filename = None
-        upload_dir = app.config['FULLTEXT_UPLOAD_FOLDER']
-        for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
-            fname = '{}{}'.format(id, ext)
-            if os.path.isfile(os.path.join(upload_dir, fname)):
-                filename = fname
-                break
+        if review_id is None:
+            for dirname, _, filenames in os.walk(app.config['FULLTEXT_UPLOADS_DIR']):
+                for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
+                    fname = '{}{}'.format(id, ext)
+                    if fname in filenames:
+                        filename = fname
+                        upload_dir = dirname
+                        break
+        else:
+            upload_dir = os.path.join(
+                app.config['FULLTEXT_UPLOADS_DIR'], str(review_id))
+            for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
+                fname = '{}{}'.format(id, ext)
+                if os.path.isfile(os.path.join(upload_dir, fname)):
+                    filename = fname
+                    break
         if not filename:
             return no_data_found(
                 'no uploaded file for <Fulltext(id={})> found'.format(id))
