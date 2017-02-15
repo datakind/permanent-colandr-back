@@ -17,7 +17,8 @@ from sklearn.externals import joblib
 
 from ...lib import constants, utils
 from ...models import db, Citation, Study, Review
-from ...lib.constants import CITATION_RANKING_MODEL_FNAME
+from ...lib.constants import (CITATION_RANKING_MODEL_FNAME, DEDUPE_STATUSES,
+                              EXTRACTION_STATUSES, USER_SCREENING_STATUSES)
 from ...lib.nlp import reviewer_terms
 from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import StudySchema
@@ -162,16 +163,16 @@ class StudiesResource(Resource):
             'fields': {'in': 'query', 'type': 'string',
                        'description': 'comma-delimited list-as-string of study fields to return'},
             'dedupe_status': {'in': 'query', 'type': 'string',
-                              'enum': ['duplicate', 'not_duplicate'],
+                              'enum': DEDUPE_STATUSES,
                               'description': 'filter studies to only those with matching deduplication statuses'},
             'citation_status': {'in': 'query', 'type': 'string',
-                                'enum': ['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'],
+                                'enum': USER_SCREENING_STATUSES,
                                 'description': 'filter studies to only those with matching citation statuses'},
             'fulltext_status': {'in': 'query', 'type': 'string',
-                                'enum': ['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'],
+                                'enum': USER_SCREENING_STATUSES,
                                 'description': 'filter studies to only those with matching fulltext statuses'},
             'data_extraction_status': {'in': 'query', 'type': 'string',
-                                       'enum': ['not_started', 'incomplete', 'complete'],
+                                       'enum': EXTRACTION_STATUSES,
                                        'description': 'filter studies to only those with matching data extraction statuses'},
             'tag': {'in': 'query', 'type': 'string',
                     'description': 'filter studies to only those with a matching (user-assigned) tag'},
@@ -199,16 +200,16 @@ class StudiesResource(Resource):
             ma_fields.String(), delimiter=',', missing=None),
         'dedupe_status': ma_fields.String(
             missing=None,
-            validate=OneOf(['duplicate', 'not_duplicate'])),
+            validate=OneOf(DEDUPE_STATUSES)),
         'citation_status': ma_fields.String(
             missing=None,
-            validate=OneOf(['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'])),
+            validate=OneOf(USER_SCREENING_STATUSES)),
         'fulltext_status': ma_fields.String(
             missing=None,
-            validate=OneOf(['pending', 'awaiting_coscreener', 'conflict', 'excluded', 'included'])),
+            validate=OneOf(USER_SCREENING_STATUSES)),
         'data_extraction_status': ma_fields.String(
             missing=None,
-            validate=OneOf(['not_started', 'incomplete', 'complete'])),
+            validate=OneOf(EXTRACTION_STATUSES)),
         'tag': ma_fields.String(
             missing=None, validate=Length(max=25)),
         'tsquery': ma_fields.String(
