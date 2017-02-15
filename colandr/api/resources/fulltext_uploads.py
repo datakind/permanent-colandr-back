@@ -77,7 +77,9 @@ class FulltextUploadResource(Resource):
         fulltext.filename = filename
         fulltext.original_filename = secure_filename(uploaded_file.filename)
         filepath = os.path.join(
-            current_app.config['FULLTEXT_UPLOAD_FOLDER'], filename)
+            current_app.config['FULLTEXT_UPLOADS_DIR'],
+            str(fulltext.review_id),
+            filename)
         if test is False:
             # save file content to disk
             uploaded_file.save(filepath)
@@ -136,8 +138,15 @@ class FulltextUploadResource(Resource):
             return validation("user can't delete a fulltext upload that doesn't exist")
         if test is False:
             filepath = os.path.join(
-                current_app.config['FULLTEXT_UPLOAD_FOLDER'], fulltext.filename)
-            os.remove(filepath)
+                current_app.config['FULLTEXT_UPLOADS_DIR'],
+                str(fulltext.review_id),
+                fulltext.filename)
+            try:
+                os.remove(filepath)
+            except OSError as e:
+                msg = 'error removing uploaded full-text file from disk'
+                logger.exception(msg + '\n')
+                return no_data_found(msg)
             fulltext.filename = None
             db.session.commit()
             logger.info('deleted uploaded file for %s', fulltext)

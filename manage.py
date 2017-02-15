@@ -28,7 +28,7 @@ def reset_db():
         return
     db.drop_all()
     db.create_all()
-    for dirkey in ('FULLTEXT_UPLOAD_FOLDER', 'RANKING_MODELS_FOLDER'):
+    for dirkey in ('FULLTEXT_UPLOADS_DIR', 'RANKING_MODELS_DIR'):
         shutil.rmtree(manager.app.config[dirkey], ignore_errors=True)
         os.makedirs(manager.app.config[dirkey], exist_ok=True)
 

@@ -22,6 +22,7 @@ def get_console_logger(name, level='info'):
         datefmt='%Y-%m-%d %H:%M:%S')
     _handler.setFormatter(_formatter)
     logger.addHandler(_handler)
+    logging.captureWarnings(True)
     return logger
 
 
@@ -47,6 +48,7 @@ def get_rotating_file_logger(name, filepath, level='info'):
     _filter = logging.Filter('colandr')
     logger.addFilter(_filter)
     logger.propagate = False
+    logging.captureWarnings(True)
     return logger
 
 

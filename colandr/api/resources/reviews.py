@@ -1,4 +1,7 @@
-from flask import g
+import os
+import shutil
+
+from flask import current_app, g
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
@@ -89,6 +92,12 @@ class ReviewResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('deleted %s', review)
+            # remove directories on disk for review data
+            dirnames = [
+                os.path.join(current_app.config['FULLTEXT_UPLOADS_DIR'], str(id)),
+                os.path.join(current_app.config['RANKING_MODELS_DIR'], str(id))]
+            for dirname in dirnames:
+                shutil.rmtree(dirname, ignore_errors=True)
             return '', 204
         else:
             db.session.rollback()
@@ -181,6 +190,12 @@ class ReviewsResource(Resource):
         if test is False:
             db.session.commit()
             logger.info('inserted %s', review)
+            # create directories on disk for review data
+            dirnames = [
+                os.path.join(current_app.config['FULLTEXT_UPLOADS_DIR'], str(review.id)),
+                os.path.join(current_app.config['RANKING_MODELS_DIR'], str(review.id))]
+            for dirname in dirnames:
+                os.mkdir(dirname)
         else:
             db.session.rollback()
         return ReviewSchema().dump(review).data
