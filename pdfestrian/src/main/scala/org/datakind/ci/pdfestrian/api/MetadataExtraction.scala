@@ -7,3 +7,4 @@ trait MetadataExtraction {
 trait MetadataExtractor {
   def getMetaData(record : Record, metaData : String) : Seq[Metadata]
 }
+

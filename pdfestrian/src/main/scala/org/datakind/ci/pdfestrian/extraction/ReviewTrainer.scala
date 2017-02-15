@@ -181,10 +181,8 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
 
 }
 
-object ReviewModel {
+class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
 
-  val minLabels = 10
-  val increaseRequirement = 5
 
   def splitLabels(trainingData: Array[TrainingData]) = {
     trainingData.flatMap(_.labels).foldRight(Map[String, ReviewLabel]()){ case (label, map) =>
@@ -201,24 +199,27 @@ object ReviewModel {
     }
   }
 
-  def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData]) : (Boolean, ReviewModel) = {
-    splitLabels(trainingData).filter(_._2.trainingSize > 10) match {
+  def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData], reviewId : Int) : (Boolean, ReviewModel) = {
+    splitLabels(trainingData).filter(_._2.trainingSize > minLabels) match {
       case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).sum > prevModel.labels.map(_._2.trainingSize).sum + increaseRequirement =>
-        (true, train(trainingData,a))
+        (true, train(reviewId))
       case a : Map[String, ReviewLabel] =>
         (false, prevModel)
     }
   }
 
-  def startTrain(trainingData : Array[TrainingData]) : Option[ReviewModel] = {
+  def startTrain(trainingData : Array[TrainingData], reviewId : Int) : Option[ReviewModel] = {
     val labels = splitLabels(trainingData)
-    labels.filter(_._2.trainingSize > 10) match {
+    labels.filter(_._2.trainingSize > minLabels) match {
       case a : Map[String, ReviewLabel] if a.isEmpty => None
-      case a : Map[String, ReviewLabel] => Some(train(trainingData, a))
+      case a : Map[String, ReviewLabel] => Some(train(reviewId))
     }
   }
 
-  def train(trainingData: Array[TrainingData], labels : Map[String, ReviewLabel]) : ReviewModel = {
+  def train(reviewId : Int) : ReviewModel = {
+
+    val trainingData = GetTrainingData(reviewId)
+    val labels = splitLabels(trainingData)
 
     val labelCounts = trainingData.flatMap(_.labels)
                                     .flatMap{
@@ -239,12 +240,13 @@ object ReviewTrainer {
   import org.json4s.jackson.Serialization.write
   implicit val formats = DefaultFormats
 
-  val cache = LruCache.apply[ReviewModel](maxCapacity = 100, initialCapacity = 10)
+  val cache = LruCache.apply[ReviewModel](maxCapacity = 25, initialCapacity = 10)
 
-  def getModel(review : Int) : Option[ReviewModel] = {
+  def getModel(review : Int, minRequired : Int = 40, increaseRequirement : Int = 5) : Option[ReviewModel] = {
+    val trainer = new ReviewModelTrainer(minRequired, increaseRequirement)
     cache.get(review) match {
       case None =>
-        ReviewModel.startTrain(GetTrainingData(review)) match {
+        trainer.startTrain(GetTrainingData.labelsOnly(review), review) match {
           case None => None
           case Some(model) =>
             cache(review)(model)
@@ -252,7 +254,7 @@ object ReviewTrainer {
         }
       case Some(modelFuture) =>
         modelFuture.map{ model =>
-          ReviewModel.compareAndTrain(model, GetTrainingData(review)) match {
+          trainer.compareAndTrain(model, GetTrainingData.labelsOnly(review), review) match {
             case (true, newModel) =>
               cache.remove(review)
               cache(review)(newModel)
@@ -264,6 +266,7 @@ object ReviewTrainer {
     }
   }
 
+
   def main(args: Array[String]): Unit = {
     val data = GetTrainingData(1).head
     println(data.id)
@@ -272,7 +275,6 @@ object ReviewTrainer {
     println(write(model.get.classifier.get.getMetaData(exRecord)))
     val model2 = getModel(1)
     println(write(model2.get.classifier.get.getMetaData(exRecord)))
-
   }
 
 }

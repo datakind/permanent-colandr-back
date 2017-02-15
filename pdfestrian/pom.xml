@@ -149,6 +149,11 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
             <artifactId>slf4j-api</artifactId>
             <version>1.7.21</version>
         </dependency>
+             <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.21</version>
+        </dependency>
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-jackson_${scala.major.version}</artifactId>

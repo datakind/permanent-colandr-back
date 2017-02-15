@@ -47,6 +47,27 @@ class GetTrainingData {
       }
    }
 
+  def getLabels(reviewId : Int) : Array[TrainingData] = {
+    val cx = Datasource.getConnection
+    val query = cx.prepareStatement("select de.id, de.extracted_items from data_extractions as de where extracted_items != '{}' and extracted_items != '[]' and de.review_id=?")
+    try {
+      query.setInt(1, reviewId)
+      labelsToRecord(query.executeQuery())
+    } finally {
+      query.close()
+      cx.close()
+    }
+  }
+
+  def labelsToRecord(results : ResultSet) : Array[TrainingData] = {
+    getItems(results, results => {
+      val id = results.getInt(1)
+      val labels = read[Array[JLabel]](results.getString(2)).map(_.toLabel)
+
+      TrainingData(id, "", labels)
+    }).filter(_.fullText != null).toArray
+  }
+
    def toRecord(results : ResultSet) : Array[TrainingData] = {
       getItems(results, results => {
          val id = results.getInt(1)
@@ -70,7 +91,9 @@ object GetTrainingData {
 
   def apply(review : Int) = (new GetTrainingData).getTrainingData(review)
 
-   def main(args: Array[String]): Unit = {
+  def labelsOnly(review : Int) = (new GetTrainingData).getLabels(review)
+  
+  def main(args: Array[String]): Unit = {
       val gtd = new GetTrainingData
       println(write(gtd.getTrainingData(1)))
    }
