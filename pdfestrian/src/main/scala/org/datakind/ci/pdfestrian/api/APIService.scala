@@ -9,6 +9,7 @@ import colossus.protocols.http.UrlParsing._
 import colossus.protocols.http._
 import colossus.service.Callback.Implicits._
 import colossus.service.{Callback, ServiceConfig}
+import org.datakind.ci.pdfestrian.extraction.ReviewTrainer
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
@@ -21,7 +22,7 @@ import scala.concurrent.Future
   * Created by sam on 10/15/16.
   */
 trait APIService {
-  this: LocationExtraction with MetadataExtraction with FileRetriever with AuthorizationComponent =>
+  this: LocationExtraction with MetadataExtraction with AllMetaDataExtraction with FileRetriever with AuthorizationComponent =>
   val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -29,17 +30,28 @@ trait APIService {
   val port: Int
   val headers = HttpHeaders(HttpHeader(HttpHeaders.ContentType, "application/json; charset=utf-8"))
 
+  def logAndWrite(record : Record, f : Record => Seq[Metadata]) : String = {
+    val start = System.currentTimeMillis()
+    val results = f(record)
+    val time = System.currentTimeMillis() - start
+    val labels = results.map{_.metaData}.distinct.mkString(",")
+    logger.info(s"Got record request for metadata for record ${record.id} with labels returned: \t $labels in $time ms")
+    write(results)
+  }
 
   def getLocationsFuture(record: Record) = Future {
-    write(getLocations(record))
+    logAndWrite(record, record => getLocations(record))
   }
 
   def getMetaDataFuture(record: Record, metaData: String) = Future {
-    write(getMetaData(record, metaData))
+    logAndWrite(record, record => getMetaData(record, metaData))
+  }
+
+  def getAllMetaDataFuture(record: Record) = Future {
+    logAndWrite(record, record => extractData(record))
   }
 
   class APIService(context: ServerContext) extends HttpService(ServiceConfig.Default, context) {
-
 
     def withAuthorization(request: http.Http#Input)(f: (http.Http#Input => Callback[http.Http#Output])): Callback[http.Http#Output] = {
       val app = request.head.headers.firstValue("user").getOrElse("")
@@ -76,6 +88,7 @@ trait APIService {
       case request@Get on Root / "getRecord" / r => {
         withAuthorization(request) { request =>
           withRecord(request, r) { record =>
+            logger.info(s"Got record request for record $r with result reviewId\t${record.reviewId}\trecordId\t${record.id}\tfilename\t${record.filename}")
             Future(write(record))
           }
         }
@@ -97,14 +110,21 @@ trait APIService {
         }
       }
 
+      case request@Get on Root / "getMetadata" / r => {
+        withAuthorization(request) { request =>
+          withRecord(request, r) { record =>
+            getAllMetaDataFuture(record)
+          }
+        }
+      }
+
     }
   }
 
   def start(port: Int)(implicit system: IOSystem): ServerRef = {
     Server.start("http-example", port) { implicit worker => new Initializer(worker) {
       def onConnect = context => new APIService(context)
-    }
-    }
+    }}
   }
 
   def main(args: Array[String]): Unit = {
