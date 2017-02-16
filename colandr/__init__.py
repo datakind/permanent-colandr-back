@@ -1,7 +1,7 @@
 import os
 
 from celery import Celery
-from flask import Flask, jsonify, send_from_directory
+from flask import g, Flask, jsonify, send_from_directory
 from flask_restplus import Api
 from flask_mail import Mail
 from flask_migrate import Migrate
@@ -26,7 +26,7 @@ celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
 from .lib import constants
 from .lib.utils import get_rotating_file_logger
-from .api.errors import no_data_found
+from .api.errors import no_data_found, unauthorized
 
 from colandr.api.resources.user_registration import ns as register_ns
 from colandr.api.resources.password_reset import ns as reset_ns
@@ -118,6 +118,15 @@ def create_app(config_name):
                         upload_dir = dirname
                         break
         else:
+            # authenticate current user
+            from colandr.models import Review
+            review = db.session.query(Review).get(review_id)
+            if not review:
+                return no_data_found('<Review(id={})> not found'.format(review_id))
+            if (g.current_user.is_admin is False and
+                    review.users.filter_by(id=g.current_user.id).one_or_none() is None):
+                return unauthorized(
+                    '{} not authorized to get this review\'s fulltexts'.format(g.current_user))
             upload_dir = os.path.join(
                 app.config['FULLTEXT_UPLOADS_DIR'], str(review_id))
             for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
