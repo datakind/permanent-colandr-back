@@ -12,7 +12,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, utils
 from ...models import db, Review
-from ..errors import no_data_found, unauthorized
+from ..errors import forbidden, no_data_found, unauthorized
 from ..schemas import ReviewSchema
 from ..swagger import review_model
 from ..authentication import auth
@@ -152,18 +152,32 @@ class ReviewsResource(Resource):
     method_decorators = [auth.login_required]
 
     @ns.doc(
-        params={'fields': {'in': 'query', 'type': 'string',
-                           'description': 'comma-delimited list-as-string of review fields to return'},
-                },
-        responses={200: 'successfully got review record(s)'}
+        params={
+            'fields': {'in': 'query', 'type': 'string',
+                       'description': 'comma-delimited list-as-string of review fields to return'},
+            '_review_ids': {'in': 'query', 'type': 'string',
+                            'description': 'comma-delimited list-as-string of review ids to return (ADMIN ONLY)'}
+            },
+        responses={
+            200: 'successfully got review record(s)',
+            403: 'a non-admin user passed admin-only "_review_ids" param'
+            }
         )
     @use_kwargs({
         'fields': DelimitedList(
+            ma_fields.String, delimiter=',', missing=None),
+        '_review_ids': DelimitedList(
             ma_fields.String, delimiter=',', missing=None)
         })
-    def get(self, fields):
+    def get(self, fields, _review_ids):
         """get all reviews on which current app user is a collaborator"""
-        reviews = g.current_user.reviews.order_by(Review.id).all()
+        if g.current_user.is_admin is True and _review_ids is not None:
+            reviews = db.session.query(Review).filter(Review.id.in_(_review_ids))
+        elif g.current_user.is_admin is False and _review_ids is not None:
+            return forbidden(
+                'non-admin {} passed admin-only "_review_ids" param'.format(g.current_user))
+        else:
+            reviews = g.current_user.reviews.order_by(Review.id).all()
         if fields and 'id' not in fields:
             fields.append('id')
         return ReviewSchema(only=fields, many=True).dump(reviews).data

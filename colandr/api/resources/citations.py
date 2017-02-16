@@ -137,7 +137,7 @@ class CitationResource(Resource):
 
 @ns.route('')
 @ns.doc(
-    summary='create a single citation (ADMIN ONLY)',
+    summary='create a single citation',
     produces=['application/json'],
     )
 class CitationsResource(Resource):
