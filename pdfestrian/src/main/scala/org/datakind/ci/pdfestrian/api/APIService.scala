@@ -22,7 +22,7 @@ import scala.concurrent.Future
   * Created by sam on 10/15/16.
   */
 trait APIService {
-  this: LocationExtraction with MetadataExtraction with AllMetaDataExtraction with FileRetriever with AuthorizationComponent =>
+  this: LocationExtraction with AllMetaDataExtraction with FileRetriever with AuthorizationComponent =>
   val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -43,13 +43,14 @@ trait APIService {
     logAndWrite(record, record => getLocations(record))
   }
 
-  def getMetaDataFuture(record: Record, metaData: String) = Future {
-    logAndWrite(record, record => getMetaData(record, metaData))
-  }
-
   def getAllMetaDataFuture(record: Record) = Future {
     logAndWrite(record, record => extractData(record))
   }
+
+  def getAllMetaDataFuture(record: Record, meta : String) = Future {
+    logAndWrite(record, record => extractData(record).filter(_.metaData == meta))
+  }
+
 
   class APIService(context: ServerContext) extends HttpService(ServiceConfig.Default, context) {
 
@@ -105,7 +106,7 @@ trait APIService {
       case request@Get on Root / "getMetadata" / r / meta => {
         withAuthorization(request) { request =>
           withRecord(request, r) { record =>
-            getMetaDataFuture(record, meta)
+            getAllMetaDataFuture(record, meta)
           }
         }
       }

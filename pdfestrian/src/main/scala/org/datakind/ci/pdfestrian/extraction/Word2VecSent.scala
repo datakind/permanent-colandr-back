@@ -15,6 +15,7 @@ object Word2VecSent {
     val split = word.split(" ")
     split.head -> split.takeRight(50).map{_.toFloat}
   }.toMap
+
   var  i = -1
    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts.old")).getLines().map{ s =>
     val split = s.split(",")
