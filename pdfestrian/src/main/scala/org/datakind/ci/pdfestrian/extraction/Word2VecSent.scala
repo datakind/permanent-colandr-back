@@ -89,7 +89,7 @@ object Word2VecSent {
       m._1 -> (m._2, i)
     }
 
-    new Word2VecSent(wordCounts, tds.length)
+    new Word2VecSent(wordCounts, wordCounts.values.maxBy(_._1)._1+1)
 
   }
 }
