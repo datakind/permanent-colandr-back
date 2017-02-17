@@ -126,14 +126,16 @@ hostname:post/getLocations/$recordid
 
 ### getMetadata
 
-getMetadata returns the list of extracted metadata the study took place, and the senteces they were extracted from:
+getMetadata returns the list of extracted metadata the study took place, and the sentences they were extracted from:
 
 ```
-hostname:port/getMetadata/$recordid/$medataname
+hostname:port/getMetadata/$recordid 
 ```
 
-Right now, the list of metadata names it can take are: ["biome","interv","outcome"]
-
+To fiter by metadata name:
+```
+hostname:port/getMetadata/$recordid/$medataname 
+```
 
 
 Both getLocations and getMetadata returns a list whose contents look as follows:

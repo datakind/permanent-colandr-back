@@ -140,12 +140,12 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
       classifier.classification(l).prediction
     }
 
-    def classify(d: Document): Seq[(String, String, Int, Double)] = {
+    def classify(d: Document, threshold : Double = 0.5): Seq[(String, String, Int, Double)] = {
       val labels = docToFeature(d, Seq(labelDomain.categories.head))
       labels.flatMap { l =>
         classifier.classification(l.feature.value).prediction.toArray
           .zipWithIndex.map { p => (p._2, p._1, l.sentence) }
-          .filter(l => sigmoid(l._2) > 0.45).map { p =>
+          .filter(l => sigmoid(l._2) > threshold).map { p =>
           (domain(p._1).category, l.sentence.tokensString(" "), l.sentence.indexInSection, sigmoid(p._2))
         }
       }.groupBy(_._1).flatMap {
@@ -163,9 +163,9 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
       }.toArray.sortBy(_.index)
     }
 
-    def getMetaData(record : Record) : Seq[Metadata] = {
+    def getMetaData(record : Record, threshold : Double) : Seq[Metadata] = {
       val (d, _) = PDFToDocument.fromString(record.content, record.filename)
-      classify(d).map { r =>
+      classify(d, threshold).map { r =>
         val split = r._1.split(":",2)
         val (labelName, value) = (split.head, split.last)
         Metadata(record.id.toString, labelName, value, r._2, r._3, r._4)
@@ -272,9 +272,9 @@ object ReviewTrainer {
     println(data.id)
     val exRecord = Record(data.id, 1, data.id, data.id.toString, data.fullText)
     val model = getModel(1)
-    println(write(model.get.classifier.get.getMetaData(exRecord)))
+    println(write(model.get.classifier.get.getMetaData(exRecord, 0.75)))
     val model2 = getModel(1)
-    println(write(model2.get.classifier.get.getMetaData(exRecord)))
+    println(write(model2.get.classifier.get.getMetaData(exRecord, 0.75)))
   }
 
 }
