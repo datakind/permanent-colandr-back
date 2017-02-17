@@ -10,18 +10,11 @@ import scala.io.Source
 /**
   * Created by sameyeam on 8/3/16.
   */
-object Word2VecSent {
+class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
   val vectors = Source.fromInputStream(new GZIPInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt.gz"))).getLines().map { word =>
     val split = word.split(" ")
     split.head -> split.takeRight(50).map{_.toFloat}
   }.toMap
-
-  var  i = -1
-   val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts.old")).getLines().map{ s =>
-    val split = s.split(",")
-     i += 1
-     split.head -> (split.last.toInt, i)
-   }.toMap
 
   val arrayCounts = wordCounts.map{ _._2.swap}.toSeq.sortBy(_._1).map{_._2}
   val words = wordCounts.map{ a => a._2._2 -> a._1}.toSeq.sortBy(_._1).map{_._2}
@@ -35,7 +28,6 @@ object Word2VecSent {
     lower.filter(_.isLetterOrDigit)
   }
 
-  val N = 920
   val idf = new DenseTensor1(arrayCounts.map{a => math.log(N.toDouble/a.toDouble)}.toArray)
 
   def apply(sentence : Sentence, location : Double) : DenseTensor1 = {
@@ -68,4 +60,36 @@ object Word2VecSent {
 
 
 
+}
+
+
+object Word2VecSent {
+  def apply() = {
+    var  i = -1
+    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts.old")).getLines().map{ s =>
+      val split = s.split(",")
+      i += 1
+      split.head -> (split.last.toInt, i)
+    }.toMap
+
+    new Word2VecSent(wordCounts, 920)
+  }
+
+  def apply(tds : Seq[TrainingData]) = {
+    var  i = -1
+
+    val docs = tds.map{ td =>
+      PDFToDocument.fromString(td.fullText, td.id.toString)._1
+    }
+
+    val unigrams = GetCounts.getUnigramCounts(docs, stemmmer = false)
+
+    val wordCounts = unigrams.map{ m =>
+      i += 1
+      m._1 -> (m._2, i)
+    }
+
+    new Word2VecSent(wordCounts, tds.length)
+
+  }
 }

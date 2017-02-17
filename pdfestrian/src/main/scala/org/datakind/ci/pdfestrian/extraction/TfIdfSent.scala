@@ -10,20 +10,8 @@ import scala.io.Source
 /**
   * Created by sameyeam on 8/3/16.
   */
-object TfIdfSent {
+class TfIdfSent(wordCounts : Map[String, (Int, Int)], bigramCounts : Map[String, (Int, Int)], N : Int) {
   var  i = -1
-  val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts")).getLines().map{ s =>
-    val split = s.split(",")
-    i += 1
-    split.head -> (split.last.toInt, i)
-  }.toMap
-
-  val bigramCounts = Source.fromInputStream(getClass.getResourceAsStream("/bigram.sample.doc.counts")).getLines().map{ s =>
-    val split = s.split(",")
-    i += 1
-    split.head -> (split.last.toInt, i)
-  }.toMap
-
   val arrayCounts = (wordCounts ++ bigramCounts).map{ _._2.swap}.toSeq.sortBy(_._1).map{_._2}
   val words = (wordCounts ++ bigramCounts).map{ a => a._2._2 -> a._1}.toSeq.sortBy(_._1).map{_._2}
 
@@ -36,7 +24,6 @@ object TfIdfSent {
     lower.filter(_.isLetterOrDigit)
   }
 
-  val N = 920
   val idf = new DenseTensor1(arrayCounts.map{a => math.log10(N.toDouble/a.toDouble)}.toArray)
 
   def apply(document : Sentence) : SparseTensor1 = {
@@ -64,6 +51,48 @@ object TfIdfSent {
     tensor *= idf
     tensor /= tensor.twoNorm
     tensor
+  }
+
+}
+
+object TfIdfSent {
+  def apply() : TfIdfSent = {
+    var  i = -1
+    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts")).getLines().map{ s =>
+      val split = s.split(",")
+      i += 1
+      split.head -> (split.last.toInt, i)
+    }.toMap
+
+    val bigramCounts = Source.fromInputStream(getClass.getResourceAsStream("/bigram.sample.doc.counts")).getLines().map{ s =>
+      val split = s.split(",")
+      i += 1
+      split.head -> (split.last.toInt, i)
+    }.toMap
+
+    new TfIdfSent(wordCounts, bigramCounts, 920)
+  }
+
+  def apply(tds : Seq[TrainingData]) : TfIdfSent = {
+    var  i = -1
+
+    val docs = tds.map{ td =>
+      PDFToDocument.fromString(td.fullText, td.id.toString)._1
+    }
+
+    val (unigrams, bigrams) = GetCounts.getCounts(docs, stemmmer = true)
+
+    val wordCounts = unigrams.map{ m =>
+      i += 1
+      m._1 -> (m._2, i)
+    }
+
+    val bigramCounts = bigrams.map{ m =>
+      i += 1
+      m._1 -> (m._2, i)
+    }
+
+    new TfIdfSent(wordCounts, bigramCounts, tds.length)
   }
 
 }
