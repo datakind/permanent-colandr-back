@@ -12,7 +12,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants, utils
 from ...models import db, Review
-from ..errors import forbidden, no_data_found, unauthorized
+from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
 from ..authentication import auth
@@ -39,7 +39,7 @@ class ReviewResource(Resource):
                 },
         responses={
             200: 'successfully got review record',
-            401: 'current app user not authorized to get review record',
+            403: 'current app user forbidden to get review record',
             404: 'no review with matching id was found',
             }
         )
@@ -54,13 +54,14 @@ class ReviewResource(Resource):
         """get record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this review'.format(g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')
+        current_app.logger.debug('got %s', review)
         return ReviewSchema(only=fields).dump(review).data
 
     @ns.doc(
@@ -70,7 +71,7 @@ class ReviewResource(Resource):
         responses={
             200: 'request was valid, but record not deleted because `test=False`',
             204: 'successfully deleted review record',
-            401: 'current app user not authorized to delete review record',
+            403: 'current app user forbidden to delete review record',
             404: 'no review with matching id was found'
             }
         )
@@ -84,14 +85,14 @@ class ReviewResource(Resource):
         """delete record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to delete this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to delete this review'.format(g.current_user))
         db.session.delete(review)
         if test is False:
             db.session.commit()
-            logger.info('deleted %s', review)
+            current_app.logger.info('deleted %s', review)
             # remove directories on disk for review data
             dirnames = [
                 os.path.join(current_app.config['FULLTEXT_UPLOADS_DIR'], str(id)),
@@ -111,7 +112,7 @@ class ReviewResource(Resource):
         body=(review_model, 'review data to be modified'),
         responses={
             200: 'review data was modified (if test = False)',
-            401: 'current app user not authorized to modify review',
+            403: 'current app user forbidden to modify review',
             404: 'no review with matching id was found',
             }
         )
@@ -126,10 +127,10 @@ class ReviewResource(Resource):
         """modify record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to update this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to update this review'.format(g.current_user))
         for key, value in args.items():
             if key is missing:
                 continue
@@ -137,6 +138,7 @@ class ReviewResource(Resource):
                 setattr(review, key, value)
         if test is False:
             db.session.commit()
+            current_app.logger.info('modified %s', review)
         else:
             db.session.rollback()
         return ReviewSchema().dump(review).data
@@ -203,7 +205,7 @@ class ReviewsResource(Resource):
         db.session.add(review)
         if test is False:
             db.session.commit()
-            logger.info('inserted %s', review)
+            current_app.logger.info('inserted %s', review)
             # create directories on disk for review data
             dirnames = [
                 os.path.join(current_app.config['FULLTEXT_UPLOADS_DIR'], str(review.id)),

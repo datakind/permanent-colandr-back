@@ -3,7 +3,7 @@ from flask_httpauth import HTTPBasicAuth
 from flask_restplus import Resource
 
 from ..models import db, User
-from .errors import unauthorized
+from .errors import unauthorized_error
 from colandr import api_
 
 ns = api_.namespace(
@@ -32,7 +32,7 @@ def verify_password(email_or_token, password):
 
 @auth.error_handler
 def auth_error():
-    return unauthorized('invalid or expired authentication credentials')
+    return unauthorized_error('invalid or expired authentication credentials')
 
 
 @ns.route('')

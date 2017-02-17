@@ -1,4 +1,4 @@
-from flask import g
+from flask import g, current_app
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
@@ -8,15 +8,15 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from colandr import api_
 from ...lib import constants, utils
 from ...models import db, Citation, DataSource, Review, Study
-from ..errors import no_data_found, unauthorized, validation
+from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'citations', path='/citations',
     description='get, delete, update citations')
@@ -37,7 +37,7 @@ class CitationResource(Resource):
                 },
         responses={
             200: 'successfully got citation record',
-            401: 'current app user not authorized to get citation record',
+            403: 'current app user forbidden to get citation record',
             404: 'no citation with matching id was found',
             }
         )
@@ -52,13 +52,14 @@ class CitationResource(Resource):
         """get record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
-            return no_data_found('<Citation(id={})> not found'.format(id))
+            return not_found_error('<Citation(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this citation'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this citation'.format(g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')
+        current_app.logger.debug('got %s', citation)
         return CitationSchema(only=fields).dump(citation).data
 
     @ns.doc(
@@ -69,7 +70,7 @@ class CitationResource(Resource):
         responses={
             200: 'request was valid, but record not deleted because `test=False`',
             204: 'successfully deleted citation record',
-            401: 'current app user not authorized to delete citation record',
+            403: 'current app user forbidden to delete citation record',
             404: 'no citation with matching id was found'
             }
         )
@@ -83,14 +84,14 @@ class CitationResource(Resource):
         """delete record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
-            return no_data_found('<Citation(id={})> not found'.format(id))
+            return not_found_error('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to delete this citation'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to delete this citation'.format(g.current_user))
         db.session.delete(citation)
         if test is False:
-            logger.info('deleted %s', citation)
             db.session.commit()
+            current_app.logger.info('deleted %s', citation)
             return '', 204
         else:
             db.session.rollback()
@@ -104,7 +105,7 @@ class CitationResource(Resource):
         body=(citation_model, 'citation data to be modified'),
         responses={
             200: 'citation data was modified (if test = False)',
-            401: 'current app user not authorized to modify citation',
+            403: 'current app user forbidden to modify citation',
             404: 'no citation with matching id was found',
             }
         )
@@ -119,10 +120,10 @@ class CitationResource(Resource):
         """modify record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
         if not citation:
-            return no_data_found('<Citation(id={})> not found'.format(id))
+            return not_found_error('<Citation(id={})> not found'.format(id))
         if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to modify this citation'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to modify this citation'.format(g.current_user))
         for key, value in args.items():
             if key is missing or key == 'other_fields':
                 continue
@@ -130,6 +131,7 @@ class CitationResource(Resource):
                 setattr(citation, key, value)
         if test is False:
             db.session.commit()
+            current_app.logger.info('modified %s', citation)
         else:
             db.session.rollback()
         return CitationSchema().dump(citation).data
@@ -163,7 +165,7 @@ class CitationsResource(Resource):
             },
         responses={
             200: 'successfully created citation record',
-            401: 'current app user not authorized to create citation for this review',
+            403: 'current app user forbidden to create citation for this review',
             404: 'no review with matching id was found'
             }
         )
@@ -186,10 +188,10 @@ class CitationsResource(Resource):
         """create a single citation"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(review_id))
+            return not_found_error('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to add citations to this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to add citations to this review'.format(g.current_user))
         # upsert the data source
         try:
             DataSourceSchema().validate(
@@ -197,7 +199,7 @@ class CitationsResource(Resource):
                  'source_name': source_name,
                  'source_url': source_url})
         except ValidationError as e:
-            return validation(e.messages)
+            return validation_error(e.messages)
         data_source = db.session.query(DataSource)\
             .filter_by(source_type=source_type, source_name=source_name).one_or_none()
         if data_source is None:
@@ -205,7 +207,7 @@ class CitationsResource(Resource):
             db.session.add(data_source)
         if test is False:
             db.session.commit()
-            logger.info('inserted %s', data_source)
+            current_app.logger.info('inserted %s', data_source)
         else:
             db.session.rollback()
             return ''
@@ -223,7 +225,7 @@ class CitationsResource(Resource):
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()
-        logger.info('inserted %s', citation)
+        current_app.logger.info('inserted %s', citation)
 
         # TODO: what about deduplication?!
         # TODO: what about adding *multiple* citations via this endpoint?

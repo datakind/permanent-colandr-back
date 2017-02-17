@@ -1,9 +1,31 @@
 import io
 import logging
+import logging.handlers
 import os
 
 import dedupe
 from sqlalchemy.sql import text
+
+
+def get_rotating_file_handler(filepath, level=logging.INFO):
+    _handler = logging.handlers.RotatingFileHandler(
+        filepath, maxBytes=1000000, backupCount=10, delay=False)
+    _formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(name)s - %(module)s.%(funcName)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S')
+    _handler.setFormatter(_formatter)
+    _handler.setLevel(level)
+    return _handler
+
+
+def get_console_handler(level=logging.WARNING):
+    _handler = logging.StreamHandler()
+    _formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S')
+    _handler.setFormatter(_formatter)
+    _handler.setLevel(level)
+    return _handler
 
 
 def get_console_logger(name, level='info'):
