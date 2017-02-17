@@ -8,16 +8,16 @@ from webargs.flaskparser import use_kwargs
 
 from sqlalchemy import create_engine
 
+from colandr import api_
 from ...lib import constants, utils
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
-from ..errors import no_data_found, unauthorized, validation
+from ..errors import not_found_error, forbidden_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'citation_imports', path='/citations/imports',
     description='import citations in bulk and get import history')
@@ -39,7 +39,7 @@ class CitationsImportsResource(Resource):
             },
         responses={
             200: 'successfully got citation import history',
-            401: 'current app user not authorized to get citation import history',
+            403: 'current app user forbidden to get citation import history',
             404: 'no review with matching id was found',
             }
         )
@@ -51,11 +51,11 @@ class CitationsImportsResource(Resource):
         """get citation import history for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(review_id))
+            return not_found_error('<Review(id={})> not found'.format(review_id))
         if (g.current_user.is_admin is False and
                 g.current_user.reviews.filter_by(id=review_id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to add citations to this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to add citations to this review'.format(g.current_user))
         results = review.imports.filter_by(record_type='citation')
         return ImportSchema(many=True).dump(results.all()).data
 
@@ -80,7 +80,7 @@ class CitationsImportsResource(Resource):
             },
         responses={
             200: 'successfully imported citations in bulk',
-            401: 'current app user not authorized to import citations for this review',
+            403: 'current app user forbidden to import citations for this review',
             404: 'no review with matching id was found'
             }
         )
@@ -104,17 +104,17 @@ class CitationsImportsResource(Resource):
         """import citations in bulk for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(review_id))
+            return not_found_error('<Review(id={})> not found'.format(review_id))
         if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to add citations to this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to add citations to this review'.format(g.current_user))
         fname = uploaded_file.filename
         if fname.endswith('.bib'):
             citations_file = BibTexFile(uploaded_file.stream)
         elif fname.endswith('.ris') or fname.endswith('.txt'):
             citations_file = RisFile(uploaded_file.stream)
         else:
-            return validation('unknown file type: "{}"'.format(fname))
+            return validation_error('unknown file type: "{}"'.format(fname))
 
         # upsert the data source
         try:
@@ -123,7 +123,7 @@ class CitationsImportsResource(Resource):
                  'source_name': source_name,
                  'source_url': source_url})
         except ValidationError as e:
-            return validation(e.messages)
+            return validation_error(e.messages)
         data_source = db.session.query(DataSource)\
             .filter_by(source_type=source_type, source_name=source_name).one_or_none()
         if data_source is None:
@@ -131,7 +131,7 @@ class CitationsImportsResource(Resource):
             db.session.add(data_source)
         if test is False:
             db.session.commit()
-            logger.info('inserted %s', data_source)
+            current_app.logger.info('inserted %s', data_source)
             data_source_id = data_source.id
         else:
             data_source_id = 0
@@ -156,7 +156,7 @@ class CitationsImportsResource(Resource):
             except StopIteration:
                 break
             except Exception as e:
-                logger.warning('parsing error: %s', e)
+                current_app.logger.warning('parsing error: %s', e)
         n_citations = len(citations_to_insert)
 
         user_id = g.current_user.id
@@ -207,7 +207,7 @@ class CitationsImportsResource(Resource):
             status=status)
         db.session.add(citations_import)
         db.session.commit()
-        logger.info(
+        current_app.logger.info(
             'imported %s citations from file "%s" into %s',
             n_citations, fname, review)
 

@@ -1,3 +1,4 @@
+import logging
 import os
 
 from celery import Celery
@@ -9,7 +10,7 @@ from flask_sqlalchemy import SQLAlchemy
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
-# from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
 api_ = Api(
     version='1.0', prefix='/api', doc='/docs',
@@ -25,31 +26,27 @@ from .config import configs, Config
 celery = Celery(__name__, broker=Config.CELERY_BROKER_URL)
 
 from .lib import constants
-from .lib.utils import get_rotating_file_logger
-from .api.errors import no_data_found, unauthorized
+from .lib.utils import get_rotating_file_handler, get_console_handler
 
-from colandr.api.resources.user_registration import ns as register_ns
-from colandr.api.resources.password_reset import ns as reset_ns
-from colandr.api.authentication import ns as authtoken_ns
-from colandr.api.resources.users import ns as users_ns
-from colandr.api.resources.reviews import ns as reviews_ns
-from colandr.api.resources.review_teams import ns as review_teams_ns
-from colandr.api.resources.review_progress import ns as review_progress_ns
-from colandr.api.resources.review_exports import ns as review_exports_ns
-from colandr.api.resources.review_plans import ns as review_plans_ns
-from colandr.api.resources.studies import ns as studies_ns
-from colandr.api.resources.study_tags import ns as study_tags_ns
-from colandr.api.resources.citations import ns as citations_ns
-from colandr.api.resources.citation_imports import ns as citation_imports_ns
-from colandr.api.resources.citation_screenings import ns as citation_screenings_ns
-from colandr.api.resources.fulltexts import ns as fulltexts_ns
-from colandr.api.resources.fulltext_uploads import ns as fulltext_uploads_ns
-from colandr.api.resources.fulltext_screenings import ns as fulltext_screenings_ns
-from colandr.api.resources.data_extractions import ns as data_extractions_ns
-
-
-logger = get_rotating_file_logger(
-    'colandr', os.path.join(Config.LOGS_DIR, 'colandr.log'), level='info')
+from .api.errors import not_found_error, forbidden_error
+from .api.resources.user_registration import ns as register_ns
+from .api.resources.password_reset import ns as reset_ns
+from .api.authentication import ns as authtoken_ns
+from .api.resources.users import ns as users_ns
+from .api.resources.reviews import ns as reviews_ns
+from .api.resources.review_teams import ns as review_teams_ns
+from .api.resources.review_progress import ns as review_progress_ns
+from .api.resources.review_exports import ns as review_exports_ns
+from .api.resources.review_plans import ns as review_plans_ns
+from .api.resources.studies import ns as studies_ns
+from .api.resources.study_tags import ns as study_tags_ns
+from .api.resources.citations import ns as citations_ns
+from .api.resources.citation_imports import ns as citation_imports_ns
+from .api.resources.citation_screenings import ns as citation_screenings_ns
+from .api.resources.fulltexts import ns as fulltexts_ns
+from .api.resources.fulltext_uploads import ns as fulltext_uploads_ns
+from .api.resources.fulltext_screenings import ns as fulltext_screenings_ns
+from .api.resources.data_extractions import ns as data_extractions_ns
 
 
 def create_app(config_name):
@@ -59,6 +56,12 @@ def create_app(config_name):
     config.init_app(app)
     os.makedirs(config.FULLTEXT_UPLOADS_DIR, exist_ok=True)
     os.makedirs(config.RANKING_MODELS_DIR, exist_ok=True)
+
+    app.logger.addHandler(
+        get_rotating_file_handler(os.path.join(config.LOGS_DIR, config.LOG_FILENAME)))
+    app.logger.addHandler(get_console_handler())
+    app.logger.addFilter(logging.Filter('colandr'))
+    # app.logger.propagate = False
 
     celery.conf.update(app.config)
 
@@ -122,11 +125,11 @@ def create_app(config_name):
             from colandr.models import Review
             review = db.session.query(Review).get(review_id)
             if not review:
-                return no_data_found('<Review(id={})> not found'.format(review_id))
+                return not_found_error('<Review(id={})> not found'.format(review_id))
             if (g.current_user.is_admin is False and
                     review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-                return unauthorized(
-                    '{} not authorized to get this review\'s fulltexts'.format(g.current_user))
+                return forbidden_error(
+                    '{} forbidden to get this review\'s fulltexts'.format(g.current_user))
             upload_dir = os.path.join(
                 app.config['FULLTEXT_UPLOADS_DIR'], str(review_id))
             for ext in app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
@@ -135,21 +138,25 @@ def create_app(config_name):
                     filename = fname
                     break
         if not filename:
-            return no_data_found(
+            return not_found_error(
                 'no uploaded file for <Fulltext(id={})> found'.format(id))
         return send_from_directory(upload_dir, filename)
+
+    @app.errorhandler(Exception)
+    def handle_error(err):
+        app.logger.error(err.exc.messages)
+        return jsonify({'errors': err.exc.messages}), 500
+
+    @app.errorhandler(SQLAlchemyError)
+    def handle_sqlalchemy_error(err):
+        app.logger.error('db unable to handle request! rolling back...')
+        db.session.rollback()
+        db.session.remove()
+        return jsonify({'errors': err.exc.messages}), 500
 
     @app.errorhandler(422)
     def handle_validation_error(err):
         return jsonify({'errors': err.exc.messages}), 422
-
-    # @app.errorhandler(Exception)
-    # def handle_db_errors(err):
-    #     print('foooooo')
-    #     logger.error('db unable to handle request! rolling back...')
-    #     db.session.rollback()
-    #     db.session.remove()
-    #     return jsonify({'errors': err.message}), 500
 
     # @app.teardown_request
     # def teardown_request(err):
