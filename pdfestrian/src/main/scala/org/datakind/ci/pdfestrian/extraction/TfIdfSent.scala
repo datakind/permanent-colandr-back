@@ -92,7 +92,7 @@ object TfIdfSent {
       m._1 -> (m._2, i)
     }
 
-    new TfIdfSent(wordCounts, bigramCounts, tds.length)
+    new TfIdfSent(wordCounts, bigramCounts, wordCounts.values.maxBy(_._1)._1+1)
   }
 
 }
