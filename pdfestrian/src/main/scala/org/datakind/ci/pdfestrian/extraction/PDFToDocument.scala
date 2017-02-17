@@ -14,7 +14,8 @@ import scala.io.Source
   */
 object PDFToDocument {
 
-  val dir = "/home/sam/ci/theText/"
+  //val dir = "/home/sam/ci/theText"
+  val dir = "/Users/sameyeam/ci/theText"
   def apply(name : String) : Option[(Document,Document)] = {
     val txt = dir + "/txt/" + name + ".pdf.txt"
     val ocrtxt = dir + "/ocrTxt/" + name + ".pdf.ocr.txt"

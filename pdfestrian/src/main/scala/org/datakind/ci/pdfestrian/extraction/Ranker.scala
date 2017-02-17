@@ -21,6 +21,8 @@ import scala.util.Random
   */
 class Ranker(distMap: Map[String, Int], length: Int) {
 
+  val combinedSent = CombinedSent()
+
   lazy val weight = labelDomain.map { bio =>
     val name = bio.category
     val intval = bio.intValue
@@ -55,7 +57,7 @@ class Ranker(distMap: Map[String, Int], length: Int) {
   object featuresDomain extends VectorDomain {
     override type Value = SparseTensor1
 
-    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(CombinedSent.featureSize)
+    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(combinedSent.featureSize)
   }
 
   class RankFeatures(st1: SparseTensor1) extends VectorVariable(st1) {
@@ -73,7 +75,7 @@ class Ranker(distMap: Map[String, Int], length: Int) {
     val sentences = pl.sentences.toArray.filter(_.string.length > 70)
     val length = sentences.length
     sentences.zipWithIndex.map { case (sent, i) =>
-      val f = CombinedSent(sent, i.toDouble / length.toDouble, pl.name)
+      val f = combinedSent(sent, i.toDouble / length.toDouble, pl.name)
       val features = new RankFeatures(f)
       for (l <- labels) {
         new RankLabel(l, features, pl.name, labels, aid, pl, sent)

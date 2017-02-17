@@ -20,7 +20,11 @@ object Multi extends ValueType
 object Single extends ValueType
 
 case class ReviewLabel(labelName : String, allowedValues : Set[String], value : ValueType, trainingSize : Int)
-class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[String, Int], numTrainDocuments : Int) {
+class ReviewModel(val labels : Map[String, ReviewLabel],
+                  labelCounts : Map[String, Int],
+                  numTrainDocuments : Int,
+                  featureExtractor : CombinedSent
+                 ) {
 
   lazy val weight = labelDomain.map { bio =>
     val name = bio.category
@@ -56,7 +60,7 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
   object featuresDomain extends VectorDomain {
     override type Value = SparseTensor1
 
-    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(CombinedSent.featureSize)
+    override def dimensionDomain: DiscreteDomain = new DiscreteDomain(featureExtractor.featureSize)
   }
 
   class RankFeatures(st1: SparseTensor1) extends VectorVariable(st1) {
@@ -71,10 +75,12 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
   def docToFeature(pl: Document, labels: Seq[String]): Seq[RankLabel] = {
     if(labels.isEmpty)
       return Seq()
-    val sentences = pl.sentences.toArray.filter(_.string.length > 70)
+    val sentences = pl.sentences.toArray
+      .filterNot(s => s.string.contains("org.apache"))
+      .filter(_.string.length > 70)
     val length = sentences.length
     sentences.zipWithIndex.map { case (sent, i) =>
-      val f = CombinedSent(sent, i.toDouble / length.toDouble, pl.name)
+      val f = featureExtractor(sent, i.toDouble / length.toDouble, pl.name)
       val features = new RankFeatures(f)
       for (l <- labels) {
         new RankLabel(l, features, labels, pl, sent)
@@ -146,7 +152,11 @@ class ReviewModel(val labels : Map[String, ReviewLabel], labelCounts : Map[Strin
         classifier.classification(l.feature.value).prediction.toArray
           .zipWithIndex.map { p => (p._2, p._1, l.sentence) }
           .filter(l => sigmoid(l._2) > threshold).map { p =>
-          (domain(p._1).category, l.sentence.tokensString(" "), l.sentence.indexInSection, sigmoid(p._2))
+          val document = l.sentence.document
+          val sentences = (math.max(0,l.sentence.indexInSection-3) until math.min(document.sentenceCount-1, l.sentence.indexInSection+3)).map{ i =>
+            document.asSection.sentences(i).tokensString(" ")
+          }.mkString("\n")
+          (domain(p._1).category, sentences, l.sentence.indexInSection, sigmoid(p._2))
         }
       }.groupBy(_._1).flatMap {
         _._2.sortBy(-_._4).take(3)
@@ -230,7 +240,9 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
       map + (label -> (map.getOrElse(label, 0) + 1))
     }
 
-    val model = new ReviewModel(labels, labelCounts, trainingData.length)
+    val featureExtractor = CombinedSent(trainingData)
+
+    val model = new ReviewModel(labels, labelCounts, trainingData.length, featureExtractor)
     model.train(trainingData)
     model
   }
