@@ -7,15 +7,14 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
-from ...lib import constants, utils
+from ...lib import constants
 from ...models import db, Review, User
 from ...tasks import send_email
-from ..errors import forbidden, no_data_found, unauthorized, validation
+from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
 from ..authentication import auth
 from colandr import api_
 
-logger = utils.get_console_logger(__name__)
 ns = api_.namespace(
     'review_teams', path='/reviews',
     description='get, modify, and confirm review teams')
@@ -36,7 +35,7 @@ class ReviewTeamResource(Resource):
                 },
         responses={
             200: 'successfully got review team member\'s records',
-            401: 'current app user not authorized to get review team member\'s records',
+            403: 'current app user forbidden to get review team member\'s records',
             404: 'no review with matching id was found'}
         )
     @use_kwargs({
@@ -50,11 +49,11 @@ class ReviewTeamResource(Resource):
         """get members of a single review's team"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this review'.format(g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')
         users = UserSchema(many=True, only=fields).dump(review.users).data
@@ -62,6 +61,7 @@ class ReviewTeamResource(Resource):
         for user in users:
             if user['id'] == owner_user_id:
                 user['is_owner'] = True
+        current_app.logger.debug('got %s team members for %s', len(users), review)
         return users
 
     @ns.doc(
@@ -78,7 +78,7 @@ class ReviewTeamResource(Resource):
             },
         responses={
             200: 'successfully modified review team member\'s record',
-            401: 'current app user not authorized to modify review team',
+            403: 'current app user forbidden to modify review team',
             404: 'no review with matching id was found'}
         )
     @use_kwargs({
@@ -96,25 +96,25 @@ class ReviewTeamResource(Resource):
         """add, invite, remove, or promote a review team member"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to modify this review team'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to modify this review team'.format(g.current_user))
         if user_id is not None:
             user = db.session.query(User).get(user_id)
         elif user_email is not None:
             user = db.session.query(User).filter_by(email=user_email).one_or_none()
         else:
-            return validation('user_id or user_email is required')
+            return validation_error('user_id or user_email is required')
         review_users = review.users
         # an existing user is being added, without an invite email
         if action == 'add':
             if user is None:
-                return forbidden('<User(id={})> not found'.format(user_id))
+                return forbidden_error('<User(id={})> not found'.format(user_id))
             elif user not in review_users:
                 review_users.append(user)
             else:
-                return forbidden(
+                return forbidden_error(
                     '{} is already on this review'.format(user))
         # user is being *invited*, so send an invitation email
         elif action == 'invite':
@@ -135,13 +135,13 @@ class ReviewTeamResource(Resource):
             review.owner = user
         elif action == 'remove':
             if user_id == review.owner_user_id:
-                return forbidden('current review owner can not be removed from team')
+                return forbidden_error('current review owner can not be removed from team')
             if review_users.filter_by(id=user_id).one_or_none() is not None:
                 review_users.remove(user)
 
         if test is False:
             db.session.commit()
-            logger.info('for %s, %s %s', review, action, user)
+            current_app.logger.info('for %s, %s %s', review, action, user)
         else:
             db.session.rollback()
         users = UserSchema(many=True).dump(review.users).data
@@ -182,20 +182,19 @@ class ConfirmReviewTeamInviteResource(Resource):
 
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         review_users = review.users
 
         user = db.session.query(User).filter_by(email=user_email).one_or_none()
         if user is None:
-            return forbidden('user not found')
+            return forbidden_error('user not found')
         if user not in review_users:
             review_users.append(user)
         else:
-            return forbidden(
-                '{} is already on this review'.format(user))
+            return forbidden_error('{} is already on this review'.format(user))
 
         db.session.commit()
-        logger.info('invitation to %s confirmed by %s', review, user_email)
+        current_app.logger.info('invitation to %s confirmed by %s', review, user_email)
         users = UserSchema(many=True).dump(review.users).data
         owner_user_id = review.owner_user_id
         for user in users:

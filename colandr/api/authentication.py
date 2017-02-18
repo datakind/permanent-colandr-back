@@ -2,9 +2,10 @@ from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
 from flask_restplus import Resource
 
+from colandr import api_
 from ..models import db, User
 from .errors import unauthorized_error
-from colandr import api_
+
 
 ns = api_.namespace(
     'authtoken', path='/authtoken',

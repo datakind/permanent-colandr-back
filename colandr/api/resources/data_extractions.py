@@ -9,7 +9,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from colandr import api_
-from ...lib import constants, sanitizers, utils
+from ...lib import constants, sanitizers
 from ...models import db, DataExtraction, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import ExtractedItem, DataExtractionSchema

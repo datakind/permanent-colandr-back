@@ -1,6 +1,6 @@
 import warnings
 
-from flask import g
+from flask import g, current_app
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
@@ -8,15 +8,15 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants, utils
+from colandr import api_
+from ...lib import constants
 from ...models import db, Review
-from ..errors import no_data_found, unauthorized, validation
+from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import ReviewPlanSchema
 from ..swagger import review_plan_model
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'review_plans', path='/reviews/<int:id>/plan',
     description='get, delete, update review plans')
@@ -36,7 +36,7 @@ class ReviewPlanResource(Resource):
                            'description': 'comma-delimited list-as-string of review fields to return'},
                 },
         responses={200: 'successfully got review plan record',
-                   401: 'current app user not authorized to get review plan record',
+                   403: 'current app user forbidden to get review plan record',
                    404: 'no review with matching id was found',
                    }
         )
@@ -51,13 +51,14 @@ class ReviewPlanResource(Resource):
         """get review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this review plan'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this review plan'.format(g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')
+        current_app.logger.debug('got %s', review.review_plan)
         return ReviewPlanSchema(only=fields).dump(review.review_plan).data
 
     @ns.doc(
@@ -71,7 +72,7 @@ class ReviewPlanResource(Resource):
         responses={
             200: 'request was valid, but record not deleted because `test=False`',
             204: 'successfully deleted (nulled) review plan record',
-            401: 'current app user not authorized to delete review plan record',
+            403: 'current app user forbidden to delete review plan record',
             404: 'no review with matching id was found',
             }
         )
@@ -87,10 +88,10 @@ class ReviewPlanResource(Resource):
         """delete review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to delete this review plan'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to delete this review plan'.format(g.current_user))
         review_plan = review.review_plan
         if fields:
             for field in fields:
@@ -109,7 +110,7 @@ class ReviewPlanResource(Resource):
             review_plan.data_extraction_form = []
         if test is False:
             db.session.commit()
-            logger.info('deleted contents of %s', review_plan)
+            current_app.logger.info('deleted contents of %s', review_plan)
             return '', 204
         else:
             db.session.rollback()
@@ -125,7 +126,7 @@ class ReviewPlanResource(Resource):
         body=(review_plan_model, 'review plan data to be modified'),
         responses={
             200: 'review plan data was modified (if test = False)',
-            401: 'current app user not authorized to modify review plan',
+            403: 'current app user forbidden to modify review plan',
             404: 'no review with matching id was found',
             }
         )
@@ -142,13 +143,13 @@ class ReviewPlanResource(Resource):
         """modify review plan record for a single review by id"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if review.owner is not g.current_user:
-            return unauthorized(
-                '{} not authorized to create this review plan'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to create this review plan'.format(g.current_user))
         review_plan = review.review_plan
         if not review_plan:
-            return no_data_found('<ReviewPlan(review_id={})> not found'.format(id))
+            return not_found_error('<ReviewPlan(review_id={})> not found'.format(id))
         if fields:
             with warnings.catch_warnings():
                 warnings.simplefilter('always', DeprecationWarning)
@@ -159,12 +160,13 @@ class ReviewPlanResource(Resource):
                 try:
                     setattr(review_plan, field, args[field])
                 except KeyError:
-                    return validation('field "{}" value not specified'.format(field))
+                    return validation_error('field "{}" value not specified'.format(field))
         else:
             for key, value in args.items():
                 setattr(review_plan, key, value)
         if test is False:
             db.session.commit()
+            current_app.logger.info('modified contents of %s', review_plan)
         else:
             db.session.rollback()
         return ReviewPlanSchema().dump(review_plan).data

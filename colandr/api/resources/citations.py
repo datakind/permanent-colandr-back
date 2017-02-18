@@ -9,7 +9,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from colandr import api_
-from ...lib import constants, utils
+from ...lib import constants
 from ...models import db, Citation, DataSource, Review, Study
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema

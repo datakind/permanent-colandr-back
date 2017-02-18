@@ -10,15 +10,15 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import constants, utils
+from colandr import api_
+from ...lib import constants
 from ...models import db, Review
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'reviews', path='/reviews',
     description='get, create, delete, update reviews')
@@ -176,7 +176,7 @@ class ReviewsResource(Resource):
         if g.current_user.is_admin is True and _review_ids is not None:
             reviews = db.session.query(Review).filter(Review.id.in_(_review_ids))
         elif g.current_user.is_admin is False and _review_ids is not None:
-            return forbidden(
+            return forbidden_error(
                 'non-admin {} passed admin-only "_review_ids" param'.format(g.current_user))
         else:
             reviews = g.current_user.reviews.order_by(Review.id).all()
