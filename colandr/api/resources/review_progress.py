@@ -1,15 +1,16 @@
-from flask import g
+from flask import g, current_app
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
+from colandr import api_
 from ...lib import constants
 from ...models import db, Review, Study
-from ..errors import no_data_found, unauthorized
+from ..errors import forbidden_error, not_found_error
 from ..authentication import auth
-from colandr import api_
+
 
 ns = api_.namespace(
     'review_progress', path='/reviews/<int:id>',
@@ -33,7 +34,7 @@ class ReviewProgressResource(Resource):
                               'description': 'if True, return progress from the current app user\'s perspective; otherwise, use review-oriented progress numbers'}
                 },
         responses={200: 'successfully got review progress',
-                   401: 'current app user not authorized to get review progress',
+                   401: 'current app user forbidden to get review progress',
                    404: 'no review with matching id was found',
                    }
         )
@@ -52,11 +53,11 @@ class ReviewProgressResource(Resource):
         response = {}
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get review progress'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get review progress'.format(g.current_user))
         if step in ('planning', 'all'):
             review_plan = review.review_plan
             progress = {'objective': bool(review_plan.objective),
@@ -149,5 +150,7 @@ class ReviewProgressResource(Resource):
             progress = {status: progress.get(status, 0)
                         for status in constants.EXTRACTION_STATUSES}
             response['data_extraction'] = progress
+
+        current_app.logger.debug('got progress for %s', review)
 
         return response

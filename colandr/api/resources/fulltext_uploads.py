@@ -12,15 +12,15 @@ from webargs.flaskparser import use_kwargs
 
 from textacy.preprocess import fix_bad_unicode
 
-from ...lib import constants, utils
+from colandr import api_
+from ...lib import constants
 from ...models import db, Fulltext
 from ...tasks import get_fulltext_text_content_vector
-from ..errors import no_data_found, unauthorized, validation
+from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'fulltext_uploads', path='/fulltexts',
     description='upload or delete fulltext content files')
@@ -47,7 +47,7 @@ class FulltextUploadResource(Resource):
             },
         responses={
             200: 'successfully upload full-text file',
-            401: 'current app user not authorized to upload full-text files for this review',
+            403: 'current app user forbidden to upload full-text files for this review',
             404: 'no fulltext with matching id was found',
             422: 'invalid fulltext upload file type',
             }
@@ -64,14 +64,14 @@ class FulltextUploadResource(Resource):
         """upload fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return no_data_found('<Fulltext(id={})> not found'.format(id))
+            return not_found_error('<Fulltext(id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to upload fulltext files to this review'.format(
+            return forbidden_error(
+                '{} forbidden to upload fulltext files to this review'.format(
                     g.current_user))
         _, ext = os.path.splitext(uploaded_file.filename)
         if ext not in current_app.config['ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS']:
-            return validation('invalid fulltext upload file type: "{}"'.format(ext))
+            return validation_error('invalid fulltext upload file type: "{}"'.format(ext))
         # assign filename based an id, and full path
         filename = '{}{}'.format(id, ext)
         fulltext.filename = filename
@@ -97,7 +97,7 @@ class FulltextUploadResource(Resource):
             fulltext.text_content = fix_bad_unicode(
                 text_content.decode(errors='ignore'))
             db.session.commit()
-            logger.info(
+            current_app.logger.info(
                 'uploaded "%s" for %s', fulltext.original_filename, fulltext)
 
             # parse the fulltext text content and get its word2vec vector
@@ -114,7 +114,7 @@ class FulltextUploadResource(Resource):
         responses={
             200: 'request was valid, but record not deleted because `test=False`',
             204: 'successfully deleted fulltext file',
-            401: 'current app user not authorized to delete fulltext files for this review',
+            403: 'current app user forbidden to delete fulltext files for this review',
             404: 'no fulltext with matching id was found',
             422: 'no uploaded content file found for this fulltext',
             }
@@ -129,27 +129,29 @@ class FulltextUploadResource(Resource):
         """delete fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return no_data_found('<Fulltext(id={})> not found'.format(id))
+            return not_found_error('<Fulltext(id={})> not found'.format(id))
         if g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to upload fulltext files to this review'.format(
+            return forbidden_error(
+                '{} forbidden to upload fulltext files to this review'.format(
                     g.current_user))
-        if fulltext.filename is None:
-            return validation("user can't delete a fulltext upload that doesn't exist")
+        filename = fulltext.filename
+        if filename is None:
+            return validation_error("user can't delete a fulltext upload that doesn't exist")
         if test is False:
             filepath = os.path.join(
                 current_app.config['FULLTEXT_UPLOADS_DIR'],
                 str(fulltext.review_id),
-                fulltext.filename)
+                filename)
             try:
                 os.remove(filepath)
             except OSError as e:
                 msg = 'error removing uploaded full-text file from disk'
-                logger.exception(msg + '\n')
-                return no_data_found(msg)
+                current_app.logger.exception(msg + '\n')
+                return not_found_error(msg)
             fulltext.filename = None
             db.session.commit()
-            logger.info('deleted uploaded file for %s', fulltext)
+            current_app.logger.info(
+                'deleted uploaded file "%s "for %s', filename, fulltext)
             return '', 204
         else:
             return '', 200

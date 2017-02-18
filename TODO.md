@@ -14,3 +14,4 @@ Longer term:
 - [ ] Consider using something like Flask-Security for more comprehensive and less home-rolled user login and management
 - [ ] Watch for flask-restplus to integrate webargs validation, which would probably make auto-docs much easier and less redundant
 - [ ] API rate-limiting
+- [ ] Confirm that password reset actually works o_O

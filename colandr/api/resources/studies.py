@@ -2,7 +2,7 @@ from operator import itemgetter
 import os
 import random
 
-from flask import current_app, g
+from flask import g, current_app
 from flask_restplus import Resource
 from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
@@ -15,18 +15,18 @@ from webargs.flaskparser import use_args, use_kwargs
 import numpy as np
 from sklearn.externals import joblib
 
-from ...lib import constants, utils
+from colandr import api_
+from ...lib import constants
 from ...models import db, Citation, Study, Review
 from ...lib.constants import (CITATION_RANKING_MODEL_FNAME, DEDUPE_STATUSES,
                               EXTRACTION_STATUSES, USER_SCREENING_STATUSES)
 from ...lib.nlp import reviewer_terms
-from ..errors import forbidden, no_data_found, unauthorized
+from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
 from ..authentication import auth
-from colandr import api_
 
-logger = utils.get_console_logger(__name__)
+
 ns = api_.namespace(
     'studies', path='/studies',
     description='get, delete, update studies')
@@ -47,7 +47,7 @@ class StudyResource(Resource):
                 },
         responses={
             200: 'successfully got study record',
-            401: 'current app user not authorized to get study record',
+            403: 'current app user forbidden to get study record',
             404: 'no study with matching id was found',
             }
         )
@@ -62,13 +62,14 @@ class StudyResource(Resource):
         """get record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
-            return no_data_found('<Study(id={})> not found'.format(id))
+            return not_found_error('<Study(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 study.review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this study'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this study'.format(g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')
+        current_app.logger.debug('got %s', study)
         return StudySchema(only=fields).dump(study).data
 
     @ns.doc(
@@ -79,7 +80,7 @@ class StudyResource(Resource):
         responses={
             200: 'request was valid, but record not deleted because `test=False`',
             204: 'successfully deleted study record',
-            401: 'current app user not authorized to delete study record',
+            403: 'current app user forbidden to delete study record',
             404: 'no study with matching id was found'
             }
         )
@@ -93,14 +94,14 @@ class StudyResource(Resource):
         """delete record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
-            return no_data_found('<Study(id={})> not found'.format(id))
+            return not_found_error('<Study(id={})> not found'.format(id))
         if study.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to delete this study'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to delete this study'.format(g.current_user))
         db.session.delete(study)
         if test is False:
             db.session.commit()
-            logger.info('deleted %s', study)
+            current_app.logger.info('deleted %s', study)
             return '', 204
         else:
             db.session.rollback()
@@ -114,8 +115,7 @@ class StudyResource(Resource):
         body=(study_model, 'study data to be modified'),
         responses={
             200: 'study data was modified (if test = False)',
-            401: 'current app user not authorized to modify study',
-            403: 'specified field may not be modified',
+            403: 'current app user forbidden to modify study; specified field may not be modified',
             404: 'no study with matching id was found',
             }
         )
@@ -130,18 +130,19 @@ class StudyResource(Resource):
         """modify record for a single study by id"""
         study = db.session.query(Study).get(id)
         if not study:
-            return no_data_found('<Study(id={})> not found'.format(id))
+            return not_found_error('<Study(id={})> not found'.format(id))
         if study.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
-            return unauthorized(
-                '{} not authorized to modify this study'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to modify this study'.format(g.current_user))
         for key, value in args.items():
             if key == 'data_extraction_status':
                 if study.fulltext_status != 'included':
-                    return forbidden(
+                    return forbidden_error(
                         '<Study(id={})> data_extraction_status can\'t be set until fulltext has passed screening'.format(id))
             setattr(study, key, value)
         if test is False:
             db.session.commit()
+            current_app.logger.info('modified %s', study)
         else:
             db.session.rollback()
         return StudySchema().dump(study).data
@@ -189,7 +190,7 @@ class StudiesResource(Resource):
             },
         responses={
             200: 'successfully got matching study record(s)',
-            401: 'current app user not authorized to get studies for this review',
+            403: 'current app user forbidden to get studies for this review',
             404: 'no review with matching id was found'
             }
         )
@@ -230,11 +231,11 @@ class StudiesResource(Resource):
         """get study record(s) for one or more matching studies"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(review_id))
+            return not_found_error('<Review(id={})> not found'.format(review_id))
         if (g.current_user.is_admin is False and
                 g.current_user.reviews.filter_by(id=review_id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get studies from this review'.format(
+            return forbidden_error(
+                '{} forbidden to get studies from this review'.format(
                     g.current_user))
         if fields and 'id' not in fields:
             fields.append('id')

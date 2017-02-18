@@ -8,7 +8,7 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from colandr import api_
-from ...lib import constants, utils
+from ...lib import constants
 from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import bad_request_error, forbidden_error, not_found_error, validation_error
 from ..schemas import ScreeningSchema
@@ -92,7 +92,7 @@ class CitationScreeningsResource(Resource):
                     g.current_user))
         screening = citation.screenings.filter_by(user_id=g.current_user.id).one_or_none()
         if not screening:
-            return forbidden('{} has not screened {}, so nothing to delete'.format(
+            return forbidden_error('{} has not screened {}, so nothing to delete'.format(
                 g.current_user, citation))
         db.session.delete(screening)
         if test is False:
@@ -140,7 +140,7 @@ class CitationScreeningsResource(Resource):
             citation.review_id, g.current_user.id, id,
             args['status'], args['exclude_reasons'])
         if citation.screenings.filter_by(user_id=g.current_user.id).one_or_none():
-            return forbidden('{} has already screened {}'.format(
+            return forbidden_error('{} has already screened {}'.format(
                 g.current_user, citation))
         citation.screenings.append(screening)
         if test is False:

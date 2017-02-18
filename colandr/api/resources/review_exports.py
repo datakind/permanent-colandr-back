@@ -3,7 +3,7 @@ import csv
 import io
 import itertools
 
-from flask import g, make_response
+from flask import g, current_app, make_response
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
@@ -13,7 +13,7 @@ from webargs.flaskparser import use_kwargs
 from ...lib import constants
 from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
-from ..errors import no_data_found, unauthorized
+from ..errors import not_found_error, forbidden_error
 from ..authentication import auth
 from colandr import api_
 
@@ -33,7 +33,7 @@ class ReviewExportPrismaResource(Resource):
 
     @ns.doc(
         responses={200: 'successfully got review prisma data',
-                   401: 'current app user not authorized to export review prisma data',
+                   403: 'current app user forbidden to export review prisma data',
                    404: 'no review with matching id was found',
                    }
         )
@@ -46,11 +46,11 @@ class ReviewExportPrismaResource(Resource):
         """export numbers needed to make a review PRISMA diagram"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this review'.format(g.current_user))
         # get counts by step, i.e. prisma
         n_studies_by_source = dict(
             db.session.query(DataSource.source_type, db.func.sum(Import.num_records))
@@ -94,6 +94,8 @@ class ReviewExportPrismaResource(Resource):
             .filter_by(data_extraction_status='finished')\
             .count()
 
+        current_app.logger.debug('prisma counts exported for %s', review)
+
         return {
             'num_studies_by_source': n_studies_by_source,
             'num_unique_studies': n_unique_studies,
@@ -118,7 +120,7 @@ class ReviewExportStudiesResource(Resource):
     @ns.doc(
         description='NOTE: Calling this endpoint via Swagger could cause it to crash on account of #BigData',
         responses={200: 'successfully got review studies data',
-                   401: 'current app user not authorized to export review studies data',
+                   403: 'current app user forbidden to export review studies data',
                    404: 'no review with matching id was found',
                    }
         )
@@ -131,11 +133,11 @@ class ReviewExportStudiesResource(Resource):
         """export a CSV of studies metadata and extracted data"""
         review = db.session.query(Review).get(id)
         if not review:
-            return no_data_found('<Review(id={})> not found'.format(id))
+            return not_found_error('<Review(id={})> not found'.format(id))
         if (g.current_user.is_admin is False and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
-            return unauthorized(
-                '{} not authorized to get this review'.format(g.current_user))
+            return forbidden_error(
+                '{} forbidden to get this review'.format(g.current_user))
 
         query = db.session.query(Study)\
             .filter_by(review_id=id)\
@@ -214,4 +216,7 @@ class ReviewExportStudiesResource(Resource):
         writer.writerows(rows)
         response = make_response(f.getvalue(), 200)
         response.headers['Content-type'] = 'text/csv'
+
+        current_app.logger.debug('study data exported for %s', review)
+
         return response

@@ -9,7 +9,7 @@ from webargs.flaskparser import use_kwargs
 from sqlalchemy import create_engine
 
 from colandr import api_
-from ...lib import constants, utils
+from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors

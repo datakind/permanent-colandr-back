@@ -5,17 +5,15 @@ from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from marshmallow import fields as ma_fields
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...lib import utils
 from ...models import db, User
 from ...tasks import remove_unconfirmed_user, send_email
-from ..errors import db_integrity, no_data_found, validation
+from ..errors import db_integrity_error, not_found_error, validation_error
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
 from ..swagger import user_model
 from colandr import api_
 
 
-logger = utils.get_console_logger(__name__)
 ns = api_.namespace(
     'user registration', path='/register',
     description='register and confirm new users')
@@ -48,13 +46,13 @@ class UserRegistrationResource(Resource):
                 db.session.commit()
             except (IntegrityError, InvalidRequestError) as e:
                 db.session.rollback()
-                return db_integrity(str(e.orig))
+                return db_integrity_error(str(e.orig))
             send_email.apply_async(
                 args=[[user.email], 'Confirm your email', '', html])
             remove_unconfirmed_user.apply_async(
                 args=[user.email],
                 countdown=current_app.config['CONFIRM_TOKEN_EXPIRATION'])
-            logger.info('user registration email sent to %s', user.email)
+            current_app.logger.info('user registration email sent to %s', user.email)
         return UserSchema().dump(user).data
 
 
@@ -67,12 +65,12 @@ class ConfirmUserRegistrationResource(Resource):
         try:
             email = confirm_token(token)
         except Exception:
-            return validation('the confirmation link is invalid or has expired')
+            return validation_error('the confirmation link is invalid or has expired')
         user = db.session.query(User).filter_by(email=email).one_or_none()
         if not user:
-            return no_data_found("sorry! we couldn't find you in our database")
+            return not_found_error("sorry! we couldn't find you in our database")
         if user.is_confirmed is True:
-            return validation('user already confirmed! please login')
+            return validation_error('user already confirmed! please login')
         user.is_confirmed = True
         db.session.commit()
-        logger.info('user registration confirmed by %s', email)
+        current_app.logger.info('user registration confirmed by %s', email)

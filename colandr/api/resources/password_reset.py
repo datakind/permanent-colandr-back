@@ -1,19 +1,17 @@
-from flask import render_template  # , url_for
+from flask import current_app, render_template  # , url_for
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_kwargs
 
-from ...lib import utils
+from colandr import api_
 from ...models import db, User
 from ...tasks import send_email
-from ..errors import forbidden, no_data_found, validation
+from ..errors import forbidden_error, not_found_error, validation_error
 from ..registration import confirm_token, generate_confirmation_token
-from colandr import api_
 
 
-logger = utils.get_console_logger(__name__)
 ns = api_.namespace(
     'password reset', path='/reset',
     description='reset a user\'s password')
@@ -65,7 +63,7 @@ class PasswordResetResource(Resource):
             if test is False:
                 send_email.apply_async(
                     args=[[email], 'Reset Password', '', html])
-                logger.info('password reset email sent to %s', email)
+                current_app.logger.info('password reset email sent to %s', email)
 
 
 @ns.route('/<token>')
@@ -87,11 +85,11 @@ class ConfirmPasswordResetResource(Resource):
         try:
             email = confirm_token(token)
         except Exception:
-            return validation('the password reset link is invalid or has expired')
+            return validation_error('the password reset link is invalid or has expired')
         user = db.session.query(User).filter_by(email=email).one_or_none()
         if not user:
-            return no_data_found("sorry! we couldn't find you in our database")
+            return not_found_error("sorry! we couldn't find you in our database")
         if user.is_confirmed is False:
-            return forbidden('user not confirmed! please first confirm your email address.')
+            return forbidden_error('user not confirmed! please first confirm your email address.')
         # TODO: now what???
-        logger.info('password reset confirmed by %s', email)
+        current_app.logger.info('password reset confirmed by %s', email)
