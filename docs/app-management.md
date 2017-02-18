@@ -78,7 +78,7 @@ To add an admin user to the database — a user with special powers in the app, 
 $ python3 manage.py add_admin --name=[NAME] --email=[EMAIL] --password=[PASSWORD]
 ```
 
-**Note:** This used to be done automatically in the ``reset_db`` command. See below.
+**Note:** This used to be done automatically in the ``reset`` command. See below.
 
 
 ## Reset and Re-populate the Database
@@ -86,7 +86,7 @@ $ python3 manage.py add_admin --name=[NAME] --email=[EMAIL] --password=[PASSWORD
 In order to "reset" the database by dropping and then re-creating all of its tables, clearing out files uploaded to disk, and adding an administrator user, run the following command:
 
 ```
-$ python3 manage.py reset_db
+$ python3 manage.py reset
 ```
 
 **Warning:** This is permanent! So be very sure that this is what you want. (Don't worry, there's a prompt to confirm.)
