@@ -19,7 +19,7 @@ manager.add_command('db', MigrateCommand)
 
 
 @manager.command
-def reset_db():
+def reset():
     """
     Drop and then create all tables in the database, clear out all uploaded
     fulltext files and ranking models on disk, and create an admin user.

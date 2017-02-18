@@ -1,4 +1,3 @@
-# import logging
 import itertools
 import os
 from time import sleep
@@ -31,14 +30,14 @@ from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlock
 REDIS_CONN = redis.StrictRedis()
 
 logger = get_task_logger(__name__)
-console_logger = get_console_logger('colandr_celery_tasks')
+console_logger = get_console_logger(__name__)
 
 
 def wait_for_lock(name, expire=60):
     lock = redis_lock.Lock(REDIS_CONN, name, expire=expire, auto_renewal=True)
     while True:
         if lock.acquire() is False:
-            console_logger.info('waiting on existing %s job...', name)
+            console_logger.debug('waiting on existing %s job...', name)
             sleep(10)
         else:
             console_logger.info('starting new %s job...', name)
@@ -121,7 +120,7 @@ def deduplicate_citations(review_id):
             .where(Dedupe.review_id == review_id)
         most_recent_dedupe = conn.execute(stmt).fetchone()[0]
         if most_recent_dedupe and most_recent_dedupe > max_created_at:
-            logger.info('<Review(id=%s)>: all studies already deduped!', review_id)
+            logger.warning('<Review(id=%s)>: all studies already deduped!', review_id)
             lock.release()
             return
 
