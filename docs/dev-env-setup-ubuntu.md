@@ -207,3 +207,5 @@ Go into the pdfestrian directory and install the library:
 $ cd pdfestrian
 $ mvn package
 ```
+
+see pdfestrian/README.md for usage instructions of pdfestrian
