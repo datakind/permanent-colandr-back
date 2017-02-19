@@ -8,4 +8,3 @@ trait LocationExtraction {
 trait LocationExtractor {
   def getLocations(record : Record) : Seq[Metadata]
 }
-

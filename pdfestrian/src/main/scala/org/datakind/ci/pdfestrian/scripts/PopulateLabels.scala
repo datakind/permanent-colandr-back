@@ -1,7 +1,5 @@
 package org.datakind.ci.pdfestrian.scripts
 
-import org.datakind.ci.pdfestrian.extraction.BiomeMap
-
 import scalaj.http.Http
 import org.json4s.{DefaultFormats, NoTypeHints}
 import org.json4s.jackson.{Json, Serialization}

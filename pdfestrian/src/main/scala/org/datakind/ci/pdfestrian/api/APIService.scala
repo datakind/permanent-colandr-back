@@ -9,7 +9,6 @@ import colossus.protocols.http.UrlParsing._
 import colossus.protocols.http._
 import colossus.service.Callback.Implicits._
 import colossus.service.{Callback, ServiceConfig}
-import org.datakind.ci.pdfestrian.extraction.ReviewTrainer
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
@@ -22,7 +21,11 @@ import scala.concurrent.Future
   * Created by sam on 10/15/16.
   */
 trait APIService {
-  this: LocationExtraction with AllMetaDataExtraction with FileRetriever with AuthorizationComponent =>
+  this: LocationExtraction
+    with AllMetaDataExtraction
+    with FileRetriever
+    with AuthorizationComponent =>
+
   val logger = LoggerFactory.getLogger(this.getClass)
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -59,23 +62,27 @@ trait APIService {
       val key = request.head.headers.firstValue("passwd").getOrElse("")
       authorize(app, key) match {
         case false =>
-          logger.info("Unauthorized\t+" + app + "\t" + key)
-          request.unauthorized(s"""{"error":"Unauthorized"}""", headers = headers)
+          logger.info(s"Unauthorized\t$app\tkey")
+          request.unauthorized(body("""{"error":"Unauthorized"}"""), headers = headers)
         case true =>
           f(request)
       }
+    }
+
+    def body(string : String) : HttpBody = {
+      new HttpBody(string.getBytes("UTF-8"))
     }
 
     def withRecord(request: http.Http#Input, r: String)(f: (Record => Future[String])): Callback[http.Http#Output] = {
       getFile(r) match {
         case None =>
           logger.info("Requested nonexistant record: " + r)
-          request.error(""" {"error":"nonexistant record"}""")
+          request.error(body(""" {"error":"nonexistant record"}"""), headers = headers)
         case Some(record) if record.content == null => request.error(s""" {"error":"Record $r does not have fulltext attached"} """, headers = headers)
         case Some(record) =>
           Callback.fromFuture(
             f(record).map { result =>
-              request.ok(new HttpBody(result.getBytes("UTF-8")), headers = headers)
+              request.ok(body(result), headers = headers)
             }
           )
       }
@@ -83,7 +90,7 @@ trait APIService {
 
     def handle = {
       case request@Get on Root / "isAlive" => {
-        request.ok(""" {"status":"okay"} """)
+        request.ok(body(""" {"status":"okay"} """), headers = headers)
       }
 
       case request@Get on Root / "getRecord" / r => {

@@ -12,34 +12,20 @@ import scala.io.Source
 /**
   * Created by sameyeam on 6/18/16.
   */
-object PDFToDocument {
-
-  //val dir = "/home/sam/ci/theText"
-  val dir = "/Users/sameyeam/ci/theText"
-  def apply(name : String) : Option[(Document,Document)] = {
-    val txt = dir + "/txt/" + name + ".pdf.txt"
-    val ocrtxt = dir + "/ocrTxt/" + name + ".pdf.ocr.txt"
-    val file = if(new File(txt).exists())
-      new File(txt)
-    else if(new File(ocrtxt).exists())
-      new File(ocrtxt)
-    else null
-    if(file == null) return None
-    Some(fromFile(file, name = name))
-  }
+class PDFToDocument(reformat : Reformat) {
 
   def fromFile(file : File, name : String = "") : (Document, Document) = {
     val docTxt = Source.fromFile(file).mkString
     val doc = new Document(docTxt).setName(name)
     val tokenized = DeterministicNormalizingTokenizer.process(doc)
-    splitReferences(Reformat(DeterministicSentenceSegmenter.process(tokenized)))
+    splitReferences(reformat(DeterministicSentenceSegmenter.process(tokenized)))
   }
 
-  def fromString(string : String, filename : String) : (Document, Document) = {
+  def fromString(string : String, filename : String = "") : (Document, Document) = {
     val docTxt = string
     val doc = new Document(docTxt).setName(filename)
     val tokenized = DeterministicNormalizingTokenizer.process(doc)
-    splitReferences(Reformat(DeterministicSentenceSegmenter.process(tokenized)))
+    splitReferences(reformat(DeterministicSentenceSegmenter.process(tokenized)))
   }
 
   def splitReferences(doc : Document) : (Document, Document) = {
@@ -79,17 +65,15 @@ object PDFToDocument {
     }
     (document, references)
   }
+}
 
-  def main(args: Array[String]) {
-    val doc = apply("Vega 2013")
-    doc match {
-      case None => println("Couldn't find")
-      case Some(d) =>
-        println(d)
-        for(sentence <- d._1.sentences) {
-          println(sentence.tokens.map{_.string}.mkString(", "))
-          println()
-        }
-    }
+object PDFToDocument {
+
+  def apply() : PDFToDocument = {
+    new PDFToDocument(Reformat(Seq()))
+  }
+
+  def apply(trainingData: Seq[TrainingData]) : PDFToDocument = {
+    new PDFToDocument(Reformat(trainingData))
   }
 }

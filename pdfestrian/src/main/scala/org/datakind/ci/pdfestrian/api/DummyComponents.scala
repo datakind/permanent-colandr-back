@@ -1,7 +1,7 @@
 package org.datakind.ci.pdfestrian.api
 
-class DummyMetadataExtractor extends MetadataExtractor {
-  def getMetaData(record: Record, metaData: String) = Seq()
+class DummyMetadataExtractor extends AllMetaDataExtractor {
+  def extractData(record: Record, min : Int, numMoreDataToRetrain : Int, threshold : Double) : Seq[Metadata] = Seq()
 }
 class DummyLocationExtractor extends LocationExtractor {
   def getLocations(record : Record) = Seq()

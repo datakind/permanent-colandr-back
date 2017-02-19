@@ -28,5 +28,8 @@ class CombinedSent(word2VecSent : Word2VecSent, tfIdfSent: TfIdfSent) {
 object CombinedSent {
   def apply() = new CombinedSent(Word2VecSent(), TfIdfSent())
 
-  def apply(trainingData: Seq[TrainingData]) = new CombinedSent(Word2VecSent(trainingData), TfIdfSent(trainingData))
+  def apply(trainingData: Seq[TrainingData], pdf2doc: PDFToDocument) = {
+    val documents = trainingData.map(td => pdf2doc.fromString(td.fullText)._1)
+    new CombinedSent(Word2VecSent(documents), TfIdfSent(documents))
+  }
 }

@@ -73,12 +73,8 @@ object TfIdfSent {
     new TfIdfSent(wordCounts, bigramCounts, 920)
   }
 
-  def apply(tds : Seq[TrainingData]) : TfIdfSent = {
+  def apply(docs : Seq[Document]) : TfIdfSent = {
     var  i = -1
-
-    val docs = tds.map{ td =>
-      PDFToDocument.fromString(td.fullText, td.id.toString)._1
-    }
 
     val (unigrams, bigrams) = GetCounts.getCounts(docs, stemmmer = true)
 

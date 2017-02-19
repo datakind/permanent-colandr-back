@@ -1,8 +1,5 @@
 package org.datakind.ci.pdfestrian
 
-/**
-  * Created by samanzaroot on 6/2/16.
-  */
 import com.sun.corba.se.spi.orb.StringPair
 import scala.collection.mutable
 

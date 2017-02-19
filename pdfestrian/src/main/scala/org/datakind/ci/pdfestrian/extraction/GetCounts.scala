@@ -55,17 +55,4 @@ object GetCounts {
     }
     (unigrams, bigrams)
   }
-
-  def main(args: Array[String]): Unit = {
-    val docs = new File(args.head).listFiles().filter( _.getAbsolutePath.endsWith(".pdf")).take(10).flatMap { f =>
-      val path = f.getAbsolutePath.split("/").last.dropRight(4)
-      PDFToDocument(path)
-    }.map(_._1)
-    val (unigram, counts) = getCounts(docs)
-    val out = new BufferedWriter(new FileWriter("words.doc.counts"))
-    for(count <- counts.toSeq.sortBy(-_._2)) {
-      out.write( count._1 + "," + count._2 + "\n")
-    }
-    out.flush()
-  }
 }

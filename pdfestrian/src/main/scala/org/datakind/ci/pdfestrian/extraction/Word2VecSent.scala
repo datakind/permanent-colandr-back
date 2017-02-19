@@ -33,12 +33,14 @@ class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
   def apply(sentence : Sentence, location : Double) : DenseTensor1 = {
     val tensor = new DenseTensor1(featureSize)
     var wordsInTensor = 0
-    for(token <- sentence.tokens) {
+    for (token <- sentence.tokens) {
       val current = clean(token.string)
-      if(current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
-        if(wordCounts.contains(current) && vectors.contains(current)) {
+      if (current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
+        if (wordCounts.contains(current) && vectors.contains(current)) {
           val count = wordCounts(current)
-          tensor += (new DenseTensor1(vectors(current).map{_.toDouble}) * idf(count._2))
+          tensor += (new DenseTensor1(vectors(current).map {
+            _.toDouble
+          }) * idf(count._2))
           wordsInTensor += 1
         }
       }
@@ -48,17 +50,6 @@ class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
     tensor(50) = location
     tensor
   }
-
-  def main(args: Array[String]): Unit = {
-    val doc = PDFToDocument(args.head)
-    val sentences = doc.get._1.sentences.toArray
-    for((sent,i) <- sentences.zipWithIndex) {
-      val location = i.toDouble/sentences.length.toDouble
-      apply(sent, location)
-    }
-  }
-
-
 
 }
 
@@ -75,12 +66,8 @@ object Word2VecSent {
     new Word2VecSent(wordCounts, 920)
   }
 
-  def apply(tds : Seq[TrainingData]) = {
+  def apply(docs : Seq[Document]) = {
     var  i = -1
-
-    val docs = tds.map{ td =>
-      PDFToDocument.fromString(td.fullText, td.id.toString)._1
-    }
 
     val unigrams = GetCounts.getUnigramCounts(docs, stemmmer = false)
 

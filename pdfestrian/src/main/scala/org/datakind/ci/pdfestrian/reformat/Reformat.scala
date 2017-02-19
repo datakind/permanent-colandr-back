@@ -1,15 +1,17 @@
 package org.datakind.ci.pdfestrian.reformat
 
 import cc.factorie.app.nlp.{Document, Sentence, Token}
+import org.datakind.ci.pdfestrian.extraction.TrainingData
 
 import scala.io.Source
 
 /**
-  * Created by sameyeam on 6/26/16.
+  * Dehyphenator, dehyphenates common words in the dataset.
+  * @param doc
   */
-class Reformat(doc : Document) {
+class Reformat(goodWords : Set[String]) {
   import Reformat._
-  def apply() : Document = {
+  def apply(doc : Document) : Document = {
     val document = new Document().setName(doc.name)
     document.appendString(doc.string)
     var sent = new Sentence(document)
@@ -40,10 +42,16 @@ class Reformat(doc : Document) {
 }
 
 object Reformat {
-  val goodWords = Source.fromInputStream(getClass.getResourceAsStream("/goodWords.txt"))
-                      .getLines().filter(!_.contains("-"))
-                      .map{ _.toLowerCase()}.toSet
-  def apply(doc : Document) : Document = {
-    new Reformat(doc).apply()
+
+  private def getGoodWords(tds : Seq[TrainingData]) : Set[String] = {
+    tds.flatMap(td => td.fullText.split(' ').map(l => l.toLowerCase -> 1))
+      .groupBy(_._1).map{ case (phrase, count) =>
+        phrase -> count.map(_._2).sum
+    }.filter(_._2 > 10).keySet
   }
+
+  def apply(trainingData: Seq[TrainingData]) : Reformat = {
+    new Reformat(getGoodWords(trainingData))
+  }
+
 }

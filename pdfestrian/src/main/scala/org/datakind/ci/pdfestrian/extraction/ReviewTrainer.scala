@@ -23,12 +23,13 @@ case class ReviewLabel(labelName : String, allowedValues : Set[String], value : 
 class ReviewModel(val labels : Map[String, ReviewLabel],
                   labelCounts : Map[String, Int],
                   numTrainDocuments : Int,
-                  featureExtractor : CombinedSent
+                  featureExtractor : CombinedSent,
+                  pdf2Doc : PDFToDocument
                  ) {
 
-  lazy val weight = labelDomain.map { bio =>
-    val name = bio.category
-    val intval = bio.intValue
+  lazy val weight = labelDomain.map { label =>
+    val name = label.category
+    val intval = label.intValue
     val count = labelCounts(name)
     val tw = (numTrainDocuments - count).toDouble / count.toDouble
     intval -> tw
@@ -39,9 +40,10 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
   lazy val dWeight = new DenseTensor1(weight)
 
   implicit val rand = new Random()
-  val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map {
+
+  /*val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map {
     _.toLowerCase
-  }.toSet
+  }.toSet */
 
   object labelDomain extends CategoricalDomain[String]
 
@@ -124,7 +126,7 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
       case MultiValue(labelName, values) => values.map{ v => labelName + ":" + v }
       case SingleValue(labelName, value) => Array(labelName + ":" + value)
     }
-    docToFeature(PDFToDocument.fromString(td.fullText, td.id.toString)._1, labels)
+    docToFeature(pdf2Doc.fromString(td.fullText, td.id.toString)._1, labels)
   }
 
   def createClassifier(): Classifier = {
@@ -163,28 +165,13 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
       }.toSeq
     }
 
-    def classifySentences(d: Document) = {
-      val classification = classify(d)
-      classification.groupBy(_._3).map { s =>
-        val classes = s._2.map { klass =>
-          (klass._1, klass._4)
-        }
-        SentenceClassifications(s._1, s._2.head._2, classes)
-      }.toArray.sortBy(_.index)
-    }
-
     def getMetaData(record : Record, threshold : Double) : Seq[Metadata] = {
-      val (d, _) = PDFToDocument.fromString(record.content, record.filename)
+      val (d, _) = pdf2Doc.fromString(record.content, record.filename)
       classify(d, threshold).map { r =>
         val split = r._1.split(":",2)
         val (labelName, value) = (split.head, split.last)
         Metadata(record.id.toString, labelName, value, r._2, r._3, r._4)
       }
-    }
-
-    def getSentences(record: Record) : Seq[SentenceClassifications] = {
-      val (d, _) = PDFToDocument.fromString(record.content, record.filename)
-      classifySentences(d)
     }
 
   }
@@ -229,6 +216,9 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
   def train(reviewId : Int) : ReviewModel = {
 
     val trainingData = GetTrainingData(reviewId)
+
+    val pdf2doc = PDFToDocument(trainingData)
+
     val labels = splitLabels(trainingData)
 
     val labelCounts = trainingData.flatMap(_.labels)
@@ -240,9 +230,9 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
       map + (label -> (map.getOrElse(label, 0) + 1))
     }
 
-    val featureExtractor = CombinedSent(trainingData)
+    val featureExtractor = CombinedSent(trainingData, pdf2doc)
 
-    val model = new ReviewModel(labels, labelCounts, trainingData.length, featureExtractor)
+    val model = new ReviewModel(labels, labelCounts, trainingData.length, featureExtractor, pdf2doc)
     model.train(trainingData)
     model
   }
