@@ -191,7 +191,7 @@ Lastly add the repository directory to your `PYTHONPATH` environment variable by
 export PYTHONPATH=/path/to/conservation-intl/:$PYTHONPATH
 ```
 
-##To install the scala tools that perform some NLP and pdf extraction tasks:
+## To install the scala tools that perform some NLP and pdf extraction tasks:
 
 If you need to install java:
 
@@ -205,5 +205,5 @@ $ sudo apt-get install maven
 Go into the pdfestrian directory and install the library:
 ```
 $ cd pdfestrian
-$ mvn install
+$ mvn package
 ```
