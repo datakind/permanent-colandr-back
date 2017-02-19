@@ -15,6 +15,13 @@ $ sudo apt-get install git
 
 ## Set Up PostgreSQL
 
+If you want to use a postgres database on another server (like RDS) you can skip this step, however you will need to install 
+postgres libraries for python to read from it:
+
+```
+$ sudo apt-get install libpq-dev
+```
+
 Install with apt-get, you need to add a new source first:
 
 ```
