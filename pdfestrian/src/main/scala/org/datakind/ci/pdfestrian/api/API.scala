@@ -2,10 +2,14 @@ package org.datakind.ci.pdfestrian.api
 
 import com.typesafe.config.ConfigFactory
 import configs.Configs
-import org.datakind.ci.pdfestrian.extraction.GetAllLocations
+import org.datakind.ci.pdfestrian.api.apiservice.APIService
+import org.datakind.ci.pdfestrian.api.apiservice.components._
+import org.datakind.ci.pdfestrian.db.DBFileExtractor
+import org.datakind.ci.pdfestrian.extraction.impl.{GetAllLocations, ReviewMetadataExtractor}
 
 /**
-  * Implements API, reads configuration using typesafe.config and launches service using the information in config file.
+  * Implements API, reads configuration using typesafe.config and launches service using
+  * the information in config file
   */
 object API extends APIService
   with LocationExtraction

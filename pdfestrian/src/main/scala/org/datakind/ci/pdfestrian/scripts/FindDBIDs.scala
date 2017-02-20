@@ -2,7 +2,8 @@ package org.datakind.ci.pdfestrian.scripts
 
 import java.sql.ResultSet
 
-import org.datakind.ci.pdfestrian.api.{Access, Datasource, Record}
+import org.datakind.ci.pdfestrian.db.Datasource
+import org.datakind.ci.pdfestrian.formats.AidSeq
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -33,6 +34,7 @@ class DBCitationFinder {
     items
   }
 }
+
 class FindDBIDs {
   val finder = new DBCitationFinder
   def getIds(aids : Seq[AidSeq]) : Map[Int, Int] = {
