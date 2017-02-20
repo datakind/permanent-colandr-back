@@ -26,6 +26,7 @@ case class PDFExtractedDataMore(filename : String, year : Int, title : String, a
     mapper.writeValueAsString(this)
   }
 }
+
 case class Triple(pdf : PDFExtractedDataMore, bib : BiblioItem, allFields : AllFieldsRecord) {
     def toJson : String = {
       val mapper = new ObjectMapper() with ScalaObjectMapper
@@ -43,6 +44,7 @@ object Triple {
     }.toSeq
   }
 }
+
 case class Journal(name : String, volume : String, issue : String)
 
 object PDFExtractedData {

@@ -5,9 +5,6 @@ import cc.factorie.app.nlp.ner.{BilouConllNerDomain, NoEmbeddingsConllStackedCha
 import cc.factorie.util.ModelProvider
 import org.datakind.ci.pdfestrian.api.{LocationExtractor, Metadata, Record}
 
-//case class PredictedLocation(valid : Boolean, location : String, sentences : Array[LocationSentence])
-//case class LocationSentence(sentence : String, percent : Double)
-
 /**
   * Created by sameyeam on 6/29/16.
   */
