@@ -1,9 +1,16 @@
 package org.datakind.ci.pdfestrian.api
 
+/**
+  * Authorization component to be mixed in to [[APIService]], two types:
+  * NoAuth allows for anybody to access service, and PlainText matches password to
+  * to userrnames plaintext password.
+  */
 trait AuthorizationComponent {
   val auth : Authorization
   val keyMap : Map[String, String]
+
   def authorize(user : String, passwd : String) : Boolean = auth.authorize(user, passwd)
+
   trait Authorization {
     def authorize(user : String, passwd : String) : Boolean
   }

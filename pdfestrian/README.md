@@ -29,6 +29,14 @@ $ mvn package
 
 This will download all dependencies including some model (so it will download somewhere around 1gb worth of data)
 
+The code also looks for a system environment variable called COLANDR_DATABASE_URI for the postgres DB uri.
+This is the same for the colandr APP, and so nothing needs to be done if COLANDR_DATABASE_URI is set already.
+
+add to ~/.profile (or similar source of environment variables)
+```
+export COLANDR_DATABASE_URI="postgresql://USER:PASSWORD@HOST:PORT/DBNAME"
+```
+
 Usage
 ------
 ### Extracting full-text
@@ -45,15 +53,19 @@ Usage: extractText [options]
 
 ### Starting metadata http server
 
-There is some configuration for the server:
+Configuring the server:
 
-First is that you need to add glove.6B.50d.txt.gz to the config directory (TODO: figure out some way to publish the word2vec data. This file doesn't seem available anywhere alone)
+Add w2v vectors to the config directory:
 
-Second, you need to modify pdfestrian.conf in the conf directory:
+```
+$ ./bin/download_vectors.sh
+``
+
+Create pdfestrian.conf in the conf directory (You can copy pdfestrian_default.conf):
 ```json
 {
   "pdfestrian" : {
-    "port" : 5000, //Specify the port you want to run
+    "port" : 6000, //Specify the port you want to run
     "auth" : "plaintext", // Specify the type of authentication. The options are "none" or "plaintext"
     "keys" : {
       "colandr": "thepassword" //Specify a map from user to password for authentication
@@ -118,7 +130,7 @@ Which returns a json with the following fields:
 
 ### getLocations
 
-getLocations returns the list of suggested locations the study took place, and the senteces they were extracted from:
+getLocations returns the list of suggested locations the study took place, and the sentences they were extracted from:
  
 ```
 hostname:post/getLocations/$recordid

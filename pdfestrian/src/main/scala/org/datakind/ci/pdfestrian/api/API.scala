@@ -4,6 +4,9 @@ import com.typesafe.config.ConfigFactory
 import configs.Configs
 import org.datakind.ci.pdfestrian.extraction.GetAllLocations
 
+/**
+  * Implements API, reads configuration using typesafe.config and launches service using the information in config file.
+  */
 object API extends APIService
   with LocationExtraction
   with FileRetriever

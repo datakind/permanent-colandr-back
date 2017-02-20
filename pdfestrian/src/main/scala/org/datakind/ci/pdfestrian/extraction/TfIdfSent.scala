@@ -7,27 +7,36 @@ import cc.factorie.la.SparseTensor1
 
 import scala.io.Source
 
+
 /**
-  * Created by sameyeam on 8/3/16.
+  * Class that computes the TfIdf sentence features for review label ranking
+  * @param wordCounts Counts of unigram stems
+  * @param bigramCounts Counts of bigram stems
+  * @param N Number of "documents" (sentences) in corpus
+  *          Needs to be greater than any count of wordCounts and bigram counts to be a valid tfidf
   */
 class TfIdfSent(wordCounts : Map[String, (Int, Int)], bigramCounts : Map[String, (Int, Int)], N : Int) {
-  var  i = -1
-  val arrayCounts = (wordCounts ++ bigramCounts).map{ _._2.swap}.toSeq.sortBy(_._1).map{_._2}
-  val words = (wordCounts ++ bigramCounts).map{ a => a._2._2 -> a._1}.toSeq.sortBy(_._1).map{_._2}
+  private val arrayCounts = (wordCounts ++ bigramCounts).map{ _._2.swap}.toSeq.sortBy(_._1).map{_._2}
 
-  val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
+  private val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt"))
+    .getLines()
+    .map{ _.toLowerCase}.toSet
 
   val featureSize = wordCounts.size + bigramCounts.size
 
-  def clean(string : String) : String = {
+  private def clean(string : String) : String = {
     val lower = PorterStemmer(string.toLowerCase())
     lower.filter(_.isLetterOrDigit)
   }
 
-  val idf = new DenseTensor1(arrayCounts.map{a => math.log10(N.toDouble/a.toDouble)}.toArray)
+  private val idf = new DenseTensor1(arrayCounts.map{a => math.log10(N.toDouble/a.toDouble)}.toArray)
 
+  /**
+    * Takes a sentence and returns a sparsetensor whose indicies are index into words, the value is tfidf value
+    * @param document the sentence to vectorize
+    * @return tfidf feature vector for sentence
+    */
   def apply(document : Sentence) : SparseTensor1 = {
-    //val counts = new Array[Int](featureSize)
     val tensor = new SparseTensor1(featureSize)
     for(token <- document) {
       val current = clean(token.string)
@@ -49,30 +58,18 @@ class TfIdfSent(wordCounts : Map[String, (Int, Int)], bigramCounts : Map[String,
       }
     }
     tensor *= idf
-    tensor /= tensor.twoNorm
+    tensor /= tensor.twoNorm // Normalize vector
     tensor
   }
 
 }
 
 object TfIdfSent {
-  def apply() : TfIdfSent = {
-    var  i = -1
-    val wordCounts = Source.fromInputStream(getClass.getResourceAsStream("/words.sample.doc.counts")).getLines().map{ s =>
-      val split = s.split(",")
-      i += 1
-      split.head -> (split.last.toInt, i)
-    }.toMap
-
-    val bigramCounts = Source.fromInputStream(getClass.getResourceAsStream("/bigram.sample.doc.counts")).getLines().map{ s =>
-      val split = s.split(",")
-      i += 1
-      split.head -> (split.last.toInt, i)
-    }.toMap
-
-    new TfIdfSent(wordCounts, bigramCounts, 920)
-  }
-
+  /**
+    * Create TfIdf sent out of corpus.
+    * @param docs Documents out of corpus
+    * @return a TfIfdSent feature vectorizer
+    */
   def apply(docs : Seq[Document]) : TfIdfSent = {
     var  i = -1
 

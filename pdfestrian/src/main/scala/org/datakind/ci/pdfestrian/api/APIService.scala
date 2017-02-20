@@ -17,8 +17,11 @@ import org.slf4j.LoggerFactory
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
 /**
-  * Created by sam on 10/15/16.
+  * API service that needs to be implemented to launch server.
+  * Created with simple scala dependency injection, object to launch server needs to have
+  * mixed-in all traits defined after "with".
   */
 trait APIService {
   this: LocationExtraction
