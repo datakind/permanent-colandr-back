@@ -69,7 +69,11 @@ Create pdfestrian.conf in the conf directory (You can copy pdfestrian_default.co
     "auth" : "plaintext", // Specify the type of authentication. The options are "none" or "plaintext"
     "keys" : {
       "colandr": "thepassword" //Specify a map from user to password for authentication
-    }
+    },
+    "min_to_train" : 40, // Minimum number of labels needed start training a model
+    "increase_to_retrain" : 5, // Number of additional labels needed to retrain
+    "threshold" : 0.65, // The minimum probability under the model of a prediction to show to user
+    "w2vSource" : "glove.6B.50d.txt.gz" // The name of the resource in classpath (config directory) to use for w2v vectors
   }
 }
 ```
