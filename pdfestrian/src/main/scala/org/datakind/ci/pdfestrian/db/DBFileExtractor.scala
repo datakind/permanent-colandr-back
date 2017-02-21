@@ -4,6 +4,7 @@ import java.sql.ResultSet
 
 import org.datakind.ci.pdfestrian.api.apiservice.Record
 import org.datakind.ci.pdfestrian.api.apiservice.components.Access
+import org.datakind.ci.pdfestrian.trainingData.GetTrainingData
 
 import scala.collection.mutable.ListBuffer
 
@@ -39,4 +40,19 @@ class DBFileExtractor extends Access {
       items += getItem(results)
     items
   }
+
+  /**
+    * Get all training data from a review
+    * @param review the id of the review
+    * @return an array of [[org.datakind.ci.pdfestrian.trainingData.TrainingData]] instances
+    */
+  def getTrainingData(review : Int) = (new GetTrainingData).getTrainingData(review)
+
+  /**
+    * Gets all the training data from the review, but doesn't get the fulltext
+    * @param review the id of the review
+    * @return an array of [[org.datakind.ci.pdfestrian.trainingData.TrainingData]] instances with empty fulltext content
+    */
+  def getTrainingLabels(review : Int) = (new GetTrainingData).getLabels(review)
+
 }

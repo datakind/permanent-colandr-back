@@ -1,9 +1,12 @@
 package org.datakind.ci.pdfestrian.pdfExtraction
 
 import java.io.{BufferedWriter, File, FileWriter}
+
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.tools.PDFText2HTML
+
+import scala.tools.nsc.interpreter.InputStream
 
 object ExtractText {
 
@@ -21,11 +24,31 @@ object ExtractText {
       }
       val stream = PDDocument.load(file)
       val textExtractor = new PDFTextStripper
-      textExtractor.getText(stream)
+      val txt = textExtractor.getText(stream)
+      stream.close()
+      txt
     } catch {
       case e : Exception => ""
     }
   }
+
+  /**
+    * Extracts text from PDF inputstream.
+    * @param inputstream inputstream of PDF to extract
+    * @return fulltext extracted from PDF if possible
+    */
+  def extractText(inputstream : InputStream) : String = {
+    try {
+      val stream = PDDocument.load(inputstream)
+      val textExtractor = new PDFTextStripper
+      val txt = textExtractor.getText(stream)
+      stream.close()
+      txt
+    } catch {
+      case e : Exception => ""
+    }
+  }
+
 
   /**
     * Extracts HTML version of PDF from PDF.
@@ -41,11 +64,14 @@ object ExtractText {
       }
       val stream = PDDocument.load(file)
       val textExtractor = new PDFText2HTML
-      textExtractor.getText(stream)
+      val html = textExtractor.getText(stream)
+      stream.close()
+      html
     } catch {
       case e : Exception => ""
     }
   }
+
   case class ExtractTextConfig(filename : String = "", html : Boolean = false)
   val parser = new scopt.OptionParser[ExtractTextConfig]("extractText") {
     head("extractText", "0.1")

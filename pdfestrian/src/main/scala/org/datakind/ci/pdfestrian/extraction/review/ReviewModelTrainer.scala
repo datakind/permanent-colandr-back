@@ -1,5 +1,6 @@
 package org.datakind.ci.pdfestrian.extraction.review
 
+import org.datakind.ci.pdfestrian.api.apiservice.components.Access
 import org.datakind.ci.pdfestrian.document.PDFToDocument
 import org.datakind.ci.pdfestrian.extraction.features.CombinedSent
 import org.datakind.ci.pdfestrian.trainingData.{GetTrainingData, MultiValue, SingleValue, TrainingData}
@@ -8,8 +9,9 @@ import org.datakind.ci.pdfestrian.trainingData.{GetTrainingData, MultiValue, Sin
   * Class that can train a [[ReviewModel]], determines if a model should be trained based on the parameters
   * @param minLabels minimum number of labels need to start training
   * @param increaseRequirement number of new labels needs to retrain
+  * @param w2vSource the resource name of the w2v vectors
   */
-class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
+class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Access, w2vSource : String) {
 
   /**
     * Gets counts of different labels
@@ -40,7 +42,7 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
     */
   def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData], reviewId : Int) : (Boolean, ReviewModel) = {
     splitLabels(trainingData).filter(_._2.trainingSize > minLabels) match {
-      case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).sum > prevModel.labels.map(_._2.trainingSize).sum + increaseRequirement =>
+      case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).max > prevModel.labels.map(_._2.trainingSize).max + increaseRequirement =>
         (true, train(reviewId))
       case a : Map[String, ReviewLabel] =>
         (false, prevModel)
@@ -56,8 +58,10 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
   def startTrain(trainingData : Array[TrainingData], reviewId : Int) : Option[ReviewModel] = {
     val labels = splitLabels(trainingData)
     labels.filter(_._2.trainingSize > minLabels) match {
-      case a : Map[String, ReviewLabel] if a.isEmpty => None
-      case a : Map[String, ReviewLabel] => Some(train(reviewId))
+      case a : Map[String, ReviewLabel] if a.isEmpty =>
+        None
+      case a : Map[String, ReviewLabel] =>
+        Some(train(reviewId))
     }
   }
 
@@ -68,7 +72,7 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
     */
   private def train(reviewId : Int) : ReviewModel = {
 
-    val trainingData = GetTrainingData(reviewId)
+    val trainingData = access.getTrainingData(reviewId)
 
     val pdf2doc = PDFToDocument(trainingData)
 
@@ -83,7 +87,7 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int) {
         map + (label -> (map.getOrElse(label, 0) + 1))
       }
 
-    val featureExtractor = CombinedSent(trainingData, pdf2doc)
+    val featureExtractor = CombinedSent(trainingData, pdf2doc, w2vSource)
 
     val model = new ReviewModel(labels, labelCounts, trainingData.length, featureExtractor, pdf2doc)
     model.train(trainingData)

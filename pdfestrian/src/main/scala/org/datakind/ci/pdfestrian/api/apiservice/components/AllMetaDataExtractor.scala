@@ -25,12 +25,27 @@ trait AllMetaDataExtraction {
   val allMetaDataExtractor : AllMetaDataExtractor
 
   /**
+    * Resource name of w2v vectors
+    */
+  val w2vSource : String
+
+  /**
+    * Get access to DB
+    */
+  val access : Access
+
+  /**
     * Takes in a DB record, and returns a seq to predicted metadata
     * @param record DB record
     * @return predicted metadata
     */
   def extractData(record: Record) : Seq[Metadata] =
-    allMetaDataExtractor.extractData(record, minimum, numMoreDataToRetrain, threshold)
+    allMetaDataExtractor.extractData(record,
+      access,
+      w2vSource,
+      minimum,
+      numMoreDataToRetrain,
+      threshold)
 }
 
 /**
@@ -45,5 +60,10 @@ trait AllMetaDataExtractor {
     * @param threshold Probability threshold to return a metadata
     * @return Seq of predicted metadata
     */
-  def extractData(record: Record, min : Int, numMoreDataToRetrain : Int, threshold : Double) : Seq[Metadata]
+  def extractData(record: Record,
+                  access: Access,
+                  w2vSource : String,
+                  min : Int,
+                  numMoreDataToRetrain : Int,
+                  threshold : Double) : Seq[Metadata]
 }

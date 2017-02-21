@@ -74,20 +74,3 @@ class GetTrainingData {
     items
   }
 }
-
-object GetTrainingData {
-
-  /**
-    * Get all training data from a review
-    * @param review the id of the review
-    * @return an array of [[TrainingData]] instances
-    */
-  def apply(review : Int) = (new GetTrainingData).getTrainingData(review)
-
-  /**
-    * Gets all the training data from the review, but doesn't get the fulltext
-    * @param review the id of the review
-    * @return an array of [[TrainingData]] instances with empty fulltext content
-    */
-  def labelsOnly(review : Int) = (new GetTrainingData).getLabels(review)
-}

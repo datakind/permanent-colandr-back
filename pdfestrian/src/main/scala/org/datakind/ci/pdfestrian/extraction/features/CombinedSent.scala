@@ -45,8 +45,8 @@ object CombinedSent {
     * @param pdf2doc PDFToDocument object
     * @return CombinedSent feature vectorizer
     */
-  def apply(trainingData: Seq[TrainingData], pdf2doc: PDFToDocument) = {
+  def apply(trainingData: Seq[TrainingData], pdf2doc: PDFToDocument, w2vSource : String) = {
     val documents = trainingData.map(td => pdf2doc.fromString(td.fullText)._1)
-    new CombinedSent(Word2VecSent(documents), TfIdfSent(documents))
+    new CombinedSent(Word2VecSent(documents, w2vSource), TfIdfSent(documents))
   }
 }

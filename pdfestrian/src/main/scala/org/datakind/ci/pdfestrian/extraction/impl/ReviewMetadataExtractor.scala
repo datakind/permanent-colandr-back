@@ -1,7 +1,7 @@
 package org.datakind.ci.pdfestrian.extraction.impl
 
 import org.datakind.ci.pdfestrian.api.apiservice.{Metadata, Record}
-import org.datakind.ci.pdfestrian.api.apiservice.components.AllMetaDataExtractor
+import org.datakind.ci.pdfestrian.api.apiservice.components.{Access, AllMetaDataExtractor}
 import org.datakind.ci.pdfestrian.extraction.review.ReviewModels
 
 /**
@@ -17,8 +17,8 @@ class ReviewMetadataExtractor extends AllMetaDataExtractor {
     * @param threshold Probability threshold to return a metadata
     * @return Seq of predicted metadata
     */
-  def extractData(record: Record, min : Int, numMoreDataToRetrain : Int, threshold : Double): Seq[Metadata] = {
-    ReviewModels.getModel(record.reviewId, min, numMoreDataToRetrain) match {
+  def extractData(record: Record, access : Access, w2vSource : String, min : Int, numMoreDataToRetrain : Int, threshold : Double): Seq[Metadata] = {
+    ReviewModels.getModel(record.reviewId, access, w2vSource, min, numMoreDataToRetrain) match {
       case None => Seq()
       case Some(model) => model.classifier match {
         case None => Seq()

@@ -13,19 +13,16 @@ import scala.io.Source
   * @param N Number of "documents" (sentences) in corpus
   *          Needs to be greater than any count of wordCounts and bigram counts to be a valid tfidf
   */
-class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
+class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int, w2vSource : String = "glove.6B.50d.txt.gz") {
 
-  private val vectors = Source.fromInputStream(new GZIPInputStream(getClass.getResourceAsStream("/glove.6B.50d.txt.gz"))).getLines().map { word =>
-    val split = word.split(" ")
-    split.head -> split.takeRight(50).map{_.toFloat}
-  }.toMap
+  private val vectors = W2VVectors(w2vSource)
 
   private val arrayCounts = wordCounts.map{ _._2.swap}.toSeq.sortBy(_._1).map{_._2}
   private val words = wordCounts.map{ a => a._2._2 -> a._1}.toSeq.sortBy(_._1).map{_._2}
 
   private val stopWords = Source.fromInputStream(getClass.getResourceAsStream("/stopwords.txt")).getLines().map{ _.toLowerCase}.toSet
 
-  val featureSize = 51
+  val featureSize = vectors.dim+1
 
   private def clean(string : String) : String = {
     val lower = string.toLowerCase()
@@ -47,9 +44,9 @@ class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
     for (token <- sentence.tokens) {
       val current = clean(token.string)
       if (current.length > 0 && current.count(_.isLetter) > 0 && !stopWords.contains(current)) {
-        if (wordCounts.contains(current) && vectors.contains(current)) {
+        if (wordCounts.contains(current) && vectors.words.contains(current)) {
           val count = wordCounts(current)
-          tensor += (new DenseTensor1(vectors(current).map {
+          tensor += (new DenseTensor1(vectors.words(current).vector.map {
             _.toDouble
           }) * idf(count._2))
           wordsInTensor += 1
@@ -58,7 +55,7 @@ class Word2VecSent(wordCounts : Map[String, (Int, Int)], N : Int) {
     }
     tensor /= wordsInTensor.toDouble
     tensor /= tensor.twoNorm
-    tensor(50) = location
+    tensor(vectors.dim) = location
     tensor
   }
 
@@ -71,7 +68,7 @@ object Word2VecSent {
     * @param docs Documents out of corpus
     * @return a Word2VecSent feature vectorizer
     */
-  def apply(docs : Seq[Document]) = {
+  def apply(docs : Seq[Document], w2vSource : String = "glove.6B.50d.txt.gz") = {
     var  i = -1
 
     val unigrams = GetCounts.getUnigramCounts(docs, stemmmer = false)
@@ -81,7 +78,7 @@ object Word2VecSent {
       m._1 -> (m._2, i)
     }
 
-    new Word2VecSent(wordCounts, wordCounts.values.maxBy(_._1)._1+1)
+    new Word2VecSent(wordCounts, wordCounts.values.maxBy(_._1)._1+1, w2vSource)
 
   }
 }

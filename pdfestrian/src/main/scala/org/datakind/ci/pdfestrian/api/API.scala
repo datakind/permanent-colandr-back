@@ -2,7 +2,7 @@ package org.datakind.ci.pdfestrian.api
 
 import com.typesafe.config.ConfigFactory
 import configs.Configs
-import org.datakind.ci.pdfestrian.api.apiservice.APIService
+import org.datakind.ci.pdfestrian.api.apiservice.APIServiceImpl
 import org.datakind.ci.pdfestrian.api.apiservice.components._
 import org.datakind.ci.pdfestrian.db.DBFileExtractor
 import org.datakind.ci.pdfestrian.extraction.impl.{GetAllLocations, ReviewMetadataExtractor}
@@ -11,11 +11,7 @@ import org.datakind.ci.pdfestrian.extraction.impl.{GetAllLocations, ReviewMetada
   * Implements API, reads configuration using typesafe.config and launches service using
   * the information in config file
   */
-object API extends APIService
-  with LocationExtraction
-  with FileRetriever
-  with AllMetaDataExtraction
-  with AuthorizationComponent {
+object API extends APIServiceImpl {
 
   val config = ConfigFactory.load("pdfestrian.conf")
 
@@ -28,6 +24,7 @@ object API extends APIService
   val minimum: Int = Configs[Int].get(config, "pdfestrian.min_to_train").valueOrElse(40)
   val numMoreDataToRetrain: Int = Configs[Int].get(config, "pdfestrian.increase_to_retrain").valueOrElse(5)
   val threshold: Double = Configs[Double].get(config, "pdfestrian.threshold").valueOrElse(0.65)
+  val w2vSource: String = Configs[String].get(config, "pdfestrian.w2vSource").valueOrElse("glove.6B.50d.txt.gz")
 
   val allMetaDataExtractor: AllMetaDataExtractor = new ReviewMetadataExtractor
 }

@@ -76,7 +76,7 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
       return Seq()
     val sentences = pl.sentences.toArray
       .filterNot(s => s.string.contains("org.apache"))
-      .filter(_.string.length > 70)
+      .filter(_.string.length > 50)
     val length = sentences.length
     sentences.zipWithIndex.map { case (sent, i) =>
       val f = featureExtractor(sent, i.toDouble / length.toDouble)
@@ -124,11 +124,14 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
   }
 
   private def trainDataToFeature(td : TrainingData) : Seq[RankLabel] = {
-    val labels = td.labels.flatMap{
+    val featurelabels = td.labels.flatMap{
       case MultiValue(labelName, values) => values.map{ v => labelName + ":" + v }
       case SingleValue(labelName, value) => Array(labelName + ":" + value)
+    }.filter { label =>
+      val split = label.split(':').head
+      labels.contains(split)
     }
-    docToFeature(pdf2Doc.fromString(td.fullText, td.id.toString)._1, labels)
+    docToFeature(pdf2Doc.fromString(td.fullText, td.id.toString)._1, featurelabels)
   }
 
   /** Classifier takes in a LVC and can get classify documents and vectores **/
@@ -167,9 +170,10 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
 
       labels.flatMap { l =>
 
-        classifier.classification(l.feature.value).prediction.toArray
+        val classifications = classifier.classification(l.feature.value).prediction.toArray
           .zipWithIndex.map { p => (p._2, p._1, l.sentence) }
-          .filter(l => sigmoid(l._2) > threshold).map { p =>
+
+        classifications.filter(l => sigmoid(l._2) > threshold).map { p =>
 
           val document = l.sentence.document
 
