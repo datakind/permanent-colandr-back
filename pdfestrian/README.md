@@ -59,7 +59,7 @@ Add w2v vectors to the config directory:
 
 ```
 $ ./bin/download_vectors.sh
-``
+```
 
 Create pdfestrian.conf in the conf directory (You can copy pdfestrian_default.conf):
 ```json
