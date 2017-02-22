@@ -28,6 +28,8 @@ class PasswordResetResource(Resource):
         params={
             'email': {'in': 'query', 'type': 'string', 'required': True,
                       'description': 'email of user whose password is to be reset'},
+            'server_name': {'in': 'query', 'type': 'string', 'default': None,
+                            'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
@@ -39,9 +41,10 @@ class PasswordResetResource(Resource):
     @use_kwargs({
         'email': ma_fields.Str(
             required=True, validate=Email()),
+        'server_name': ma_fields.Str(missing=None),
         'test': ma_fields.Boolean(missing=False)
         })
-    def post(self, email, test):
+    def post(self, email, server_name, test):
         """reset user's password"""
         user = db.session.query(User).filter_by(email=email).one_or_none()
         if user is None:
@@ -53,10 +56,11 @@ class PasswordResetResource(Resource):
                     args=[[email], 'Reset Password?', '', html])
         else:
             token = generate_confirmation_token(user.email)
-            # confirm_url = url_for(
-            #     'confirmpasswordresetresource', token=token, _external=True)
-            confirm_url = api_.url_for(
-                ConfirmPasswordResetResource, token=token, _external=True)
+            if server_name:
+                confirm_url = server_name + '{}/{}'.format(ns.path, token)
+            else:
+                confirm_url = api_.url_for(
+                    ConfirmPasswordResetResource, token=token, _external=True)
             html = render_template(
                 'emails/password_reset.html',
                 username=user.name, confirm_url=confirm_url)

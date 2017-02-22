@@ -21,6 +21,7 @@ class Config(object):
     LOGGER_NAME = 'colandr'
     JSON_AS_ASCII = False
     CONFIRM_TOKEN_EXPIRATION = 3600
+    APP_URL_DOMAIN = 'http://localhost:5000/api'
 
     # celery+redis config
     CELERY_BROKER_URL = 'redis://localhost:6379/0'
@@ -60,8 +61,8 @@ class Config(object):
     MAIL_USE_SSL = False
     MAIL_USERNAME = os.environ['COLANDR_MAIL_USERNAME']
     MAIL_PASSWORD = os.environ['COLANDR_MAIL_PASSWORD']
-    MAIL_DEFAULT_SENDER = 'Colandr <{}>'.format(MAIL_USERNAME)
-    MAIL_SUBJECT_PREFIX = '[Colandr]'
+    MAIL_DEFAULT_SENDER = 'colandr <{}>'.format(MAIL_USERNAME)
+    MAIL_SUBJECT_PREFIX = '[colandr]'
     MAIL_ADMINS = ['burtdewilde@gmail.com']
 
     @staticmethod

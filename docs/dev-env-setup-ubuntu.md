@@ -15,6 +15,13 @@ $ sudo apt-get install git
 
 ## Set Up PostgreSQL
 
+If you want to use a postgres database on another server (like RDS) you can skip this step, however you will need to install 
+postgres libraries for python to read from it:
+
+```
+$ sudo apt-get install libpq-dev
+```
+
 Install with apt-get, you need to add a new source first:
 
 ```
@@ -184,7 +191,7 @@ Lastly add the repository directory to your `PYTHONPATH` environment variable by
 export PYTHONPATH=/path/to/conservation-intl/:$PYTHONPATH
 ```
 
-##To install the scala tools that perform some NLP and pdf extraction tasks:
+## To install the scala tools that perform some NLP and pdf extraction tasks:
 
 If you need to install java:
 
@@ -198,5 +205,7 @@ $ sudo apt-get install maven
 Go into the pdfestrian directory and install the library:
 ```
 $ cd pdfestrian
-$ mvn install
+$ mvn package
 ```
+
+see pdfestrian/README.md for usage instructions of pdfestrian

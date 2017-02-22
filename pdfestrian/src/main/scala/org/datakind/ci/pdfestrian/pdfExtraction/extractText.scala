@@ -1,32 +1,60 @@
 package org.datakind.ci.pdfestrian.pdfExtraction
 
-import java.io.{BufferedWriter, File, FileInputStream, FileWriter}
+import java.io.{BufferedWriter, File, FileWriter}
 
-import org.apache.pdfbox.pdfparser.{PDFParser, PDFStreamParser}
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.text.PDFTextStripper
 import org.apache.pdfbox.tools.PDFText2HTML
 
-/**
-  * Created by sam on 10/2/16.
-  */
-object extractText {
+import scala.tools.nsc.interpreter.InputStream
 
+object ExtractText {
+
+  /**
+    * Extracts text from PDF.
+    * @param filename file path of PDF to extract
+    * @return fulltext extracted from PDF if possible
+    */
   def extractText(filename : String) : String = {
     try {
       val file = new File(filename)
       if(!file.exists()) {
-        println("File doesn't exist")
+        sys.error("File doesn't exist")
         return ""
       }
       val stream = PDDocument.load(file)
       val textExtractor = new PDFTextStripper
-      textExtractor.getText(stream)
+      val txt = textExtractor.getText(stream)
+      stream.close()
+      txt
     } catch {
       case e : Exception => ""
     }
   }
 
+  /**
+    * Extracts text from PDF inputstream.
+    * @param inputstream inputstream of PDF to extract
+    * @return fulltext extracted from PDF if possible
+    */
+  def extractText(inputstream : InputStream) : String = {
+    try {
+      val stream = PDDocument.load(inputstream)
+      val textExtractor = new PDFTextStripper
+      val txt = textExtractor.getText(stream)
+      stream.close()
+      txt
+    } catch {
+      case e : Exception => ""
+    }
+  }
+
+
+  /**
+    * Extracts HTML version of PDF from PDF.
+    * @param filename file path of PDF to extract
+    * @return HTML version of PDF if possible
+    */
   def extractHTML(filename : String) : String = {
     try {
       val file = new File(filename)
@@ -36,11 +64,14 @@ object extractText {
       }
       val stream = PDDocument.load(file)
       val textExtractor = new PDFText2HTML
-      textExtractor.getText(stream)
+      val html = textExtractor.getText(stream)
+      stream.close()
+      html
     } catch {
       case e : Exception => ""
     }
   }
+
   case class ExtractTextConfig(filename : String = "", html : Boolean = false)
   val parser = new scopt.OptionParser[ExtractTextConfig]("extractText") {
     head("extractText", "0.1")
@@ -64,24 +95,24 @@ object extractText {
   }
 }
 
-object extractTextDirectory {
+object ExtractTextDirectory {
   def main (args: Array[String] ): Unit = {
     val dir = new File(args.head)
     for(file <- dir.listFiles(); if file.getAbsolutePath.endsWith(".pdf")) {
       val out = new BufferedWriter(new FileWriter(file.getAbsolutePath + ".txt"))
-      out.write(extractText.extractText(file.getAbsolutePath))
+      out.write(ExtractText.extractText(file.getAbsolutePath))
       out.flush()
       out.close()
     }
   }
 }
 
-object extractHtmlDirectory {
+object ExtractHtmlDirectory {
   def main (args: Array[String] ): Unit = {
     val dir = new File(args.head)
     for(file <- dir.listFiles(); if file.getAbsolutePath.endsWith(".pdf")) {
       val out = new BufferedWriter(new FileWriter(file.getAbsolutePath + ".html"))
-      out.write(extractText.extractHTML(file.getAbsolutePath))
+      out.write(ExtractText.extractHTML(file.getAbsolutePath))
       out.flush()
       out.close()
     }
