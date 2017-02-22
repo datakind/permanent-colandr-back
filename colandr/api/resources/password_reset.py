@@ -57,7 +57,7 @@ class PasswordResetResource(Resource):
         else:
             token = generate_confirmation_token(user.email)
             if server_name:
-                confirm_url = server_name + '/{}'.format(token)
+                confirm_url = server_name + '{}/{}'.format(ns.path, token)
             else:
                 confirm_url = api_.url_for(
                     ConfirmPasswordResetResource, token=token, _external=True)
