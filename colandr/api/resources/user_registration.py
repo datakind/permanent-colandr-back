@@ -24,19 +24,27 @@ class UserRegistrationResource(Resource):
 
     @ns.doc(
         params={
+            'server_name': {'in': 'query', 'type': 'string', 'default': None,
+                            'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'}
             },
         body=(user_model, 'user data to be registered'),
         )
     @use_args(UserSchema())
-    @use_kwargs({'test': ma_fields.Boolean(missing=False)})
-    def post(self, args, test):
+    @use_kwargs({
+        'server_name': ma_fields.Str(missing=None),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def post(self, args, server_name, test):
         """submit new user registration"""
         user = User(**args)
         token = generate_confirmation_token(user.email)
-        confirm_url = api_.url_for(
-            ConfirmUserRegistrationResource, token=token, _external=True)
+        if server_name:
+            confirm_url = server_name + '/{}'.format(token)
+        else:
+            confirm_url = api_.url_for(
+                ConfirmUserRegistrationResource, token=token, _external=True)
         html = render_template(
             'emails/user_registration.html',
             username=user.name, confirm_url=confirm_url)

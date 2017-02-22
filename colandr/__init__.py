@@ -144,15 +144,15 @@ def create_app(config_name):
 
     @app.errorhandler(Exception)
     def handle_error(err):
-        app.logger.error(err.exc.messages)
-        return jsonify({'errors': err.exc.messages}), 500
+        app.logger.error(str(err))
+        return jsonify({'errors': str(err)}), 500
 
     @app.errorhandler(SQLAlchemyError)
     def handle_sqlalchemy_error(err):
         app.logger.error('db unable to handle request! rolling back...')
         db.session.rollback()
         db.session.remove()
-        return jsonify({'errors': err.exc.messages}), 500
+        return jsonify({'errors': str(err)}), 500
 
     @app.errorhandler(422)
     def handle_validation_error(err):
