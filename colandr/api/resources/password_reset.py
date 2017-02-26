@@ -10,6 +10,7 @@ from ...models import db, User
 from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..registration import confirm_token, generate_confirmation_token
+from ..schemas import UserSchema
 
 
 ns = api_.namespace(
@@ -80,6 +81,7 @@ class ConfirmPasswordResetResource(Resource):
     @ns.doc(
         responses={
             200: 'password reset successfully confirmed',
+            404: 'no user found with given email',
             422: 'invalid or expired password reset link',
             }
         )
@@ -92,8 +94,39 @@ class ConfirmPasswordResetResource(Resource):
             return validation_error('the password reset link is invalid or has expired')
         user = db.session.query(User).filter_by(email=email).one_or_none()
         if not user:
-            return not_found_error("sorry! we couldn't find you in our database")
+            return not_found_error('no user found with email = "{}"'.format(email))
         if user.is_confirmed is False:
             return forbidden_error('user not confirmed! please first confirm your email address.')
-        # TODO: now what???
         current_app.logger.info('password reset confirmed by %s', email)
+
+    @ns.doc(
+        params={
+            'password': {'in': 'body', 'type': 'string', 'required': True,
+                         'description': 'new user password to be set'},
+            'test': {'in': 'query', 'type': 'boolean', 'default': False,
+                     'description': 'if True, request will be validated but no data will be affected'},
+            },
+        responses={
+            200: 'new user password successfully set',
+            404: 'no user found with given email'
+            }
+        )
+    @use_kwargs({
+        'token': ma_fields.String(required=True, location='view_args'),
+        'password': ma_fields.String(required=True, location='json'),
+        'test': ma_fields.Boolean(missing=False)
+        })
+    def put(self, token, password, test):
+        """set new user password after confirming reset request"""
+        email = confirm_token(token, max_age=None)
+        user = db.session.query(User).filter_by(email=email).one_or_none()
+        # this should never happen, but *just to be safe*
+        if not user:
+            return not_found_error('no user found with email = "{}"'.format(email))
+        user.password = User.hash_password(password)
+        if test is False:
+            db.session.commit()
+            current_app.logger.info('modified %s', user)
+        else:
+            db.session.rollback()
+        return UserSchema().dump(user).data
