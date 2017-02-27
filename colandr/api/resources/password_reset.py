@@ -3,7 +3,7 @@ from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
-from webargs.flaskparser import use_kwargs
+from webargs.flaskparser import use_args, use_kwargs
 
 from colandr import api_
 from ...models import db, User
@@ -102,7 +102,7 @@ class ConfirmPasswordResetResource(Resource):
     @ns.doc(
         params={
             'password': {'in': 'body', 'type': 'string', 'required': True,
-                         'description': 'new user password to be set'},
+                         'description': 'new user password to be set; min/max length requirements enforced'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
@@ -111,19 +111,19 @@ class ConfirmPasswordResetResource(Resource):
             404: 'no user found with given email'
             }
         )
+    @use_args(UserSchema(only=['password']))
     @use_kwargs({
         'token': ma_fields.String(required=True, location='view_args'),
-        'password': ma_fields.String(required=True, location='json'),
         'test': ma_fields.Boolean(missing=False)
         })
-    def put(self, token, password, test):
+    def put(self, args, token, test):
         """set new user password after confirming reset request"""
         email = confirm_token(token, max_age=None)
         user = db.session.query(User).filter_by(email=email).one_or_none()
         # this should never happen, but *just to be safe*
         if not user:
             return not_found_error('no user found with email = "{}"'.format(email))
-        user.password = User.hash_password(password)
+        user.password = User.hash_password(args['password'])
         if test is False:
             db.session.commit()
             current_app.logger.info('modified %s', user)
