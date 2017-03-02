@@ -21,7 +21,11 @@ class GetTrainingData {
     */
   def getTrainingData(reviewId : Int) : Array[TrainingData] = {
     val cx = Datasource.getConnection
-    val query = cx.prepareStatement("select f.id, de.extracted_items, f.text_content from data_extractions as de inner join fulltexts as f on f.id=de.id where extracted_items != '{}' and extracted_items != '[]' and f.review_id=?")
+    val query = cx.prepareStatement("select f.id, de.extracted_items, f.text_content from data_extractions as de " +
+      "inner join fulltexts as f on f.id=de.id " +
+      "where extracted_items != '{}' and " +
+      "extracted_items != '[]' and " +
+      "f.review_id=? and f.text_content IS NOT NULL")
     try {
       query.setInt(1, reviewId)
       toRecord(query.executeQuery())
@@ -38,7 +42,11 @@ class GetTrainingData {
     */
   def getLabels(reviewId : Int) : Array[TrainingData] = {
     val cx = Datasource.getConnection
-    val query = cx.prepareStatement("select f.id, de.extracted_items from data_extractions as de inner join fulltexts as f on f.id=de.id where extracted_items != '{}' and extracted_items != '[]' and f.review_id=?")
+    val query = cx.prepareStatement("select f.id, de.extracted_items from data_extractions as de " +
+      "inner join fulltexts as f on f.id=de.id " +
+      "where extracted_items != '{}' and " +
+      "extracted_items != '[]' and " +
+      "f.review_id=? and f.text_content IS NOT NULL")
     try {
       query.setInt(1, reviewId)
       labelsToRecord(query.executeQuery())
