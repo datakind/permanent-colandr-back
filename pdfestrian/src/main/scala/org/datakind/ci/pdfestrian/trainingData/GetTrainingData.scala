@@ -38,7 +38,7 @@ class GetTrainingData {
     */
   def getLabels(reviewId : Int) : Array[TrainingData] = {
     val cx = Datasource.getConnection
-    val query = cx.prepareStatement("select de.id, de.extracted_items from data_extractions as de where extracted_items != '{}' and extracted_items != '[]' and de.review_id=?")
+    val query = cx.prepareStatement("select f.id, de.extracted_items from data_extractions as de inner join fulltexts as f on f.id=de.id where extracted_items != '{}' and extracted_items != '[]' and f.review_id=?")
     try {
       query.setInt(1, reviewId)
       labelsToRecord(query.executeQuery())

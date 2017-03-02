@@ -44,7 +44,7 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Ac
     */
   def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData], reviewId : Int) : (Boolean, ReviewModel) = {
     splitLabels(trainingData).filter(_._2.trainingSize > minLabels) match {
-      case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).max > prevModel.labels.map(_._2.trainingSize).max + increaseRequirement =>
+      case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).max >= prevModel.labels.map(_._2.trainingSize).max + increaseRequirement =>
         logger.info(s"Training new model ${a.map(_._2.trainingSize).max} old: ${prevModel.labels.map(_._2.trainingSize).max} and increase is $increaseRequirement")
         (true, train(reviewId))
       case a : Map[String, ReviewLabel] =>
