@@ -1,4 +1,4 @@
-from flask import g, current_app, render_template, url_for
+from flask import g, current_app, render_template
 from flask_restplus import Resource
 
 from itsdangerous import URLSafeSerializer
@@ -73,6 +73,8 @@ class ReviewTeamResource(Resource):
                         'description': 'unique id of the user on which to act'},
             'user_email': {'in': 'query', 'type': 'string', 'format': 'email',
                            'description': 'email address of the user to invite'},
+            'server_name': {'in': 'query', 'type': 'string', 'default': None,
+                            'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
             'test': {'in': 'query', 'type': 'boolean', 'default': False,
                      'description': 'if True, request will be validated but no data will be affected'},
             },
@@ -90,9 +92,10 @@ class ReviewTeamResource(Resource):
         'user_id': ma_fields.Int(
             missing=None, validate=Range(min=1, max=constants.MAX_INT)),
         'user_email': ma_fields.Email(missing=None),
+        'server_name': ma_fields.Str(missing=None),
         'test': ma_fields.Bool(missing=False)
         })
-    def put(self, id, action, user_id, user_email, test):
+    def put(self, id, action, user_id, user_email, server_name, test):
         """add, invite, remove, or promote a review team member"""
         review = db.session.query(Review).get(id)
         if not review:
@@ -121,12 +124,16 @@ class ReviewTeamResource(Resource):
             serializer = URLSafeSerializer(current_app.config['SECRET_KEY'])
             token = serializer.dumps(
                 user_email, salt=current_app.config['PASSWORD_SALT'])
-            url = url_for(
-                'confirmreviewteaminviteresource',
-                id=id, token=token, _external=True)
+            if server_name:
+                confirm_url = server_name + '{}/{}/team/confirm?token={}'.format(
+                    ns.path, id, token)
+            else:
+                confirm_url = api_.url_for(
+                    ConfirmReviewTeamInviteResource,
+                    id=id, token=token, _external=True)
             html = render_template(
                 'emails/invite_user_to_review.html',
-                url=url, inviter_email=g.current_user.email, review_name=review.name)
+                url=confirm_url, inviter_email=g.current_user.email, review_name=review.name)
             if test is False:
                 send_email.apply_async(
                     args=[[user_email], "Let's collaborate!", '', html])
