@@ -43,7 +43,10 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Ac
     * @return tuple of (whether a new model was trained, and the current model)
     */
   def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData], reviewId : Int) : (Boolean, ReviewModel) = {
-    splitLabels(trainingData).filter(_._2.trainingSize > minLabels) match {
+    splitLabels(trainingData).filter(_._2.trainingSize >= minLabels) match {
+      case a : Map[String, ReviewLabel] if a.isEmpty =>
+        logger.info(s"Not training new model, not enough data")
+        (false, prevModel)
       case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).max >= prevModel.labels.map(_._2.trainingSize).max + increaseRequirement =>
         logger.info(s"Training new model ${a.map(_._2.trainingSize).max} old: ${prevModel.labels.map(_._2.trainingSize).max} and increase is $increaseRequirement")
         (true, train(reviewId))
@@ -61,6 +64,10 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Ac
     */
   def startTrain(trainingData : Array[TrainingData], reviewId : Int) : Option[ReviewModel] = {
     val labels = splitLabels(trainingData)
+    if(labels.isEmpty) {
+      logger.info("No labels exists")
+      return None
+    }
     labels.filter(_._2.trainingSize >= minLabels) match {
       case a : Map[String, ReviewLabel] if a.isEmpty =>
         logger.info(s"Not training model ${labels.map(_._2.trainingSize).max} < $minLabels")
