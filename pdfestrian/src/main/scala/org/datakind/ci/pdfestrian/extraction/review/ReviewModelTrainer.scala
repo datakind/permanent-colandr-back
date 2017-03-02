@@ -4,6 +4,7 @@ import org.datakind.ci.pdfestrian.api.apiservice.components.Access
 import org.datakind.ci.pdfestrian.document.PDFToDocument
 import org.datakind.ci.pdfestrian.extraction.features.CombinedSent
 import org.datakind.ci.pdfestrian.trainingData.{GetTrainingData, MultiValue, SingleValue, TrainingData}
+import org.slf4j.LoggerFactory
 
 /**
   * Class that can train a [[ReviewModel]], determines if a model should be trained based on the parameters
@@ -12,6 +13,7 @@ import org.datakind.ci.pdfestrian.trainingData.{GetTrainingData, MultiValue, Sin
   * @param w2vSource the resource name of the w2v vectors
   */
 class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Access, w2vSource : String) {
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
     * Gets counts of different labels
@@ -43,8 +45,10 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Ac
   def compareAndTrain(prevModel : ReviewModel, trainingData: Array[TrainingData], reviewId : Int) : (Boolean, ReviewModel) = {
     splitLabels(trainingData).filter(_._2.trainingSize > minLabels) match {
       case a : Map[String, ReviewLabel] if a.map(_._2.trainingSize).max > prevModel.labels.map(_._2.trainingSize).max + increaseRequirement =>
+        logger.info(s"Training new model ${a.map(_._2.trainingSize).max} old: ${prevModel.labels.map(_._2.trainingSize).max} and increase is $increaseRequirement")
         (true, train(reviewId))
       case a : Map[String, ReviewLabel] =>
+        logger.info(s"Not training new model ${a.map(_._2.trainingSize).max} old: ${prevModel.labels.map(_._2.trainingSize).max} and increase is $increaseRequirement")
         (false, prevModel)
     }
   }
@@ -57,10 +61,12 @@ class ReviewModelTrainer(minLabels : Int, increaseRequirement : Int, access : Ac
     */
   def startTrain(trainingData : Array[TrainingData], reviewId : Int) : Option[ReviewModel] = {
     val labels = splitLabels(trainingData)
-    labels.filter(_._2.trainingSize > minLabels) match {
+    labels.filter(_._2.trainingSize >= minLabels) match {
       case a : Map[String, ReviewLabel] if a.isEmpty =>
+        logger.info(s"Not training model ${labels.map(_._2.trainingSize).max} < $minLabels")
         None
       case a : Map[String, ReviewLabel] =>
+        logger.info(s"Training model ${labels.map(_._2.trainingSize).max} >= $minLabels")
         Some(train(reviewId))
     }
   }

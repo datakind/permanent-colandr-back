@@ -6,13 +6,13 @@ import org.datakind.ci.pdfestrian.api.apiservice.APIServiceImpl
 import org.datakind.ci.pdfestrian.api.apiservice.components._
 import org.datakind.ci.pdfestrian.db.DBFileExtractor
 import org.datakind.ci.pdfestrian.extraction.impl.{GetAllLocations, ReviewMetadataExtractor}
+import org.slf4j.LoggerFactory
 
 /**
   * Implements API, reads configuration using typesafe.config and launches service using
   * the information in config file
   */
 object API extends APIServiceImpl {
-
   val config = ConfigFactory.load("pdfestrian.conf")
 
   val keyMap = Configs[Map[String,String]].get(config, "pdfestrian.keys").valueOrElse(Map())
@@ -27,4 +27,8 @@ object API extends APIServiceImpl {
   val w2vSource: String = Configs[String].get(config, "pdfestrian.w2vSource").valueOrElse("glove.6B.50d.txt.gz")
 
   val allMetaDataExtractor: AllMetaDataExtractor = new ReviewMetadataExtractor
+
+  logger.info(s"Starting service with threshold: $threshold, min: $minimum, numMore: $numMoreDataToRetrain" +
+    s"and w2v source: $w2vSource")
+
 }

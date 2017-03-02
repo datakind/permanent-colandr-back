@@ -45,6 +45,9 @@ object PopulateFullTexts {
     opt[String]('i', "idMap").required().action((x, c) =>
       c.copy(idMap = x)).text("IdMap file")
 
+    opt[String]('f', "fulltextids").required().action((x, c) =>
+      c.copy(fulltextids = x)).text("Full text ids")
+
     opt[String]('h', "host").action((x, c) =>
       c.copy(host = x)).text("host name")
 
