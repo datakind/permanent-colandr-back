@@ -107,13 +107,16 @@ class ReviewTeamResource(Resource):
             user = db.session.query(User).get(user_id)
         elif user_email is not None:
             user = db.session.query(User).filter_by(email=user_email).one_or_none()
+            if user is not None:
+                user_id = user.id
         else:
             return validation_error('user_id or user_email is required')
         review_users = review.users
         # an existing user is being added, without an invite email
         if action == 'add':
+            # TODO: should this be admins only?
             if user is None:
-                return forbidden_error('<User(id={})> not found'.format(user_id))
+                return not_found_error('no user found with given id or email')
             elif user not in review_users:
                 review_users.append(user)
             else:
@@ -131,16 +134,27 @@ class ReviewTeamResource(Resource):
                 confirm_url = api_.url_for(
                     ConfirmReviewTeamInviteResource,
                     id=id, token=token, _external=True)
-            html = render_template(
-                'emails/invite_user_to_review.html',
-                url=confirm_url, inviter_email=g.current_user.email, review_name=review.name)
+            # this user doesn't exist...
+            if user is None:
+                html = render_template(
+                    'emails/invite_new_user_to_review.html',
+                    url=confirm_url, inviter_email=g.current_user.email, review_name=review.name)
+            # this user is already in our system
+            else:
+                html = render_template(
+                    'emails/invite_user_to_review.html',
+                    url=confirm_url, inviter_email=g.current_user.email, review_name=review.name)
             if test is False:
                 send_email.apply_async(
                     args=[[user_email], "Let's collaborate!", '', html])
         elif action == 'make_owner':
+            if user is None:
+                return not_found_error('no user found with given id or email')
             review.owner_user_id = user_id
             review.owner = user
         elif action == 'remove':
+            if user is None:
+                return not_found_error('no user found with given id or email')
             if user_id == review.owner_user_id:
                 return forbidden_error('current review owner can not be removed from team')
             if review_users.filter_by(id=user_id).one_or_none() is not None:
