@@ -14,4 +14,5 @@ case class Metadata(record : String,
                     value : String,
                     sentence : String,
                     sentenceLocation : Int,
-                    confidence : Double)
+                    confidence : Double,
+                    confidenceLevel : Int = -1)
