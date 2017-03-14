@@ -86,7 +86,11 @@ class ReviewProgressResource(Resource):
                              WHEN citation_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
                          END) AS user_status,
                          COUNT(*)
-                    FROM (SELECT studies.id, studies.citation_status, screenings.user_ids
+                    FROM (SELECT
+                              studies.id,
+                              studies.dedupe_status,
+                              studies.citation_status,
+                              screenings.user_ids
                           FROM studies
                           LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
                                      FROM citation_screenings
@@ -95,6 +99,7 @@ class ReviewProgressResource(Resource):
                           ON studies.id = screenings.citation_id
                           WHERE review_id = {review_id}
                           ) AS t
+                    WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=g.current_user.id, review_id=id)
                 progress = dict(row for row in db.engine.execute(query))
