@@ -75,7 +75,7 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
     if(labels.isEmpty)
       return Seq()
     val sentences = pl.sentences.toArray
-      .filterNot(s => s.string.contains("org.apache"))
+      .filterNot(s => s.string.contains("org.apache") || s.string.contains("WARN") || s.string.contains("DEBUG"))
       .filter(_.string.length > 50)
     val length = sentences.length
     sentences.zipWithIndex.map { case (sent, i) =>
@@ -106,8 +106,8 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
     classifier.get
   }
 
-  private def train(trainData: Seq[RankLabel], l2: Double) : LinearVectorClassifier[RankLabel, RankFeatures] = {
-    val rda = new AdaGradRDA(l1 = l2)
+  private def train(trainData: Seq[RankLabel], l1: Double) : LinearVectorClassifier[RankLabel, RankFeatures] = {
+    val rda = new AdaGradRDA(l1 = l1)
     val classifier = new LinearVectorClassifier(labelDomain.size, featuresDomain.dimensionSize, (l: RankLabel) => l.feature)
     val trainer = new OnlineTrainer(classifier.parameters, optimizer = rda, maxIterations = 5)
 
@@ -190,6 +190,12 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
 
     }
 
+    def confidenceScore(threshold : Double, prob : Double) : Int = {
+      val oneThird = (1.0-threshold) / 3
+      val thresholds = (0 until 3).map{ i => threshold + (i*oneThird)}.zipWithIndex
+      thresholds.filter{ t => prob >= t._1 }.last._2
+    }
+
     /**
       * Classifies a [[Record]] given a threshold
       * @param record Record to predict
@@ -198,10 +204,11 @@ class ReviewModel(val labels : Map[String, ReviewLabel],
       */
     def getMetaData(record : Record, threshold : Double) : Seq[Metadata] = {
       val (d, _) = pdf2Doc.fromString(record.content, record.filename)
-      classify(d, threshold).map { r =>
-        val split = r._1.split(":",2)
+      classify(d, threshold).map { case (label, sentence, location, prob) =>
+        val split = label.split(":", 2)
         val (labelName, value) = (split.head, split.last)
-        Metadata(record.id.toString, labelName, value, r._2, r._3, r._4)
+        val score = confidenceScore(threshold, prob)
+        Metadata(record.id.toString, labelName, value, sentence, location, prob, confidenceLevel = score)
       }
     }
 

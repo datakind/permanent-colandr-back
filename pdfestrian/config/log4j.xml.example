@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration>
+    <appender name="file" class="org.apache.log4j.rolling.RollingFileAppender">
+        <param name="encoding" value="UTF-8"/>
+        <rollingPolicy name="file" class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+            <param name="FileNamePattern" value="LOGDIRHERE/org.datakind.ci.pdfestrian-%d.log.gz"/>
+            <param name="ActiveFileName" value="LOGDIRHERE/org.datakind.ci.pdfestrian.log"/>
+        </rollingPolicy>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %t %-5p %C{1}.%M: %m%n"/>
+        </layout>
+    </appender>
+    <logger name="org.datakind.ci.pdfestrian">
+        <level value="DEBUG"/>
+    </logger>
+    <root>
+        <priority value="WARN"/>
+        <appender-ref ref="file"/>
+    </root>
+</log4j:configuration>

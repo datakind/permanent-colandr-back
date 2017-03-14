@@ -1,4 +1,4 @@
-from flask import current_app, render_template  # , url_for
+from flask import current_app, render_template
 from flask_restplus import Resource
 
 from marshmallow import fields as ma_fields
