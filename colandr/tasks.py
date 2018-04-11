@@ -346,7 +346,12 @@ def get_citations_text_content_vectors(review_id):
         results = conn.execute(stmt)
         citations_to_update = []
         for id_, text_content in results:
-            lang = textacy.text_utils.detect_language(text_content)
+            try:
+                lang = textacy.text_utils.detect_language(text_content)
+            except ValueError:
+                logger.exception(
+                    'unable to detect language of text content for <Citation(study_id=%s)>', id_)
+                continue
             if lang == 'en':
                 try:
                     spacy_doc = en_nlp(text_content)
