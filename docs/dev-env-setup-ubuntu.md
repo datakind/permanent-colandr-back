@@ -15,7 +15,7 @@ $ sudo apt-get install git
 
 ## Set Up PostgreSQL
 
-If you want to use a postgres database on another server (like RDS) you can skip this step, however you will need to install 
+If you want to use a postgres database on another server (like RDS) you can skip this step, however you will need to install
 postgres libraries for python to read from it:
 
 ```
@@ -50,7 +50,7 @@ You'll be prompted to create a password — be sure to remember it or save it so
 Postgres also automatically created a database named `postgres` that may be used to log info for administrative tasks such as creating a user. Let's create a new database for this project (the default port for postgres is usually 5432):
 
 ```
-$ createdb --echo --encoding=utf8 --host=<HOST> --port=<PORT> --username=colandr_app --owner=colandr_app colandr 
+$ createdb --echo --encoding=utf8 --host=<HOST> --port=<PORT> --username=colandr_app --owner=colandr_app colandr
 ```
 
 We're using our `colandr_app` user to create the database, and assigning it as the db's owner.
@@ -82,7 +82,7 @@ After updating the system, it's time to install Redis from the repository.
 
 ```
 $ sudo apt-get -y install redis-server
-``` 
+```
 By default, redis-server is started after installation. You can check using the service command :
 
 ```
@@ -96,15 +96,15 @@ First you'll need access permissions to the GitLab repository — contact DataKi
 ```
 $ mkdir /path/to/cloned_repo
 $ cd /path/to/cloned_repo
-$ git clone http://gitlab.datakind.org/conservation-intl/conservation-intl.git
+$ git clone https://github.com/datakind/permanent-colandr-back.git
 ```
 
-This command should create a `conservation-intl` directory, in which the app's code lives.
+This command should create a `permanent-colandr-back` directory, in which the app's code lives.
 
-Now create a few environment variables needed by the app to configure itself and send emails. `COLANDR_APP_DIR` is the location of the `conservation-intl` directory on disk. `COLANDR_SECRET_KEY` acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_. `COLANDR_PASSWORD_SALT` is also like a password, used by the app when sending custom links in account registration confirmation emails. `COLANDR_MAIL_USERNAME` and `COLANDR_MAIL_PASSWORD` are the credentials for the email account that sends those emails.
+Now create a few environment variables needed by the app to configure itself and send emails. `COLANDR_APP_DIR` is the location of the `permanent-colandr-back` directory on disk. `COLANDR_SECRET_KEY` acts like an app-wide password, so keep it secret, keep it safe, and keep it _strong_. `COLANDR_PASSWORD_SALT` is also like a password, used by the app when sending custom links in account registration confirmation emails. `COLANDR_MAIL_USERNAME` and `COLANDR_MAIL_PASSWORD` are the credentials for the email account that sends those emails.
 
 ```
-$ export COLANDR_APP_DIR="/path/to/conservation-intl"
+$ export COLANDR_APP_DIR="/path/to/permanent-colandr-back"
 $ export COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
 $ export COLANDR_PASSWORD_SALT="<YOUR_PASSWORD_SALT>"
 $ export COLANDR_MAIL_USERNAME="<AN_EMAIL_ADDRESS>"
@@ -126,7 +126,7 @@ You may wish to develop within a virtual environment. (See [here](http://docs.py
 
 ```
 $ pip3 install virtualenv
-$ cd /path/to/conservation-intl
+$ cd /path/to/permanent-colandr-back
 $ virtualenv <VENV_NAME>
 $ source <VENV_NAME>/bin/activate
 ```
@@ -134,7 +134,7 @@ $ source <VENV_NAME>/bin/activate
 If you haven't already, change your working directory to your local copy of the repo (see the section above), then install all 3rd-party dependencies upon which the app will rely by:
 
 ```
-$ cd /path/to/conservation-intl
+$ cd /path/to/permanent-colandr-back
 $ sudo apt-get build-dep python3-matplotlib
 $ sudo apt-get install python3-numpy
 $ sudo apt-get install python3-scipy
@@ -188,7 +188,7 @@ $ pip3 install ipython jupyter
 Lastly add the repository directory to your `PYTHONPATH` environment variable by modifying the corresponding line (or adding a new line) in your `~/.profile` (or `~/.bash_profile`, `~/.zshrc`, etc.) file:
 
 ```
-export PYTHONPATH=/path/to/conservation-intl/:$PYTHONPATH
+export PYTHONPATH=/path/to/permanent-colandr-back/:$PYTHONPATH
 ```
 
 ## To install the scala tools that perform some NLP and pdf extraction tasks:
