@@ -8,7 +8,7 @@
 # - COLANDR_MAIL_USERNAME
 # - COLANDR_MAIL_PASSWORD
 # - COLANDR_APP_DIR
-#     - path on disk of colandr, i.e. the conservation-intl repo
+#     - path on disk of colandr, i.e. the permanent-colandr-back repo
 
 import os
 
