@@ -238,9 +238,13 @@ def deduplicate_citations(review_id):
         clustered_dupes = deduper.matchBlocks(
             _get_candidate_dupes(results),
             threshold=dupe_threshold)
-        logger.info(
-            '<Review(id=%s)>: found %s duplicate clusters',
-            review_id, len(clustered_dupes))
+        try:
+            logger.info(
+                '<Review(id=%s)>: found %s duplicate clusters',
+                review_id, len(clustered_dupes))
+        # newer versions of dedupe made this into a generator, which has no len
+        except TypeError:
+            logger.info('<Review(id=%s)>: found duplicate clusters', review_id)
 
         # get *all* citation ids for this review, as well as included/excluded
         stmt = select([Citation.id]).where(Citation.review_id == review_id)
