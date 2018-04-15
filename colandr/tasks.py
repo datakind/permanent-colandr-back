@@ -89,9 +89,15 @@ def deduplicate_citations(review_id):
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_DIR'],
                      'dedupe_citations_settings'))
-    engine = create_engine(
-        current_app.config['SQLALCHEMY_DATABASE_URI'],
-        server_side_cursors=True, echo=False)
+    try:
+        engine = create_engine(
+            current_app.config['SQLALCHEMY_DATABASE_URI'],
+            server_side_cursors=True, echo=False,
+            use_batch_mode=True)
+    except TypeError:  # use_batch_mode kwarg only available in sqlalchemy>=1.2.0
+        engine = create_engine(
+            current_app.config['SQLALCHEMY_DATABASE_URI'],
+            server_side_cursors=True, echo=False)
 
     with engine.connect() as conn:
 
