@@ -110,9 +110,17 @@ class CitationsImportsResource(Resource):
                 '{} forbidden to add citations to this review'.format(g.current_user))
         fname = uploaded_file.filename
         if fname.endswith('.bib'):
-            citations_file = BibTexFile(uploaded_file.stream)
+            try:
+                citations_file = BibTexFile(uploaded_file.stream)
+            except Exception:
+                return validation_error(
+                    'unable to parse BibTex citations file: "{}"'.format(fname))
         elif fname.endswith('.ris') or fname.endswith('.txt'):
-            citations_file = RisFile(uploaded_file.stream)
+            try:
+                citations_file = RisFile(uploaded_file.stream)
+            except Exception:
+                return validation_error(
+                    'unable to parse RIS citations file: "{}"'.format(fname))
         else:
             return validation_error('unknown file type: "{}"'.format(fname))
 
