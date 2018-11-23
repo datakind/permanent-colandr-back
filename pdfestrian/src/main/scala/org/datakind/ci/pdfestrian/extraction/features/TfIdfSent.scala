@@ -70,20 +70,20 @@ object TfIdfSent {
     * @param docs Documents out of corpus
     * @return a TfIfdSent feature vectorizer
     */
-  def apply(docs : Seq[Document]) : TfIdfSent = {
+  def apply(docs : Seq[Document], dictionarySize : Int) : TfIdfSent = {
     var  i = -1
 
     val (unigrams, bigrams) = GetCounts.getCounts(docs, stemmmer = true)
 
-    val wordCounts = unigrams.map{ m =>
+    val wordCounts = unigrams.toSeq.sortBy(-_._2).take(dictionarySize).map{ m =>
       i += 1
       m._1 -> (m._2, i)
-    }
+    }.toMap
 
-    val bigramCounts = bigrams.map{ m =>
+    val bigramCounts = bigrams.toSeq.sortBy(-_._2).take(dictionarySize).map{ m =>
       i += 1
       m._1 -> (m._2, i)
-    }
+    }.toMap
 
     new TfIdfSent(wordCounts, bigramCounts, wordCounts.values.maxBy(_._1)._1+1)
   }
