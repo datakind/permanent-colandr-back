@@ -31,8 +31,12 @@ object ReviewModels {
       case None =>
         Future{
           trainer.startTrain(access.getTrainingLabels(review), review) match {
-            case None => None
+            case None =>
+              logger.info("Nothing returned from startTrain, not caching for review: " + review)
+              None
             case Some(model) =>
+              logger.info("Caching model for review: " + review)
+              logger.info("cache: size:" + cache.size + " keys: " + cache.keys.map(_.toString).mkString(","))
               cache(review)(model)
               model
          }

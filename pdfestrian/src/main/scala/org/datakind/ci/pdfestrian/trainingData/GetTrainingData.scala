@@ -67,8 +67,11 @@ class GetTrainingData {
       "f.review_id=? and f.text_content IS NOT NULL")
     try {
       query.setInt(1, reviewId)
-      filterValid(extractionForm, toRecord(query.executeQuery()))
+      val data = filterValid(extractionForm, toRecord(query.executeQuery()))
+      logger.info("filtered size: " + data.length)
+      data
     } finally {
+      logger.info("finally for getTrainingData")
       query.close()
       cx.close()
     }
@@ -89,8 +92,11 @@ class GetTrainingData {
       "f.review_id=? and f.text_content IS NOT NULL")
     try {
       query.setInt(1, reviewId)
-      filterValid(extractionForm, labelsToRecord(query.executeQuery()))
+      val data = filterValid(extractionForm, labelsToRecord(query.executeQuery()))
+      logger.info("filtered size: " + data.length)
+      data
     } finally {
+      logger.info("finally for getLabels")
       query.close()
       cx.close()
     }
