@@ -16,7 +16,10 @@ from sqlalchemy.sql import case, delete, exists, select, text, update
 import numpy as np
 from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
-import textacy
+try:
+    import textacy
+except ImportError:
+    pass  # HACK
 
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms

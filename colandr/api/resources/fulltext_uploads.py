@@ -4,22 +4,24 @@ import subprocess
 
 from flask import current_app, g
 from flask_restplus import Resource
-from werkzeug.utils import secure_filename
-
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
+from werkzeug.utils import secure_filename
 
-from textacy.preprocess import fix_bad_unicode
+try:
+    from textacy.preprocess import fix_bad_unicode
+except ImportError:
+    pass  # HACK
 
 from colandr import api_
+
 from ...lib import constants
-from ...models import db, Fulltext
+from ...models import Fulltext, db
 from ...tasks import get_fulltext_text_content_vector
+from ..authentication import auth
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
-from ..authentication import auth
-
 
 ns = api_.namespace(
     'fulltext_uploads', path='/fulltexts',
