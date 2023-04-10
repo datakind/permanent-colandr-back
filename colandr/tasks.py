@@ -325,8 +325,7 @@ def get_citations_text_content_vectors(review_id):
     lock = wait_for_lock(
         'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
 
-    en_nlp = textacy.load_spacy(
-        'en', tagger=False, parser=False, entity=False, matcher=False)
+    en_nlp = textacy.load_spacy("en_core_web_md", disable=("tagger", "parser", "ner"))
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
         server_side_cursors=True, echo=False)
@@ -486,7 +485,7 @@ def suggest_keyterms(review_id, sample_size):
         # munge the results into the form needed by textacy
         included_vec = [status == 'included' for status, _
                         in itertools.chain(included, excluded)]
-        docs = (textacy.Doc(text, lang='en') for _, text
+        docs = (textacy.Doc(text, lang='en_core_web_md') for _, text
                 in itertools.chain(included, excluded))
         terms_lists = (
             doc.to_terms_list(include_pos={'NOUN', 'VERB'}, as_strings=True)

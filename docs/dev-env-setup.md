@@ -181,8 +181,8 @@ $ pip3 install -r requirements.txt
 The app's NLP is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
 
 ```
-$ python3 -m spacy.en.download
-$ python3 -c "import spacy; spacy.load('en'); print('OK')"
+$ python3 -m spacy download en_core_web_md
+$ python3 -c "import spacy; spacy.load('en_core_web_md'); print('OK')"
 ```
 
 The second command will print "OK" if the download was successful.
