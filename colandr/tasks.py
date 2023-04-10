@@ -3,23 +3,22 @@ import os
 from time import sleep
 
 import arrow
+import numpy as np
+import redis
+import redis_lock
+import textacy
+import textacy.keyterms
+import textacy.text_utils
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
-import redis
-import redis_lock
-from sqlalchemy import create_engine, func, types as sqltypes
+from sklearn.externals import joblib
+from sklearn.linear_model import SGDClassifier
+from sqlalchemy import create_engine, func
+from sqlalchemy import types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
-
-import numpy as np
-from sklearn.externals import joblib
-from sklearn.linear_model import SGDClassifier
-try:
-    import textacy
-except ImportError:
-    pass  # HACK
 
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms

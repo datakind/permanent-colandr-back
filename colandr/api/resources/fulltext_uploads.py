@@ -6,13 +6,9 @@ from flask import current_app, g
 from flask_restplus import Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
+from textacy.preprocess import fix_bad_unicode
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
-
-try:
-    from textacy.preprocess import fix_bad_unicode
-except ImportError:
-    pass  # HACK
 
 from colandr import api_
 
