@@ -21,7 +21,7 @@ LOGGER.addHandler(_handler)
 
 logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
 
-BASE_URL = 'http://localhost:5000/api/'
+BASE_URL = 'http://localhost:5001/api/'
 session = requests.Session()
 
 USERS = [

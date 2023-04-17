@@ -24,7 +24,7 @@ def call_endpoint(method, endpoint,
 def get_auth_token(email, password):
     return (call_endpoint('authtoken', 'get', (email, password))['token'], '')
 
-BASE_URL = 'http://localhost:5000/'
+BASE_URL = 'http://localhost:5001/'
 
 login_creds = ('burtondewilde@gmail.com', 'password')
 
