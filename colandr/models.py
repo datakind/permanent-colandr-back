@@ -324,10 +324,10 @@ class Import(db.Model):
         lazy='select')
     user = db.relationship(
         'User', foreign_keys=[user_id], back_populates='imports',
-        lazy='subquery')
+        lazy='subquery')  # TODO: change to 'selectin' when sqlalchemy>=1.2.0 ?
     data_source = db.relationship(
         'DataSource', foreign_keys=[data_source_id], back_populates='imports',
-        lazy='subquery')
+        lazy='subquery')  # TODO: change to 'selectin' when sqlalchemy>=1.2.0 ?
 
     def __init__(self, review_id, user_id, data_source_id, record_type, num_records,
                  status=None):

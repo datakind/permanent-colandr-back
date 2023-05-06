@@ -21,7 +21,7 @@ LOGGER.addHandler(_handler)
 
 logging.getLogger("requests.packages.urllib3.connectionpool").setLevel(logging.WARNING)
 
-BASE_URL = 'http://localhost:5000/api/'
+BASE_URL = 'http://localhost:5001/api/'
 session = requests.Session()
 
 USERS = [
@@ -319,7 +319,7 @@ def main():
                   'source_name': random.choice(source_names)},
             files={'uploaded_file': (filename, io.open(citations_file, mode='rb'))},
             auth=auth)
-        print('POST:', filename, '=>', response.url)
+        print('POST:', citations_file, '=>', response.url)
 
     # add tags to a small random sample of studies
     results = session.request(

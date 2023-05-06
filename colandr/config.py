@@ -8,7 +8,7 @@
 # - COLANDR_MAIL_USERNAME
 # - COLANDR_MAIL_PASSWORD
 # - COLANDR_APP_DIR
-#     - path on disk of colandr, i.e. the conservation-intl repo
+#     - path on disk of colandr, i.e. the permanent-colandr-back repo
 
 import os
 
@@ -21,7 +21,7 @@ class Config(object):
     LOGGER_NAME = 'colandr'
     JSON_AS_ASCII = False
     CONFIRM_TOKEN_EXPIRATION = 3600
-    APP_URL_DOMAIN = 'http://localhost:5000/api'
+    APP_URL_DOMAIN = 'http://localhost:5001/api'
 
     # celery+redis config
     CELERY_BROKER_URL = 'redis://localhost:6379/0'

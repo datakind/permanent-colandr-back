@@ -2,16 +2,21 @@ package org.datakind.ci.pdfestrian.extraction.review
 
 import org.datakind.ci.pdfestrian.api.apiservice.components.Access
 import org.json4s.DefaultFormats
+import org.slf4j.LoggerFactory
 import spray.caching.LruCache
 import spray.util._
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object ReviewModels {
 
   private implicit val formats = DefaultFormats
 
   private val cache = LruCache.apply[ReviewModel](maxCapacity = 25, initialCapacity = 10)
+
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
 
   /**
     * Gets a model from cache, or trains a model if needed
@@ -24,22 +29,34 @@ object ReviewModels {
     val trainer = new ReviewModelTrainer(minRequired, increaseRequirement, access, w2vSource)
     cache.get(review) match {
       case None =>
-        trainer.startTrain(access.getTrainingLabels(review), review) match {
-          case None => None
-          case Some(model) =>
-            cache(review)(model)
-            Some(model)
+        Future{
+          trainer.startTrain(access.getTrainingLabels(review), review) match {
+            case None =>
+              logger.info("Nothing returned from startTrain, not caching for review: " + review)
+              None
+            case Some(model) =>
+              logger.info("Caching model for review: " + review)
+              logger.info("cache: size:" + cache.size + " keys: " + cache.keys.map(_.toString).mkString(","))
+              cache(review)(model)
+              model
+         }
+        }.onComplete{ x =>
+          logger.info(s"Model for Review $review finished training")
         }
+        None
       case Some(modelFuture) =>
         modelFuture.map{ model =>
-          trainer.compareAndTrain(model, access.getTrainingLabels(review), review) match {
-            case (true, newModel) =>
-              cache.remove(review)
-              cache(review)(newModel)
-              Some(newModel)
-            case (false, oldModel) =>
-              Some(oldModel)
+          Future {
+            trainer.compareAndTrain(model, access.getTrainingLabels(review), review) match {
+              case (true, newModel) =>
+                cache.remove(review)
+                cache(review)(newModel)
+                newModel
+            }
+          }.onComplete{ x =>
+            logger.info(s"Model for Review $review finished retraining")
           }
+          Some(model)
         }.await
     }
   }

@@ -23,7 +23,9 @@ case class JLabel(label : String, value : JValue) {
   }
 }
 
-trait Label
+trait Label {
+  val label : String
+}
 
 /**
   * Label which contains multiple values

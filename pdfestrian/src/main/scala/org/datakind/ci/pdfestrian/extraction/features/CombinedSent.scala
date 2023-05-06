@@ -4,6 +4,7 @@ import cc.factorie.app.nlp.Sentence
 import cc.factorie.la.SparseTensor1
 import org.datakind.ci.pdfestrian.document.PDFToDocument
 import org.datakind.ci.pdfestrian.trainingData.TrainingData
+import org.slf4j.LoggerFactory
 
 /**
   * Combines word2vec and tfidf features into one vector
@@ -39,14 +40,18 @@ class CombinedSent(word2VecSent : Word2VecSent, tfIdfSent: TfIdfSent) {
 }
 
 object CombinedSent {
+
+  val logger = LoggerFactory.getLogger(this.getClass)
   /**
     * Creates a combined w2v and tfidf feature vectorizer from training data
     * @param trainingData corpus of training data
     * @param pdf2doc PDFToDocument object
     * @return CombinedSent feature vectorizer
     */
-  def apply(trainingData: Seq[TrainingData], pdf2doc: PDFToDocument, w2vSource : String) = {
+  def apply(trainingData: Seq[TrainingData], pdf2doc: PDFToDocument, w2vSource : String, dictionarySize : Int = 4000) = {
     val documents = trainingData.map(td => pdf2doc.fromString(td.fullText)._1)
-    new CombinedSent(Word2VecSent(documents, w2vSource), TfIdfSent(documents))
+    val newTfId = TfIdfSent(documents, dictionarySize)
+    logger.info(s"New TfIdf learned of size: ${newTfId.featureSize}")
+    new CombinedSent(Word2VecSent(documents, w2vSource), newTfId)
   }
 }

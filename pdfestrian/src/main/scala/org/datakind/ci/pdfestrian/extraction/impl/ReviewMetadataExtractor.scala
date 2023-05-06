@@ -3,11 +3,13 @@ package org.datakind.ci.pdfestrian.extraction.impl
 import org.datakind.ci.pdfestrian.api.apiservice.{Metadata, Record}
 import org.datakind.ci.pdfestrian.api.apiservice.components.{Access, AllMetaDataExtractor}
 import org.datakind.ci.pdfestrian.extraction.review.ReviewModels
+import org.slf4j.LoggerFactory
 
 /**
   * Implements AllMetaDataExtractor for reviews trainer
   */
 class ReviewMetadataExtractor extends AllMetaDataExtractor {
+  val logger = LoggerFactory.getLogger(this.getClass)
 
   /**
     * Extracts all metadata from record
@@ -18,6 +20,7 @@ class ReviewMetadataExtractor extends AllMetaDataExtractor {
     * @return Seq of predicted metadata
     */
   def extractData(record: Record, access : Access, w2vSource : String, min : Int, numMoreDataToRetrain : Int, threshold : Double): Seq[Metadata] = {
+    logger.info("Looking for model for record: " + record.reviewId)
     ReviewModels.getModel(record.reviewId, access, w2vSource, min, numMoreDataToRetrain) match {
       case None => Seq()
       case Some(model) => model.classifier match {

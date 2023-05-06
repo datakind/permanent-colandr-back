@@ -273,6 +273,10 @@ class RisFile(object):
         elif isinstance(path_or_stream, io.IOBase):  # (io.BytesIO, io.BufferedRandom)):
             self.path = None
             self.stream = io.TextIOWrapper(path_or_stream)  # , encoding='utf8')
+        # this checks for a `tempfile.SpooledTemporaryFile` coming
+        # from a `werkzeug.datastructures.FileStorage` stream
+        elif hasattr(path_or_stream, '_file') and isinstance(path_or_stream._file, io.IOBase):
+            self.stream = io.TextIOWrapper(path_or_stream._file)
         elif isinstance(path_or_stream, (bytes, str)):
             self.path = path_or_stream
             self.stream = None

@@ -3,20 +3,22 @@ import os
 from time import sleep
 
 import arrow
+import numpy as np
+import redis
+import redis_lock
+import textacy
+import textacy.keyterms
+import textacy.text_utils
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
-import redis
-import redis_lock
-from sqlalchemy import create_engine, func, types as sqltypes
+from sklearn.externals import joblib
+from sklearn.linear_model import SGDClassifier
+from sqlalchemy import create_engine, func
+from sqlalchemy import types as sqltypes
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
-
-import numpy as np
-from sklearn.externals import joblib
-from sklearn.linear_model import SGDClassifier
-import textacy
 
 from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
@@ -89,9 +91,15 @@ def deduplicate_citations(review_id):
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_DIR'],
                      'dedupe_citations_settings'))
-    engine = create_engine(
-        current_app.config['SQLALCHEMY_DATABASE_URI'],
-        server_side_cursors=True, echo=False)
+    try:
+        engine = create_engine(
+            current_app.config['SQLALCHEMY_DATABASE_URI'],
+            server_side_cursors=True, echo=False,
+            use_batch_mode=True)
+    except TypeError:  # use_batch_mode kwarg only available in sqlalchemy>=1.2.0
+        engine = create_engine(
+            current_app.config['SQLALCHEMY_DATABASE_URI'],
+            server_side_cursors=True, echo=False)
 
     with engine.connect() as conn:
 
@@ -238,9 +246,13 @@ def deduplicate_citations(review_id):
         clustered_dupes = deduper.matchBlocks(
             _get_candidate_dupes(results),
             threshold=dupe_threshold)
-        logger.info(
-            '<Review(id=%s)>: found %s duplicate clusters',
-            review_id, len(clustered_dupes))
+        try:
+            logger.info(
+                '<Review(id=%s)>: found %s duplicate clusters',
+                review_id, len(clustered_dupes))
+        # newer versions of dedupe made this into a generator, which has no len
+        except TypeError:
+            logger.info('<Review(id=%s)>: found duplicate clusters', review_id)
 
         # get *all* citation ids for this review, as well as included/excluded
         stmt = select([Citation.id]).where(Citation.review_id == review_id)
@@ -313,8 +325,7 @@ def get_citations_text_content_vectors(review_id):
     lock = wait_for_lock(
         'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
 
-    en_nlp = textacy.load_spacy(
-        'en', tagger=False, parser=False, entity=False, matcher=False)
+    en_nlp = textacy.load_spacy("en_core_web_md", disable=("tagger", "parser", "ner"))
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
         server_side_cursors=True, echo=False)
@@ -346,7 +357,12 @@ def get_citations_text_content_vectors(review_id):
         results = conn.execute(stmt)
         citations_to_update = []
         for id_, text_content in results:
-            lang = textacy.text_utils.detect_language(text_content)
+            try:
+                lang = textacy.text_utils.detect_language(text_content)
+            except ValueError:
+                logger.exception(
+                    'unable to detect language of text content for <Citation(study_id=%s)>', id_)
+                continue
             if lang == 'en':
                 try:
                     spacy_doc = en_nlp(text_content)
@@ -469,7 +485,7 @@ def suggest_keyterms(review_id, sample_size):
         # munge the results into the form needed by textacy
         included_vec = [status == 'included' for status, _
                         in itertools.chain(included, excluded)]
-        docs = (textacy.Doc(text, lang='en') for _, text
+        docs = (textacy.Doc(text, lang='en_core_web_md') for _, text
                 in itertools.chain(included, excluded))
         terms_lists = (
             doc.to_terms_list(include_pos={'NOUN', 'VERB'}, as_strings=True)
