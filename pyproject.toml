@@ -52,7 +52,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  # "black~=23.0",
+  "black~=23.0",
   "ipython",
   "isort~=5.0",
   # "jupyter",
