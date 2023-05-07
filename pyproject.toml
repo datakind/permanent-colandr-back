@@ -1,3 +1,68 @@
+[build-system]
+requires = ["setuptools >= 61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "colandr"
+version = "1.1.0"
+description = "Back-end code for running the colandr app."
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">= 3.7"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.7",
+]
+dependencies = [
+  "alembic>=0.8.8",
+  "arrow>=0.10.0",
+  "bcrypt>=3.1.0",
+  "bibtexparser>=0.6.2",
+  "celery~=4.0",
+  "dedupe~=1.4.14",
+  "flask>=0.11.1,<1.0.0",
+  "flask_httpauth~=3.2",
+  "flask_mail>=0.9.1",
+  "flask_migrate~=2.0",
+  "flask_script>=2.0.5",
+  "flask_sqlalchemy>=2.1.0",
+  "flask_restplus>=0.9.2",
+  "gunicorn==19.6.0",
+  "importlib-metadata~=4.0",  # needed for celery to function correctly in PY37
+  "itsdangerous>=2.0.0,<2.1.0",
+  "jinja2~=2.0",
+  "markupsafe>=2.0.0,<2.1.0",
+  "marshmallow>=2.10.3,<3.0.0",
+  "numpy>=1.9",
+  "psycopg2~=2.9.0",
+  "python-dateutil>=2.7.0",
+  "python-redis-lock==3.1.0",
+  "pyyaml>=3.11",
+  "redis~=3.2.0",
+  "requests>=2.11.1",
+  "scikit-learn>=0.21.0,<0.23.0",
+  "sqlalchemy>=1.2.0,<1.3.0",
+  "spacy~=2.0",
+  "textacy[lang]==0.5.0",
+  "webargs~=1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  # "black~=23.0",
+  "ipython",
+  "isort~=5.0",
+  # "jupyter",
+  "pytest~=7.0",
+  "ruff",
+  "mypy~=1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["colandr"]
+
 [tool.black]
 line-length = 88
 target-version = ["py37"]
