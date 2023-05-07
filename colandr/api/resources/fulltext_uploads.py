@@ -2,23 +2,22 @@ import io
 import os
 import subprocess
 
+import ftfy
 from flask import current_app, g
 from flask_restplus import Resource
-from werkzeug.utils import secure_filename
-
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
-
-from textacy.preprocess import fix_bad_unicode
+from werkzeug.utils import secure_filename
 
 from colandr import api_
+
 from ...lib import constants
-from ...models import db, Fulltext
+from ...models import Fulltext, db
 from ...tasks import get_fulltext_text_content_vector
+from ..authentication import auth
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
-from ..authentication import auth
 
 
 ns = api_.namespace(
@@ -94,7 +93,7 @@ class FulltextUploadResource(Resource):
                 text_content = subprocess.check_output(
                     [extract_text_script, '--filename', filepath],
                     stderr=subprocess.STDOUT)
-            fulltext.text_content = fix_bad_unicode(
+            fulltext.text_content = ftfy.fix_text(
                 text_content.decode(errors='ignore'))
             db.session.commit()
             current_app.logger.info(
