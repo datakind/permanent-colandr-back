@@ -178,14 +178,15 @@ If you're planning to actively develop colandr, you'll probably want to do an ed
 $ pip install -e .[dev]
 ```
 
-The app's NLP functionality is built on the `spacy` package, which requires a manual download of model data. After installing it above, run the following commands:
+The app's NLP functionality is built on `textacy` / `spacy` packages, which requires a manual download of model data. After installing it above, run the following commands:
 
 ```shell
+$ python -m textacy download lang_identifier
 $ python3 -m spacy download en_core_web_md
 $ python3 -c "import spacy; spacy.load('en_core_web_md'); print('OK')"
 ```
 
-The second command will print "OK" if the download was successful.
+The last command will print "OK" if the download was successful.
 
 In some situations, you may have to add the repository directory to your `PYTHONPATH` environment variable by modifying the corresponding line (or adding a new line) in your `~/.profile` (or `~/.bashrc`, `~/.zshrc`, etc.) file:
 
