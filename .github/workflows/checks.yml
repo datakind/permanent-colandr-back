@@ -15,6 +15,7 @@ env:
   COLANDR_APP_DIR: "/path/to/colandr"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
+  COLANDR_DATABASE_URI: "colandr_database_uri"
   DEV_COLANDR_DATABASE_URI: "dev_colandr_database_uri"
 
 jobs:
