@@ -7,6 +7,16 @@ on:
   schedule:  # run weekly
     - cron: "0 12 * * 0"
 
+# HACK: let's add fake colandr envvars so tests can run
+# TODO (burton): figure out a better way of configuring the app!
+env:
+  COLANDR_SECRET_KEY: "colandr_secret_key"
+  COLANDR_PASSWORD_SALT: "colandr_password_salt"
+  COLANDR_APP_DIR: "/path/to/colandr"
+  COLANDR_MAIL_USERNAME: "colandr_mail_username"
+  COLANDR_MAIL_PASSWORD: "colandr_mail_password"
+  DEV_COLANDR_DATABASE_URI: "dev_colandr_database_uri"
+
 jobs:
 
   tests:
