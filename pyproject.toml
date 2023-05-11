@@ -23,7 +23,7 @@ dependencies = [
   "celery~=4.0",
   "click~=8.0",
   "dedupe~=1.4.14",
-  "flask~=1.0.0",
+  "flask~=1.1.0",
   "flask_httpauth~=3.2",
   "flask_mail>=0.9.1",
   "flask_migrate~=2.0",
@@ -49,6 +49,7 @@ dependencies = [
   "sqlalchemy>=1.2.0,<1.3.0",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
   "webargs~=1.5",
+  "werkzeug~=0.16",  # no higher for now, since v1.0 breaks flask-restplus
 ]
 
 [project.optional-dependencies]
