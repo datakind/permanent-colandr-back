@@ -7,7 +7,8 @@ import numpy as np
 import redis
 import redis_lock
 import textacy
-import textacy.keyterms
+import textacy.ke.utils
+import textacy.lang_utils
 import textacy.text_utils
 from celery.utils.log import get_task_logger
 from flask import current_app
@@ -24,9 +25,20 @@ from . import celery, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
-from .models import (db, Citation, Dedupe, DedupeBlockingMap, DedupeCoveredBlocks,
-                     DedupePluralBlock, DedupePluralKey, DedupeSmallerCoverage,
-                     Fulltext, ReviewPlan, Study, User)
+from .models import (
+    Citation,
+    Dedupe,
+    DedupeBlockingMap,
+    DedupeCoveredBlocks,
+    DedupePluralBlock,
+    DedupePluralKey,
+    DedupeSmallerCoverage,
+    Fulltext,
+    ReviewPlan,
+    Study,
+    User,
+    db,
+)
 
 
 REDIS_CONN = redis.StrictRedis()
@@ -325,7 +337,7 @@ def get_citations_text_content_vectors(review_id):
     lock = wait_for_lock(
         'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
 
-    en_nlp = textacy.load_spacy("en_core_web_md", disable=("tagger", "parser", "ner"))
+    en_nlp = textacy.load_spacy_lang("en_core_web_md", disable=("tagger", "parser", "ner"))
     engine = create_engine(
         current_app.config['SQLALCHEMY_DATABASE_URI'],
         server_side_cursors=True, echo=False)
@@ -358,7 +370,7 @@ def get_citations_text_content_vectors(review_id):
         citations_to_update = []
         for id_, text_content in results:
             try:
-                lang = textacy.text_utils.detect_language(text_content)
+                lang = textacy.lang_utils.identify_lang(text_content)
             except ValueError:
                 logger.exception(
                     'unable to detect language of text content for <Citation(study_id=%s)>', id_)
@@ -424,9 +436,9 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         else:
             text_content = text_content[0]
 
-        lang = textacy.text_utils.detect_language(text_content)
+        lang = textacy.lang_utils.identify_lang(text_content)
         try:
-            nlp = textacy.load_spacy(
+            nlp = textacy.load_spacy_lang(
                 lang, tagger=False, parser=False, entity=False, matcher=False)
         except RuntimeError:
             logger.warning(
@@ -485,14 +497,14 @@ def suggest_keyterms(review_id, sample_size):
         # munge the results into the form needed by textacy
         included_vec = [status == 'included' for status, _
                         in itertools.chain(included, excluded)]
-        docs = (textacy.Doc(text, lang='en_core_web_md') for _, text
+        docs = (textacy.make_spacy_doc(text, lang='en_core_web_md') for _, text
                 in itertools.chain(included, excluded))
         terms_lists = (
-            doc.to_terms_list(include_pos={'NOUN', 'VERB'}, as_strings=True)
+            doc._.to_terms_list(include_pos={'NOUN', 'VERB'}, as_strings=True)
             for doc in docs)
 
         # run the analysis!
-        incl_keyterms, excl_keyterms = textacy.keyterms.most_discriminating_terms(
+        incl_keyterms, excl_keyterms = textacy.ke.utils.most_discriminating_terms(
             terms_lists, included_vec, top_n_terms=50)
 
         # munge results into form expected by the database, and validate
