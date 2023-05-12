@@ -29,7 +29,7 @@ dependencies = [
   "flask_migrate~=2.0",
   "flask_script>=2.0.5",
   "flask_sqlalchemy~=2.5",
-  "flask_restplus>=0.9.2",
+  "flask-restx==0.4.0",  # requires flask<2.0
   "ftfy~=5.0",
   "gunicorn==19.6.0",
   "importlib-metadata~=4.0",  # needed for celery to function correctly in PY37
