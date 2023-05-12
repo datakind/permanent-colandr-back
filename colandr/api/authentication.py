@@ -1,6 +1,6 @@
 from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
-from flask_restplus import Resource
+from flask_restx import Resource
 
 from colandr import api_
 from ..models import db, User

@@ -3,7 +3,7 @@ import os
 import random
 
 from flask import g, current_app
-from flask_restplus import Resource
+from flask_restx import Resource
 from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 

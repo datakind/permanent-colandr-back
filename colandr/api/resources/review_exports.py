@@ -4,7 +4,7 @@ import io
 import itertools
 
 from flask import g, current_app, make_response
-from flask_restplus import Resource
+from flask_restx import Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range

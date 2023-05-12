@@ -3,7 +3,7 @@ import os
 
 from celery import Celery
 from flask import g, Flask, jsonify, send_from_directory
-from flask_restplus import Api
+from flask_restx import Api
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy

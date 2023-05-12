@@ -1,5 +1,5 @@
 from flask import g, current_app, render_template
-from flask_restplus import Resource
+from flask_restx import Resource
 
 from itsdangerous import URLSafeSerializer
 from marshmallow import fields as ma_fields
