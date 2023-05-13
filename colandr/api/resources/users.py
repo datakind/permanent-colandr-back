@@ -1,5 +1,5 @@
 from flask import g, current_app
-from flask_restplus import Resource
+from flask_restx import Resource
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from marshmallow import fields as ma_fields
