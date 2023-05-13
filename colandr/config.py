@@ -12,10 +12,17 @@
 
 import os
 
+from dotenv import load_dotenv
 
-class Config(object):
-    SECRET_KEY = os.environ['COLANDR_SECRET_KEY']
-    PASSWORD_SALT = os.environ['COLANDR_PASSWORD_SALT']
+# load `.env` file based on `.env.example` containing config values
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
+
+
+class Config:
+    TESTING = False
+    SECRET_KEY = os.environ.get('COLANDR_SECRET_KEY')
+    PASSWORD_SALT = os.environ.get('COLANDR_PASSWORD_SALT')
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
     LOGGER_NAME = 'colandr'
@@ -32,15 +39,16 @@ class Config(object):
     CELERYD_LOG_COLOR = False
 
     # sql db config
+    SQLALCHEMY_DATABASE_URI = os.environ.get('COLANDR_DATABASE_URI')
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-    RESTPLUS_VALIDATE = False
+    # RESTPLUS_VALIDATE = False
 
     # files-on-disk config
-    COLANDR_APP_DIR = os.environ['COLANDR_APP_DIR']
+    COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR', '/tmp')
     LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
     LOG_FILENAME = 'colandr.log'
     DEDUPE_MODELS_DIR = os.path.join(
@@ -59,9 +67,9 @@ class Config(object):
     MAIL_PORT = 587
     MAIL_USE_TLS = True
     MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ['COLANDR_MAIL_USERNAME']
-    MAIL_PASSWORD = os.environ['COLANDR_MAIL_PASSWORD']
-    MAIL_DEFAULT_SENDER = 'colandr <{}>'.format(MAIL_USERNAME)
+    MAIL_USERNAME = os.environ.get('COLANDR_MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('COLANDR_MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = f'colandr <{MAIL_USERNAME}>'
     MAIL_SUBJECT_PREFIX = '[colandr]'
     MAIL_ADMINS = ['burtdewilde@gmail.com']
 
@@ -70,27 +78,22 @@ class Config(object):
         pass
 
 
+class ProductionConfig(Config):
+    FLASK_ENV = "production"
+
+
 class DevelopmentConfig(Config):
-    DEBUG = True
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
+    FLASK_ENV = "development"
     LOGGER_NAME = 'dev-colandr'
     LOG_FILENAME = 'dev-colandr.log'
 
 
 class TestingConfig(Config):
-    DEBUG = False
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     LOGGER_NAME = 'test-colandr'
     LOG_FILENAME = 'test-colandr.log'
     SQLALCHEMY_ECHO = True
-
-
-class ProductionConfig(Config):
-    DEBUG = False
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
 
 
 configs = {
@@ -98,4 +101,4 @@ configs = {
     'test': TestingConfig,
     'prod': ProductionConfig,
     'default': ProductionConfig,
-    }
+}
