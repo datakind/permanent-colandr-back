@@ -1,7 +1,6 @@
 #!/bin/bash
 
 export APP_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && cd .. && pwd )" 
-echo "APP_HOME: $APP_HOME"
 # This script is used to extract text from a PDF file.
 # It outputs the text to stdout.
 # It calls extract_pdf_text.py, directly passing the arguments to it.
