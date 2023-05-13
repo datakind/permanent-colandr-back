@@ -51,7 +51,7 @@ from .api.resources.data_extractions import ns as data_extractions_ns
 
 def create_app(config_name):
     app = Flask('colandr')
-    config = configs[config_name]
+    config = configs[config_name]()
     app.config.from_object(config)
     config.init_app(app)
     os.makedirs(config.FULLTEXT_UPLOADS_DIR, exist_ok=True)
