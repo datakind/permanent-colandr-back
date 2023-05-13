@@ -16,7 +16,7 @@ classifiers = [
   "Programming Language :: Python :: 3.7",
 ]
 dependencies = [
-  "alembic>=0.8.8",
+  "alembic~=1.7.0",
   "arrow~=0.17",
   "bcrypt~=3.1",
   "bibtexparser~=1.2.0",
