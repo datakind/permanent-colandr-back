@@ -6,7 +6,7 @@ def extract_pdf_text(pdf_path: str, output_type: str = "text" ):
     """ Extracts text from a PDF file and writes it to a text file. """
     with fitz.open(pdf_path) as doc:
         for page in doc: # iterate the document pages
-	        text = page.get_text(output_type).encode("utf8") # get plain text (is in UTF-8)
+	        text = page.get_text(output_type, sort=True).encode("utf8") # get plain text (is in UTF-8), sort = True ensure text returns is some "readable" order.
 	        sys.stdout.buffer.write(text) # write text of page
 	        sys.stdout.buffer.write(bytes((12,))) # write page delimiter (form feed 0x0C)
 
