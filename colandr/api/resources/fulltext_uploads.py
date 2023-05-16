@@ -89,7 +89,7 @@ class FulltextUploadResource(Resource):
             elif ext == '.pdf':
                 extract_text_script = os.path.join(
                     current_app.config['COLANDR_APP_DIR'],
-                    'pdfestrian/bin/extractText.sh')
+                    'scripts/extractText.sh')
                 text_content = subprocess.check_output(
                     [extract_text_script, '--filename', filepath],
                     stderr=subprocess.STDOUT)

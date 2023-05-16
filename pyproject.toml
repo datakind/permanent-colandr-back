@@ -49,6 +49,7 @@ dependencies = [
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
   "webargs~=1.5",
+  "pymupdf~=1.22.0"
 ]
 
 [project.optional-dependencies]
