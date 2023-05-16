@@ -1,0 +1,9 @@
+# TODO: keep aligned with pyproject.toml
+-r prod.txt
+black~=23.0
+ipython
+isort~=5.0
+# jupyter
+pytest~=7.0
+ruff
+mypy~=1.0
