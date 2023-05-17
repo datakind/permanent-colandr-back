@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+
+  db:
+    container_name: colandr-db
+    restart: always
+    image: postgres:10
+    volumes:
+      - ./colandr_data/db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      # should be pulled in automatically from .env file
+      # - POSTGRES_HOST_AUTH_METHOD=trust
+
+  api:
+    container_name: colandr-api
+    stop_signal: SIGINT
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - 5001:5000
+    # environment:
+    #   - FLASK_DEBUG=1
+    #   - FLASK_ENV=development
+    depends_on:
+      - db
+    entrypoint:
+      [
+        "python",
+        "manage.py",
+        "--config",
+        "dev",
+        "runserver",
+        "--port",
+        "5000"
+      ]
