@@ -9,11 +9,11 @@ RUN apt update \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements requirements
+COPY requirements/ /app/requirements/
 RUN pip install -r requirements/prod.txt
 
 COPY . .
 
 EXPOSE 5000
 
-CMD ["python", "manage.py", "--config", "dev", "runserver", "--port", "5000"]
+# CMD ["python", "manage.py", "--config", "dev", "runserver", "--port", "5000"]
