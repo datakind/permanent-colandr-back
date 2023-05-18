@@ -7,10 +7,10 @@ WORKDIR ${COLANDR_APP_DIR}
 RUN apt update \
     && apt install -y gcc \
     && apt clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
 COPY requirements/ /app/requirements/
-RUN pip install -r requirements/prod.txt
+RUN pip install -U pip && pip install -r requirements/prod.txt
 
 COPY . .
 
