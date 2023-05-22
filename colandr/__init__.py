@@ -89,6 +89,10 @@ def create_app(config_name):
     api_.add_namespace(fulltext_screenings_ns)
     api_.add_namespace(data_extractions_ns)
 
+    @app.route('/')
+    def home():
+        return "Welcome to Colandr's API!"
+
     @app.route('/fulltexts/<int:id>/upload', methods=['GET'])
     @fulltext_uploads_ns.doc(
         params={
