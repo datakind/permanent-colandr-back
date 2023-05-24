@@ -1,0 +1,66 @@
+name: colandr-back
+
+services:
+  db:
+    container_name: colandr-db
+    restart: always
+    image: "postgres:10"
+    stop_grace_period: 5s
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file: ".env"
+    environment:
+      - POSTGRES_USER=${COLANDR_DB_USER}
+      - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+      - POSTGRES_DB=${COLANDR_DB_NAME}
+      - PGDATA=/var/lib/postgresql/data
+  broker:
+    container_name: colandr-broker
+    restart: always
+    image: "redis:6.0"
+    stop_grace_period: 5s
+    volumes:
+      - "redis:/data"
+  api:
+    container_name: colandr-api
+    build:
+      context: "."
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - broker
+    stop_signal: SIGINT
+    env_file: ".env"
+    volumes:
+      - .:/app
+    ports:
+      - 5001:5000
+    entrypoint:
+      [
+        "python",
+        "manage.py",
+        "--config",
+        "dev",
+        "runserver",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000"
+      ]
+  worker:
+    container_name: colandr-worker
+    build:
+      context: "."
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - broker
+    stop_signal: SIGINT
+    env_file: ".env"
+    # command: celery ...
+
+volumes:
+  postgres: {}
+  redis: {}
