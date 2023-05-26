@@ -16,4 +16,5 @@ COPY . .
 
 EXPOSE 5000
 
-# CMD ["python", "manage.py", "--config", "dev", "runserver", "--port", "5000"]
+CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
+# CMD ["gunicorn", "--config", "./gunicorn_config.py", "colandr:create_app('dev')"]

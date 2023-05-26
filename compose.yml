@@ -33,17 +33,16 @@ services:
       - broker
     stop_signal: SIGINT
     env_file: ".env"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
     volumes:
       - .:/app
     ports:
       - 5001:5000
     entrypoint:
       [
-        "python",
-        "manage.py",
-        "--config",
-        "dev",
-        "runserver",
+        "flask",
+        "run",
         "--host",
         "0.0.0.0",
         "--port",
@@ -59,7 +58,18 @@ services:
       - broker
     stop_signal: SIGINT
     env_file: ".env"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
     # command: celery ...
+    entrypoint:
+      [
+        "flask",
+        "run",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "5000"
+      ]
 
 volumes:
   postgres: {}
