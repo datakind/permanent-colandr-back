@@ -45,8 +45,6 @@ class Config:
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
-    # RESTPLUS_VALIDATE = False
-
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR', '/tmp')
     LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
@@ -90,7 +88,6 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     LOGGER_NAME = 'test-colandr'
     LOG_FILENAME = 'test-colandr.log'
     SQLALCHEMY_ECHO = True

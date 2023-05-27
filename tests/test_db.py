@@ -1,6 +1,9 @@
+import sqlalchemy as sa
+
 from colandr import db
 
 
 def test_db_connection(app):
     with app.app_context():
-        db.engine.execute("SELECT 1")
+        with db.engine.connect() as conn:
+            result = conn.execute(sa.text("SELECT 1"))
