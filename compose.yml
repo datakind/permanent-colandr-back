@@ -23,6 +23,10 @@ services:
     stop_grace_period: 5s
     volumes:
       - "redis:/data"
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
   api:
     container_name: colandr-api
     build:
@@ -35,19 +39,12 @@ services:
     env_file: ".env"
     environment:
       - FLASK_APP=colandr.app:create_app()
+      - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
     volumes:
       - .:/app
     ports:
       - 5001:5000
-    entrypoint:
-      [
-        "flask",
-        "run",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5000"
-      ]
+    command: "flask run --host 0.0.0.0 --port 5000"
   worker:
     container_name: colandr-worker
     build:
@@ -60,16 +57,10 @@ services:
     env_file: ".env"
     environment:
       - FLASK_APP=colandr.app:create_app()
-    # command: celery ...
-    entrypoint:
-      [
-        "flask",
-        "run",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5000"
-      ]
+      - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+    command: "celery worker --app=celery_worker.celery"
 
 volumes:
   postgres: {}

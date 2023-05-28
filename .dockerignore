@@ -1,6 +1,8 @@
 *
 !colandr
 !requirements
-!manage.py
 !pyproject.toml
 !restart_service.sh
+!gunicorn_config.py
+!celery_worker.py
+!colandr_data/logs
