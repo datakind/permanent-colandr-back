@@ -45,3 +45,4 @@ def register_extensions(app):
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
     api_.init_app(app)
+    extensions.init_celery_app(app)
