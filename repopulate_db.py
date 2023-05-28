@@ -7,7 +7,7 @@ import random
 from pprint import pprint
 import sys
 
-from colandr import create_app
+from colandr.app import create_app
 from colandr.config import configs
 from colandr.tasks import suggest_keyterms
 import requests

@@ -8,7 +8,7 @@ from sqlalchemy import event, false, text, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from . import db
+from .extensions import db
 from .api.utils import assign_status, get_boolean_search_query
 from .lib.utils import get_console_logger
 
