@@ -3,10 +3,10 @@ import os
 
 from flask import Flask
 
-from colandr import cli, errors, extensions
-from colandr.config import configs, Config
-from colandr.lib.utils import get_rotating_file_handler, get_console_handler
+from . import cli, errors, extensions
 from .api import api_
+from .config import configs
+from .lib.utils import get_rotating_file_handler, get_console_handler
 
 
 def create_app(config_name="dev"):
