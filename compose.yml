@@ -16,6 +16,11 @@ services:
       - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
       - POSTGRES_DB=${COLANDR_DB_NAME}
       - PGDATA=/var/lib/postgresql/data
+    healthcheck:
+      test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
   broker:
     container_name: colandr-broker
     restart: always
@@ -31,8 +36,10 @@ services:
       context: "."
       dockerfile: Dockerfile
     depends_on:
-      - db
-      - broker
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
     stop_signal: SIGINT
     env_file: ".env"
     environment:
