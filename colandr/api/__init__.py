@@ -28,8 +28,10 @@ from .resources.fulltexts import ns as fulltexts_ns
 from .resources.fulltext_uploads import ns as fulltext_uploads_ns
 from .resources.fulltext_screenings import ns as fulltext_screenings_ns
 from .resources.data_extractions import ns as data_extractions_ns
+from .swagger import ns as swagger_ns
 
 api_.add_namespace(errors_ns)
+api_.add_namespace(swagger_ns)
 api_.add_namespace(register_ns)
 api_.add_namespace(reset_ns)
 api_.add_namespace(authtoken_ns)

@@ -1,30 +1,31 @@
-from flask_restx import fields
+from flask_restx import Namespace, fields
 
 from ..lib import constants
-from . import api_
+
+ns = Namespace("models")
 
 
-user_model = api_.model(
+user_model = ns.model(
     'User',
     {'name': fields.String(required=True),
      'email': fields.String(required=True),
      'password': fields.String(required=True)}
     )
 
-data_source_model = api_.model(
+data_source_model = ns.model(
     'DataSource',
     {'source_type': fields.String(required=True, enum=['database', 'gray literature']),
      'source_name': fields.String(max_length=100),
      'source_url': fields.String(max_length=500)}
     )
 
-review_model = api_.model(
+review_model = ns.model(
     'Review',
     {'name': fields.String(required=True, max_length=500),
      'description': fields.String}
     )
 
-review_plan_pico_model = api_.model(
+review_plan_pico_model = ns.model(
     'ReviewPlanPico',
     {'population': fields.String(max_length=300),
      'intervention': fields.String(max_length=300),
@@ -32,19 +33,19 @@ review_plan_pico_model = api_.model(
      'outcome': fields.String(max_length=300)}
     )
 
-review_plan_keyterm_model = api_.model(
+review_plan_keyterm_model = ns.model(
     'ReviewPlanKeyterm',
     {'label': fields.String(required=True, max_length=25),
      'description': fields.String(max_length=300)}
     )
 
-review_plan_selection_criterion_model = api_.model(
+review_plan_selection_criterion_model = ns.model(
     'ReviewPlanSelectionCriterion',
     {'label': fields.String(required=True, max_length=25),
      'description': fields.String(max_length=300)}
     )
 
-data_extraction_form_item_model = api_.model(
+data_extraction_form_item_model = ns.model(
     'DataExtractionFormItem',
     {'label': fields.String(required=True, max_length=25),
      'description': fields.String(max_length=300),
@@ -52,14 +53,14 @@ data_extraction_form_item_model = api_.model(
      'allowed_values': fields.List(fields.String)}
     )
 
-review_plan_suggested_keyterms = api_.model(
+review_plan_suggested_keyterms = ns.model(
     'ReviewPlanSuggestedKeyterms',
     {'sample_size': fields.Integer(required=True, min=1),
      'incl_keyterms': fields.List(fields.String, required=True),
      'excl_keyterms': fields.List(fields.String, required=True)}
     )
 
-review_plan_model = api_.model(
+review_plan_model = ns.model(
     'ReviewPlan',
     {'objective': fields.String,
      'research_questions': fields.List(fields.String(max_length=300)),
@@ -70,7 +71,7 @@ review_plan_model = api_.model(
     # 'suggested_keyterms': fields.Nested(review_plan_suggested_keyterms)}  # not user-set
     )
 
-import_model = api_.model(
+import_model = ns.model(
     'Import',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
      'user_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
@@ -80,14 +81,14 @@ import_model = api_.model(
      'status': fields.String(enum=constants.IMPORT_STATUSES)}
     )
 
-dedupe_model = api_.model(
+dedupe_model = ns.model(
     'Dedupe',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
      'duplicate_of': fields.Integer(min=1, max=constants.MAX_BIGINT),
      'duplicate_score': fields.Float(min=0.0, max=1.0)}
     )
 
-screening_model = api_.model(
+screening_model = ns.model(
     'Screening',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
      'user_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
@@ -97,7 +98,7 @@ screening_model = api_.model(
      'exclude_reasons': fields.List(fields.String(max_length=25))}
     )
 
-citation_model = api_.model(
+citation_model = ns.model(
     'Citation',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
      'type_of_work': fields.String(max_length=25),
@@ -119,24 +120,24 @@ citation_model = api_.model(
      'other_fields': fields.Raw}
     )
 
-fulltext_model = api_.model(
+fulltext_model = ns.model(
     'Fulltext',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT)}
     )
 
-extracted_item_model = api_.model(
+extracted_item_model = ns.model(
     'ExtractedItem',
     {'label': fields.String(required=True, max_length=25),
      'value': fields.Raw(required=True)}
     )
 
-data_extraction_model = api_.model(
+data_extraction_model = ns.model(
     'DataExtraction',
     {'review_id': fields.Integer(required=True, min=1, max=constants.MAX_INT),
      'extracted_items': fields.List(fields.Nested(extracted_item_model))}
     )
 
-study_model = api_.model(
+study_model = ns.model(
     'Study',
     {'data_extraction_status': fields.String(enum=constants.EXTRACTION_STATUSES),
      'tags': fields.List(fields.String(max_length=25))}
