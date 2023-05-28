@@ -23,8 +23,6 @@ services:
     stop_grace_period: 5s
     volumes:
       - "redis:/data"
-    expose:
-      - 6379
     ports:
       - "6379:6379"
   api:
