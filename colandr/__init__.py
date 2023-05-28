@@ -1,4 +1,5 @@
-from colandr.extensions import api_, db, mail, migrate
+from colandr.extensions import db, mail, migrate
+from colandr.api import api_
 
 # import logging
 # import os

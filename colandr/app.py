@@ -6,6 +6,7 @@ from flask import Flask
 from colandr import cli, errors, extensions
 from colandr.config import configs, Config
 from colandr.lib.utils import get_rotating_file_handler, get_console_handler
+from .api import api_
 
 
 def create_app(config_name="dev"):
@@ -43,4 +44,4 @@ def register_extensions(app):
     extensions.db.init_app(app)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
-    extensions.api_.init_app(app)
+    api_.init_app(app)
