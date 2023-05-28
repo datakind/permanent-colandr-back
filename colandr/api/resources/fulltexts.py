@@ -1,12 +1,11 @@
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
-from colandr import api_
 from ...lib import constants
 from ...models import db, Fulltext
 from ..errors import not_found_error, forbidden_error
@@ -14,7 +13,7 @@ from ..schemas import FulltextSchema
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'fulltexts', path='/fulltexts',
     description='get and delete fulltexts')
 

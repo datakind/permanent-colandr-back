@@ -1,10 +1,11 @@
 from flask import jsonify, current_app
+from flask_restx import Namespace
 from werkzeug import exceptions
 
-from colandr import api_
+ns = Namespace("errors")
 
 
-@api_.errorhandler
+@ns.errorhandler
 def default_error(err):
     message = 'an unhandled exception occurred: {}'.format(err)
     current_app.logger.error(message)
@@ -13,7 +14,7 @@ def default_error(err):
     return response
 
 
-@api_.errorhandler(exceptions.BadRequest)
+@ns.errorhandler(exceptions.BadRequest)
 def bad_request_error(err):
     message = '{}'.format(err)
     current_app.logger.error(message)
@@ -22,7 +23,7 @@ def bad_request_error(err):
     return response
 
 
-@api_.errorhandler(exceptions.Unauthorized)
+@ns.errorhandler(exceptions.Unauthorized)
 def unauthorized_error(err):
     message = '{}'.format(err)
     current_app.logger.error(message)
@@ -31,7 +32,7 @@ def unauthorized_error(err):
     return response
 
 
-@api_.errorhandler(exceptions.Forbidden)
+@ns.errorhandler(exceptions.Forbidden)
 def forbidden_error(err):
     message = '{}'.format(err)
     current_app.logger.error(message)
@@ -40,7 +41,7 @@ def forbidden_error(err):
     return response
 
 
-@api_.errorhandler(exceptions.NotFound)
+@ns.errorhandler(exceptions.NotFound)
 def not_found_error(err):
     message = '{}'.format(err)
     current_app.logger.error(message)
@@ -49,7 +50,7 @@ def not_found_error(err):
     return response
 
 
-@api_.errorhandler(exceptions.InternalServerError)
+@ns.errorhandler(exceptions.InternalServerError)
 def internal_server_error(err):
     message = '{}'.format(err)
     current_app.logger.error(message)

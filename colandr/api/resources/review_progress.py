@@ -1,18 +1,17 @@
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
-from colandr import api_
 from ...lib import constants
 from ...models import db, Review, Study
 from ..errors import forbidden_error, not_found_error
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'review_progress', path='/reviews/<int:id>',
     description='get review progress counts')
 

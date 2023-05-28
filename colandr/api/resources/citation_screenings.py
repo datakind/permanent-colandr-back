@@ -1,5 +1,5 @@
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -7,7 +7,6 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from colandr import api_
 from ...lib import constants
 from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import bad_request_error, forbidden_error, not_found_error, validation_error
@@ -17,7 +16,7 @@ from ..utils import assign_status
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'citation_screenings', path='/citations',
     description='get, create, delete, modify citation screenings')
 

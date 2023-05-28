@@ -1,5 +1,5 @@
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow import ValidationError
@@ -8,7 +8,6 @@ from webargs.flaskparser import use_kwargs
 
 from sqlalchemy import create_engine
 
-from colandr import api_
 from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
@@ -18,7 +17,7 @@ from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'citation_imports', path='/citations/imports',
     description='import citations in bulk and get import history')
 

@@ -1,5 +1,5 @@
 from flask import current_app, render_template  # , url_for
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from marshmallow import fields as ma_fields
@@ -11,10 +11,10 @@ from ..errors import db_integrity_error, not_found_error, validation_error
 from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
 from ..swagger import user_model
-from colandr import api_
+from colandr import api
 
 
-ns = api_.namespace(
+ns = Namespace(
     'user registration', path='/register',
     description='register and confirm new users')
 
@@ -43,7 +43,7 @@ class UserRegistrationResource(Resource):
         if server_name:
             confirm_url = server_name + '{}/{}'.format(ns.path, token)
         else:
-            confirm_url = api_.url_for(
+            confirm_url = api.api_.url_for(
                 ConfirmUserRegistrationResource, token=token, _external=True)
         html = render_template(
             'emails/user_registration.html',

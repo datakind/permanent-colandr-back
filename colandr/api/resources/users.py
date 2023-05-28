@@ -1,5 +1,5 @@
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 
 from marshmallow import fields as ma_fields
@@ -8,7 +8,6 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from colandr import api_
 from ...lib import constants
 from ...models import db, User, Review
 from ..errors import db_integrity_error, not_found_error, forbidden_error
@@ -17,7 +16,7 @@ from ..schemas import UserSchema
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'users', path='/users',
     description='get, create, delete, update users')
 

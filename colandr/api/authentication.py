@@ -1,13 +1,12 @@
 from flask import g, jsonify
 from flask_httpauth import HTTPBasicAuth
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
-from colandr import api_
 from ..models import db, User
 from .errors import unauthorized_error
 
 
-ns = api_.namespace(
+ns = Namespace(
     'authtoken', path='/authtoken',
     description='get an api authentication token')
 
