@@ -1,7 +1,7 @@
 from flask_restx import fields
 
 from ..lib import constants
-from colandr import api_
+from . import api_
 
 
 user_model = api_.model(
