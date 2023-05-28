@@ -10,6 +10,7 @@ import textacy
 import textacy.ke.utils
 import textacy.lang_utils
 import textacy.text_utils
+from celery import shared_task
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
@@ -21,7 +22,7 @@ from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
 
-from . import celery, mail
+from . import mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
@@ -60,7 +61,7 @@ def wait_for_lock(name, expire=60):
     return lock
 
 
-@celery.task
+@shared_task
 def send_email(recipients, subject, text_body, html_body):
     msg = Message(current_app.config['MAIL_SUBJECT_PREFIX'] + ' ' + subject,
                   sender=current_app.config['MAIL_DEFAULT_SENDER'],
@@ -70,7 +71,7 @@ def send_email(recipients, subject, text_body, html_body):
     mail.send(msg)
 
 
-@celery.task
+@shared_task
 def remove_unconfirmed_user(email):
     user = db.session.query(User).filter_by(email=email).one_or_none()
     if user and user.is_confirmed is False:
@@ -95,7 +96,7 @@ def _get_candidate_dupes(results):
         yield records
 
 
-@celery.task
+@shared_task
 def deduplicate_citations(review_id):
 
     lock = wait_for_lock('deduplicate_citations_review_id={}'.format(review_id), expire=60)
@@ -331,7 +332,7 @@ def deduplicate_citations(review_id):
     lock.release()
 
 
-@celery.task
+@shared_task
 def get_citations_text_content_vectors(review_id):
 
     lock = wait_for_lock(
@@ -409,7 +410,7 @@ def get_citations_text_content_vectors(review_id):
     lock.release()
 
 
-@celery.task
+@shared_task
 def get_fulltext_text_content_vector(review_id, fulltext_id):
 
     # HACK: let's skip this for now, actually
@@ -464,7 +465,7 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         lock.release()
 
 
-@celery.task
+@shared_task
 def suggest_keyterms(review_id, sample_size):
 
     lock = wait_for_lock(
@@ -527,7 +528,7 @@ def suggest_keyterms(review_id, sample_size):
     lock.release()
 
 
-@celery.task
+@shared_task
 def train_citation_ranking_model(review_id):
 
     lock = wait_for_lock(
