@@ -9,7 +9,7 @@ RUN apt update \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
-COPY requirements/ /app/requirements/
+COPY requirements/ ./requirements/
 RUN pip install -U pip && pip install -r requirements/prod.txt
 
 COPY . .
