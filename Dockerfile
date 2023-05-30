@@ -11,6 +11,7 @@ RUN apt update \
 
 COPY requirements/ ./requirements/
 RUN pip install -U pip && pip install -r requirements/prod.txt
+RUN python -m textacy download lang_identifier && python -m spacy download en_core_web_md
 
 COPY . .
 
