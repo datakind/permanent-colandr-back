@@ -6,6 +6,8 @@ services:
     restart: always
     image: "postgres:10"
     stop_grace_period: 5s
+    networks:
+      - colandr-back
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
@@ -26,6 +28,8 @@ services:
     restart: always
     image: "redis:6.0"
     stop_grace_period: 5s
+    networks:
+      - colandr-back
     volumes:
       - "redis:/data"
     ports:
@@ -45,6 +49,8 @@ services:
     environment:
       - FLASK_APP=colandr.app:create_app()
       - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
+    networks:
+      - colandr-back
     volumes:
       - .:/app
     ports:
@@ -66,6 +72,11 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
     command: "celery worker --app=celery_worker.celery"
+    networks:
+      - colandr-back
+
+networks:
+  colandr-back: {}
 
 volumes:
   postgres: {}
