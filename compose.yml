@@ -3,8 +3,8 @@ name: colandr-back
 services:
   db:
     container_name: colandr-db
-    restart: always
     image: "postgres:10"
+    restart: always
     stop_grace_period: 5s
     networks:
       - colandr-back
@@ -25,8 +25,8 @@ services:
       retries: 5
   broker:
     container_name: colandr-broker
-    restart: always
     image: "redis:6.0"
+    restart: always
     stop_grace_period: 5s
     networks:
       - colandr-back
@@ -44,11 +44,15 @@ services:
         condition: service_healthy
       broker:
         condition: service_started
+      worker:
+        condition: service_started
     stop_signal: SIGINT
     env_file: ".env"
     environment:
       - FLASK_APP=colandr.app:create_app()
       - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
     networks:
       - colandr-back
     volumes:
@@ -71,9 +75,9 @@ services:
       - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
-    command: "celery worker --app=celery_worker.celery"
     networks:
       - colandr-back
+    command: "celery worker --app=celery_worker.celery --loglevel=info"
 
 networks:
   colandr-back: {}
