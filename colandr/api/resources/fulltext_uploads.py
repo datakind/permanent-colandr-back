@@ -1,7 +1,7 @@
 import io
 import os
-import subprocess
 
+import fitz
 import ftfy
 from flask import current_app, g
 from flask_restx import Namespace, Resource
@@ -85,12 +85,14 @@ class FulltextUploadResource(Resource):
                 with io.open(filepath, mode='rb') as f:
                     text_content = f.read()
             elif ext == '.pdf':
-                extract_text_script = os.path.join(
-                    current_app.config['COLANDR_APP_DIR'],
-                    'scripts/extractText.sh')
-                text_content = subprocess.check_output(
-                    [extract_text_script, '--filename', filepath],
-                    stderr=subprocess.STDOUT)
+                # extract_text_script = os.path.join(
+                #     current_app.config['COLANDR_APP_DIR'], 'scripts/extractText.sh'
+                # )
+                # text_content = subprocess.check_output(
+                #     [extract_text_script, '--filename', filepath],
+                #     stderr=subprocess.STDOUT,
+                # )
+                text_content = extract_pdf_text(filepath).encode("utf-8")
             fulltext.text_content = ftfy.fix_text(
                 text_content.decode(errors='ignore'))
             db.session.commit()
@@ -152,3 +154,10 @@ class FulltextUploadResource(Resource):
             return '', 204
         else:
             return '', 200
+
+
+def extract_pdf_text(pdf_path: str) -> str:
+    """Extract text from a PDF file and write it to a text file."""
+    with fitz.open(pdf_path) as doc:
+        text = chr(12).join(page.get_text("text", sort=True) for page in doc)
+    return text
