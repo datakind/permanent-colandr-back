@@ -6,3 +6,4 @@
 !gunicorn_config.py
 !celery_worker.py
 !colandr_data/logs
+!colandr_data/dedupe
