@@ -5,5 +5,4 @@
 !restart_service.sh
 !gunicorn_config.py
 !celery_worker.py
-!colandr_data/logs
-!colandr_data/dedupe
+!colandr_data/
