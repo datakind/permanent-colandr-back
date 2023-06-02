@@ -53,6 +53,7 @@ services:
       - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
     networks:
       - colandr-back
     volumes:
@@ -75,6 +76,7 @@ services:
       - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
     networks:
       - colandr-back
     command: "celery worker --app=celery_worker.celery --loglevel=info"

@@ -41,6 +41,9 @@ def configure_logging(app):
 
 def register_extensions(app):
     """Register flask extensions on ``app`` ."""
+    extensions.cache.init_app(app)
+    with app.app_context():
+        extensions.cache.clear()
     extensions.db.init_app(app)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
