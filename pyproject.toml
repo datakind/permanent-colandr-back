@@ -42,9 +42,8 @@ dependencies = [
   "pymupdf~=1.22.0",
   "python-dateutil>=2.7.0",
   "python-dotenv~=0.21.0",  # no higher until python version upgraded to >=3.8
-  "python-redis-lock==3.1.0",
   "pyyaml>=3.11",
-  "redis~=3.2.0",
+  "redis~=4.0",
   "requests>=2.11.1",
   "scikit-learn>=0.21.0,<0.23.0",
   "sqlalchemy~=1.4",
