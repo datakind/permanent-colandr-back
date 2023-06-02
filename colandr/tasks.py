@@ -1,16 +1,16 @@
+import contextlib
 import itertools
 import os
 from time import sleep
 
 import arrow
 import numpy as np
-import redis
-import redis_lock
 import textacy
 import textacy.ke.utils
 import textacy.lang_utils
 import textacy.text_utils
-from celery import shared_task
+from celery import shared_task, current_app as current_celery_app
+from celery.five import monotonic
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
@@ -22,7 +22,7 @@ from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
 
-from . import mail
+from .extensions import cache, mail
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
@@ -42,23 +42,39 @@ from .models import (
 )
 
 
-REDIS_CONN = redis.StrictRedis()
+TASK_LOCK_TTL = 60 * 3  # minutes
 
 logger = get_task_logger(__name__)
 console_logger = get_console_logger(__name__)
 
 
-def wait_for_lock(name, expire=60):
-    lock = redis_lock.Lock(REDIS_CONN, name, expire=expire, auto_renewal=True)
-    while True:
-        if lock.acquire() is False:
-            console_logger.debug('waiting on existing %s job...', name)
-            sleep(10)
-        else:
-            console_logger.info('starting new %s job...', name)
-            logger.info('starting new %s job...', name)
-            break
-    return lock
+@contextlib.contextmanager
+def cache_lock(lock_id, oid):
+    timeout_at = monotonic() + TASK_LOCK_TTL
+    console_logger.info("... in cache_lock(%s, %s, timeout=%s)", lock_id, oid, timeout_at)
+    status = cache.add(lock_id, oid, TASK_LOCK_TTL)
+    try:
+        yield status
+        console_logger.info("cache_lock status is %s", status)
+    finally:
+        if monotonic() < timeout_at and status:
+            # don't release the lock if we exceeded the timeout to lessen the chance
+            # of releasing an expired lock owned by someone else
+            # also don't release the lock if we didn't acquire it
+            cache.delete(lock_id)
+
+
+# def wait_for_lock(name, expire=60):
+#     lock = redis_lock.Lock(REDIS_CONN, name, expire=expire, auto_renewal=True)
+#     while True:
+#         if lock.acquire() is False:
+#             console_logger.debug('waiting on existing %s job...', name)
+#             sleep(10)
+#         else:
+#             console_logger.info('starting new %s job...', name)
+#             logger.info('starting new %s job...', name)
+#             break
+#     return lock
 
 
 @shared_task
@@ -99,7 +115,12 @@ def _get_candidate_dupes(results):
 @shared_task
 def deduplicate_citations(review_id):
 
-    lock = wait_for_lock('deduplicate_citations_review_id={}'.format(review_id), expire=60)
+    # lock = wait_for_lock('deduplicate_citations_review_id={}'.format(review_id), expire=60)
+    lock_id = f"deduplicate_ciations-__review-{review_id}"
+    with cache_lock(lock_id, current_celery_app.oid) as lock_acquired:
+        if not lock_acquired:
+            console_logger.error("LOCK NOT ACQUIRED!")
+            return
 
     deduper = load_dedupe_model(
         os.path.join(current_app.config['DEDUPE_MODELS_DIR'],
@@ -124,7 +145,7 @@ def deduplicate_citations(review_id):
             if max_created_at is None:
                 logger.error(
                     '<Review(id=%s)>: No citations found, so nothing to dedupe...', review_id)
-                lock.release()
+                # lock.release()
                 return
             elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
             if elapsed_time < 60:
@@ -142,7 +163,7 @@ def deduplicate_citations(review_id):
         most_recent_dedupe = conn.execute(stmt).fetchone()[0]
         if most_recent_dedupe and most_recent_dedupe > max_created_at:
             logger.warning('<Review(id=%s)>: all studies already deduped!', review_id)
-            lock.release()
+            # lock.release()
             return
 
         # remove rows for this review
@@ -329,14 +350,19 @@ def deduplicate_citations(review_id):
             '<Review(id=%s)>: found %s duplicate and %s non-duplicate citations',
             review_id, len(duplicate_cids), len(non_duplicate_cids))
 
-    lock.release()
+    # lock.release()
 
 
 @shared_task
 def get_citations_text_content_vectors(review_id):
 
-    lock = wait_for_lock(
-        'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
+    # lock = wait_for_lock(
+    #     'get_citations_text_content_vectors_review_id={}'.format(review_id), expire=60)
+    lock_id = f"get_citations_text_content_vectors-__review-{review_id}"
+    with cache_lock(lock_id, current_celery_app.oid) as lock_acquired:
+        if not lock_acquired:
+            console_logger.error("LOCK NOT ACQUIRED!")
+            return
 
     en_nlp = textacy.load_spacy_lang("en_core_web_md", disable=("tagger", "parser", "ner"))
     engine = create_engine(
@@ -352,7 +378,7 @@ def get_citations_text_content_vectors(review_id):
             max_created_at = conn.execute(stmt).fetchone()[0]
             if not max_created_at:
                 logger.warning('<Review(id=%s)>: no citations found', review_id)
-                lock.release()
+                # lock.release()
                 return
             elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
             if elapsed_time < 60:
@@ -397,7 +423,7 @@ def get_citations_text_content_vectors(review_id):
             logger.warning(
                 '<Review(id=%s)>: no citation text_content_vector_reps to update',
                 review_id)
-            lock.release()
+            # lock.release()
             return
 
         session = Session(bind=conn)
@@ -407,7 +433,7 @@ def get_citations_text_content_vectors(review_id):
             '<Review(id=%s)>: %s citation text_content_vector_reps updated',
             review_id, len(citations_to_update))
 
-    lock.release()
+    # lock.release()
 
 
 @shared_task
@@ -468,8 +494,8 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 @shared_task
 def suggest_keyterms(review_id, sample_size):
 
-    lock = wait_for_lock(
-        'suggest_keyterms_review_id={}'.format(review_id), expire=60)
+    # lock = wait_for_lock(
+    #     'suggest_keyterms_review_id={}'.format(review_id), expire=60)
     logger.info(
         '<Review(id=%s)>: computing keyterms with sample size = %s',
         review_id, sample_size)
@@ -515,7 +541,7 @@ def suggest_keyterms(review_id, sample_size):
             'excl_keyterms': excl_keyterms}
         errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
         if errors:
-            lock.release()
+            # lock.release()
             raise Exception
         logger.info(
             '<Review(id=%s)>: suggested keyterms: %s', review_id, suggested_keyterms)
@@ -525,14 +551,14 @@ def suggest_keyterms(review_id, sample_size):
             .values(suggested_keyterms=suggested_keyterms)
         conn.execute(stmt)
 
-    lock.release()
+    # lock.release()
 
 
 @shared_task
 def train_citation_ranking_model(review_id):
 
-    lock = wait_for_lock(
-        'train_citation_ranking_model_review_id={}'.format(review_id), expire=60)
+    # lock = wait_for_lock(
+    #     'train_citation_ranking_model_review_id={}'.format(review_id), expire=60)
     logger.info('<Review(id=%s)>: training citation ranking model', review_id)
 
     engine = create_engine(
@@ -557,7 +583,7 @@ def train_citation_ranking_model(review_id):
                 logger.error(
                     '<Review(id=%s)>: no citations with vectorized text content found',
                     review_id)
-                lock.release()
+                # lock.release()
                 return
             n_iters += 1
 
@@ -585,4 +611,4 @@ def train_citation_ranking_model(review_id):
     logger.info(
         '<Review(id=%s)>: citation ranking model saved to %s', review_id, filepath)
 
-    lock.release()
+    # lock.release()
