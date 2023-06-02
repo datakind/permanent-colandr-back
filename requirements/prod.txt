@@ -7,6 +7,7 @@ celery~=4.0
 click~=8.0
 dedupe~=1.4.14
 flask~=1.1.0
+flask-caching~=2.0.0
 flask_httpauth~=3.2
 flask_mail>=0.9.1
 flask_migrate~=2.7
