@@ -1,3 +1,12 @@
+New, minimal setup instructions:
+
+1. Install Xcode: `xcode-select --install`
+1. Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+1. Install Docker: `brew cask install docker`
+1. Clone copy of colandr repo: `brew install git && git clone https://github.com/datakind/permanent-colandr-back.git`
+1. Build and spin up Docker containers: `docker compose up --build`
+
+
 **Note:** Much of this process can be performed automatically by running the `macos-setup.sh` script at the top level of this directory.
 
 
