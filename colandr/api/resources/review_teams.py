@@ -1,5 +1,5 @@
 from flask import g, current_app, render_template
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from itsdangerous import URLSafeSerializer
 from marshmallow import fields as ma_fields
@@ -13,9 +13,10 @@ from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
 from ..authentication import auth
-from colandr import api_
+from colandr import api
 
-ns = api_.namespace(
+
+ns = Namespace(
     'review_teams', path='/reviews',
     description='get, modify, and confirm review teams')
 
@@ -131,7 +132,7 @@ class ReviewTeamResource(Resource):
                 confirm_url = server_name + '{}/{}/team/confirm?token={}'.format(
                     ns.path, id, token)
             else:
-                confirm_url = api_.url_for(
+                confirm_url = api.api_.url_for(
                     ConfirmReviewTeamInviteResource,
                     id=id, token=token, _external=True)
             # this user doesn't exist...

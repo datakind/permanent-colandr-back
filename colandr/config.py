@@ -31,8 +31,8 @@ class Config:
     APP_URL_DOMAIN = 'http://localhost:5001/api'
 
     # celery+redis config
-    CELERY_BROKER_URL = 'redis://localhost:6379/0'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+    CELERY_BROKER_URL = os.environ.get('COLANDR_CELERY_BROKER_URL', 'redis://localhost:6379/0')
+    CELERY_RESULT_BACKEND = os.environ.get('COLANDR_CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
     CELERY_ACCEPT_CONTENT = ['json']
     CELERY_TASK_SERIALIZER = 'json'
     CELERY_RESULT_SERIALIZER = 'json'
@@ -44,8 +44,6 @@ class Config:
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
-
-    # RESTPLUS_VALIDATE = False
 
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR', '/tmp')
@@ -90,7 +88,6 @@ class DevelopmentConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     LOGGER_NAME = 'test-colandr'
     LOG_FILENAME = 'test-colandr.log'
     SQLALCHEMY_ECHO = True

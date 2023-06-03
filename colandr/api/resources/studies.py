@@ -3,7 +3,7 @@ import os
 import random
 
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 
@@ -15,7 +15,6 @@ from webargs.flaskparser import use_args, use_kwargs
 import numpy as np
 from sklearn.externals import joblib
 
-from colandr import api_
 from ...lib import constants
 from ...models import db, Citation, Study, Review
 from ...lib.constants import (CITATION_RANKING_MODEL_FNAME, DEDUPE_STATUSES,
@@ -27,7 +26,7 @@ from ..swagger import study_model
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'studies', path='/studies',
     description='get, delete, update studies')
 

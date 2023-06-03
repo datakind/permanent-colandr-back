@@ -4,7 +4,7 @@ import io
 import itertools
 
 from flask import g, current_app, make_response
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -15,9 +15,9 @@ from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
 from ..errors import not_found_error, forbidden_error
 from ..authentication import auth
-from colandr import api_
 
-ns = api_.namespace(
+
+ns = Namespace(
     'review_exports', path='/reviews/<int:id>/export',
     description='export review prisma or studies data')
 

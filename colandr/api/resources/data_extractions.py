@@ -1,14 +1,13 @@
 import arrow
 
 from flask import g, current_app
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from colandr import api_
 from ...lib import constants, sanitizers
 from ...models import db, DataExtraction, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error, validation_error
@@ -17,7 +16,7 @@ from ..swagger import extracted_item_model
 from ..authentication import auth
 
 
-ns = api_.namespace(
+ns = Namespace(
     'data_extractions', path='/data_extractions',
     description='get, delete, and modify data extractions')
 

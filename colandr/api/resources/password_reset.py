@@ -1,11 +1,11 @@
 from flask import current_app, render_template
-from flask_restx import Resource
+from flask_restx import Namespace, Resource
 
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
 
-from colandr import api_
+from colandr import api
 from ...models import db, User
 from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
@@ -13,7 +13,7 @@ from ..registration import confirm_token, generate_confirmation_token
 from ..schemas import UserSchema
 
 
-ns = api_.namespace(
+ns = Namespace(
     'password reset', path='/reset',
     description='reset a user\'s password')
 
@@ -60,7 +60,7 @@ class PasswordResetResource(Resource):
             if server_name:
                 confirm_url = server_name + '{}/{}'.format(ns.path, token)
             else:
-                confirm_url = api_.url_for(
+                confirm_url = api.api_.url_for(
                     ConfirmPasswordResetResource, token=token, _external=True)
             html = render_template(
                 'emails/password_reset.html',

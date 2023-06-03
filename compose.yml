@@ -3,9 +3,11 @@ name: colandr-back
 services:
   db:
     container_name: colandr-db
-    restart: always
     image: "postgres:10"
+    restart: always
     stop_grace_period: 5s
+    networks:
+      - colandr-back
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
@@ -16,39 +18,49 @@ services:
       - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
       - POSTGRES_DB=${COLANDR_DB_NAME}
       - PGDATA=/var/lib/postgresql/data
+    healthcheck:
+      test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
   broker:
     container_name: colandr-broker
-    restart: always
     image: "redis:6.0"
+    restart: always
     stop_grace_period: 5s
+    networks:
+      - colandr-back
     volumes:
       - "redis:/data"
+    ports:
+      - "6379:6379"
   api:
     container_name: colandr-api
     build:
       context: "."
       dockerfile: Dockerfile
     depends_on:
-      - db
-      - broker
+      db:
+        condition: service_healthy
+      broker:
+        condition: service_started
+      worker:
+        condition: service_started
     stop_signal: SIGINT
     env_file: ".env"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
+      - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
+    networks:
+      - colandr-back
     volumes:
       - .:/app
     ports:
       - 5001:5000
-    entrypoint:
-      [
-        "python",
-        "manage.py",
-        "--config",
-        "dev",
-        "runserver",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "5000"
-      ]
+    command: "flask run --host 0.0.0.0 --port 5000"
   worker:
     container_name: colandr-worker
     build:
@@ -59,7 +71,18 @@ services:
       - broker
     stop_signal: SIGINT
     env_file: ".env"
-    # command: celery ...
+    environment:
+      - FLASK_APP=colandr.app:create_app()
+      - COLANDR_DATABASE_URI=postgresql://colandr_app:colandr@colandr-db:5432/colandr
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
+    networks:
+      - colandr-back
+    command: "celery worker --app=celery_worker.celery --loglevel=info"
+
+networks:
+  colandr-back: {}
 
 volumes:
   postgres: {}

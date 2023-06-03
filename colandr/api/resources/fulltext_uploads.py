@@ -1,16 +1,14 @@
 import io
 import os
-import subprocess
 
+import fitz
 import ftfy
-from flask import current_app, g
-from flask_restx import Resource
+from flask import current_app, g, send_from_directory
+from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
-
-from colandr import api_
 
 from ...lib import constants
 from ...models import Fulltext, db
@@ -20,7 +18,7 @@ from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
 
 
-ns = api_.namespace(
+ns = Namespace(
     'fulltext_uploads', path='/fulltexts',
     description='upload or delete fulltext content files')
 
@@ -34,8 +32,71 @@ class FulltextUploadResource(Resource):
 
     method_decorators = [auth.login_required]
 
-    # NOTE: the get method for this resource is actually in the app's __init__.py
-    # it required using flask-style routes instead of flask-restful
+    @ns.doc(
+        params={
+            "review_id": {
+                "in": "query",
+                "type": "integer",
+                "required": False,
+                "description": "unique identifier for review whose fulltext upload is to be fetched",
+            },
+        },
+        produces=["application/json"],
+        responses={
+            200: "successfully got uploaded fulltext content file",
+            404: "no fulltext content file with matching id was found",
+        },
+    )
+    @use_kwargs(
+        {
+            "id": ma_fields.Int(
+                required=True,
+                location="view_args",
+                validate=Range(min=1, max=constants.MAX_INT),
+            ),
+            "review_id": ma_fields.Int(
+                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+            ),
+        }
+    )
+    def get(self, id, review_id):
+        """get fulltext content file for a single fulltext by id"""
+        filename = None
+        if review_id is None:
+            for dirname, _, filenames in os.walk(current_app.config["FULLTEXT_UPLOADS_DIR"]):
+                for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
+                    fname = "{}{}".format(id, ext)
+                    if fname in filenames:
+                        filename = fname
+                        upload_dir = dirname
+                        break
+        else:
+            # authenticate current user
+            from colandr.models import Review
+
+            review = db.session.query(Review).get(review_id)
+            if not review:
+                return not_found_error("<Review(id={})> not found".format(review_id))
+            if (
+                g.current_user.is_admin is False
+                and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            ):
+                return forbidden_error(
+                    "{} forbidden to get this review's fulltexts".format(g.current_user)
+                )
+            upload_dir = os.path.join(
+                current_app.config["FULLTEXT_UPLOADS_DIR"], str(review_id)
+            )
+            for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
+                fname = "{}{}".format(id, ext)
+                if os.path.isfile(os.path.join(upload_dir, fname)):
+                    filename = fname
+                    break
+        if not filename:
+            return not_found_error(
+                "no uploaded file for <Fulltext(id={})> found".format(id)
+            )
+        return send_from_directory(upload_dir, filename)
 
     @ns.doc(
         params={
@@ -87,12 +148,14 @@ class FulltextUploadResource(Resource):
                 with io.open(filepath, mode='rb') as f:
                     text_content = f.read()
             elif ext == '.pdf':
-                extract_text_script = os.path.join(
-                    current_app.config['COLANDR_APP_DIR'],
-                    'scripts/extractText.sh')
-                text_content = subprocess.check_output(
-                    [extract_text_script, '--filename', filepath],
-                    stderr=subprocess.STDOUT)
+                # extract_text_script = os.path.join(
+                #     current_app.config['COLANDR_APP_DIR'], 'scripts/extractText.sh'
+                # )
+                # text_content = subprocess.check_output(
+                #     [extract_text_script, '--filename', filepath],
+                #     stderr=subprocess.STDOUT,
+                # )
+                text_content = extract_pdf_text(filepath).encode("utf-8")
             fulltext.text_content = ftfy.fix_text(
                 text_content.decode(errors='ignore'))
             db.session.commit()
@@ -154,3 +217,10 @@ class FulltextUploadResource(Resource):
             return '', 204
         else:
             return '', 200
+
+
+def extract_pdf_text(pdf_path: str) -> str:
+    """Extract text from a PDF file and write it to a text file."""
+    with fitz.open(pdf_path) as doc:
+        text = chr(12).join(page.get_text("text", sort=True) for page in doc)
+    return text

@@ -9,11 +9,13 @@ RUN apt update \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
-COPY requirements/ /app/requirements/
+COPY requirements/ ./requirements/
 RUN pip install -U pip && pip install -r requirements/prod.txt
+RUN python -m textacy download lang_identifier && python -m spacy download en_core_web_md
 
 COPY . .
 
 EXPOSE 5000
 
-# CMD ["python", "manage.py", "--config", "dev", "runserver", "--port", "5000"]
+CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
+# CMD ["gunicorn", "--config", "./gunicorn_config.py", "colandr:create_app('dev')"]
