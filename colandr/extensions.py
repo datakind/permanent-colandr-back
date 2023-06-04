@@ -4,6 +4,7 @@ import celery
 import flask_caching
 import flask_mail
 import flask_migrate
+import flask_praetorian
 import flask_sqlalchemy
 
 
@@ -14,6 +15,7 @@ cache = flask_caching.Cache(
     },
 )
 db = flask_sqlalchemy.SQLAlchemy()
+guard = flask_praetorian.Praetorian()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
 
