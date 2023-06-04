@@ -44,7 +44,7 @@ class User(db.Model):
         db.Unicode(length=200), unique=True, nullable=False,
         index=True)
     password = db.Column(
-        db.Unicode(length=60), nullable=False)
+        db.Unicode(length=256), nullable=False)
     is_confirmed = db.Column(
         db.Boolean, nullable=False, server_default=false())
     is_admin = db.Column(
@@ -70,10 +70,10 @@ class User(db.Model):
         'FulltextScreening', back_populates='user',
         lazy='dynamic')
 
-    def __init__(self, name, email, password):
-        self.name = name
-        self.email = email
-        self.password = self.hash_password(password)
+    # def __init__(self, name, email, password):
+    #     self.name = name
+    #     self.email = email
+    #     self.password = self.hash_password(password)
 
     def __repr__(self):
         return "<User(id={})>".format(self.id)
@@ -108,6 +108,47 @@ class User(db.Model):
         except (SignatureExpired, BadSignature):
             return None  # valid token, but expired
         return db.session.query(User).get(data['id'])
+
+    @property
+    def identity(self):
+        """Unique id of the user instance, required by ``flask-praetorian`` ."""
+        return self.id
+
+    @property
+    def rolenames(self):
+        """Names of roles attached to the user instance, required by ``flask-praetorian`` ."""
+        # TODO: actually implement user roles for real in the db model?
+        if self.is_admin is True:
+            return ["user", "admin"]
+        else:
+            return ["user"]
+
+    # NOTE: user model already has a password attribute! so we don't need this here
+    # @property
+    # def password(self):
+    #     """Hashed password assigned to the user instance, required by ``flask-praetorian`` ."""
+    #     return self.password
+
+    @classmethod
+    def lookup(cls, username):
+        """
+        Look up user in db with given ``username`` (stored as "email" in the db)
+        and return it, or None if not found, required by ``flask-praetorian`` .
+        """
+        return cls.query.filter_by(email=username).one_or_none()
+
+    @classmethod
+    def identify(cls, id):
+        """
+        Identify a single user by their ``id`` and return their user instance,
+        or None if not found, required by ``flask-praetorian`` .
+        """
+        return cls.query.get(id)
+
+    # TODO: figure out if flask praetorian needs this / how uses this
+    def is_valid(self):
+        # return self.is_confirmed
+        return True
 
 
 class DataSource(db.Model):
