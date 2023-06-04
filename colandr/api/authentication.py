@@ -1,8 +1,12 @@
-from flask import g, jsonify
-from flask_httpauth import HTTPBasicAuth
-from flask_restx import Namespace, Resource
+import os
 
-from ..models import db, User
+from flask import g, jsonify
+from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth, MultiAuth
+from flask_restx import Namespace, Resource
+from itsdangerous import BadSignature, SignatureExpired, TimedJSONWebSignatureSerializer
+
+from ..extensions import db
+from ..models import User
 from .errors import unauthorized_error
 
 
@@ -10,27 +14,36 @@ ns = Namespace(
     'authtoken', path='/authtoken',
     description='get an api authentication token')
 
-auth = HTTPBasicAuth()
+jws = TimedJSONWebSignatureSerializer(os.environ["COLANDR_SECRET_KEY"], expires_in=3600)
+basic_auth = HTTPBasicAuth()
+token_auth = HTTPTokenAuth()
+auth = MultiAuth(basic_auth, token_auth)
 
 
-@auth.verify_password
-def verify_password(email_or_token, password):
-    # authenticate by token
-    if not password:
-        g.current_user = User.verify_auth_token(email_or_token)
-        # g.token_used = True
-        return g.current_user is not None
-    # authenticate by email + password
-    else:
-        user = db.session.query(User).filter_by(email=email_or_token).one_or_none()
-        if user is None or user.is_confirmed is False:
-            return False
-        g.current_user = user
-        # g.token_used = False
-        return user.verify_password(password)
+@basic_auth.verify_password
+def verify_password_v2(email, password):
+    user = db.session.query(User).filter_by(email=email).one_or_none()
+    if user is None or user.is_confirmed is False:
+        return None
+    g.current_user = user
+    # g.token_used = False  # TODO: what's this for
+    return user.verify_password(password)
 
 
-@auth.error_handler
+@token_auth.verify_token
+def verify_token(token):
+    try:
+        data = jws.loads(token)
+    except (BadSignature, SignatureExpired):
+        return None
+
+    user = db.session.query(User).one_or_none(data["id"])
+    g.current_user = user
+    # g.token_used = True
+    return user
+
+
+@basic_auth.error_handler
 def auth_error():
     return unauthorized_error('invalid or expired authentication credentials')
 
