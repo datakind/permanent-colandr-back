@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask_restx import Api
 
 api_ = Api(
@@ -9,6 +10,10 @@ api_ = Api(
     description="REST API powering the colandr app",
 )
 
+# this is a built-in hack!
+flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
+
+from .auth_v2 import ns as ns_auth
 from .errors import ns as errors_ns
 from .resources.user_registration import ns as register_ns
 from .resources.password_reset import ns as reset_ns
@@ -30,6 +35,7 @@ from .resources.fulltext_screenings import ns as fulltext_screenings_ns
 from .resources.data_extractions import ns as data_extractions_ns
 from .swagger import ns as swagger_ns
 
+api_.add_namespace(ns_auth)
 api_.add_namespace(errors_ns)
 api_.add_namespace(swagger_ns)
 api_.add_namespace(register_ns)

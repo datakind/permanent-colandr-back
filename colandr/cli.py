@@ -4,7 +4,7 @@ import shutil
 import click
 from flask import Blueprint, current_app
 
-from colandr.extensions import db
+from colandr.extensions import db, guard
 from colandr.models import User
 
 
@@ -43,7 +43,7 @@ def add_admin(name, email, password):
     # TODO: figure out why mypy misunderstands current_app proxy, so we don't need _app
     _app = current_app._get_current_object()
 
-    user = User(name, email, password)
+    user = User(name=name, email=email, password=guard.hash_password(password))
     user.is_confirmed = True
     user.is_admin = True
     db.session.add(user)

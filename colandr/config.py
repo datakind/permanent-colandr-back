@@ -45,6 +45,10 @@ class Config:
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
+    # authentication config
+    JWT_ACCESS_LIFESPAN = {"hours": 3}
+    JWT_REFRESH_LIFESPAN = {"days": 7}
+
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR', '/tmp')
     LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
