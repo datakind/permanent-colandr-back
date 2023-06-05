@@ -8,10 +8,12 @@ api_ = Api(
     default_mediatype="application/json",
     title="colandr",
     description="REST API powering the colandr app",
+    authorizations={
+        "access_token": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
+        # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+    },
 )
-
-# this is a built-in hack!
-flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
 
 from .auth_v2 import ns as ns_auth
 from .errors import ns as errors_ns
@@ -34,6 +36,9 @@ from .resources.fulltext_uploads import ns as fulltext_uploads_ns
 from .resources.fulltext_screenings import ns as fulltext_screenings_ns
 from .resources.data_extractions import ns as data_extractions_ns
 from .swagger import ns as swagger_ns
+
+# this is a built-in hack!
+flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
 
 api_.add_namespace(ns_auth)
 api_.add_namespace(errors_ns)
