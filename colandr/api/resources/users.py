@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -28,7 +29,7 @@ ns = Namespace(
     )
 class UserResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',
