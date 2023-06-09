@@ -9,7 +9,7 @@ services:
     networks:
       - colandr-back
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     env_file: ".env"
@@ -20,8 +20,8 @@ services:
       - PGDATA=/var/lib/postgresql/data
     healthcheck:
       test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
   email:
     container_name: colandr-email
@@ -44,7 +44,7 @@ services:
     networks:
       - colandr-back
     volumes:
-      - "redis:/data"
+      - broker-data:/data
     ports:
       - "6379:6379"
   api:
@@ -102,5 +102,5 @@ networks:
   colandr-back: {}
 
 volumes:
-  postgres: {}
-  redis: {}
+  db-data: {}
+  broker-data: {}
