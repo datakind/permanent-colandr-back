@@ -8,7 +8,7 @@ from .errors import forbidden_error, not_found_error
 from ..extensions import db, guard
 from ..models import User
 from .schemas import UserSchema
-from .swagger import user_model
+from .swagger import login_model, user_model
 
 
 ns = Namespace(
@@ -20,10 +20,6 @@ ns = Namespace(
     ),
 )
 
-login_model = ns.model(
-    "Login",
-    {"email": fields.String(required=True), "password": fields.String(required=True)}
-)
 
 @ns.route(
     "/login",
