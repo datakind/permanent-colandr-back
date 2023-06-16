@@ -4,6 +4,7 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
 
+from .errors import forbidden_error, not_found_error
 from ..extensions import db, guard
 from ..models import User
 from .schemas import UserSchema
@@ -171,3 +172,95 @@ class ConfirmRegistrationResource(Resource):
         db.session.commit()
         ret = {"access_token": guard.encode_jwt_token(user)}
         return jsonify(ret)
+
+
+@ns.route(
+    "/reset",
+    doc={
+        "summary": "reset a user's password by sending an email",
+        "produces": ["application/json"],
+    },
+)
+class ResetPasswordResource(Resource):
+
+    @ns.doc(
+        params={
+            'email': {'in': 'query', 'type': 'string', 'required': True,
+                      'description': 'email of user whose password is to be reset'},
+            # 'server_name': {'in': 'query', 'type': 'string', 'default': None,
+            #                 'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
+        },
+        responses={
+            200: "user was created (or would have been created if test had been False)",
+            401: "current app user not authorized to create user",
+        },
+    )
+    @use_kwargs(
+        {
+            "email": ma_fields.Str(required=True, validate=Email()),
+            # "server_name": ma_fields.Str(missing=None),
+        }
+    )
+    def post(self, email):
+        user = db.session.query(User).filter_by(email=email).one_or_none()
+        if user is None:
+            current_app.logger.warning(
+                "password reset submitted with email='%s', but no such user exists",
+                email,
+            )
+        else:
+            confirm_url = url_for("auth_confirm_reset_password_resource", _external=True)
+            # TODO: same as for user registration resource
+            # html = render_template(
+            #     "emails/password_reset.html", username=user.name, confirm_url=confirm_url
+            # )
+            if current_app.config["MAIL_SERVER"]:
+                guard.send_reset_email(
+                    user.email,
+                    reset_uri=confirm_url,
+                    reset_sender=current_app.config["MAIL_DEFAULT_SENDER"],
+                    subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Reset your password",
+                    # template=html,
+                )
+
+
+@ns.route(
+    "/reset/confirm",
+    doc={
+        "summary": "confirm a user's password reset via emailed token",
+        "produces": ["application/json"],
+    }
+)
+class ConfirmResetPasswordResource(Resource):
+
+    @ns.doc(
+        params={
+            "token": {"in": "query", "type": "string", "required": True},
+            "password": {
+                "in": "body",
+                "type": "string",
+                "required": True,
+                "description": "new user password to be set"
+            },
+        },
+        responses={
+            200: "password successfully reset",
+            404: "no user found with given email",
+            422: "invalid or expired password reset link",
+        },
+    )
+    @use_args(UserSchema(only=["password"]))
+    @use_kwargs({"token": ma_fields.Str(required=True)})
+    def put(self, args, token):
+        """confirm a user's password reset via emailed token"""
+        user = guard.validate_reset_token(token)
+        if user is None:
+            return not_found_error(f"no user found for token='{token}'")
+        elif user.is_confirmed is False:
+            return forbidden_error(
+                "user not confirmed! please first confirm your email address."
+            )
+        current_app.logger.info("password reset confirmed by %s", user.email)
+        user.password = guard.hash_password(args["password"])
+        db.session.commit()
+        return UserSchema().dump(user).data
