@@ -144,7 +144,7 @@ class RegisterResource(Resource):
 
 
 @ns.route(
-    "/confirm",
+    "/register/confirm",
     doc={
         "summary": "CONFIRM",
         "produces": ["application/json"],
@@ -156,18 +156,17 @@ class RegisterResource(Resource):
 )
 class ConfirmRegistrationResource(Resource):
 
-    @ns.doc(security="access_token")
-    def get(self):
+    @ns.doc(params={"token": {"in": "query", "type": "string", "required": True}})
+    @use_kwargs({"token": ma_fields.Str(required=True)})
+    def get(self, token):
         """
         Confirm a user registration using the token they were issued in their
         registration email.
 
         .. example::
-        $ curl http://localhost:5000/api/auth/confirm -X GET \
-            -H "Authorization: Bearer <your_token>"
+        $ curl http://localhost:5000/api/auth/confirm?token=<TOKEN> -X GET
         """
-        registration_token = guard.read_token_from_header()
-        user = guard.get_user_from_registration_token(registration_token)
+        user = guard.get_user_from_registration_token(token)
         user.is_confirmed = True
         db.session.commit()
         ret = {"access_token": guard.encode_jwt_token(user)}
