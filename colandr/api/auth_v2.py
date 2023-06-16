@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import current_app, jsonify, render_template, url_for
 from flask_restx import Namespace, Resource, fields
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
@@ -103,9 +103,7 @@ class RefreshTokenResource(Resource):
 )
 class RegisterResource(Resource):
 
-    @ns.doc(
-        body=(user_model, "user data to be registered"),
-    )
+    @ns.doc(body=(user_model, "user data to be registered"))
     @use_args(UserSchema())
     def post(self, args):
         """
@@ -121,12 +119,28 @@ class RegisterResource(Resource):
         """
         user = User(**args)
         user.password = guard.hash_password(user.password)
+        confirm_url = url_for("auth_confirm_registration_resource", _external=True)
+        # TODO: if we use our own template, we must keep url + token separate
+        # since flask praetorian passes them in separately under the hood
+        # for consistency, we should include token as a param on the url
+        # html = render_template(
+        #     "emails/user_registration.html",
+        #     username=user.name,
+        #     confirm_url=confirm_url,
+        # )
         db.session.add(user)
         db.session.commit()
-        # TODO: figure this out
-        # guard.send_registration_email(user.email, user=user)
-        ret = {"message": f"successfully sent registration email to {user.email}"}
-        return jsonify(ret)
+        if current_app.config["MAIL_SERVER"]:
+            guard.send_registration_email(
+                user.email,
+                user=user,
+                confirmation_uri=confirm_url,
+                confirmation_sender=current_app.config["MAIL_DEFAULT_SENDER"],
+                subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
+                # template=html,
+            )
+        current_app.logger.info("successfully sent registration email to %s", user.email)
+        return UserSchema().dump(user).data
 
 
 @ns.route(
