@@ -19,6 +19,11 @@ ns = Namespace(
     ),
 )
 
+login_model = ns.model(
+    "Login",
+    {"email": fields.String(required=True), "password": fields.String(required=True)}
+)
+
 @ns.route(
     "/login",
     doc={
@@ -33,13 +38,7 @@ ns = Namespace(
 class LoginResource(Resource):
 
     @ns.doc(
-        body=(
-            ns.model(
-                "Login",
-                {"email": fields.String(required=True), "password": fields.String(required=True)}
-            ),
-            "login info",
-        ),
+        body=(login_model, "login info"),
         responses={},
     )
     @use_kwargs(
