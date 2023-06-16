@@ -1,9 +1,5 @@
-import bcrypt
 import itertools
 
-from flask import current_app
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
-                          BadSignature, SignatureExpired)
 from sqlalchemy import event, false, text, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -70,44 +66,8 @@ class User(db.Model):
         'FulltextScreening', back_populates='user',
         lazy='dynamic')
 
-    # def __init__(self, name, email, password):
-    #     self.name = name
-    #     self.email = email
-    #     self.password = self.hash_password(password)
-
     def __repr__(self):
         return "<User(id={})>".format(self.id)
-
-    def generate_auth_token(self, expiration=1800):
-        """
-        Generate an authentication token for user that automatically expires
-        after ``expiration`` seconds.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'id': self.id}).decode('ascii')
-
-    def verify_password(self, plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
-
-    @staticmethod
-    def hash_password(plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.hashpw(
-            plaintext_password,
-            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS'])
-            ).decode('utf8')
-
-    @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)
-        except (SignatureExpired, BadSignature):
-            return None  # valid token, but expired
-        return db.session.query(User).get(data['id'])
 
     @property
     def identity(self):
