@@ -1,5 +1,5 @@
 import arrow
-
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -13,7 +13,6 @@ from ...models import db, DataExtraction, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import ExtractedItem, DataExtractionSchema
 from ..swagger import extracted_item_model
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -28,7 +27,7 @@ ns = Namespace(
     )
 class DataExtractionResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         responses={

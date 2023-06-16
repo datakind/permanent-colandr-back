@@ -2,6 +2,7 @@ import io
 import os
 
 import fitz
+import flask_praetorian
 import ftfy
 from flask import current_app, g, send_from_directory
 from flask_restx import Namespace, Resource
@@ -13,7 +14,6 @@ from werkzeug.utils import secure_filename
 from ...lib import constants
 from ...models import Fulltext, db
 from ...tasks import get_fulltext_text_content_vector
-from ..authentication import auth
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
 
@@ -30,7 +30,7 @@ ns = Namespace(
     )
 class FulltextUploadResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={

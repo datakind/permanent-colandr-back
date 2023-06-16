@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -14,7 +15,6 @@ from ...models import db, Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import not_found_error, forbidden_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -29,7 +29,7 @@ ns = Namespace(
     )
 class CitationsImportsResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={

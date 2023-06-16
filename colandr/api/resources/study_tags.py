@@ -1,5 +1,6 @@
 import itertools
 
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -10,7 +11,6 @@ from webargs.flaskparser import use_kwargs
 from ...lib import constants
 from ...models import db, Review, Study
 from ..errors import forbidden_error, not_found_error
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -25,7 +25,7 @@ ns = Namespace(
     )
 class StudyTagsResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={

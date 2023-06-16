@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -14,7 +15,6 @@ from ..errors import bad_request_error, forbidden_error, not_found_error, valida
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -29,7 +29,7 @@ ns = Namespace(
     )
 class FulltextScreeningsResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',
@@ -203,7 +203,7 @@ class FulltextScreeningsResource(Resource):
     )
 class FulltextsScreeningsResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={

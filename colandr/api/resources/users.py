@@ -14,7 +14,6 @@ from ...models import db, User, Review
 from ..errors import db_integrity_error, not_found_error, forbidden_error
 from ..swagger import user_model
 from ..schemas import UserSchema
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -124,6 +123,7 @@ class UserResource(Resource):
             if key is missing:
                 continue
             elif key == 'password':
+                # TODO: fix this to work with flask-praetorian
                 setattr(user, key, User.hash_password(value))
             else:
                 setattr(user, key, value)
@@ -147,7 +147,7 @@ class UserResource(Resource):
     )
 class UsersResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'email': {'in': 'query', 'type': 'string',
