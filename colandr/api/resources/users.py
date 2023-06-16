@@ -9,6 +9,7 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import guard
 from ...lib import constants
 from ...models import db, User, Review
 from ..errors import db_integrity_error, not_found_error, forbidden_error
@@ -123,8 +124,7 @@ class UserResource(Resource):
             if key is missing:
                 continue
             elif key == 'password':
-                # TODO: fix this to work with flask-praetorian
-                setattr(user, key, User.hash_password(value))
+                setattr(user, key, guard.hash_password(value))
             else:
                 setattr(user, key, value)
         if test is False:
