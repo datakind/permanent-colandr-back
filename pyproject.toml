@@ -25,7 +25,6 @@ dependencies = [
   "dedupe~=1.4.14",
   "flask~=1.1.0",
   "flask-caching~=2.0.0",
-  "flask_httpauth~=4.7.0",
   "flask_mail>=0.9.1",  # TODO: this package is dead, we should replace it
   "flask_migrate~=2.7",
   "flask-praetorian~=1.4.0",
