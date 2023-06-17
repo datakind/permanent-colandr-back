@@ -15,8 +15,8 @@ ns = Namespace(
     "auth",
     path="/auth",
     description=(
-        "register and confirm new API users, authentic against given credentials, "
-        "and issue/refresh API tokens"
+        "register and confirm new API users, login and authorize existing users, "
+        "issue/refresh API tokens, and handle password reset requests"
     ),
 )
 
@@ -24,18 +24,18 @@ ns = Namespace(
 @ns.route(
     "/login",
     doc={
-        "summary": "LOGIN",
+        "summary": "log-in existing users via email and password, producing API tokens",
         "produces": ["application/json"],
         "responses": {
-            200: "SUCCESSFUL LOGIN",
-            401: "UNSUCCESSFUL LOGIN",
+            200: "successful login",
+            401: "unsuccessful login",
         },
     },
 )
 class LoginResource(Resource):
 
     @ns.doc(
-        body=(login_model, "login info"),
+        body=(login_model, "login credentials (email and password) for existing user"),
         responses={},
     )
     @use_kwargs(
@@ -61,17 +61,17 @@ class LoginResource(Resource):
 @ns.route(
     "/refresh",
     doc={
-        "summary": "REFRESH",
+        "summary": "refresh an existing API token upon its expiration",
         "produces": ["application/json"],
         "responses": {
-            200: "SUCCESSFUL REFRESH",
-            401: "UNSUCCESSFUL REFRESH",
+            200: "successful token refresh",
+            401: "unsuccessful token refresh",
         },
     },
 )
 class RefreshTokenResource(Resource):
 
-    @ns.doc(security="access_token")
+    @ns.doc()
     def get(self):
         """
         Refresh an existing token by creating a new copy of the old one
@@ -93,14 +93,14 @@ class RefreshTokenResource(Resource):
         "summary": "REGISTER",
         "produces": ["application/json"],
         "responses": {
-            200: "SUCCESSFUL REGISTER",
-            401: "UNSUCCESSFUL REGISTER",
+            200: "successful user registration",
+            401: "unsuccessful user registration",
         },
     },
 )
 class RegisterResource(Resource):
 
-    @ns.doc(body=(user_model, "user data to be registered"))
+    @ns.doc(body=(user_model, "new user data to be registered"))
     @use_args(UserSchema())
     def post(self, args):
         """
@@ -143,11 +143,11 @@ class RegisterResource(Resource):
 @ns.route(
     "/register/confirm",
     doc={
-        "summary": "CONFIRM",
+        "summary": "confirm a new user registration",
         "produces": ["application/json"],
         "responses": {
-            200: "SUCCESSFUL CONFIRM",
-            401: "UNSUCCESSFUL CONFIRM",
+            200: "successful registration confirmation",
+            401: "unsuccessful registration confirmation",
         },
     },
 )
