@@ -35,8 +35,10 @@ def db(app, seed_data):
 
 
 def _populate_db(db, seed_data):
-    for user_data in seed_data["users"]:
-        db.session.add(models.User(**user_data))
+    for record in seed_data["users"]:
+        db.session.add(models.User(**record))
+    for record in seed_data["reviews"]:
+        db.session.add(models.Review(**record))
     db.session.commit()
 
 

@@ -28,5 +28,17 @@
             "is_confirmed": false,
             "is_admin": false
         }
+    ],
+    "reviews": [
+        {
+            "owner_user_id": 2,
+            "name": "REVIEW_NAME1",
+            "description": "DESCRIPTION1"
+        },
+        {
+            "owner_user_id": 3,
+            "name": "REVIEW_NAME2",
+            "description": "DESCRIPTION2"
+        }
     ]
 }
