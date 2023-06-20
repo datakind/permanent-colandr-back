@@ -1,23 +1,30 @@
 {
     "users": [
         {
-            "name": "NAME1",
+            "name": "USER_NAME1",
             "email": "name1@domain.com",
             "password": "PASSWORD1",
             "is_confirmed": true,
-            "is_admin": false
+            "is_admin": true
         },
         {
-            "name": "NAME2",
+            "name": "USER_NAME2",
             "email": "name2@domain.com",
             "password": "PASSWORD2",
             "is_confirmed": true,
             "is_admin": false
         },
         {
-            "name": "NAME3",
+            "name": "USER_NAME3",
             "email": "name3@domain.com",
             "password": "PASSWORD3",
+            "is_confirmed": true,
+            "is_admin": false
+        },
+        {
+            "name": "USER_NAME4",
+            "email": "name4@domain.com",
+            "password": "PASSWORD4",
             "is_confirmed": false,
             "is_admin": false
         }
