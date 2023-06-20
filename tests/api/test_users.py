@@ -13,8 +13,8 @@ class TestUserResource:
             (1, None, 200),
             (2, None, 200),
             (3, None, 200),
-            (1, {"fields": "id,name,email"}, 200),
-            (1, {"fields": "name,email"}, 200),
+            (2, {"fields": "id,name,email"}, 200),
+            (2, {"fields": "name,email"}, 200),
             (999, None, 404),
         ],
     )
@@ -42,7 +42,7 @@ class TestUserResource:
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 
-    @pytest.mark.parametrize("id_", [1, 2])
+    @pytest.mark.parametrize("id_", [2, 3])
     def test_delete(self, id_, client, admin_user, admin_headers, db_session):
         url = f"/api/users/{id_}"
         # only user can delete themself
@@ -60,11 +60,11 @@ class TestUserResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
-            (1, {"name": "NEWNAME1"}, 200),
-            (2, {"email": "name2@newdomain.com"}, 200),
-            (3, {"name": "NEWNAME3", "email": "name3@newdomain.com"}, 200),
+            (2, {"name": "NEW_USER_NAME2"}, 200),
+            (3, {"email": "name3@newdomain.com"}, 200),
+            (4, {"name": "NEW_USER_NAME4", "email": "name4@newdomain.com"}, 200),
             # TODO: fix this case! flask praetorian can't pack header for nonexistent user
-            # (999, {"name": "NEWNAME999"}, 403),
+            # (999, {"name": "NEW_USER_NAME999"}, 403),
         ],
     )
     def test_put(self, id_, params, status_code, client, admin_user, admin_headers, db_session):
