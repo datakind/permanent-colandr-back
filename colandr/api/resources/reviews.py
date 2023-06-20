@@ -54,7 +54,7 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error('<Review(id={})> not found'.format(id))
-        if (g.current_user.is_admin is False and
+        if (not g.current_user.is_admin and
                 review.users.filter_by(id=g.current_user.id).one_or_none() is None):
             return forbidden_error(
                 '{} forbidden to get this review'.format(g.current_user))
@@ -85,7 +85,7 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error('<Review(id={})> not found'.format(id))
-        if review.owner is not g.current_user:
+        if not g.current_user.is_admin and review.owner is not g.current_user:
             return forbidden_error(
                 '{} forbidden to delete this review'.format(g.current_user))
         db.session.delete(review)
@@ -127,7 +127,7 @@ class ReviewResource(Resource):
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error('<Review(id={})> not found'.format(id))
-        if review.owner is not g.current_user:
+        if not g.current_user.is_admin and review.owner is not g.current_user:
             return forbidden_error(
                 '{} forbidden to update this review'.format(g.current_user))
         for key, value in args.items():
