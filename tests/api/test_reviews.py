@@ -57,7 +57,7 @@ class TestReviewResource:
             for key, val in params.items():
                 assert data.get(key) == val
 
-    @pytest.mark.parametrize("id_", [2, 3])
+    @pytest.mark.parametrize("id_", [1, 2])
     def test_delete(self, id_, client, admin_headers, db_session):
         url = f"/api/reviews/{id_}"
         response = client.delete(url, headers=admin_headers)
