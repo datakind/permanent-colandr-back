@@ -35,8 +35,10 @@ def db(app, seed_data):
 
 
 def _populate_db(db, seed_data):
-    for user_data in seed_data["users"]:
-        db.session.add(models.User(**user_data))
+    for record in seed_data["users"]:
+        db.session.add(models.User(**record))
+    for record in seed_data["reviews"]:
+        db.session.add(models.Review(**record))
     db.session.commit()
 
 
@@ -66,15 +68,7 @@ def db_session(db):
 
 @pytest.fixture(scope="session")
 def admin_user(db):
-    user = models.User(
-        name="admin",
-        email="admin@admin.com",
-        password=extensions.guard.hash_password("password"),
-        is_admin=True,
-        is_confirmed=True,
-    )
-    db.session.add(user)
-    db.session.commit()
+    user = db.session.query(models.User).get(1)
     g.current_user = user
     return user
 
@@ -82,16 +76,3 @@ def admin_user(db):
 @pytest.fixture
 def admin_headers(admin_user):
     return extensions.guard.pack_header_for_user(admin_user)
-    # data = {
-    #     "email": admin_user.email,
-    #     "password": "password",
-    # }
-    # response = client.post(
-    #     "/api/auth/login",
-    #     data=json.dumps(data),
-    #     headers={"content-type": "application/json"},
-    # )
-    # tokens = json.loads(response.get_data(as_text=True))
-    # return {
-    #     "Authorization": f"Bearer {tokens['access_token']}",
-    # }
