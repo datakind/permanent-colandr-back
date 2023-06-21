@@ -1,26 +1,28 @@
-from operator import itemgetter
 import os
 import random
+from operator import itemgetter
 
 import flask_praetorian
-from flask import g, current_app
+import numpy as np
+from flask import current_app, g
 from flask_restx import Namespace, Resource
+from marshmallow import fields as ma_fields
+from marshmallow.validate import Length, OneOf, Range
+from sklearn.externals import joblib
 from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
-
-from marshmallow import fields as ma_fields
-from marshmallow.validate import OneOf, Length, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-import numpy as np
-from sklearn.externals import joblib
-
 from ...lib import constants
-from ...models import db, Citation, Study, Review
-from ...lib.constants import (CITATION_RANKING_MODEL_FNAME, DEDUPE_STATUSES,
-                              EXTRACTION_STATUSES, USER_SCREENING_STATUSES)
+from ...lib.constants import (
+    CITATION_RANKING_MODEL_FNAME,
+    DEDUPE_STATUSES,
+    EXTRACTION_STATUSES,
+    USER_SCREENING_STATUSES,
+)
 from ...lib.nlp import reviewer_terms
+from ...models import Citation, Review, Study, db
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
@@ -405,4 +407,5 @@ class StudiesResource(Resource):
                           reverse=False if order_dir == 'ASC' else True)]
             offset = page * per_page
             return StudySchema(many=True, only=fields).dump(
+                sorted_results[offset: offset + per_page]).data
                 sorted_results[offset: offset + per_page]).data

@@ -1,7 +1,6 @@
 import flask_praetorian
-from flask import g, current_app
+from flask import current_app, g
 from flask_restx import Namespace, Resource
-
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs import missing
@@ -9,8 +8,13 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
 from ...lib import constants
-from ...models import db, Citation, CitationScreening, Fulltext, Review, Study, User
-from ..errors import bad_request_error, forbidden_error, not_found_error, validation_error
+from ...models import Citation, CitationScreening, Fulltext, Review, Study, User, db
+from ..errors import (
+    bad_request_error,
+    forbidden_error,
+    not_found_error,
+    validation_error,
+)
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
@@ -387,6 +391,9 @@ class CitationsScreeningsResource(Resource):
                 suggest_keyterms.apply_async(args=[review_id, sample_size])
             # do we have to train a ranking model?
             if n_included >= 100 and n_excluded >= 100:
+                from colandr.tasks import train_citation_ranking_model
+                train_citation_ranking_model.apply_async(
+                    args=[review_id], countdown=30)
                 from colandr.tasks import train_citation_ranking_model
                 train_citation_ranking_model.apply_async(
                     args=[review_id], countdown=30)
