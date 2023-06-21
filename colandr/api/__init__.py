@@ -1,6 +1,7 @@
 import flask_praetorian
 from flask_restx import Api
 
+
 api_ = Api(
     version="1.0",
     prefix="/api",
@@ -17,22 +18,23 @@ api_ = Api(
 
 from .auth import ns as ns_auth
 from .errors import ns as errors_ns
-from .resources.users import ns as users_ns
-from .resources.reviews import ns as reviews_ns
-from .resources.review_teams import ns as review_teams_ns
-from .resources.review_progress import ns as review_progress_ns
-from .resources.review_exports import ns as review_exports_ns
-from .resources.review_plans import ns as review_plans_ns
-from .resources.studies import ns as studies_ns
-from .resources.study_tags import ns as study_tags_ns
-from .resources.citations import ns as citations_ns
 from .resources.citation_imports import ns as citation_imports_ns
 from .resources.citation_screenings import ns as citation_screenings_ns
-from .resources.fulltexts import ns as fulltexts_ns
-from .resources.fulltext_uploads import ns as fulltext_uploads_ns
-from .resources.fulltext_screenings import ns as fulltext_screenings_ns
+from .resources.citations import ns as citations_ns
 from .resources.data_extractions import ns as data_extractions_ns
+from .resources.fulltext_screenings import ns as fulltext_screenings_ns
+from .resources.fulltext_uploads import ns as fulltext_uploads_ns
+from .resources.fulltexts import ns as fulltexts_ns
+from .resources.review_exports import ns as review_exports_ns
+from .resources.review_plans import ns as review_plans_ns
+from .resources.review_progress import ns as review_progress_ns
+from .resources.review_teams import ns as review_teams_ns
+from .resources.reviews import ns as reviews_ns
+from .resources.studies import ns as studies_ns
+from .resources.study_tags import ns as study_tags_ns
+from .resources.users import ns as users_ns
 from .swagger import ns as swagger_ns
+
 
 # this is a built-in hack!
 flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)

@@ -4,9 +4,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
 
-from .errors import forbidden_error, not_found_error
 from ..extensions import db, guard
 from ..models import User
+from .errors import forbidden_error, not_found_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
 
@@ -33,7 +33,6 @@ ns = Namespace(
     },
 )
 class LoginResource(Resource):
-
     @ns.doc(
         body=(login_model, "login credentials (email and password) for existing user"),
         responses={},
@@ -70,7 +69,6 @@ class LoginResource(Resource):
     },
 )
 class RefreshTokenResource(Resource):
-
     @ns.doc()
     def get(self):
         """
@@ -99,7 +97,6 @@ class RefreshTokenResource(Resource):
     },
 )
 class RegisterResource(Resource):
-
     @ns.doc(body=(user_model, "new user data to be registered"))
     @use_args(UserSchema())
     def post(self, args):
@@ -136,7 +133,9 @@ class RegisterResource(Resource):
                 subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
                 # template=html,
             )
-        current_app.logger.info("successfully sent registration email to %s", user.email)
+        current_app.logger.info(
+            "successfully sent registration email to %s", user.email
+        )
         return UserSchema().dump(user).data
 
 
@@ -152,7 +151,6 @@ class RegisterResource(Resource):
     },
 )
 class ConfirmRegistrationResource(Resource):
-
     @ns.doc(params={"token": {"in": "query", "type": "string", "required": True}})
     @use_kwargs({"token": ma_fields.Str(required=True)})
     def get(self, token):
@@ -178,11 +176,14 @@ class ConfirmRegistrationResource(Resource):
     },
 )
 class ResetPasswordResource(Resource):
-
     @ns.doc(
         params={
-            'email': {'in': 'query', 'type': 'string', 'required': True,
-                      'description': 'email of user whose password is to be reset'},
+            "email": {
+                "in": "query",
+                "type": "string",
+                "required": True,
+                "description": "email of user whose password is to be reset",
+            },
             # 'server_name': {'in': 'query', 'type': 'string', 'default': None,
             #                 'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
         },
@@ -205,7 +206,9 @@ class ResetPasswordResource(Resource):
                 email,
             )
         else:
-            confirm_url = url_for("auth_confirm_reset_password_resource", _external=True)
+            confirm_url = url_for(
+                "auth_confirm_reset_password_resource", _external=True
+            )
             # TODO: same as for user registration resource
             # html = render_template(
             #     "emails/password_reset.html", username=user.name, confirm_url=confirm_url
@@ -225,10 +228,9 @@ class ResetPasswordResource(Resource):
     doc={
         "summary": "confirm a user's password reset via emailed token",
         "produces": ["application/json"],
-    }
+    },
 )
 class ConfirmResetPasswordResource(Resource):
-
     @ns.doc(
         params={
             "token": {"in": "query", "type": "string", "required": True},
@@ -236,7 +238,7 @@ class ConfirmResetPasswordResource(Resource):
                 "in": "body",
                 "type": "string",
                 "required": True,
-                "description": "new user password to be set"
+                "description": "new user password to be set",
             },
         },
         responses={
