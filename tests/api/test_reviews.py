@@ -55,3 +55,11 @@ class TestReviewResource:
             data = response.json
             for key, val in params.items():
                 assert data.get(key) == val
+
+    @pytest.mark.parametrize("id_", [2, 3])
+    def test_delete(self, id_, client, admin_headers, db_session):
+        url = f"/api/reviews/{id_}"
+        response = client.delete(url, headers=admin_headers)
+        assert response.status_code == 204
+        get_response = client.get(url, headers=admin_headers)
+        assert get_response.status_code == 404  # not found!
