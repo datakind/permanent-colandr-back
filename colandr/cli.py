@@ -18,13 +18,12 @@ def reset_db():
     fulltext files and ranking models on disk, and create an admin user.
     """
     click.confirm("Are you sure you want to reset ALL app data?", abort=True)
-
     # TODO: figure out why mypy misunderstands current_app proxy, so we don't need _app
     _app = current_app._get_current_object()
     _app.logger.warning("resetting database ...")
     db.drop_all()
     db.create_all()
-    for dirkey in ('FULLTEXT_UPLOADS_DIR', 'RANKING_MODELS_DIR'):
+    for dirkey in ("FULLTEXT_UPLOADS_DIR", "RANKING_MODELS_DIR"):
         shutil.rmtree(_app.config[dirkey], ignore_errors=True)
         os.makedirs(_app.config[dirkey], exist_ok=True)
 
@@ -33,7 +32,13 @@ def reset_db():
 @click.option("-n", "--name", "name", type=str, required=True)
 @click.option("-e", "--email", type=str, required=True)
 @click.option(
-    "-p", "--password", prompt=True, hide_input=True, confirmation_prompt=True, type=str, required=True
+    "-p",
+    "--password",
+    prompt=True,
+    hide_input=True,
+    confirmation_prompt=True,
+    type=str,
+    required=True,
 )
 def add_admin(name, email, password):
     """
