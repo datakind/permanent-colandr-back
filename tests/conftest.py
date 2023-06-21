@@ -4,9 +4,9 @@ import pathlib
 import pytest
 from flask import g
 
-from colandr.app import create_app
 # from colandr.extensions import db as _db, guard
 from colandr import extensions, models
+from colandr.app import create_app
 
 
 @pytest.fixture(scope="session")

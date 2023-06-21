@@ -45,22 +45,24 @@ def sanitize_string(value, max_length=None, truncate=True):
 
 
 CITATION_FIELD_SANITIZERS = {
-    'review_id': lambda x: sanitize_integer(x, min_value=0, max_value=constants.MAX_INT),
-    'status': sanitize_string,
-    'type_of_work': lambda x: sanitize_string(x, max_length=25),
-    'title': lambda x: sanitize_string(x, max_length=300),
-    'secondary_title': lambda x: sanitize_string(x, max_length=300),
-    'abstract': sanitize_string,
-    'pub_year': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
-    'pub_month': lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
-    'authors': lambda x: [sanitize_string(item, max_length=100) for item in x],
-    'keywords': lambda x: [sanitize_string(item, max_length=100) for item in x],
-    'type_of_reference': lambda x: sanitize_string(x, max_length=50),
-    'journal_name': lambda x: sanitize_string(x, max_length=100),
-    'volume': lambda x: sanitize_string(x, max_length=20),
-    'issue_number': lambda x: sanitize_string(x, max_length=20),
-    'doi': lambda x: sanitize_string(x, max_length=100),
-    'issn': lambda x: sanitize_string(x, max_length=20),
-    'publisher': lambda x: sanitize_string(x, max_length=100),
-    'language': lambda x: sanitize_string(x, max_length=50)
-    }
+    "review_id": lambda x: sanitize_integer(
+        x, min_value=0, max_value=constants.MAX_INT
+    ),
+    "status": sanitize_string,
+    "type_of_work": lambda x: sanitize_string(x, max_length=25),
+    "title": lambda x: sanitize_string(x, max_length=300),
+    "secondary_title": lambda x: sanitize_string(x, max_length=300),
+    "abstract": sanitize_string,
+    "pub_year": lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
+    "pub_month": lambda x: sanitize_integer(x, max_value=constants.MAX_SMALLINT),
+    "authors": lambda x: [sanitize_string(item, max_length=100) for item in x],
+    "keywords": lambda x: [sanitize_string(item, max_length=100) for item in x],
+    "type_of_reference": lambda x: sanitize_string(x, max_length=50),
+    "journal_name": lambda x: sanitize_string(x, max_length=100),
+    "volume": lambda x: sanitize_string(x, max_length=20),
+    "issue_number": lambda x: sanitize_string(x, max_length=20),
+    "doi": lambda x: sanitize_string(x, max_length=100),
+    "issn": lambda x: sanitize_string(x, max_length=20),
+    "publisher": lambda x: sanitize_string(x, max_length=100),
+    "language": lambda x: sanitize_string(x, max_length=50),
+}

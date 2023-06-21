@@ -1,16 +1,15 @@
 import logging
-import os
 
 from flask import Flask
 
 from colandr import cli, errors, extensions, models
 from colandr.api import api_
 from colandr.config import configs
-from colandr.lib.utils import get_rotating_file_handler, get_console_handler
+from colandr.lib.utils import get_console_handler
 
 
 def create_app(config_name="dev"):
-    app = Flask('colandr')
+    app = Flask("colandr")
     config = configs[config_name]()
     app.config.from_object(config)
     config.init_app(app)
@@ -20,7 +19,7 @@ def create_app(config_name="dev"):
     app.register_blueprint(cli.bp)
     app.register_blueprint(errors.bp)
 
-    @app.route('/')
+    @app.route("/")
     def home():
         return "Welcome to Colandr's API!"
 

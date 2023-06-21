@@ -17,19 +17,19 @@ def assign_status(screening_statuses, num_screeners):
     """
     num_screenings = len(screening_statuses)
     if num_screenings == 0:
-        return 'not_screened'
+        return "not_screened"
     elif num_screenings < num_screeners:
         if num_screenings == 1:
-            return 'screened_once'
+            return "screened_once"
         else:
-            return 'screened_twice'
+            return "screened_twice"
     else:
-        if all(status == 'excluded' for status in screening_statuses):
-            return 'excluded'
-        elif all(status == 'included' for status in screening_statuses):
-            return 'included'
+        if all(status == "excluded" for status in screening_statuses):
+            return "excluded"
+        elif all(status == "included" for status in screening_statuses):
+            return "included"
         else:
-            return 'conflict'
+            return "conflict"
 
 
 def get_boolean_search_query(keyterms):
@@ -42,24 +42,33 @@ def get_boolean_search_query(keyterms):
     Returns
         str
     """
-    return '\nAND\n'.join(_boolify_group_terms(group_terms)
-                          for _, group_terms
-                          in itertools.groupby(keyterms, key=itemgetter('group')))
+    return "\nAND\n".join(
+        _boolify_group_terms(group_terms)
+        for _, group_terms in itertools.groupby(keyterms, key=itemgetter("group"))
+    )
 
 
 def _boolify_term_set(term_set):
-    if term_set.get('synonyms'):
-        return '(' + ' OR '.join('"{}"'.format(term)
-                                 for term in [term_set['term']] + term_set['synonyms']) + ')'
+    if term_set.get("synonyms"):
+        return (
+            "("
+            + " OR ".join(
+                '"{}"'.format(term)
+                for term in [term_set["term"]] + term_set["synonyms"]
+            )
+            + ")"
+        )
     else:
-        return '"{}"'.format(term_set['term'])
+        return '"{}"'.format(term_set["term"])
 
 
 def _boolify_group_terms(group_terms):
     group_terms = list(group_terms)
     if len(group_terms) > 1:
-        return '(' + ' OR '.join(_boolify_term_set(term_set)
-                                 for term_set in group_terms) + ')'
+        return (
+            "("
+            + " OR ".join(_boolify_term_set(term_set) for term_set in group_terms)
+            + ")"
+        )
     else:
-        return ' OR '.join(_boolify_term_set(term_set)
-                           for term_set in group_terms)
+        return " OR ".join(_boolify_term_set(term_set) for term_set in group_terms)

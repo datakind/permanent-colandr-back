@@ -62,10 +62,10 @@ jobs:
         python -m pip install -e '.[dev]'
     - name: Check formatting with black
       run: |
-        python -m black --diff colandr
+        python -m black --check --diff --verbose colandr
     - name: Check imports with isort
       run: |
-        python -m isort --diff colandr
+        python -m isort --check --diff --verbose colandr
     - name: Check correctness with ruff
       run: |
         python -m ruff check --exit-zero colandr
