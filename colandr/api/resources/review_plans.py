@@ -1,5 +1,6 @@
 import warnings
 
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -13,7 +14,6 @@ from ...models import db, Review
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import ReviewPlanSchema
 from ..swagger import review_plan_model
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -28,7 +28,7 @@ ns = Namespace(
     )
 class ReviewPlanResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',

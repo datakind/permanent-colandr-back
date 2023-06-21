@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask_restx import Api
 
 api_ = Api(
@@ -7,12 +8,15 @@ api_ = Api(
     default_mediatype="application/json",
     title="colandr",
     description="REST API powering the colandr app",
+    authorizations={
+        "access_token": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
+        # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+    },
 )
 
+from .auth import ns as ns_auth
 from .errors import ns as errors_ns
-from .resources.user_registration import ns as register_ns
-from .resources.password_reset import ns as reset_ns
-from .authentication import ns as authtoken_ns
 from .resources.users import ns as users_ns
 from .resources.reviews import ns as reviews_ns
 from .resources.review_teams import ns as review_teams_ns
@@ -30,11 +34,12 @@ from .resources.fulltext_screenings import ns as fulltext_screenings_ns
 from .resources.data_extractions import ns as data_extractions_ns
 from .swagger import ns as swagger_ns
 
+# this is a built-in hack!
+flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
+
+api_.add_namespace(ns_auth)
 api_.add_namespace(errors_ns)
 api_.add_namespace(swagger_ns)
-api_.add_namespace(register_ns)
-api_.add_namespace(reset_ns)
-api_.add_namespace(authtoken_ns)
 api_.add_namespace(users_ns)
 api_.add_namespace(reviews_ns)
 api_.add_namespace(review_teams_ns)

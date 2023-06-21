@@ -1,21 +1,23 @@
 import os
 
 import celery
-from flask_caching import Cache
-from flask_mail import Mail
-from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
+import flask_caching
+import flask_mail
+import flask_migrate
+import flask_praetorian
+import flask_sqlalchemy
 
 
-cache = Cache(
+cache = flask_caching.Cache(
     config={
         "CACHE_TYPE": "RedisCache",
         "CACHE_REDIS_HOST": os.environ.get("COLANDR_REDIS_HOST", "localhost"),
     },
 )
-db = SQLAlchemy()
-mail = Mail()
-migrate = Migrate()
+db = flask_sqlalchemy.SQLAlchemy()
+guard = flask_praetorian.Praetorian()
+mail = flask_mail.Mail()
+migrate = flask_migrate.Migrate()
 
 
 def init_celery_app(app):

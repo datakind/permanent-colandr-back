@@ -2,6 +2,7 @@ from operator import itemgetter
 import os
 import random
 
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 from sqlalchemy import asc, desc, text
@@ -23,7 +24,6 @@ from ...lib.nlp import reviewer_terms
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -38,7 +38,7 @@ ns = Namespace(
     )
 class StudyResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',
@@ -154,7 +154,7 @@ class StudyResource(Resource):
     )
 class StudiesResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={

@@ -3,6 +3,7 @@ import csv
 import io
 import itertools
 
+import flask_praetorian
 from flask import g, current_app, make_response
 from flask_restx import Namespace, Resource
 
@@ -14,7 +15,6 @@ from ...lib import constants
 from ...models import (db, DataSource,
                        FulltextScreening, Import, Review, ReviewPlan, Study)
 from ..errors import not_found_error, forbidden_error
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -29,7 +29,7 @@ ns = Namespace(
     )
 class ReviewExportPrismaResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         responses={200: 'successfully got review prisma data',
@@ -115,7 +115,7 @@ class ReviewExportPrismaResource(Resource):
     )
 class ReviewExportStudiesResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         description='NOTE: Calling this endpoint via Swagger could cause it to crash on account of #BigData',

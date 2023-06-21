@@ -3,7 +3,7 @@ import os
 
 from flask import Flask
 
-from colandr import cli, errors, extensions
+from colandr import cli, errors, extensions, models
 from colandr.api import api_
 from colandr.config import configs
 from colandr.lib.utils import get_rotating_file_handler, get_console_handler
@@ -45,6 +45,7 @@ def register_extensions(app):
     with app.app_context():
         extensions.cache.clear()
     extensions.db.init_app(app)
+    extensions.guard.init_app(app, user_class=models.User)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
     api_.init_app(app)

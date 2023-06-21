@@ -8,9 +8,9 @@ click~=8.0
 dedupe~=1.4.14
 flask~=1.1.0
 flask-caching~=2.0.0
-flask_httpauth~=3.2
 flask_mail>=0.9.1
 flask_migrate~=2.7
+flask-praetorian~=1.4.0
 flask_sqlalchemy~=2.5
 flask-restx==0.4.0
 ftfy~=5.0

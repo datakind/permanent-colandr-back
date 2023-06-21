@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app, render_template
 from flask_restx import Namespace, Resource
 
@@ -12,7 +13,6 @@ from ...models import db, Review, User
 from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
-from ..authentication import auth
 from colandr import api
 
 
@@ -28,7 +28,7 @@ ns = Namespace(
     )
 class ReviewTeamResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',

@@ -1,9 +1,5 @@
-import bcrypt
 import itertools
 
-from flask import current_app
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
-                          BadSignature, SignatureExpired)
 from sqlalchemy import event, false, text, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -44,7 +40,7 @@ class User(db.Model):
         db.Unicode(length=200), unique=True, nullable=False,
         index=True)
     password = db.Column(
-        db.Unicode(length=60), nullable=False)
+        db.Unicode(length=256), nullable=False)
     is_confirmed = db.Column(
         db.Boolean, nullable=False, server_default=false())
     is_admin = db.Column(
@@ -70,44 +66,49 @@ class User(db.Model):
         'FulltextScreening', back_populates='user',
         lazy='dynamic')
 
-    def __init__(self, name, email, password):
-        self.name = name
-        self.email = email
-        self.password = self.hash_password(password)
-
     def __repr__(self):
         return "<User(id={})>".format(self.id)
 
-    def generate_auth_token(self, expiration=1800):
+    @property
+    def identity(self):
+        """Unique id of the user instance, required by ``flask-praetorian`` ."""
+        return self.id
+
+    @property
+    def rolenames(self):
+        """Names of roles attached to the user instance, required by ``flask-praetorian`` ."""
+        # TODO: actually implement user roles for real in the db model?
+        if self.is_admin is True:
+            return ["user", "admin"]
+        else:
+            return ["user"]
+
+    # NOTE: user model already has a password attribute! so we don't need this here
+    # @property
+    # def password(self):
+    #     """Hashed password assigned to the user instance, required by ``flask-praetorian`` ."""
+    #     return self.password
+
+    @classmethod
+    def lookup(cls, username):
         """
-        Generate an authentication token for user that automatically expires
-        after ``expiration`` seconds.
+        Look up user in db with given ``username`` (stored as "email" in the db)
+        and return it, or None if not found, required by ``flask-praetorian`` .
         """
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'id': self.id}).decode('ascii')
+        return cls.query.filter_by(email=username).one_or_none()
 
-    def verify_password(self, plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
+    @classmethod
+    def identify(cls, id):
+        """
+        Identify a single user by their ``id`` and return their user instance,
+        or None if not found, required by ``flask-praetorian`` .
+        """
+        return cls.query.get(id)
 
-    @staticmethod
-    def hash_password(plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.hashpw(
-            plaintext_password,
-            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS'])
-            ).decode('utf8')
-
-    @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)
-        except (SignatureExpired, BadSignature):
-            return None  # valid token, but expired
-        return db.session.query(User).get(data['id'])
+    # TODO: figure out if flask praetorian needs this / how uses this
+    def is_valid(self):
+        # return self.is_confirmed
+        return True
 
 
 class DataSource(db.Model):

@@ -45,6 +45,10 @@ class Config:
     SQLALCHEMY_RECORD_QUERIES = True
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
+    # authentication config
+    JWT_ACCESS_LIFESPAN = {"hours": 3}
+    JWT_REFRESH_LIFESPAN = {"days": 7}
+
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get('COLANDR_APP_DIR', '/tmp')
     LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
@@ -61,10 +65,18 @@ class Config:
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
     # email server config
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
+    MAIL_SERVER = os.environ.get("COLANDR_MAIL_SERVER")
+    MAIL_PORT = os.environ.get("COLANDR_MAIL_PORT")
+    MAIL_USE_TLS = (
+        bool(int(os.environ["COLANDR_MAIL_USE_TLS"]))
+        if os.environ.get("COLANDR_MAIL_USE_TLS")
+        else None
+    )
+    MAIL_USE_SSL = (
+        bool(int(os.environ["COLANDR_MAIL_USE_SSL"]))
+        if os.environ.get("COLANDR_MAIL_USE_SSL")
+        else None
+    )
     MAIL_USERNAME = os.environ.get('COLANDR_MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('COLANDR_MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = f'colandr <{MAIL_USERNAME}>'

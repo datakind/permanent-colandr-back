@@ -1,6 +1,7 @@
 import os
 import shutil
 
+import flask_praetorian
 from flask import current_app, g
 from flask_restx import Namespace, Resource
 
@@ -15,7 +16,6 @@ from ...models import db, Review
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -30,7 +30,7 @@ ns = Namespace(
     )
 class ReviewResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',
@@ -149,8 +149,6 @@ class ReviewResource(Resource):
     produces=['application/json'],
     )
 class ReviewsResource(Resource):
-
-    method_decorators = [auth.login_required]
 
     @ns.doc(
         params={

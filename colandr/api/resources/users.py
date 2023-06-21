@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -8,12 +9,12 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import guard
 from ...lib import constants
 from ...models import db, User, Review
 from ..errors import db_integrity_error, not_found_error, forbidden_error
 from ..swagger import user_model
 from ..schemas import UserSchema
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -28,7 +29,7 @@ ns = Namespace(
     )
 class UserResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',
@@ -123,7 +124,7 @@ class UserResource(Resource):
             if key is missing:
                 continue
             elif key == 'password':
-                setattr(user, key, User.hash_password(value))
+                setattr(user, key, guard.hash_password(value))
             else:
                 setattr(user, key, value)
         if test is False:
@@ -146,7 +147,7 @@ class UserResource(Resource):
     )
 class UsersResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'email': {'in': 'query', 'type': 'string',

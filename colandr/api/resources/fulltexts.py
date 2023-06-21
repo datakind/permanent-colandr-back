@@ -1,3 +1,4 @@
+import flask_praetorian
 from flask import g, current_app
 from flask_restx import Namespace, Resource
 
@@ -10,7 +11,6 @@ from ...lib import constants
 from ...models import db, Fulltext
 from ..errors import not_found_error, forbidden_error
 from ..schemas import FulltextSchema
-from ..authentication import auth
 
 
 ns = Namespace(
@@ -25,7 +25,7 @@ ns = Namespace(
     )
 class FulltextResource(Resource):
 
-    method_decorators = [auth.login_required]
+    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         params={'fields': {'in': 'query', 'type': 'string',

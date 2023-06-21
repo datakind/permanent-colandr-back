@@ -5,6 +5,13 @@ from ..lib import constants
 ns = Namespace("models")
 
 
+login_model = ns.model(
+    "Login",
+    {
+        "email": fields.String(required=True),
+        "password": fields.String(required=True),
+    },
+)
 user_model = ns.model(
     'User',
     {'name': fields.String(required=True),
