@@ -5,8 +5,8 @@ import pytest
 
 from colandr import extensions, models
 
-class TestUserResource:
 
+class TestUserResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -67,7 +67,9 @@ class TestUserResource:
             # (999, {"name": "NEW_USER_NAME999"}, 403),
         ],
     )
-    def test_put(self, id_, params, status_code, client, admin_user, admin_headers, db_session):
+    def test_put(
+        self, id_, params, status_code, client, admin_user, admin_headers, db_session
+    ):
         url = f"/api/users/{id_}?{urllib.parse.urlencode(params)}"
         # only user can modify themself
         response = client.put(url, headers=admin_headers)

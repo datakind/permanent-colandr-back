@@ -7,7 +7,6 @@ from colandr import extensions, models
 
 
 class TestReviewResource:
-
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -47,7 +46,9 @@ class TestReviewResource:
             (999, {"name": "NEW_REVIEW_NAME999"}, 404),
         ],
     )
-    def test_put(self, id_, params, status_code, client, admin_user, admin_headers, db_session):
+    def test_put(
+        self, id_, params, status_code, client, admin_user, admin_headers, db_session
+    ):
         url = f"/api/reviews/{id_}?{urllib.parse.urlencode(params)}"
         response = client.put(url, headers=admin_headers)
         assert response.status_code == status_code
