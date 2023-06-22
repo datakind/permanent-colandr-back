@@ -33,10 +33,7 @@ class Config:
 
     # sql db config
     SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_ECHO = False
-    SQLALCHEMY_RECORD_QUERIES = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     # authentication config
     JWT_ACCESS_LIFESPAN = {"hours": 3}
