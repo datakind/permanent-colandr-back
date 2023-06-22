@@ -28,7 +28,7 @@ dependencies = [
   "flask_mail>=0.9.1",  # TODO: this package is dead, we should replace it
   "flask_migrate~=2.7",
   "flask-praetorian~=1.4.0",
-  "flask_sqlalchemy~=2.5",
+  "flask_sqlalchemy~=3.0.0",
   "flask-restx~=1.1.0",
   "ftfy~=5.0",
   "gunicorn==19.6.0",
