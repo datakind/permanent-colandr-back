@@ -32,7 +32,6 @@ dependencies = [
   "flask-restx~=1.1.0",
   "ftfy~=5.0",
   "gunicorn==19.6.0",
-  "importlib-metadata~=4.0",  # needed for celery to function correctly in PY37
   "itsdangerous~=2.0",
   "jinja2~=3.0",
   "markupsafe~=2.0",
@@ -42,7 +41,6 @@ dependencies = [
   "pymupdf~=1.22.0",
   "python-dateutil>=2.7.0",
   "python-dotenv~=1.0.0",
-  "pyyaml>=3.11",
   "redis~=4.0",
   "requests>=2.11.1",
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
