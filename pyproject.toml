@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
   "alembic~=1.11.0",
-  "arrow~=0.17",
+  "arrow~=1.2.0",
   "bcrypt~=3.1",
   "bibtexparser~=1.2.0",
   "celery~=4.0",
@@ -39,7 +39,7 @@ dependencies = [
   "numpy>=1.9,<1.20",
   "psycopg2-binary~=2.9.0",
   "pymupdf~=1.22.0",
-  "python-dateutil>=2.7.0",
+  "python-dateutil~=2.8",
   "python-dotenv~=1.0.0",
   "redis~=4.0",
   "requests>=2.11.1",
