@@ -1,5 +1,5 @@
 # TODO: keep aligned with pyproject.toml
-alembic~=1.7.0
+alembic~=1.11.0
 arrow~=0.17
 bcrypt~=3.1
 bibtexparser~=1.2.0
