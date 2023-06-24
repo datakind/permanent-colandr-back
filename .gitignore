@@ -54,6 +54,7 @@ ipython_config.py
 # pyenv / IDE
 .python-version
 .vscode/
+.venv/
 
 # mypy
 .mypy_cache/
