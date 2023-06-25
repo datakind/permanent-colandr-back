@@ -1,28 +1,16 @@
-# config options taken from environment variables: see .env.example
-# - COLANDR_DATABASE_URI
-#     - format: 'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-# - COLANDR_SECRET_KEY
-#     - treat it like a password, can be whatever, just make it hard to guess
-# - COLANDR_PASSWORD_SALT
-#     - also like a password, can be whatever, just make it hard to guess
-# - COLANDR_MAIL_USERNAME
-# - COLANDR_MAIL_PASSWORD
-# - COLANDR_APP_DIR
-#     - path on disk of colandr, i.e. the permanent-colandr-back repo
-
 import os
 
 from dotenv import load_dotenv
 
 
 # load `.env` file based on `.env.example` containing config values
-basedir = os.path.abspath(os.path.dirname(__file__))
+basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 load_dotenv(os.path.join(basedir, ".env"))
 
 
 class Config:
     TESTING = False
-    SECRET_KEY = os.environ.get("COLANDR_SECRET_KEY")
+    SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
     PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
@@ -44,11 +32,8 @@ class Config:
     CELERYD_LOG_COLOR = False
 
     # sql db config
-    SQLALCHEMY_DATABASE_URI = os.environ.get("COLANDR_DATABASE_URI")
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
     SQLALCHEMY_ECHO = False
-    SQLALCHEMY_RECORD_QUERIES = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     # authentication config
     JWT_ACCESS_LIFESPAN = {"hours": 3}

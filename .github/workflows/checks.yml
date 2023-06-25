@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7.16",]
+        python-version: ["3.8",]
         os: [macos-latest, ubuntu-latest]
     steps:
     - uses: actions/checkout@v3
@@ -53,7 +53,7 @@ jobs:
     - name: Set up Python 3.7
       uses: actions/setup-python@v4
       with:
-        python-version: "3.7.16"
+        python-version: "3.8"
         cache: "pip"
         cache-dependency-path: "pyproject.toml"
     - name: Install dependencies
@@ -76,7 +76,7 @@ jobs:
     - name: Set up Python 3.7
       uses: actions/setup-python@v4
       with:
-        python-version: "3.7.16"
+        python-version: "3.8"
         cache: "pip"
         cache-dependency-path: "pyproject.toml"
     - name: Install dependencies

@@ -19,10 +19,6 @@ def create_app(config_name="dev"):
     app.register_blueprint(cli.bp)
     app.register_blueprint(errors.bp)
 
-    @app.route("/")
-    def home():
-        return "Welcome to Colandr's API!"
-
     return app
 
 

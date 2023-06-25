@@ -18,14 +18,12 @@ def reset_db():
     fulltext files and ranking models on disk, and create an admin user.
     """
     click.confirm("Are you sure you want to reset ALL app data?", abort=True)
-    # TODO: figure out why mypy misunderstands current_app proxy, so we don't need _app
-    _app = current_app._get_current_object()
-    _app.logger.warning("resetting database ...")
+    current_app.logger.warning("resetting database ...")
     db.drop_all()
     db.create_all()
     for dirkey in ("FULLTEXT_UPLOADS_DIR", "RANKING_MODELS_DIR"):
-        shutil.rmtree(_app.config[dirkey], ignore_errors=True)
-        os.makedirs(_app.config[dirkey], exist_ok=True)
+        shutil.rmtree(current_app.config[dirkey], ignore_errors=True)
+        os.makedirs(current_app.config[dirkey], exist_ok=True)
 
 
 @bp.cli.command("add-admin")
@@ -45,16 +43,13 @@ def add_admin(name, email, password):
     Add an admin account to the database, with both `is_admin` and `is_confirmed`
     values already set to True.
     """
-    # TODO: figure out why mypy misunderstands current_app proxy, so we don't need _app
-    _app = current_app._get_current_object()
-
     user = User(name=name, email=email, password=guard.hash_password(password))
     user.is_confirmed = True
     user.is_admin = True
     db.session.add(user)
     try:
         db.session.commit()
-        _app.logger.info("admin user %s added to db", user)
+        current_app.logger.info("admin user %s added to db", user)
     except Exception as e:
-        _app.logger.error("an error occurred when adding admin: %s", e)
+        current_app.logger.error("an error occurred when adding admin: %s", e)
         db.session.rollback()

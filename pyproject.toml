@@ -7,45 +7,42 @@ name = "colandr"
 version = "1.1.0-dev"
 description = "Back-end code for running the colandr app."
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">= 3.7"
+requires-python = ">= 3.8"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
 ]
 dependencies = [
-  "alembic~=1.7.0",
-  "arrow~=0.17",
-  "bcrypt~=3.1",
+  "alembic~=1.11.0",
+  "arrow~=1.2.0",
   "bibtexparser~=1.2.0",
   "celery~=4.0",
   "click~=8.0",
   "dedupe~=1.4.14",
-  "flask~=1.1.0",
+  "flask~=2.2.0",
   "flask-caching~=2.0.0",
   "flask_mail>=0.9.1",  # TODO: this package is dead, we should replace it
-  "flask_migrate~=2.7",
+  "flask_migrate~=4.0.0",
   "flask-praetorian~=1.4.0",
-  "flask_sqlalchemy~=2.5",
-  "flask-restx==0.4.0",  # requires flask<2.0
+  "flask_sqlalchemy~=3.0.0",
+  "flask-restx~=1.1.0",
   "ftfy~=5.0",
   "gunicorn==19.6.0",
-  "importlib-metadata~=4.0",  # needed for celery to function correctly in PY37
-  "itsdangerous~=1.1",
-  "jinja2~=2.10",
-  "markupsafe~=2.0.0",
+  "itsdangerous~=2.0",
+  "jinja2~=3.0",
+  "markupsafe~=2.0",
   "marshmallow>=2.10.3,<3.0.0",
   "numpy>=1.9,<1.20",
   "psycopg2-binary~=2.9.0",
   "pymupdf~=1.22.0",
-  "python-dateutil>=2.7.0",
-  "python-dotenv~=0.21.0",  # no higher until python version upgraded to >=3.8
-  "pyyaml>=3.11",
+  "python-dateutil~=2.8",
+  "python-dotenv~=1.0.0",
   "redis~=4.0",
-  "requests>=2.11.1",
-  "scikit-learn>=0.21.0,<0.23.0",
+  "requests>=2.11.1",  # TODO: do we need this? => figure out what HTML_files is about
+  "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
   "webargs~=1.5",
@@ -67,7 +64,7 @@ where = ["colandr"]
 
 [tool.black]
 line-length = 88
-target-version = ["py37"]
+target-version = ["py38"]
 
 [tool.isort]
 profile = "black"
@@ -75,7 +72,7 @@ lines_after_imports = 2
 
 [tool.mypy]
 files = ["colandr/**/*.py"]
-python_version = "3.7"
+python_version = "3.8"
 pretty = true
 ignore_errors = true
 allow_redefinition = true
@@ -93,7 +90,7 @@ select = [
 ]
 ignore = ["E501"]
 line-length = 88
-target-version = "py37"
+target-version = "py38"
 src = ["colandr"]
 
 [tool.ruff.per-file-ignores]

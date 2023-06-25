@@ -1,4 +1,4 @@
-FROM python:3.7-slim-buster
+FROM python:3.8-slim
 
 ENV COLANDR_APP_DIR /app
 RUN mkdir -p ${COLANDR_APP_DIR}
