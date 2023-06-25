@@ -1,18 +1,17 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
+import logging
 import re
 
 import bibtexparser
 from bibtexparser.bparser import BibTexParser
 from bibtexparser.customization import convert_to_unicode, getnames
 
-from .. import utils
-
 
 # TODO: confirm that 'references' sanitization is correct
 
-logger = utils.get_console_logger(__name__)
+logger = logging.getLogger(__name__)
 
 WHITESPACE_RE = re.compile(r"\s+")
 _MONTH_MAP = {

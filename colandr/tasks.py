@@ -25,7 +25,7 @@ from sqlalchemy.sql import case, delete, exists, select, text, update
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import cache, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
-from .lib.utils import get_console_logger, load_dedupe_model, make_record_immutable
+from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (
     Citation,
     Dedupe,
@@ -50,7 +50,6 @@ REDIS_CONN = redis.Redis(
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
 logger = get_task_logger(__name__)
-console_logger = get_console_logger(__name__)
 
 
 @shared_task

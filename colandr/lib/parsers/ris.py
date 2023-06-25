@@ -1,14 +1,13 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import io
+import logging
 import re
 
 from dateutil.parser import parse as parse_date
 
-from .. import utils
 
-
-logger = utils.get_console_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 KEY_MAP = {
