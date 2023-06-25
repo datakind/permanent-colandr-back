@@ -13,7 +13,6 @@ def create_app(config_name="dev"):
     app = flask.Flask("colandr")
     config = configs[config_name]()
     app.config.from_object(config)
-    config.init_app(app)
 
     configure_logging(app)
     register_extensions(app)

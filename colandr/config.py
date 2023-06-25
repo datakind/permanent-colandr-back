@@ -11,6 +11,8 @@ load_dotenv(os.path.join(basedir, ".env"))
 class Config:
     TESTING = False
     SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
+    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
+
     PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")
     BCRYPT_LOG_ROUNDS = 12
     SSL_DISABLE = False
@@ -48,7 +50,6 @@ class Config:
     CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
     FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
-    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
     # email server config
     MAIL_SERVER = os.environ.get("COLANDR_MAIL_SERVER")
@@ -68,10 +69,6 @@ class Config:
     MAIL_DEFAULT_SENDER = f"colandr <{MAIL_USERNAME}>"
     MAIL_SUBJECT_PREFIX = "[colandr]"
     MAIL_ADMINS = ["burtdewilde@gmail.com"]
-
-    @staticmethod
-    def init_app(app):
-        pass
 
 
 class ProductionConfig(Config):
