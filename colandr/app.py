@@ -26,11 +26,6 @@ def configure_logging(app: flask.Flask):
     """Configure logging on ``app`` ."""
     if app.logger.handlers:
         app.logger.removeHandler(flask.logging.default_handler)
-    # app.logger.addHandler(
-    #     get_rotating_file_handler(
-    #         os.path.join(app.config["LOGS_DIR"], app.config["LOG_FILENAME"])
-    #     )
-    # )
     app.logger.addHandler(get_console_handler())
     app.logger.addFilter(logging.Filter("colandr"))
     # app.logger.propagate = False
