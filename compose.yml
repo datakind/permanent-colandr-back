@@ -60,6 +60,12 @@ services:
       worker:
         condition: service_started
     stop_signal: SIGINT
+    healthcheck:
+      test: "curl localhost:5000/api/health"
+      interval: "10s"
+      timeout: "3s"
+      start_period: "5s"
+      retries: 3
     env_file: ".env"
     environment:
       - FLASK_APP=colandr.app:create_app()
