@@ -33,6 +33,7 @@ dependencies = [
   "gunicorn==19.6.0",  # TODO: upgrade this
   "itsdangerous~=2.0",
   "jinja2~=3.0",
+  "joblib~=1.0",
   "markupsafe~=2.0",
   "marshmallow>=2.10.3,<3.0.0",  # TODO: upgrade this to 3.0.0, see migration guide
   "numpy>=1.9,<1.20",
