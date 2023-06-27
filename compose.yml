@@ -4,10 +4,8 @@ services:
   db:
     container_name: colandr-db
     image: "postgres:10"
-    restart: always
+    restart: unless-stopped
     stop_grace_period: 5s
-    networks:
-      - colandr-back
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -34,15 +32,11 @@ services:
       - MP_SMTP_AUTH_ALLOW_INSECURE=1
       - MP_VERBOSE=1
       - MP_MAX_MESSAGES=100
-    networks:
-      - colandr-back
   broker:
     container_name: colandr-broker
     image: "redis:6.0"
-    restart: always
+    restart: unless-stopped
     stop_grace_period: 5s
-    networks:
-      - colandr-back
     volumes:
       - broker-data:/data
     ports:
@@ -53,12 +47,9 @@ services:
       context: "."
       dockerfile: Dockerfile
     depends_on:
-      db:
-        condition: service_healthy
-      broker:
-        condition: service_started
-      worker:
-        condition: service_started
+      - db
+      - broker
+      - worker
     stop_signal: SIGINT
     healthcheck:
       test: "curl localhost:5000/api/health"
@@ -77,8 +68,6 @@ services:
       - COLANDR_MAIL_PORT=1025
       - COLANDR_MAIL_USE_TLS=0
       - COLANDR_MAIL_USE_SSL=0
-    networks:
-      - colandr-back
     volumes:
       - .:/app
     ports:
@@ -100,12 +89,11 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
-    networks:
-      - colandr-back
     command: "celery worker --app=celery_worker.celery --loglevel=info"
 
 networks:
-  colandr-back: {}
+  default:
+    name: "colandr-back"
 
 volumes:
   db-data: {}
