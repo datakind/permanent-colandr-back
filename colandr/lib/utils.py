@@ -2,6 +2,7 @@ import io
 import logging
 import logging.handlers
 import os
+import sys
 
 import dedupe
 from sqlalchemy.sql import text
@@ -21,7 +22,7 @@ def get_rotating_file_handler(filepath, level=logging.INFO):
 
 
 def get_console_handler(level=logging.WARNING):
-    _handler = logging.StreamHandler()
+    _handler = logging.StreamHandler(stream=sys.stdout)
     _formatter = logging.Formatter(
         "%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
