@@ -3,6 +3,7 @@ import os
 from time import sleep
 
 import arrow
+import joblib
 import numpy as np
 import redis
 import textacy
@@ -14,7 +15,6 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
-from sklearn.externals import joblib
 from sklearn.linear_model import SGDClassifier
 from sqlalchemy import create_engine, func
 from sqlalchemy import types as sqltypes
