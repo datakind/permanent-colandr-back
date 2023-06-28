@@ -13,12 +13,8 @@ class Config:
     SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
     MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
-    PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")
-    BCRYPT_LOG_ROUNDS = 12
-    SSL_DISABLE = False
-    LOGGER_NAME = "colandr"
-    JSON_AS_ASCII = False
-    CONFIRM_TOKEN_EXPIRATION = 3600
+    PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")  # TODO: remove this
+    # SSL_DISABLE = False
     APP_URL_DOMAIN = "http://localhost:5001/api"
 
     # celery+redis config
@@ -43,8 +39,6 @@ class Config:
 
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
-    LOGS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "logs")
-    LOG_FILENAME = "colandr.log"
     DEDUPE_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "dedupe")
     RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
     CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
@@ -77,14 +71,10 @@ class ProductionConfig(Config):
 
 class DevelopmentConfig(Config):
     FLASK_ENV = "development"
-    LOGGER_NAME = "dev-colandr"
-    LOG_FILENAME = "dev-colandr.log"
 
 
 class TestingConfig(Config):
     TESTING = True
-    LOGGER_NAME = "test-colandr"
-    LOG_FILENAME = "test-colandr.log"
     SQLALCHEMY_ECHO = True
 
 
