@@ -15,8 +15,7 @@ env:
   COLANDR_APP_DIR: "/path/to/colandr"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
-  COLANDR_DATABASE_URI: "colandr_database_uri"
-  DEV_COLANDR_DATABASE_URI: "dev_colandr_database_uri"
+  COLANDR_DATABASE_URI: "postgresql://colandr_app:password@colandr_db:5432/colandr"
 
 jobs:
 
@@ -27,6 +26,22 @@ jobs:
       matrix:
         python-version: ["3.8",]
         os: [macos-latest, ubuntu-latest]
+
+    services:
+      colandr_db:
+        image: "postgres:10"
+        env:
+          POSTGRES_USER: "colandr_app"
+          POSTGRES_PASSWORD: "password"
+          POSTGRES_DB: "colandr"
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U colandr_app -d colandr
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -43,9 +58,9 @@ jobs:
       run: |
         python3 -m textacy download lang_identifier
         python3 -m spacy download en_core_web_md
-  #   - name: Test with pytest
-  #     run: |
-  #       python -m pytest tests --verbose
+    - name: Test with pytest
+      run: |
+        python -m pytest tests --verbose
   lint:
     runs-on: ubuntu-latest
     steps:
