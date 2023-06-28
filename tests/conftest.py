@@ -22,6 +22,7 @@ def app():
     """Create and configure a new app instance, once per test session."""
     # create the app with common test config
     app = create_app("test")
+    # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
 
