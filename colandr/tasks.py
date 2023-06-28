@@ -23,7 +23,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
-from .extensions import cache, mail
+from .extensions import cache, db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (
@@ -38,14 +38,12 @@ from .models import (
     ReviewPlan,
     Study,
     User,
-    db,
 )
 
 
-# TODO: figure out if we can use current celery app's redis connection info
-REDIS_CONN = redis.Redis(
-    host=os.environ.get("COLANDR_REDIS_HOST", "localhost"),
-    port=int(os.environ.get("COLANDR_REDIS_PORT", "6379")),
+# TODO: figure out if we can use current celery app's redis connection info?
+REDIS_CONN = redis.Redis.from_url(
+    os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
 )
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
