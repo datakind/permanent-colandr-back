@@ -1,3 +1,4 @@
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -16,6 +17,7 @@ class Config:
     PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")  # TODO: remove this
     # SSL_DISABLE = False
     APP_URL_DOMAIN = "http://localhost:5001/api"
+    LOG_LEVEL = os.getenv("COLANDR_LOG_LEVEL", logging.INFO)
 
     # celery+redis config
     CELERY_BROKER_URL = os.environ.get(

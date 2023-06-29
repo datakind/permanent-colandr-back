@@ -1,21 +1,9 @@
 import io
 import logging
 import logging.handlers
-import sys
 
 import dedupe
 from sqlalchemy.sql import text
-
-
-def get_console_handler(level=logging.WARNING):
-    _handler = logging.StreamHandler(stream=sys.stdout)
-    _formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    _handler.setFormatter(_formatter)
-    _handler.setLevel(level)
-    return _handler
 
 
 def execute_raw_sql_query(query, bindings=None, no_logging=True):
