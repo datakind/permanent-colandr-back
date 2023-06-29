@@ -15,7 +15,7 @@ env:
   COLANDR_APP_DIR: "/path/to/colandr"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
-  COLANDR_DATABASE_URI: "postgresql://colandr_app:password@colandr_db:5432/colandr"
+  COLANDR_DATABASE_URI: "postgresql://colandr_app:password@localhost:5432/colandr"
 
 jobs:
 
@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.8",]
-        os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]  # macos-latest
 
     services:
       colandr_db:
