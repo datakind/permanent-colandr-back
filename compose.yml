@@ -18,8 +18,8 @@ services:
       - PGDATA=/var/lib/postgresql/data
     healthcheck:
       test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 5
   email:
     container_name: colandr-email
@@ -41,6 +41,11 @@ services:
       - broker-data:/data
     ports:
       - "6379:6379"
+    healthcheck:
+      test: "redis-cli ping"
+      interval: 10s
+      timeout: 5s
+      retries: 5
   api:
     container_name: colandr-api
     build:
