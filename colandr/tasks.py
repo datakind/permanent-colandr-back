@@ -41,13 +41,19 @@ from .models import (
 )
 
 
-# TODO: figure out if we can use current celery app's redis connection info?
-# REDIS_CONN = redis.Redis.from_url(
-#     os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
-# )
+logger = get_task_logger(__name__)
+
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
-logger = get_task_logger(__name__)
+
+def _get_redis_conn() -> redis.client.Redis:
+    # TODO: figure out if we can actually use current celery app's redis connection info
+    # redis_conn = redis.Redis.from_url(
+    #     os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
+    # )
+    redis_conn = current_celery_app.backend.client
+    assert isinstance(redis_conn, redis.client.Redis)  # type guard
+    return redis_conn
 
 
 @shared_task
@@ -88,9 +94,8 @@ def _get_candidate_dupes(results):
 @shared_task
 def deduplicate_citations(review_id):
     lock_id = f"deduplicate_ciations__review-{review_id}"
-    REDIS_CONN = current_celery_app.backend.client
-    assert isinstance(REDIS_CONN, redis.client.Redis)
-    lock = REDIS_CONN.lock(
+    redis_conn = _get_redis_conn()
+    lock = redis_conn.lock(
         lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
     )
     lock.acquire()
@@ -436,7 +441,8 @@ def deduplicate_citations(review_id):
 @shared_task
 def get_citations_text_content_vectors(review_id):
     lock_id = f"get_citations_text_content_vectors__review-{review_id}"
-    lock = REDIS_CONN.lock(
+    redis_conn = _get_redis_conn()
+    lock = redis_conn.lock(
         lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
     )
     lock.acquire()
@@ -597,7 +603,8 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 @shared_task
 def suggest_keyterms(review_id, sample_size):
     lock_id = f"suggest_keyterms__review-{review_id}"
-    lock = REDIS_CONN.lock(
+    redis_conn = _get_redis_conn()
+    lock = redis_conn.lock(
         lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
     )
     lock.acquire()
@@ -680,7 +687,8 @@ def suggest_keyterms(review_id, sample_size):
 @shared_task
 def train_citation_ranking_model(review_id):
     lock_id = f"train_citations_ranking_model__review-{review_id}"
-    lock = REDIS_CONN.lock(
+    redis_conn = _get_redis_conn()
+    lock = redis_conn.lock(
         lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
     )
     lock.acquire()
