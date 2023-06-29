@@ -42,9 +42,9 @@ from .models import (
 
 
 # TODO: figure out if we can use current celery app's redis connection info?
-REDIS_CONN = redis.Redis.from_url(
-    os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
-)
+# REDIS_CONN = redis.Redis.from_url(
+#     os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
+# )
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
 logger = get_task_logger(__name__)
@@ -88,6 +88,8 @@ def _get_candidate_dupes(results):
 @shared_task
 def deduplicate_citations(review_id):
     lock_id = f"deduplicate_ciations__review-{review_id}"
+    REDIS_CONN = current_celery_app.backend.client
+    assert isinstance(REDIS_CONN, redis.client.Redis)
     lock = REDIS_CONN.lock(
         lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
     )
