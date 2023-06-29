@@ -9,7 +9,7 @@ from colandr.api import api_
 from colandr.config import configs
 
 
-def create_app(config_name="dev"):
+def create_app(config_name: str = "dev") -> flask.Flask:
     app = flask.Flask("colandr")
     config = configs[config_name]()
     app.config.from_object(config)
@@ -22,7 +22,7 @@ def create_app(config_name="dev"):
     return app
 
 
-def configure_logging(app: flask.Flask):
+def configure_logging(app: flask.Flask) -> None:
     """Configure logging on ``app`` ."""
     if app.logger.handlers:
         app.logger.removeHandler(flask.logging.default_handler)
@@ -40,7 +40,7 @@ def configure_logging(app: flask.Flask):
     app.logger.addFilter(logging.Filter("colandr"))
 
 
-def register_extensions(app: flask.Flask):
+def register_extensions(app: flask.Flask) -> None:
     """Register flask extensions on ``app`` ."""
     extensions.cache.init_app(app)
     with app.app_context():
