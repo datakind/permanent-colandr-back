@@ -8,6 +8,19 @@ from colandr import extensions, models
 from colandr.app import create_app
 
 
+# TODO: consider hacking on a solution that doesn't require a running psql db
+# for example, this almost but didn't quite work
+# import pytest_postgresql.factories
+# psql_proc = pytest_postgresql.factories.postgresql_proc(
+#     host="localhost",
+#     port=5432,
+#     user="colandr_app",
+#     password="PASSWORD",
+#     dbname="colandr",
+# )
+# psql_db = pytest_postgresql.factories.postgresql("psql_proc", dbname="colandr")
+
+
 @pytest.fixture(scope="session")
 def seed_data():
     path = pathlib.Path(__file__).parent / "fixtures" / "seed_data.json"
