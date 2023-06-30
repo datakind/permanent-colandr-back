@@ -31,6 +31,12 @@ class Config:
     CELERY_RESULT_SERIALIZER = "json"
     CELERYD_LOG_COLOR = False
 
+    # cache config
+    CACHE_TYPE = "SimpleCache"
+    # TODO: figure out if/how we want to use redis for caching
+    # CACHE_TYPE = "RedisCache",
+    # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
+
     # sql db config
     SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
     SQLALCHEMY_ECHO = False

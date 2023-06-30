@@ -8,14 +8,7 @@ import flask_praetorian
 import flask_sqlalchemy
 
 
-cache = flask_caching.Cache(
-    config={
-        # TODO: figure out what we want to do here re: redis, caching *at all*
-        "CACHE_TYPE": "SimpleCache",
-        # "CACHE_TYPE": "RedisCache",
-        # "CACHE_REDIS_HOST": os.environ.get("COLANDR_REDIS_HOST", "localhost"),
-    },
-)
+cache = flask_caching.Cache()
 db = flask_sqlalchemy.SQLAlchemy()
 guard = flask_praetorian.Praetorian()
 mail = flask_mail.Mail()
