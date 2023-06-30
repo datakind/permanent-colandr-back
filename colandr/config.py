@@ -1,3 +1,4 @@
+import logging
 import os
 
 from dotenv import load_dotenv
@@ -11,13 +12,12 @@ load_dotenv(os.path.join(basedir, ".env"))
 class Config:
     TESTING = False
     SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
-    PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")
-    BCRYPT_LOG_ROUNDS = 12
-    SSL_DISABLE = False
-    LOGGER_NAME = "colandr"
-    JSON_AS_ASCII = False
-    CONFIRM_TOKEN_EXPIRATION = 3600
+    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
+
+    PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")  # TODO: remove this
+    # SSL_DISABLE = False
     APP_URL_DOMAIN = "http://localhost:5001/api"
+    LOG_LEVEL = os.getenv("COLANDR_LOG_LEVEL", logging.INFO)
 
     # celery+redis config
     CELERY_BROKER_URL = os.environ.get(
@@ -31,6 +31,12 @@ class Config:
     CELERY_RESULT_SERIALIZER = "json"
     CELERYD_LOG_COLOR = False
 
+    # cache config
+    CACHE_TYPE = "SimpleCache"
+    # TODO: figure out if/how we want to use redis for caching
+    # CACHE_TYPE = "RedisCache",
+    # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
+
     # sql db config
     SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
     SQLALCHEMY_ECHO = False
@@ -41,14 +47,11 @@ class Config:
 
     # files-on-disk config
     COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
-    LOGS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "logs")
-    LOG_FILENAME = "colandr.log"
     DEDUPE_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "dedupe")
     RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
     CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
     FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
     ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
-    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
 
     # email server config
     MAIL_SERVER = os.environ.get("COLANDR_MAIL_SERVER")
@@ -69,10 +72,6 @@ class Config:
     MAIL_SUBJECT_PREFIX = "[colandr]"
     MAIL_ADMINS = ["burtdewilde@gmail.com"]
 
-    @staticmethod
-    def init_app(app):
-        pass
-
 
 class ProductionConfig(Config):
     FLASK_ENV = "production"
@@ -80,14 +79,10 @@ class ProductionConfig(Config):
 
 class DevelopmentConfig(Config):
     FLASK_ENV = "development"
-    LOGGER_NAME = "dev-colandr"
-    LOG_FILENAME = "dev-colandr.log"
 
 
 class TestingConfig(Config):
     TESTING = True
-    LOGGER_NAME = "test-colandr"
-    LOG_FILENAME = "test-colandr.log"
     SQLALCHEMY_ECHO = True
 
 

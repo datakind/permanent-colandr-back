@@ -1,83 +1,9 @@
 import io
 import logging
 import logging.handlers
-import os
 
 import dedupe
 from sqlalchemy.sql import text
-
-
-def get_rotating_file_handler(filepath, level=logging.INFO):
-    _handler = logging.handlers.RotatingFileHandler(
-        filepath, maxBytes=1000000, backupCount=10, delay=False
-    )
-    _formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(module)s.%(funcName)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    _handler.setFormatter(_formatter)
-    _handler.setLevel(level)
-    return _handler
-
-
-def get_console_handler(level=logging.WARNING):
-    _handler = logging.StreamHandler()
-    _formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    _handler.setFormatter(_formatter)
-    _handler.setLevel(level)
-    return _handler
-
-
-def get_console_logger(name, level="info"):
-    logger = logging.getLogger(name)
-    if level == "debug":
-        logger.setLevel(logging.DEBUG)
-    elif level == "info":
-        logger.setLevel(logging.INFO)
-    elif level == "warning":
-        logger.setLevel(logging.WARNING)
-    else:
-        logger.setLevel(logging.ERROR)
-    _handler = logging.StreamHandler()
-    _formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    _handler.setFormatter(_formatter)
-    logger.addHandler(_handler)
-    logging.captureWarnings(True)
-    return logger
-
-
-def get_rotating_file_logger(name, filepath, level="info"):
-    head, _ = os.path.split(filepath)
-    os.makedirs(head, exist_ok=True)
-    logger = logging.getLogger(name)
-    if level == "debug":
-        logger.setLevel(logging.DEBUG)
-    elif level == "info":
-        logger.setLevel(logging.INFO)
-    elif level == "warning":
-        logger.setLevel(logging.WARNING)
-    else:
-        logger.setLevel(logging.ERROR)
-    _handler = logging.handlers.RotatingFileHandler(
-        filepath, maxBytes=1000000, backupCount=10, delay=False
-    )
-    _formatter = logging.Formatter(
-        "%(asctime)s - %(levelname)s - %(name)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    _handler.setFormatter(_formatter)
-    logger.addHandler(_handler)
-    _filter = logging.Filter("colandr")
-    logger.addFilter(_filter)
-    logger.propagate = False
-    logging.captureWarnings(True)
-    return logger
 
 
 def execute_raw_sql_query(query, bindings=None, no_logging=True):

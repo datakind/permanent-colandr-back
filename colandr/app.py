@@ -1,18 +1,18 @@
 import logging
+import sys
 
-from flask import Flask
+import flask
+import flask.logging
 
 from colandr import cli, errors, extensions, models
 from colandr.api import api_
 from colandr.config import configs
-from colandr.lib.utils import get_console_handler
 
 
-def create_app(config_name="dev"):
-    app = Flask("colandr")
+def create_app(config_name: str = "dev") -> flask.Flask:
+    app = flask.Flask("colandr")
     config = configs[config_name]()
     app.config.from_object(config)
-    config.init_app(app)
 
     configure_logging(app)
     register_extensions(app)
@@ -22,19 +22,25 @@ def create_app(config_name="dev"):
     return app
 
 
-def configure_logging(app):
+def configure_logging(app: flask.Flask) -> None:
     """Configure logging on ``app`` ."""
-    # app.logger.addHandler(
-    #     get_rotating_file_handler(
-    #         os.path.join(app.config.LOGS_DIR, app.config.LOG_FILENAME)
-    #     )
-    # )
-    app.logger.addHandler(get_console_handler())
+    if app.logger.handlers:
+        app.logger.removeHandler(flask.logging.default_handler)
+
+    handler = logging.StreamHandler(stream=sys.stdout)
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(module)s.%(funcName)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+    )
+    handler.setLevel(app.config["LOG_LEVEL"])
+    app.logger.addHandler(handler)
+    # TODO: do we *want* to filter to just colandr's logging, or others' (deps') too?
     app.logger.addFilter(logging.Filter("colandr"))
-    # app.logger.propagate = False
 
 
-def register_extensions(app):
+def register_extensions(app: flask.Flask) -> None:
     """Register flask extensions on ``app`` ."""
     extensions.cache.init_app(app)
     with app.app_context():

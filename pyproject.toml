@@ -21,7 +21,7 @@ dependencies = [
   "bibtexparser~=1.2.0",
   "celery~=4.0",
   "click~=8.0",
-  "dedupe~=1.4.14",
+  "dedupe~=1.4.14",  # TODO: upgrade this once good process for retraining model in place
   "flask~=2.2.0",
   "flask-caching~=2.0.0",
   "flask_mail>=0.9.1",  # TODO: this package is dead, we should replace it
@@ -30,11 +30,12 @@ dependencies = [
   "flask_sqlalchemy~=3.0.0",
   "flask-restx~=1.1.0",
   "ftfy~=5.0",
-  "gunicorn==19.6.0",
+  "gunicorn==19.6.0",  # TODO: upgrade this
   "itsdangerous~=2.0",
   "jinja2~=3.0",
+  "joblib~=1.0",
   "markupsafe~=2.0",
-  "marshmallow>=2.10.3,<3.0.0",
+  "marshmallow>=2.10.3,<3.0.0",  # TODO: upgrade this to 3.0.0, see migration guide
   "numpy>=1.9,<1.20",
   "psycopg2-binary~=2.9.0",
   "pymupdf~=1.22.0",
@@ -45,7 +46,7 @@ dependencies = [
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
-  "webargs~=1.5",
+  "webargs~=1.5",  # TODO: upgrade this to 2.0 at same time as marshmallow to 3.0.0
 ]
 
 [project.optional-dependencies]

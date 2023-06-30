@@ -1,4 +1,5 @@
 import itertools
+import logging
 
 from sqlalchemy import ForeignKey, event, false, text
 from sqlalchemy.dialects import postgresql
@@ -6,10 +7,9 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 from .api.utils import assign_status, get_boolean_search_query
 from .extensions import db
-from .lib.utils import get_console_logger
 
 
-logger = get_console_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 # association table for users-reviews many-to-many relationship

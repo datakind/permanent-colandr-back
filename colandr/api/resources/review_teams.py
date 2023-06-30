@@ -161,6 +161,7 @@ class ReviewTeamResource(Resource):
                 review_users.append(user)
             else:
                 return forbidden_error("{} is already on this review".format(user))
+        # TODO: update this to use flask-praetorian tokens + emailing
         # user is being *invited*, so send an invitation email
         elif action == "invite":
             serializer = URLSafeSerializer(current_app.config["SECRET_KEY"])

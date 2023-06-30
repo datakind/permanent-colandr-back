@@ -18,6 +18,7 @@ api_ = Api(
 
 from .auth import ns as ns_auth
 from .errors import ns as errors_ns
+from .health import ns as ns_health
 from .resources.citation_imports import ns as citation_imports_ns
 from .resources.citation_screenings import ns as citation_screenings_ns
 from .resources.citations import ns as citations_ns
@@ -41,6 +42,7 @@ flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
 
 api_.add_namespace(ns_auth)
 api_.add_namespace(errors_ns)
+api_.add_namespace(ns_health)
 api_.add_namespace(swagger_ns)
 api_.add_namespace(users_ns)
 api_.add_namespace(reviews_ns)

@@ -4,9 +4,21 @@ import pathlib
 import pytest
 from flask import g
 
-# from colandr.extensions import db as _db, guard
 from colandr import extensions, models
 from colandr.app import create_app
+
+
+# TODO: consider hacking on a solution that doesn't require a running psql db
+# for example, this almost but didn't quite work
+# import pytest_postgresql.factories
+# psql_proc = pytest_postgresql.factories.postgresql_proc(
+#     host="localhost",
+#     port=5432,
+#     user="colandr_app",
+#     password="PASSWORD",
+#     dbname="colandr",
+# )
+# psql_db = pytest_postgresql.factories.postgresql("psql_proc", dbname="colandr")
 
 
 @pytest.fixture(scope="session")
@@ -22,6 +34,7 @@ def app():
     """Create and configure a new app instance, once per test session."""
     # create the app with common test config
     app = create_app("test")
+    # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
 
