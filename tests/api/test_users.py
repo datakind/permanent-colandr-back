@@ -36,8 +36,7 @@ class TestUsersResource:
             assert data["email"] == email
         elif review_id is not None:
             assert isinstance(data, list)
-            # TODO: gotta figure out how to set user<=>review mapping in seed data
-            # assert len(data) == num_exp
+            assert len(data) == num_exp
 
     @pytest.mark.parametrize(
         "data",
