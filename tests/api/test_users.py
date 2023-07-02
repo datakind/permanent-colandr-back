@@ -6,6 +6,66 @@ import pytest
 from colandr import extensions, models
 
 
+def test_api_path(client, admin_headers):
+    url = "/api/users/1"
+    response = client.get(url, headers=admin_headers)
+    assert response.status_code == 200
+
+
+class TestUsersResource:
+    @pytest.mark.parametrize(
+        ["email", "review_id", "num_exp"],
+        [
+            ("name1@example.com", None, 1),
+            ("name2@example.com", 1, 1),
+            # (None, 1, 1),
+        ],
+    )
+    def test_get(self, email, review_id, num_exp, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for(
+                "users_users_resource", email=email, review_id=review_id
+            )
+        response = client.get(url, headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json
+        assert data
+        if email is not None:
+            assert isinstance(data, dict)
+            assert data["email"] == email
+        elif review_id is not None:
+            assert isinstance(data, list)
+            # TODO: gotta figure out how to set user<=>review mapping in seed data
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"name": "NAMEX", "email": "namex@example.net", "password": "PASSWORD"},
+        ],
+    )
+    def test_post(self, data, app, client, db_session, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for("users_users_resource")
+        response = client.post(url, data=data, headers=admin_headers)
+        assert response.status_code == 200
+        response_data = response.json
+        assert data["email"] == response_data["email"]
+
+    @pytest.mark.parametrize(
+        ["data", "status_code"],
+        [
+            ({"name": "NAMEX", "email": "namex@example.net"}, 422),
+            ({"email": "namex@example.net", "password": "PASSWORD"}, 422),
+            ({"name": "NAMEX", "password": "PASSWORD"}, 422),
+        ],
+    )
+    def test_post_error(self, data, status_code, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for("users_users_resource")
+        response = client.post(url, data=data, headers=admin_headers)
+        assert response.status_code == status_code
+
+
 class TestUserResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -60,11 +120,11 @@ class TestUserResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
-            (2, {"name": "NEW_USER_NAME2"}, 200),
-            (3, {"email": "name3@newdomain.com"}, 200),
-            (4, {"name": "NEW_USER_NAME4", "email": "name4@newdomain.com"}, 200),
+            (2, {"name": "NEW_NAME2"}, 200),
+            (3, {"email": "name3@example.net"}, 200),
+            (4, {"name": "NEW_NAME4", "email": "name4@example.net"}, 200),
             # TODO: fix this case! flask praetorian can't pack header for nonexistent user
-            # (999, {"name": "NEW_USER_NAME999"}, 403),
+            # (999, {"name": "NEW_NAME999"}, 403),
         ],
     )
     def test_put(
