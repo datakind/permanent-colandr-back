@@ -33,3 +33,39 @@ class TestReviewPlanResource:
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 
+    @pytest.mark.parametrize(
+        ["id", "data", "status_code"],
+        [
+            (1, {"objective": "NEW_OBJECTIVE1"}, 200),
+            (1, {"research_questions": ["NEW_Q1", "NEW_Q2"]}, 200),
+            (999, {"objective": "NEW_OBJECTIVE999"}, 404),
+        ],
+    )
+    def test_put(self, id, data, status_code, app, client, admin_headers, db_session):
+        with app.test_request_context():
+            url = flask.url_for("review_plans_review_plan_resource", id=id)
+        response = client.put(url, data=data, headers=admin_headers)
+        assert response.status_code == status_code
+        if 200 <= status_code < 300:
+            data = response.json
+            for key, val in data.items():
+                assert data.get(key) == val
+
+    @pytest.mark.parametrize("id", [1])
+    def test_delete(self, id, app, client, admin_headers, db_session):
+        with app.test_request_context():
+            url = flask.url_for("review_plans_review_plan_resource", id=id)
+        response = client.delete(url, headers=admin_headers)
+        assert response.status_code == 204
+        get_response = client.get(url, headers=admin_headers)
+        get_data = get_response.json
+        # "deleted" review plan is just emptied out
+        for key in [
+            "objective",
+            "research_questions",
+            "pico",
+            "keyterms",
+            "selection_criteria",
+            "data_extraction_form",
+        ]:
+            assert not get_data[key]
