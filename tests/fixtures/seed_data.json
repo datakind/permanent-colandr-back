@@ -40,5 +40,17 @@
             "name": "NAME2",
             "description": "DESCRIPTION2"
         }
+    ],
+    "review_teams": [
+        {
+            "id": 1,
+            "action": "add",
+            "user_id": 3
+        },
+        {
+            "id": 2,
+            "action": "add",
+            "user_id": 4
+        }
     ]
 }

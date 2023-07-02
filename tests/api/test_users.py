@@ -18,7 +18,8 @@ class TestUsersResource:
         [
             ("name1@example.com", None, 1),
             ("name2@example.com", 1, 1),
-            # (None, 1, 1),
+            # TODO: figure out the user<=>review mapping in seed data
+            # (None, 1, 2),
         ],
     )
     def test_get(self, email, review_id, num_exp, app, client, admin_headers):
@@ -36,6 +37,7 @@ class TestUsersResource:
         elif review_id is not None:
             assert isinstance(data, list)
             # TODO: gotta figure out how to set user<=>review mapping in seed data
+            # assert len(data) == num_exp
 
     @pytest.mark.parametrize(
         "data",
