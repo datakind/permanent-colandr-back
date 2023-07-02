@@ -61,6 +61,9 @@ def _populate_db(db, seed_data):
             review.users.append(user)
         else:
             raise ValueError()
+    for record in seed_data["review_plans"]:
+        # NOTE: this automatically adds the relationship to associated review
+        review_plan = models.ReviewPlan(**record)
     db.session.commit()
 
 

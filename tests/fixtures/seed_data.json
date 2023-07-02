@@ -52,5 +52,69 @@
             "action": "add",
             "user_id": 4
         }
+    ],
+    "review_plans": [
+        {
+            "id_": 1,
+            "objective": "OBJECTIVE",
+            "research_questions": [
+                "Q1",
+                "Q2",
+                "Q3"
+            ],
+            "pico": {
+                "population": "POPULATION",
+                "intervention": "INTERVENTION",
+                "comparison": "COMPARISON",
+                "outcome": "OUTCOME"
+            },
+            "keyterms": [
+                {
+                    "term": "TERM1",
+                    "group": "GROUP1",
+                    "synonyms": [
+                        "SYNONYM1",
+                        "SYNONYM2"
+                    ]
+                },
+                {
+                    "term": "TERM2",
+                    "group": "GROUP1",
+                    "synonyms": [
+                        "SYNONYM1"
+                    ]
+                },
+                {
+                    "term": "TERM3",
+                    "group": "GROUP2"
+                }
+            ],
+            "selection_criteria": [
+                {
+                    "label": "LABEL1",
+                    "description": "DESCRIPTION1"
+                },
+                {
+                    "label": "LABEL2",
+                    "description": "DESCRIPTION2"
+                }
+            ],
+            "data_extraction_form": [
+                {
+                    "label": "LABEL1",
+                    "description": "DESCRIPTION1",
+                    "field_type": "str"
+                },
+                {
+                    "label": "LABEL2",
+                    "description": "DESCRIPTION2",
+                    "field_type": "select_many",
+                    "allowed_values": [
+                        "VALUE1",
+                        "VALUE2"
+                    ]
+                }
+            ]
+        }
     ]
 }
