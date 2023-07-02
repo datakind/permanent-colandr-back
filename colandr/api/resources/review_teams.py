@@ -139,7 +139,7 @@ class ReviewTeamResource(Resource):
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
-        if review.owner is not g.current_user:
+        if g.current_user.is_admin is False and review.owner is not g.current_user:
             return forbidden_error(
                 "{} forbidden to modify this review team".format(g.current_user)
             )
