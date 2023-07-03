@@ -1,3 +1,5 @@
+import webargs.core
+import webargs.flaskparser
 from flask import current_app, jsonify
 from flask_restx import Namespace
 from werkzeug import exceptions
@@ -60,10 +62,21 @@ def internal_server_error(err):
     return response
 
 
-def validation_error(message):
-    response = jsonify({"message": message})
-    response.status_code = 422
-    return response
+@webargs.flaskparser.parser.error_handler
+def validation_error(error, req, schema, error_status_code, error_headers):
+    """
+    Handle validation errors during parsing. Aborts the current HTTP request and
+    responds with a 422 error.
+
+    This error handler is necessary for using webargs with Flask-RESTX.
+    See: webargs/issues/181
+    """
+    status_code = error_status_code or webargs.core.DEFAULT_VALIDATION_STATUS
+    webargs.flaskparser.abort(
+        status_code,
+        exc=error,
+        messages=error.messages,
+    )
 
 
 def db_integrity_error(message):
