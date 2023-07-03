@@ -9,17 +9,17 @@ ns = Namespace("errors")
 
 
 @ns.errorhandler
-def default_error(err):
-    message = "an unhandled exception occurred: {}".format(err)
-    current_app.logger.error(message)
+def default_error(error):
+    message = f"an unhandled exception occurred: {error}"
+    current_app.logger.exception(message)
     response = jsonify({"message": message})
-    response.status_code = 500
+    response.status_code = getattr(error, "code", 500)
     return response
 
 
 @ns.errorhandler(exceptions.BadRequest)
-def bad_request_error(err):
-    message = "{}".format(err)
+def bad_request_error(error):
+    message = str(error)
     current_app.logger.error(message)
     response = jsonify({"message": message})
     response.status_code = 400
@@ -27,8 +27,8 @@ def bad_request_error(err):
 
 
 @ns.errorhandler(exceptions.Unauthorized)
-def unauthorized_error(err):
-    message = "{}".format(err)
+def unauthorized_error(error):
+    message = str(error)
     current_app.logger.error(message)
     response = jsonify({"message": message})
     response.status_code = 401
@@ -36,8 +36,8 @@ def unauthorized_error(err):
 
 
 @ns.errorhandler(exceptions.Forbidden)
-def forbidden_error(err):
-    message = "{}".format(err)
+def forbidden_error(error):
+    message = str(error)
     current_app.logger.error(message)
     response = jsonify({"message": message})
     response.status_code = 403
@@ -45,8 +45,8 @@ def forbidden_error(err):
 
 
 @ns.errorhandler(exceptions.NotFound)
-def not_found_error(err):
-    message = "{}".format(err)
+def not_found_error(error):
+    message = str(error)
     current_app.logger.error(message)
     response = jsonify({"message": message})
     response.status_code = 404
@@ -54,8 +54,8 @@ def not_found_error(err):
 
 
 @ns.errorhandler(exceptions.InternalServerError)
-def internal_server_error(err):
-    message = "{}".format(err)
+def internal_server_error(error):
+    message = str(error)
     current_app.logger.error(message)
     response = jsonify({"message": message})
     response.status_code = 500
