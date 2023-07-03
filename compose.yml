@@ -3,7 +3,7 @@ name: colandr-back
 services:
   db:
     container_name: colandr-db
-    image: "postgres:10"
+    image: "postgres:15"
     restart: unless-stopped
     stop_grace_period: 5s
     volumes:
