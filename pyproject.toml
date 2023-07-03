@@ -35,7 +35,7 @@ dependencies = [
   "jinja2~=3.0",
   "joblib~=1.0",
   "markupsafe~=2.0",
-  "marshmallow>=2.10.3,<3.0.0",  # TODO: upgrade this to 3.0.0, see migration guide
+  "marshmallow~=3.0.0",
   "numpy>=1.9,<1.20",
   "psycopg2-binary~=2.9.0",
   "pymupdf~=1.22.0",
@@ -46,7 +46,7 @@ dependencies = [
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
-  "webargs~=1.5",  # TODO: upgrade this to 2.0 at same time as marshmallow to 3.0.0
+  "webargs~=5.0",
 ]
 
 [project.optional-dependencies]
