@@ -64,7 +64,7 @@ class DataExtractionResource(Resource):
                 )
             )
         current_app.logger.debug("got %s", extracted_data)
-        return DataExtractionSchema().dump(extracted_data).data
+        return DataExtractionSchema().dump(extracted_data)
 
     @ns.doc(
         description='Since data extractions are automatically created upon fulltext inclusion and deleted upon fulltext exclusion, "delete" here amounts to nulling out some or all of its non-required fields',
@@ -284,4 +284,4 @@ class DataExtractionResource(Resource):
             current_app.logger.info("modified %s", extracted_data)
         else:
             db.session.rollback()
-        return DataExtractionSchema().dump(extracted_data).data
+        return DataExtractionSchema().dump(extracted_data)

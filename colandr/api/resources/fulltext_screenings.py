@@ -83,7 +83,7 @@ class FulltextScreeningsResource(Resource):
                     g.current_user
                 )
             )
-        return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings).data
+        return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings)
 
     @ns.doc(
         params={
@@ -213,7 +213,7 @@ class FulltextScreeningsResource(Resource):
             current_app.logger.info("inserted %s", screening)
         else:
             db.session.rollback()
-        return ScreeningSchema().dump(screening).data
+        return ScreeningSchema().dump(screening)
 
     @ns.doc(
         params={
@@ -267,7 +267,7 @@ class FulltextScreeningsResource(Resource):
             current_app.logger.info("modified %s", screening)
         else:
             db.session.rollback()
-        return ScreeningSchema().dump(screening).data
+        return ScreeningSchema().dump(screening)
 
 
 @ns.route("/screenings")
@@ -382,7 +382,7 @@ class FulltextsScreeningsResource(Resource):
                 FulltextScreening.status, db.func.count(1)
             ).group_by(FulltextScreening.status)
             return dict(query.all())
-        return ScreeningSchema(partial=True, many=True).dump(query.all()).data
+        return ScreeningSchema(partial=True, many=True).dump(query.all())
 
     @ns.doc(
         params={

@@ -78,7 +78,7 @@ class StudyResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", study)
-        return StudySchema(only=fields).dump(study).data
+        return StudySchema(only=fields).dump(study)
 
     @ns.doc(
         params={
@@ -174,7 +174,7 @@ class StudyResource(Resource):
             current_app.logger.info("modified %s", study)
         else:
             db.session.rollback()
-        return StudySchema().dump(study).data
+        return StudySchema().dump(study)
 
 
 @ns.route("")
@@ -443,7 +443,7 @@ class StudiesResource(Resource):
             order_by = desc(Study.id) if order_dir == "DESC" else asc(Study.id)
             query = query.order_by(order_by)
             query = query.offset(page * per_page).limit(per_page)
-            return StudySchema(many=True, only=fields).dump(query.all()).data
+            return StudySchema(many=True, only=fields).dump(query.all())
 
         elif order_by == "relevance":
             query = query.join(Citation, Citation.id == Study.id)
@@ -512,8 +512,6 @@ class StudiesResource(Resource):
                 )
             ]
             offset = page * per_page
-            return (
-                StudySchema(many=True, only=fields)
-                .dump(sorted_results[offset : offset + per_page])
-                .data
+            return StudySchema(many=True, only=fields).dump(
+                sorted_results[offset : offset + per_page]
             )

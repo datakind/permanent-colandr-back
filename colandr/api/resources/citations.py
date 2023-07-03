@@ -68,7 +68,7 @@ class CitationResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", citation)
-        return CitationSchema(only=fields).dump(citation).data
+        return CitationSchema(only=fields).dump(citation)
 
     @ns.doc(
         params={
@@ -160,7 +160,7 @@ class CitationResource(Resource):
             current_app.logger.info("modified %s", citation)
         else:
             db.session.rollback()
-        return CitationSchema().dump(citation).data
+        return CitationSchema().dump(citation)
 
 
 @ns.route("")
@@ -278,7 +278,7 @@ class CitationsResource(Resource):
 
         # *now* add the citation
         citation = args
-        citation = CitationSchema().load(citation).data  # this sanitizes the data
+        citation = CitationSchema().load(citation)  # this sanitizes the data
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()
@@ -287,4 +287,4 @@ class CitationsResource(Resource):
         # TODO: what about deduplication?!
         # TODO: what about adding *multiple* citations via this endpoint?
 
-        return CitationSchema().dump(citation).data
+        return CitationSchema().dump(citation)

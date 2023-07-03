@@ -67,7 +67,7 @@ class ReviewTeamResource(Resource):
             )
         if fields and "id" not in fields:
             fields.append("id")
-        users = UserSchema(many=True, only=fields).dump(review.users).data
+        users = UserSchema(many=True, only=fields).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:
@@ -216,7 +216,7 @@ class ReviewTeamResource(Resource):
             current_app.logger.info("for %s, %s %s", review, action, user)
         else:
             db.session.rollback()
-        users = UserSchema(many=True).dump(review.users).data
+        users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:
@@ -275,7 +275,7 @@ class ConfirmReviewTeamInviteResource(Resource):
 
         db.session.commit()
         current_app.logger.info("invitation to %s confirmed by %s", review, user_email)
-        users = UserSchema(many=True).dump(review.users).data
+        users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:

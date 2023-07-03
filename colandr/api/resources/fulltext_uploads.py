@@ -189,7 +189,7 @@ class FulltextUploadResource(Resource):
                 args=[fulltext.review_id, id], countdown=5
             )
 
-        return FulltextSchema().dump(fulltext).data
+        return FulltextSchema().dump(fulltext)
 
     @ns.doc(
         params={

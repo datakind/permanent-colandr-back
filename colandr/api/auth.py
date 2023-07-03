@@ -136,7 +136,7 @@ class RegisterResource(Resource):
         current_app.logger.info(
             "successfully sent registration email to %s", user.email
         )
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)
 
 
 @ns.route(
@@ -261,4 +261,4 @@ class ConfirmResetPasswordResource(Resource):
         current_app.logger.info("password reset confirmed by %s", user.email)
         user.password = guard.hash_password(args["password"])
         db.session.commit()
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)

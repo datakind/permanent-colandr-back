@@ -63,7 +63,7 @@ class FulltextResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", fulltext)
-        return FulltextSchema(only=fields).dump(fulltext).data
+        return FulltextSchema(only=fields).dump(fulltext)
 
     @ns.doc(
         params={

@@ -65,7 +65,7 @@ class CitationsImportsResource(Resource):
                 "{} forbidden to add citations to this review".format(g.current_user)
             )
         results = review.imports.filter_by(record_type="citation")
-        return ImportSchema(many=True).dump(results.all()).data
+        return ImportSchema(many=True).dump(results.all())
 
     @ns.doc(
         params={
@@ -208,13 +208,14 @@ class CitationsImportsResource(Resource):
         # so that parsing errors on individual citations can be caught and logged
         # for record in citations_file.parse():
         #     record['review_id'] = review_id
-        #     citations_to_insert.append(citation_schema.load(record).data)
+        #     citations_to_insert.append(citation_schema.load(record))
         records = citations_file.parse()
         while True:
             try:
                 record = next(records)
                 record["review_id"] = review_id
-                citations_to_insert.append(citation_schema.load(record).data)
+                # TODO(burton): figure out if this actually works! needs tests ...
+                citations_to_insert.append(citation_schema.load(record))
             except StopIteration:
                 break
             except Exception as e:
