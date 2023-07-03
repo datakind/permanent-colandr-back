@@ -49,6 +49,7 @@ def db(app, seed_data):
 
 def _populate_db(db, seed_data):
     for record in seed_data["users"]:
+        record["password"] = extensions.guard.hash_password(record.pop("password"))
         db.session.add(models.User(**record))
     for record in seed_data["reviews"]:
         db.session.add(models.Review(**record))
