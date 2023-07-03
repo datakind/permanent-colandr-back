@@ -252,6 +252,7 @@ class UsersResource(Resource):
         if g.current_user.is_admin is False:
             return forbidden_error("UsersResource.post is admin-only")
         user = User(**args)
+        user.password = guard.hash_password(user.password)
         user.is_confirmed = True
         db.session.add(user)
         if test is False:
