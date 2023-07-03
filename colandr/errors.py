@@ -23,4 +23,9 @@ def handle_sqlalchemy_error(error):
 
 @bp.app_errorhandler(422)
 def handle_validation_error(error):
-    return (jsonify({"errors": error.exc.messages}), 422)
+    headers = error.data.get("headers", None)
+    messages = error.data.get("messages", ["Invalid request."])
+    if headers:
+        return (jsonify({"errors": messages}), error.code, headers)
+    else:
+        return (jsonify({"errors": messages}), error.code)
