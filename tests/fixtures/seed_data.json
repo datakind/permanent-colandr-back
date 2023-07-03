@@ -1,29 +1,29 @@
 {
     "users": [
         {
-            "name": "USER_NAME1",
-            "email": "name1@domain.com",
+            "name": "NAME1",
+            "email": "name1@example.com",
             "password": "PASSWORD1",
             "is_confirmed": true,
             "is_admin": true
         },
         {
-            "name": "USER_NAME2",
-            "email": "name2@domain.com",
+            "name": "NAME2",
+            "email": "name2@example.com",
             "password": "PASSWORD2",
             "is_confirmed": true,
             "is_admin": false
         },
         {
-            "name": "USER_NAME3",
-            "email": "name3@domain.com",
+            "name": "NAME3",
+            "email": "name3@example.com",
             "password": "PASSWORD3",
             "is_confirmed": true,
             "is_admin": false
         },
         {
-            "name": "USER_NAME4",
-            "email": "name4@domain.com",
+            "name": "NAME4",
+            "email": "name4@example.com",
             "password": "PASSWORD4",
             "is_confirmed": false,
             "is_admin": false
@@ -32,13 +32,89 @@
     "reviews": [
         {
             "owner_user_id": 2,
-            "name": "REVIEW_NAME1",
+            "name": "NAME1",
             "description": "DESCRIPTION1"
         },
         {
             "owner_user_id": 3,
-            "name": "REVIEW_NAME2",
+            "name": "NAME2",
             "description": "DESCRIPTION2"
+        }
+    ],
+    "review_teams": [
+        {
+            "id": 1,
+            "action": "add",
+            "user_id": 3
+        },
+        {
+            "id": 2,
+            "action": "add",
+            "user_id": 4
+        }
+    ],
+    "review_plans": [
+        {
+            "id_": 1,
+            "objective": "OBJECTIVE",
+            "research_questions": [
+                "Q1",
+                "Q2",
+                "Q3"
+            ],
+            "pico": {
+                "population": "POPULATION",
+                "intervention": "INTERVENTION",
+                "comparison": "COMPARISON",
+                "outcome": "OUTCOME"
+            },
+            "keyterms": [
+                {
+                    "term": "TERM1",
+                    "group": "GROUP1",
+                    "synonyms": [
+                        "SYNONYM1",
+                        "SYNONYM2"
+                    ]
+                },
+                {
+                    "term": "TERM2",
+                    "group": "GROUP1",
+                    "synonyms": [
+                        "SYNONYM1"
+                    ]
+                },
+                {
+                    "term": "TERM3",
+                    "group": "GROUP2"
+                }
+            ],
+            "selection_criteria": [
+                {
+                    "label": "LABEL1",
+                    "description": "DESCRIPTION1"
+                },
+                {
+                    "label": "LABEL2",
+                    "description": "DESCRIPTION2"
+                }
+            ],
+            "data_extraction_form": [
+                {
+                    "label": "LABEL1",
+                    "description": "DESCRIPTION1",
+                    "field_type": "str"
+                },
+                {
+                    "label": "LABEL2",
+                    "description": "DESCRIPTION2",
+                    "field_type": "select_many",
+                    "allowed_values": [
+                        "VALUE1",
+                        "VALUE2"
+                    ]
+                }
+            ]
         }
     ]
 }
