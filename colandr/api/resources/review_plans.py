@@ -69,7 +69,7 @@ class ReviewPlanResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review.review_plan)
-        return ReviewPlanSchema(only=fields).dump(review.review_plan).data
+        return ReviewPlanSchema(only=fields).dump(review.review_plan)
 
     @ns.doc(
         description='Since review plans are created automatically upon review creation and deleted automatically upon review deletion, "delete" here amounts to nulling out some or all of its non-required fields',
@@ -204,4 +204,4 @@ class ReviewPlanResource(Resource):
             current_app.logger.info("modified contents of %s", review_plan)
         else:
             db.session.rollback()
-        return ReviewPlanSchema().dump(review_plan).data
+        return ReviewPlanSchema().dump(review_plan)

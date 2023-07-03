@@ -69,7 +69,7 @@ class ReviewResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
-        return ReviewSchema(only=fields).dump(review).data
+        return ReviewSchema(only=fields).dump(review)
 
     @ns.doc(
         params={
@@ -168,7 +168,7 @@ class ReviewResource(Resource):
             current_app.logger.info("modified %s", review)
         else:
             db.session.rollback()
-        return ReviewSchema().dump(review).data
+        return ReviewSchema().dump(review)
 
 
 @ns.route("")
@@ -215,7 +215,7 @@ class ReviewsResource(Resource):
             reviews = g.current_user.reviews.order_by(Review.id).all()
         if fields and "id" not in fields:
             fields.append("id")
-        return ReviewSchema(only=fields, many=True).dump(reviews).data
+        return ReviewSchema(only=fields, many=True).dump(reviews)
 
     @ns.doc(
         params={
@@ -254,4 +254,4 @@ class ReviewsResource(Resource):
                 os.mkdir(dirname)
         else:
             db.session.rollback()
-        return ReviewSchema().dump(review).data
+        return ReviewSchema().dump(review)
