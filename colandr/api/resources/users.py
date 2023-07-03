@@ -71,7 +71,7 @@ class UserResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", user)
-        return UserSchema(only=fields).dump(user).data
+        return UserSchema(only=fields).dump(user)
 
     @ns.doc(
         params={
@@ -170,7 +170,7 @@ class UserResource(Resource):
                 return db_integrity_error(str(e.orig))
         else:
             db.session.rollback()
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)
 
 
 @ns.route("")
@@ -216,7 +216,7 @@ class UsersResource(Resource):
                 return not_found_error('no user found with email "{}"'.format(email))
             else:
                 current_app.logger.debug("got %s", user)
-                return UserSchema().dump(user).data
+                return UserSchema().dump(user)
         elif review_id:
             review = db.session.query(Review).get(review_id)
             if not review:
@@ -228,7 +228,7 @@ class UsersResource(Resource):
                 return forbidden_error(
                     "{} forbidden to see users for this review".format(g.current_user)
                 )
-            return UserSchema(many=True).dump(review.users).data
+            return UserSchema(many=True).dump(review.users)
 
     @ns.doc(
         params={
@@ -266,4 +266,4 @@ class UsersResource(Resource):
                 return db_integrity_error(str(e.orig))
         else:
             db.session.rollback()
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)
