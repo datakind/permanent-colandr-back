@@ -9,13 +9,13 @@ bp = Blueprint("errors", __name__)
 
 @bp.app_errorhandler(Exception)
 def handle_error(error):
-    current_app.logger.error(str(error))
+    current_app.logger.exception(str(error))
     return (jsonify({"errors": str(error)}), 500)
 
 
 @bp.app_errorhandler(SQLAlchemyError)
 def handle_sqlalchemy_error(error):
-    current_app.logger.error("unexpected db error: %s\nrolling back ... %s", error)
+    current_app.logger.exception("unexpected db error: %s\nrolling back ... %s", error)
     db.session.rollback()
     db.session.remove()
     return (jsonify({"errors": str(error)}), 500)
