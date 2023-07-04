@@ -44,12 +44,14 @@ class UserResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
-            ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", missing=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get record for a single user by id"""
@@ -91,13 +93,12 @@ class UserResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
-            ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single user by id"""
         if id != g.current_user.id:
@@ -131,17 +132,16 @@ class UserResource(Resource):
             404: "no user with matching id was found",
         },
     )
-    @use_args(UserSchema(partial=True))
+    @use_args(UserSchema(partial=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
-            ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single user by id"""
         if id != g.current_user.id:
@@ -206,7 +206,8 @@ class UsersResource(Resource):
             "review_id": ma_fields.Int(
                 missing=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-        }
+        },
+        location="query",
     )
     def get(self, email, review_id):
         """get user record(s) for one or more matching users"""
@@ -245,8 +246,8 @@ class UsersResource(Resource):
             403: "current app user forbidden to create user",
         },
     )
-    @use_args(UserSchema())
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)})
+    @use_args(UserSchema(), location="json")
+    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
     def post(self, args, test):
         """create new user (ADMIN ONLY)"""
         if g.current_user.is_admin is False:
