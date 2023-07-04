@@ -306,7 +306,7 @@ class CitationsScreeningsResource(Resource):
             "review_id": ma_fields.Int(
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "status_counts": ma_fields.Bool(load_default=False),
+            "status_counts": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
