@@ -63,7 +63,7 @@ def internal_server_error(error):
 
 
 @webargs.flaskparser.parser.error_handler
-def validation_error(error, req, schema, error_status_code, error_headers):
+def validation_error(error, req, schema, *, error_status_code, error_headers):
     """
     Handle validation errors during parsing. Aborts the current HTTP request and
     responds with a 422 error.
