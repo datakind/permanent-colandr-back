@@ -29,4 +29,4 @@ requests>=2.11.1
 scikit-learn>=0.21.0,<0.23.0
 sqlalchemy~=1.4
 textacy~=0.10.0
-webargs~=5.0
+webargs~=6.0

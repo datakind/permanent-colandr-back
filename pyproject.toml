@@ -46,7 +46,7 @@ dependencies = [
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured
-  "webargs~=5.0",
+  "webargs~=6.0",
 ]
 
 [project.optional-dependencies]
