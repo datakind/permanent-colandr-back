@@ -1,5 +1,3 @@
-import urllib.parse
-
 import flask
 import pytest
 
@@ -47,7 +45,7 @@ class TestUsersResource:
     def test_post(self, data, app, client, db_session, admin_headers):
         with app.test_request_context():
             url = flask.url_for("users_users_resource")
-        response = client.post(url, data=data, headers=admin_headers)
+        response = client.post(url, json=data, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json
         assert data["email"] == response_data["email"]
@@ -79,10 +77,9 @@ class TestUserResource:
             (999, None, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, client, admin_headers, seed_data):
-        url = f"/api/users/{id_}"
-        if params:
-            url = f"{url}?{urllib.parse.urlencode(params)}"
+    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
+        with app.test_request_context():
+            url = flask.url_for("users_user_resource", id=id_, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -104,8 +101,9 @@ class TestUserResource:
                 assert sorted(data.keys()) == sorted(fields)
 
     @pytest.mark.parametrize("id_", [2, 3])
-    def test_delete(self, id_, client, admin_user, admin_headers, db_session):
-        url = f"/api/users/{id_}"
+    def test_delete(self, id_, app, client, admin_user, admin_headers, db_session):
+        with app.test_request_context():
+            url = flask.url_for("users_user_resource", id=id_)
         # only user can delete themself
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 403
@@ -129,17 +127,26 @@ class TestUserResource:
         ],
     )
     def test_put(
-        self, id_, params, status_code, client, admin_user, admin_headers, db_session
+        self,
+        id_,
+        params,
+        status_code,
+        app,
+        client,
+        admin_user,
+        admin_headers,
+        db_session,
     ):
-        url = f"/api/users/{id_}?{urllib.parse.urlencode(params)}"
+        with app.test_request_context():
+            url = flask.url_for("users_user_resource", id=id_)
         # only user can modify themself
-        response = client.put(url, headers=admin_headers)
+        response = client.put(url, json=params, headers=admin_headers)
         assert response.status_code == 403
         # now we check it
         user = db_session.query(models.User).get(id_)
         user_headers = extensions.guard.pack_header_for_user(user)
         flask.g.current_user = user
-        response = client.put(url, headers=user_headers)
+        response = client.put(url, json=params, headers=user_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json

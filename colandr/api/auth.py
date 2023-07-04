@@ -41,7 +41,8 @@ class LoginResource(Resource):
         {
             "email": ma_fields.String(required=True, validate=Email()),
             "password": ma_fields.String(required=True),
-        }
+        },
+        location="json",
     )
     def post(self, email, password):
         """
@@ -98,7 +99,7 @@ class RefreshTokenResource(Resource):
 )
 class RegisterResource(Resource):
     @ns.doc(body=(user_model, "new user data to be registered"))
-    @use_args(UserSchema())
+    @use_args(UserSchema(), location="json")
     def post(self, args):
         """
         Register a new user.
@@ -136,7 +137,7 @@ class RegisterResource(Resource):
         current_app.logger.info(
             "successfully sent registration email to %s", user.email
         )
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)
 
 
 @ns.route(
@@ -152,7 +153,7 @@ class RegisterResource(Resource):
 )
 class ConfirmRegistrationResource(Resource):
     @ns.doc(params={"token": {"in": "query", "type": "string", "required": True}})
-    @use_kwargs({"token": ma_fields.Str(required=True)})
+    @use_kwargs({"token": ma_fields.Str(required=True)}, location="query")
     def get(self, token):
         """
         Confirm a user registration using the token they were issued in their
@@ -195,8 +196,9 @@ class ResetPasswordResource(Resource):
     @use_kwargs(
         {
             "email": ma_fields.Str(required=True, validate=Email()),
-            # "server_name": ma_fields.Str(missing=None),
-        }
+            # "server_name": ma_fields.Str(load_default=None),
+        },
+        location="query",
     )
     def post(self, email):
         user = db.session.query(User).filter_by(email=email).one_or_none()
@@ -247,8 +249,8 @@ class ConfirmResetPasswordResource(Resource):
             422: "invalid or expired password reset link",
         },
     )
-    @use_args(UserSchema(only=["password"]))
-    @use_kwargs({"token": ma_fields.Str(required=True)})
+    @use_args(UserSchema(only=["password"]), location="json")
+    @use_kwargs({"token": ma_fields.Str(required=True)}, location="query")
     def put(self, args, token):
         """confirm a user's password reset via emailed token"""
         user = guard.validate_reset_token(token)
@@ -261,4 +263,4 @@ class ConfirmResetPasswordResource(Resource):
         current_app.logger.info("password reset confirmed by %s", user.email)
         user.password = guard.hash_password(args["password"])
         db.session.commit()
-        return UserSchema().dump(user).data
+        return UserSchema().dump(user)

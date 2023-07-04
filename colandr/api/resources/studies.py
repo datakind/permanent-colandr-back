@@ -56,12 +56,14 @@ class StudyResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
-            ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
+            )
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get record for a single study by id"""
@@ -78,7 +80,7 @@ class StudyResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", study)
-        return StudySchema(only=fields).dump(study).data
+        return StudySchema(only=fields).dump(study)
 
     @ns.doc(
         params={
@@ -99,13 +101,12 @@ class StudyResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single study by id"""
         study = db.session.query(Study).get(id)
@@ -140,17 +141,16 @@ class StudyResource(Resource):
             404: "no study with matching id was found",
         },
     )
-    @use_args(StudySchema(only=["data_extraction_status", "tags"]))
+    @use_args(StudySchema(only=["data_extraction_status", "tags"]), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single study by id"""
         study = db.session.query(Study).get(id)
@@ -174,7 +174,7 @@ class StudyResource(Resource):
             current_app.logger.info("modified %s", study)
         else:
             db.session.rollback()
-        return StudySchema().dump(study).data
+        return StudySchema().dump(study)
 
 
 @ns.route("")
@@ -266,32 +266,35 @@ class StudiesResource(Resource):
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String(), delimiter=",", missing=None),
+            "fields": DelimitedList(
+                ma_fields.String(), delimiter=",", load_default=None
+            ),
             "dedupe_status": ma_fields.String(
-                missing=None, validate=OneOf(DEDUPE_STATUSES)
+                load_default=None, validate=OneOf(DEDUPE_STATUSES)
             ),
             "citation_status": ma_fields.String(
-                missing=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
             ),
             "fulltext_status": ma_fields.String(
-                missing=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
             ),
             "data_extraction_status": ma_fields.String(
-                missing=None, validate=OneOf(EXTRACTION_STATUSES)
+                load_default=None, validate=OneOf(EXTRACTION_STATUSES)
             ),
-            "tag": ma_fields.String(missing=None, validate=Length(max=25)),
-            "tsquery": ma_fields.String(missing=None, validate=Length(max=50)),
+            "tag": ma_fields.String(load_default=None, validate=Length(max=25)),
+            "tsquery": ma_fields.String(load_default=None, validate=Length(max=50)),
             "order_by": ma_fields.String(
-                missing="recency", validate=OneOf(["recency", "relevance"])
+                load_default="recency", validate=OneOf(["recency", "relevance"])
             ),
             "order_dir": ma_fields.String(
-                missing="DESC", validate=OneOf(["ASC", "DESC"])
+                load_default="DESC", validate=OneOf(["ASC", "DESC"])
             ),
-            "page": ma_fields.Int(missing=0, validate=Range(min=0)),
+            "page": ma_fields.Int(load_default=0, validate=Range(min=0)),
             "per_page": ma_fields.Int(
-                missing=25, validate=OneOf([10, 25, 50, 100, 5000])
+                load_default=25, validate=OneOf([10, 25, 50, 100, 5000])
             ),
-        }
+        },
+        location="query",
     )
     def get(
         self,
@@ -443,7 +446,7 @@ class StudiesResource(Resource):
             order_by = desc(Study.id) if order_dir == "DESC" else asc(Study.id)
             query = query.order_by(order_by)
             query = query.offset(page * per_page).limit(per_page)
-            return StudySchema(many=True, only=fields).dump(query.all()).data
+            return StudySchema(many=True, only=fields).dump(query.all())
 
         elif order_by == "relevance":
             query = query.join(Citation, Citation.id == Study.id)
@@ -512,8 +515,6 @@ class StudiesResource(Resource):
                 )
             ]
             offset = page * per_page
-            return (
-                StudySchema(many=True, only=fields)
-                .dump(sorted_results[offset : offset + per_page])
-                .data
+            return StudySchema(many=True, only=fields).dump(
+                sorted_results[offset : offset + per_page]
             )

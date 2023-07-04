@@ -48,11 +48,10 @@ class ReviewExportPrismaResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             )
-        }
+        },
+        location="view_args",
     )
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
@@ -155,11 +154,10 @@ class ReviewExportStudiesResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
-            ),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="view_args",
     )
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
@@ -257,11 +255,6 @@ class ReviewExportStudiesResource(Resource):
         writer.writerow(fieldnames)
         writer.writerows(rows)
         response = make_response(f.getvalue(), 200)
-        response.headers["Content-type"] = "text/csv"
-
-        current_app.logger.debug("study data exported for %s", review)
-
-        return response
         response.headers["Content-type"] = "text/csv"
 
         current_app.logger.debug("study data exported for %s", review)

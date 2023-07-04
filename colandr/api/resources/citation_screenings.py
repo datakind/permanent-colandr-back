@@ -52,12 +52,14 @@ class CitationScreeningsResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get screenings for a single citation by id"""
@@ -76,7 +78,7 @@ class CitationScreeningsResource(Resource):
                 )
             )
         current_app.logger.debug("got %s", citation)
-        return ScreeningSchema(many=True, only=fields).dump(citation.screenings).data
+        return ScreeningSchema(many=True, only=fields).dump(citation.screenings)
 
     @ns.doc(
         params={
@@ -97,13 +99,12 @@ class CitationScreeningsResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete current app user's screening for a single citation by id"""
         # check current user authorization
@@ -154,17 +155,16 @@ class CitationScreeningsResource(Resource):
             422: "invalid citation screening record",
         },
     )
-    @use_args(ScreeningSchema(partial=["user_id", "review_id"]))
+    @use_args(ScreeningSchema(partial=["user_id", "review_id"]), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, id, test):
         """create a screening for a single citation by id"""
         # check current user authorization
@@ -200,7 +200,7 @@ class CitationScreeningsResource(Resource):
             current_app.logger.info("inserted %s", screening)
         else:
             db.session.rollback()
-        return ScreeningSchema().dump(screening).data
+        return ScreeningSchema().dump(screening)
 
     @ns.doc(
         params={
@@ -219,17 +219,16 @@ class CitationScreeningsResource(Resource):
             422: "invalid modified citation screening data",
         },
     )
-    @use_args(ScreeningSchema(only=["status", "exclude_reasons"]))
+    @use_args(ScreeningSchema(only=["status", "exclude_reasons"]), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify current app user's screening of a single citation by id"""
         citation = db.session.query(Citation).get(id)
@@ -254,7 +253,7 @@ class CitationScreeningsResource(Resource):
             current_app.logger.debug("modified %s", screening)
         else:
             db.session.rollback()
-        return ScreeningSchema().dump(screening).data
+        return ScreeningSchema().dump(screening)
 
 
 @ns.route("/screenings")
@@ -299,16 +298,17 @@ class CitationsScreeningsResource(Resource):
     @use_kwargs(
         {
             "citation_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
             "user_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "review_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "status_counts": ma_fields.Bool(missing=False),
-        }
+            "status_counts": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def get(self, citation_id, user_id, review_id, status_counts):
         """get all citation screenings by citation, user, or review id"""
@@ -369,7 +369,7 @@ class CitationsScreeningsResource(Resource):
                 CitationScreening.status, db.func.count(1)
             ).group_by(CitationScreening.status)
             return dict(query.all())
-        return ScreeningSchema(partial=True, many=True).dump(query.all()).data
+        return ScreeningSchema(partial=True, many=True).dump(query.all())
 
     @ns.doc(
         params={
@@ -398,21 +398,20 @@ class CitationsScreeningsResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(ScreeningSchema(many=True, partial=["user_id", "review_id"]))
+    @use_args(
+        ScreeningSchema(many=True, partial=["user_id", "review_id"]), location="json"
+    )
     @use_kwargs(
         {
             "review_id": ma_fields.Int(
-                required=True,
-                location="query",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "user_id": ma_fields.Int(
-                missing=None,
-                location="query",
-                validate=Range(min=1, max=constants.MAX_INT),
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(location="query", missing=False),
-        }
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def post(self, args, review_id, user_id, test):
         """create one or more citation screenings (ADMIN ONLY)"""

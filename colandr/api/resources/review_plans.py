@@ -47,12 +47,14 @@ class ReviewPlanResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get review plan record for a single review by id"""
@@ -69,7 +71,7 @@ class ReviewPlanResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review.review_plan)
-        return ReviewPlanSchema(only=fields).dump(review.review_plan).data
+        return ReviewPlanSchema(only=fields).dump(review.review_plan)
 
     @ns.doc(
         description='Since review plans are created automatically upon review creation and deleted automatically upon review deletion, "delete" here amounts to nulling out some or all of its non-required fields',
@@ -96,13 +98,17 @@ class ReviewPlanResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
+            "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def delete(self, id, fields, test):
         """delete review plan record for a single review by id"""
@@ -158,17 +164,21 @@ class ReviewPlanResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(ReviewPlanSchema(partial=True))
+    @use_args(ReviewPlanSchema(partial=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
+            "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def put(self, args, id, fields, test):
         """modify review plan record for a single review by id"""
@@ -204,4 +214,4 @@ class ReviewPlanResource(Resource):
             current_app.logger.info("modified contents of %s", review_plan)
         else:
             db.session.rollback()
-        return ReviewPlanSchema().dump(review_plan).data
+        return ReviewPlanSchema().dump(review_plan)

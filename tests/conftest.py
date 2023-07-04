@@ -49,13 +49,15 @@ def db(app, seed_data):
 
 def _populate_db(db, seed_data):
     for record in seed_data["users"]:
-        db.session.add(models.User(**record))
+        user = models.User(**record)
+        user.password = extensions.guard.hash_password(user.password)
+        db.session.add(user)
     for record in seed_data["reviews"]:
         db.session.add(models.Review(**record))
     db.session.commit()
     for record in seed_data["review_plans"]:
         # NOTE: this automatically adds the relationship to associated review
-        review_plan = models.ReviewPlan(**record)
+        _ = models.ReviewPlan(**record)
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
     #     review = db.session.query(models.Review).get(record["id"])
@@ -65,7 +67,6 @@ def _populate_db(db, seed_data):
     #     else:
     #         raise ValueError()
     db.session.commit()
-    db.session.flush()
 
 
 @pytest.fixture

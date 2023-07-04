@@ -45,12 +45,14 @@ class CitationResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get record for a single citation by id"""
@@ -68,7 +70,7 @@ class CitationResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", citation)
-        return CitationSchema(only=fields).dump(citation).data
+        return CitationSchema(only=fields).dump(citation)
 
     @ns.doc(
         params={
@@ -89,13 +91,12 @@ class CitationResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
@@ -130,17 +131,16 @@ class CitationResource(Resource):
             404: "no citation with matching id was found",
         },
     )
-    @use_args(CitationSchema(partial=True))
+    @use_args(CitationSchema(partial=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
@@ -160,7 +160,7 @@ class CitationResource(Resource):
             current_app.logger.info("modified %s", citation)
         else:
             db.session.rollback()
-        return CitationSchema().dump(citation).data
+        return CitationSchema().dump(citation)
 
 
 @ns.route("")
@@ -215,7 +215,7 @@ class CitationsResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(CitationSchema(partial=True))
+    @use_args(CitationSchema(partial=True), location="json")
     @use_kwargs(
         {
             "review_id": ma_fields.Int(
@@ -224,15 +224,17 @@ class CitationsResource(Resource):
             "source_type": ma_fields.Str(
                 required=True, validate=OneOf(["database", "gray literature"])
             ),
-            "source_name": ma_fields.Str(missing=None, validate=Length(max=100)),
+            "source_name": ma_fields.Str(load_default=None, validate=Length(max=100)),
             "source_url": ma_fields.Str(
-                missing=None, validate=[URL(relative=False), Length(max=500)]
+                load_default=None, validate=[URL(relative=False), Length(max=500)]
             ),
             "status": ma_fields.Str(
-                missing=None, validate=OneOf(["not_screened", "included", "excluded"])
+                load_default=None,
+                validate=OneOf(["not_screened", "included", "excluded"]),
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def post(self, args, review_id, source_type, source_name, source_url, status, test):
         """create a single citation"""
@@ -278,7 +280,7 @@ class CitationsResource(Resource):
 
         # *now* add the citation
         citation = args
-        citation = CitationSchema().load(citation).data  # this sanitizes the data
+        citation = CitationSchema().load(citation)  # this sanitizes the data
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()
@@ -287,4 +289,4 @@ class CitationsResource(Resource):
         # TODO: what about deduplication?!
         # TODO: what about adding *multiple* citations via this endpoint?
 
-        return CitationSchema().dump(citation).data
+        return CitationSchema().dump(citation)

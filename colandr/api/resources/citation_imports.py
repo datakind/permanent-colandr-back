@@ -50,7 +50,8 @@ class CitationsImportsResource(Resource):
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             )
-        }
+        },
+        location="query",
     )
     def get(self, review_id):
         """get citation import history for a review"""
@@ -65,7 +66,7 @@ class CitationsImportsResource(Resource):
                 "{} forbidden to add citations to this review".format(g.current_user)
             )
         results = review.imports.filter_by(record_type="citation")
-        return ImportSchema(many=True).dump(results.all()).data
+        return ImportSchema(many=True).dump(results.all())
 
     @ns.doc(
         params={
@@ -117,24 +118,26 @@ class CitationsImportsResource(Resource):
             404: "no review with matching id was found",
         },
     )
+    @use_kwargs({"uploaded_file": ma_fields.Raw(required=True)}, location="files")
     @use_kwargs(
         {
-            "uploaded_file": ma_fields.Raw(required=True, location="files"),
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "source_type": ma_fields.Str(
                 required=True, validate=OneOf(["database", "gray literature"])
             ),
-            "source_name": ma_fields.Str(missing=None, validate=Length(max=100)),
+            "source_name": ma_fields.Str(load_default=None, validate=Length(max=100)),
             "source_url": ma_fields.Str(
-                missing=None, validate=[URL(relative=False), Length(max=500)]
+                load_default=None, validate=[URL(relative=False), Length(max=500)]
             ),
             "status": ma_fields.Str(
-                missing=None, validate=OneOf(["not_screened", "included", "excluded"])
+                load_default=None,
+                validate=OneOf(["not_screened", "included", "excluded"]),
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def post(
         self,
@@ -208,13 +211,14 @@ class CitationsImportsResource(Resource):
         # so that parsing errors on individual citations can be caught and logged
         # for record in citations_file.parse():
         #     record['review_id'] = review_id
-        #     citations_to_insert.append(citation_schema.load(record).data)
+        #     citations_to_insert.append(citation_schema.load(record))
         records = citations_file.parse()
         while True:
             try:
                 record = next(records)
                 record["review_id"] = review_id
-                citations_to_insert.append(citation_schema.load(record).data)
+                # TODO(burton): figure out if this actually works! needs tests ...
+                citations_to_insert.append(citation_schema.load(record))
             except StopIteration:
                 break
             except Exception as e:

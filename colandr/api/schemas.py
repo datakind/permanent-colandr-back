@@ -13,11 +13,8 @@ class UserSchema(Schema):
     name = fields.Str(required=True, validate=Length(min=1, max=200))
     email = fields.Str(required=True, validate=[Email(), Length(max=200)])
     password = fields.Str(load_only=True, required=True, validate=Length(min=6, max=60))
-    is_confirmed = fields.Bool()
-    is_admin = fields.Bool()
-
-    class Meta:
-        strict = True
+    is_confirmed = fields.Boolean()
+    is_admin = fields.Boolean()
 
 
 class DataSourceSchema(Schema):
@@ -26,14 +23,11 @@ class DataSourceSchema(Schema):
     source_type = fields.Str(
         required=True, validate=OneOf(["database", "gray literature"])
     )
-    source_name = fields.Str(missing=None, validate=Length(max=100))
+    source_name = fields.Str(load_default=None, validate=Length(max=100))
     source_url = fields.Str(
-        missing=None, validate=[URL(relative=False), Length(max=500)]
+        load_default=None, validate=[URL(relative=False), Length(max=500)]
     )
     source_type_and_name = fields.Str(dump_only=True)
-
-    class Meta:
-        strict = True
 
 
 class ReviewSchema(Schema):
@@ -44,13 +38,10 @@ class ReviewSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT)
     )
     name = fields.Str(required=True, validate=Length(max=500))
-    description = fields.Str(missing=None)
+    description = fields.Str(load_default=None)
     status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
     num_citation_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
-
-    class Meta:
-        strict = True
 
 
 class ReviewPlanPICO(Schema):
@@ -59,25 +50,16 @@ class ReviewPlanPICO(Schema):
     comparison = fields.Str(validate=Length(max=300))
     outcome = fields.Str(validate=Length(max=300))
 
-    class Meta:
-        strict = True
-
 
 class ReviewPlanKeyterm(Schema):
     group = fields.Str(required=True, validate=Length(max=100))
     term = fields.Str(required=True, validate=Length(max=100))
-    synonyms = fields.List(fields.Str(validate=Length(max=100)), missing=[])
-
-    class Meta:
-        strict = True
+    synonyms = fields.List(fields.Str(validate=Length(max=100)), load_default=[])
 
 
 class ReviewPlanSelectionCriterion(Schema):
     label = fields.Str(required=True, validate=Length(max=25))
     description = fields.Str(validate=Length(max=300))
-
-    class Meta:
-        strict = True
 
 
 class DataExtractionFormItem(Schema):
@@ -100,17 +82,11 @@ class DataExtractionFormItem(Schema):
     )
     allowed_values = fields.List(fields.Str())
 
-    class Meta:
-        strict = True
-
 
 class ReviewPlanSuggestedKeyterms(Schema):
     sample_size = fields.Int(required=True, validate=Range(min=1))
     incl_keyterms = fields.List(fields.Str(), required=True)
     excl_keyterms = fields.List(fields.Str(), required=True)
-
-    class Meta:
-        strict = True
 
 
 class ReviewPlanSchema(Schema):
@@ -125,9 +101,6 @@ class ReviewPlanSchema(Schema):
     data_extraction_form = fields.Nested(DataExtractionFormItem, many=True)
     suggested_keyterms = fields.Nested(ReviewPlanSuggestedKeyterms)
     boolean_search_query = fields.Str(dump_only=True)
-
-    class Meta:
-        strict = True
 
 
 class ImportSchema(Schema):
@@ -146,21 +119,17 @@ class ImportSchema(Schema):
     data_source = fields.Nested(DataSourceSchema)
     user = fields.Nested(UserSchema)
 
-    class Meta:
-        strict = True
-
 
 class DedupeSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     duplicate_of = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
-    duplicate_score = fields.Float(missing=None, validate=Range(min=0.0, max=1.0))
-
-    class Meta:
-        strict = True
+    # TODO: figure out if allow_nan parameter is required here
+    # https://marshmallow.readthedocs.io/en/stable/upgrading.html#float-field-takes-a-new-allow-nan-parameter
+    duplicate_score = fields.Float(load_default=None, validate=Range(min=0.0, max=1.0))
 
 
 class ScreeningSchema(Schema):
@@ -170,16 +139,15 @@ class ScreeningSchema(Schema):
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     citation_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
     fulltext_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
     status = fields.Str(required=True, validate=OneOf(["included", "excluded"]))
-    exclude_reasons = fields.List(fields.Str(validate=Length(max=25)), missing=None)
-
-    class Meta:
-        strict = True
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), load_default=None
+    )
 
 
 class CitationSchema(Schema):
@@ -207,7 +175,7 @@ class CitationSchema(Schema):
     screenings = fields.Nested(ScreeningSchema, many=True, dump_only=True)
 
     @pre_load(pass_many=False)
-    def sanitize_citation_record(self, record):
+    def sanitize_citation_record(self, record, **kwargs):
         sanitized_record = {"other_fields": {}}
         for key, value in record.items():
             if value is missing or key == "screenings":
@@ -217,9 +185,6 @@ class CitationSchema(Schema):
             except KeyError:
                 sanitized_record["other_fields"][key] = sanitize_type(value, str)
         return sanitized_record
-
-    class Meta:
-        strict = True
 
 
 class FulltextSchema(Schema):
@@ -231,17 +196,11 @@ class FulltextSchema(Schema):
     original_filename = fields.Str(dump_only=True)
     screenings = fields.Nested(ScreeningSchema, many=True, dump_only=True)
 
-    class Meta:
-        strict = True
-
 
 class ExtractedItem(Schema):
     label = fields.Str(required=True, validate=Length(max=25))
     # validation handled in API Resource based on values in DataExtractionFormItem
     value = fields.Raw(required=True)
-
-    class Meta:
-        strict = True
 
 
 class DataExtractionSchema(Schema):
@@ -250,9 +209,6 @@ class DataExtractionSchema(Schema):
     last_updated = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     extracted_items = fields.Nested(ExtractedItem, many=True)
-
-    class Meta:
-        strict = True
 
 
 class StudySchema(Schema):
@@ -279,6 +235,3 @@ class StudySchema(Schema):
     )
     data_extraction = fields.Nested(DataExtractionSchema, dump_only=True)
     data_extraction_status = fields.Str(validate=OneOf(constants.EXTRACTION_STATUSES))
-
-    class Meta:
-        strict = True

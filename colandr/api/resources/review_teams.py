@@ -46,12 +46,14 @@ class ReviewTeamResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
-            ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get members of a single review's team"""
@@ -67,7 +69,7 @@ class ReviewTeamResource(Resource):
             )
         if fields and "id" not in fields:
             fields.append("id")
-        users = UserSchema(many=True, only=fields).dump(review.users).data
+        users = UserSchema(many=True, only=fields).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:
@@ -119,20 +121,24 @@ class ReviewTeamResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
             "action": ma_fields.Str(
                 required=True, validate=OneOf(["add", "invite", "remove", "make_owner"])
             ),
             "user_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "user_email": ma_fields.Email(missing=None),
-            "server_name": ma_fields.Str(missing=None),
-            "test": ma_fields.Bool(missing=False),
-        }
+            "user_email": ma_fields.Email(load_default=None),
+            "server_name": ma_fields.Str(load_default=None),
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def put(self, id, action, user_id, user_email, server_name, test):
         """add, invite, remove, or promote a review team member"""
@@ -216,7 +222,7 @@ class ReviewTeamResource(Resource):
             current_app.logger.info("for %s, %s %s", review, action, user)
         else:
             db.session.rollback()
-        users = UserSchema(many=True).dump(review.users).data
+        users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:
@@ -248,13 +254,12 @@ class ConfirmReviewTeamInviteResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "token": ma_fields.String(required=True),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"token": ma_fields.String(required=True)}, location="query")  # TODO
     def get(self, id, token):
         """confirm review team invitation via emailed token"""
         serializer = URLSafeSerializer(current_app.config["SECRET_KEY"])
@@ -275,7 +280,7 @@ class ConfirmReviewTeamInviteResource(Resource):
 
         db.session.commit()
         current_app.logger.info("invitation to %s confirmed by %s", review, user_email)
-        users = UserSchema(many=True).dump(review.users).data
+        users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
             if user["id"] == owner_user_id:

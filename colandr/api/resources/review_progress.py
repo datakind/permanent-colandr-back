@@ -56,10 +56,13 @@ class ReviewProgressResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
             "step": ma_fields.Str(
                 validate=OneOf(
                     [
@@ -70,10 +73,11 @@ class ReviewProgressResource(Resource):
                         "all",
                     ]
                 ),
-                missing="all",
+                load_default="all",
             ),
-            "user_view": ma_fields.Bool(missing=False),
-        }
+            "user_view": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def get(self, id, step, user_view):
         """get review progress on one or all steps for a single review by id"""

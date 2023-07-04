@@ -51,14 +51,18 @@ class FulltextUploadResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
             "review_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
-            ),
-        }
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
+            )
+        },
+        location="query",
     )
     def get(self, id, review_id):
         """get fulltext content file for a single fulltext by id"""
@@ -126,14 +130,13 @@ class FulltextUploadResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
-            ),
-            "uploaded_file": ma_fields.Raw(required=True, location="files"),
-            "test": ma_fields.Boolean(missing=False),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
+            )
+        },
+        location="view_args",
     )
+    @use_kwargs({"uploaded_file": ma_fields.Raw(required=True)}, location="files")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, id, uploaded_file, test):
         """upload fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
@@ -189,7 +192,7 @@ class FulltextUploadResource(Resource):
                 args=[fulltext.review_id, id], countdown=5
             )
 
-        return FulltextSchema().dump(fulltext).data
+        return FulltextSchema().dump(fulltext)
 
     @ns.doc(
         params={
@@ -211,13 +214,12 @@ class FulltextUploadResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete fulltext content file for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)

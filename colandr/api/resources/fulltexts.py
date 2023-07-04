@@ -40,12 +40,14 @@ class FulltextResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
-            ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
+            )
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get record for a single fulltext by id"""
@@ -63,7 +65,7 @@ class FulltextResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", fulltext)
-        return FulltextSchema(only=fields).dump(fulltext).data
+        return FulltextSchema(only=fields).dump(fulltext)
 
     @ns.doc(
         params={
@@ -84,13 +86,12 @@ class FulltextResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)

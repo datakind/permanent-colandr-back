@@ -47,7 +47,8 @@ class StudyTagsResource(Resource):
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-        }
+        },
+        location="view_args",
     )
     def get(self, review_id):
         """get all distinct tags assigned to studies"""

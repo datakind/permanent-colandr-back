@@ -44,7 +44,7 @@ class TestReviewPlanResource:
     def test_put(self, id, data, status_code, app, client, admin_headers, db_session):
         with app.test_request_context():
             url = flask.url_for("review_plans_review_plan_resource", id=id)
-        response = client.put(url, data=data, headers=admin_headers)
+        response = client.put(url, json=data, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json

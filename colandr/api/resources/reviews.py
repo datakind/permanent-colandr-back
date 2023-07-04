@@ -47,12 +47,14 @@ class ReviewResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get record for a single review by id"""
@@ -69,7 +71,7 @@ class ReviewResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
-        return ReviewSchema(only=fields).dump(review).data
+        return ReviewSchema(only=fields).dump(review)
 
     @ns.doc(
         params={
@@ -90,13 +92,12 @@ class ReviewResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single review by id"""
         review = db.session.query(Review).get(id)
@@ -138,17 +139,16 @@ class ReviewResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(ReviewSchema(partial=True))
+    @use_args(ReviewSchema(partial=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single review by id"""
         review = db.session.query(Review).get(id)
@@ -168,7 +168,7 @@ class ReviewResource(Resource):
             current_app.logger.info("modified %s", review)
         else:
             db.session.rollback()
-        return ReviewSchema().dump(review).data
+        return ReviewSchema().dump(review)
 
 
 @ns.route("")
@@ -197,8 +197,10 @@ class ReviewsResource(Resource):
     )
     @use_kwargs(
         {
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-            "_review_ids": DelimitedList(ma_fields.String, delimiter=",", missing=None),
+            "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
+            "_review_ids": DelimitedList(
+                ma_fields.String, delimiter=",", load_default=None
+            ),
         }
     )
     def get(self, fields, _review_ids):
@@ -215,7 +217,7 @@ class ReviewsResource(Resource):
             reviews = g.current_user.reviews.order_by(Review.id).all()
         if fields and "id" not in fields:
             fields.append("id")
-        return ReviewSchema(only=fields, many=True).dump(reviews).data
+        return ReviewSchema(only=fields, many=True).dump(reviews)
 
     @ns.doc(
         params={
@@ -231,8 +233,8 @@ class ReviewsResource(Resource):
             200: "review was created (or would have been created if test had been False)"
         },
     )
-    @use_args(ReviewSchema(partial=["owner_user_id"]))
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)})
+    @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, test):
         """create new review"""
         name = args.pop("name")
@@ -254,4 +256,4 @@ class ReviewsResource(Resource):
                 os.mkdir(dirname)
         else:
             db.session.rollback()
-        return ReviewSchema().dump(review).data
+        return ReviewSchema().dump(review)
