@@ -1,9 +1,5 @@
-import urllib.parse
-
 import flask
 import pytest
-
-from colandr import extensions, models
 
 
 class TestReviewResource:
@@ -17,10 +13,9 @@ class TestReviewResource:
             (999, None, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, client, admin_headers, seed_data):
-        url = f"/api/reviews/{id_}"
-        if params:
-            url = f"{url}?{urllib.parse.urlencode(params)}"
+    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
+        with app.test_request_context():
+            url = flask.url_for("reviews_review_resource", id=id_, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -47,10 +42,11 @@ class TestReviewResource:
         ],
     )
     def test_put(
-        self, id_, params, status_code, client, admin_user, admin_headers, db_session
+        self, id_, params, status_code, app, client, admin_headers, db_session
     ):
-        url = f"/api/reviews/{id_}?{urllib.parse.urlencode(params)}"
-        response = client.put(url, headers=admin_headers)
+        with app.test_request_context():
+            url = flask.url_for("reviews_review_resource", id=id_)
+        response = client.put(url, json=params, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -58,8 +54,9 @@ class TestReviewResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, client, admin_headers, db_session):
-        url = f"/api/reviews/{id_}"
+    def test_delete(self, id_, app, client, admin_headers, db_session):
+        with app.test_request_context():
+            url = flask.url_for("reviews_review_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
         get_response = client.get(url, headers=admin_headers)
