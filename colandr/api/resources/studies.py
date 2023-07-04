@@ -62,7 +62,7 @@ class StudyResource(Resource):
         location="view_args",
     )
     @use_kwargs(
-        {"fields": DelimitedList(ma_fields.String, delimiter=",", missing=None)},
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
     def get(self, id, fields):

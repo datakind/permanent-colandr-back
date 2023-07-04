@@ -97,7 +97,7 @@ class DataExtractionResource(Resource):
     )
     @use_kwargs(
         {
-            "labels": DelimitedList(ma_fields.String, delimiter=",", missing=None),
+            "labels": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
             "test": ma_fields.Boolean(load_default=False),
         },
         location="query",

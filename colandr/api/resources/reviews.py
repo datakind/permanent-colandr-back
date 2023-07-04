@@ -53,7 +53,7 @@ class ReviewResource(Resource):
         location="view_args",
     )
     @use_kwargs(
-        {"fields": DelimitedList(ma_fields.String, delimiter=",", missing=None)},
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
     def get(self, id, fields):
@@ -197,8 +197,10 @@ class ReviewsResource(Resource):
     )
     @use_kwargs(
         {
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-            "_review_ids": DelimitedList(ma_fields.String, delimiter=",", missing=None),
+            "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
+            "_review_ids": DelimitedList(
+                ma_fields.String, delimiter=",", load_default=None
+            ),
         }
     )
     def get(self, fields, _review_ids):
