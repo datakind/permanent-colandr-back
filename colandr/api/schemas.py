@@ -23,9 +23,9 @@ class DataSourceSchema(Schema):
     source_type = fields.Str(
         required=True, validate=OneOf(["database", "gray literature"])
     )
-    source_name = fields.Str(missing=None, validate=Length(max=100))
+    source_name = fields.Str(load_default=None, validate=Length(max=100))
     source_url = fields.Str(
-        missing=None, validate=[URL(relative=False), Length(max=500)]
+        load_default=None, validate=[URL(relative=False), Length(max=500)]
     )
     source_type_and_name = fields.Str(dump_only=True)
 
@@ -38,7 +38,7 @@ class ReviewSchema(Schema):
         required=True, validate=Range(min=1, max=constants.MAX_INT)
     )
     name = fields.Str(required=True, validate=Length(max=500))
-    description = fields.Str(missing=None)
+    description = fields.Str(load_default=None)
     status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
     num_citation_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
     num_fulltext_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
@@ -54,7 +54,7 @@ class ReviewPlanPICO(Schema):
 class ReviewPlanKeyterm(Schema):
     group = fields.Str(required=True, validate=Length(max=100))
     term = fields.Str(required=True, validate=Length(max=100))
-    synonyms = fields.List(fields.Str(validate=Length(max=100)), missing=[])
+    synonyms = fields.List(fields.Str(validate=Length(max=100)), load_default=[])
 
 
 class ReviewPlanSelectionCriterion(Schema):
@@ -125,11 +125,11 @@ class DedupeSchema(Schema):
     created_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     duplicate_of = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
     # TODO: figure out if allow_nan parameter is required here
     # https://marshmallow.readthedocs.io/en/stable/upgrading.html#float-field-takes-a-new-allow-nan-parameter
-    duplicate_score = fields.Float(missing=None, validate=Range(min=0.0, max=1.0))
+    duplicate_score = fields.Float(load_default=None, validate=Range(min=0.0, max=1.0))
 
 
 class ScreeningSchema(Schema):
@@ -139,13 +139,15 @@ class ScreeningSchema(Schema):
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     citation_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
     fulltext_id = fields.Int(
-        missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
     status = fields.Str(required=True, validate=OneOf(["included", "excluded"]))
-    exclude_reasons = fields.List(fields.Str(validate=Length(max=25)), missing=None)
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=25)), load_default=None
+    )
 
 
 class CitationSchema(Schema):
