@@ -224,14 +224,15 @@ class CitationsResource(Resource):
             "source_type": ma_fields.Str(
                 required=True, validate=OneOf(["database", "gray literature"])
             ),
-            "source_name": ma_fields.Str(missing=None, validate=Length(max=100)),
+            "source_name": ma_fields.Str(load_default=None, validate=Length(max=100)),
             "source_url": ma_fields.Str(
-                missing=None, validate=[URL(relative=False), Length(max=500)]
+                load_default=None, validate=[URL(relative=False), Length(max=500)]
             ),
             "status": ma_fields.Str(
-                missing=None, validate=OneOf(["not_screened", "included", "excluded"])
+                load_default=None,
+                validate=OneOf(["not_screened", "included", "excluded"]),
             ),
-            "test": ma_fields.Boolean(missing=False),
+            "test": ma_fields.Boolean(load_default=False),
         }
     )
     def post(self, args, review_id, source_type, source_name, source_url, status, test):

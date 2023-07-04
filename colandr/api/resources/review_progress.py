@@ -70,9 +70,9 @@ class ReviewProgressResource(Resource):
                         "all",
                     ]
                 ),
-                missing="all",
+                load_default="all",
             ),
-            "user_view": ma_fields.Bool(missing=False),
+            "user_view": ma_fields.Bool(load_default=False),
         }
     )
     def get(self, id, step, user_view):

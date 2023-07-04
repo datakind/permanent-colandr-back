@@ -56,7 +56,7 @@ class FulltextUploadResource(Resource):
                 validate=Range(min=1, max=constants.MAX_INT),
             ),
             "review_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
         }
     )
@@ -131,7 +131,7 @@ class FulltextUploadResource(Resource):
                 validate=Range(min=1, max=constants.MAX_BIGINT),
             ),
             "uploaded_file": ma_fields.Raw(required=True, location="files"),
-            "test": ma_fields.Boolean(missing=False),
+            "test": ma_fields.Boolean(load_default=False),
         }
     )
     def post(self, id, uploaded_file, test):
@@ -215,7 +215,7 @@ class FulltextUploadResource(Resource):
                 location="view_args",
                 validate=Range(min=1, max=constants.MAX_BIGINT),
             ),
-            "test": ma_fields.Boolean(missing=False),
+            "test": ma_fields.Boolean(load_default=False),
         }
     )
     def delete(self, id, test):

@@ -127,11 +127,11 @@ class ReviewTeamResource(Resource):
                 required=True, validate=OneOf(["add", "invite", "remove", "make_owner"])
             ),
             "user_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "user_email": ma_fields.Email(missing=None),
-            "server_name": ma_fields.Str(missing=None),
-            "test": ma_fields.Bool(missing=False),
+            "user_email": ma_fields.Email(load_default=None),
+            "server_name": ma_fields.Str(load_default=None),
+            "test": ma_fields.Bool(load_default=False),
         }
     )
     def put(self, id, action, user_id, user_email, server_name, test):

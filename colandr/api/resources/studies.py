@@ -103,7 +103,7 @@ class StudyResource(Resource):
                 location="view_args",
                 validate=Range(min=1, max=constants.MAX_BIGINT),
             ),
-            "test": ma_fields.Boolean(missing=False),
+            "test": ma_fields.Boolean(load_default=False),
         }
     )
     def delete(self, id, test):
@@ -148,7 +148,7 @@ class StudyResource(Resource):
                 location="view_args",
                 validate=Range(min=1, max=constants.MAX_BIGINT),
             ),
-            "test": ma_fields.Boolean(missing=False),
+            "test": ma_fields.Boolean(load_default=False),
         }
     )
     def put(self, args, id, test):
@@ -266,30 +266,32 @@ class StudiesResource(Resource):
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "fields": DelimitedList(ma_fields.String(), delimiter=",", missing=None),
+            "fields": DelimitedList(
+                ma_fields.String(), delimiter=",", load_default=None
+            ),
             "dedupe_status": ma_fields.String(
-                missing=None, validate=OneOf(DEDUPE_STATUSES)
+                load_default=None, validate=OneOf(DEDUPE_STATUSES)
             ),
             "citation_status": ma_fields.String(
-                missing=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
             ),
             "fulltext_status": ma_fields.String(
-                missing=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
             ),
             "data_extraction_status": ma_fields.String(
-                missing=None, validate=OneOf(EXTRACTION_STATUSES)
+                load_default=None, validate=OneOf(EXTRACTION_STATUSES)
             ),
-            "tag": ma_fields.String(missing=None, validate=Length(max=25)),
-            "tsquery": ma_fields.String(missing=None, validate=Length(max=50)),
+            "tag": ma_fields.String(load_default=None, validate=Length(max=25)),
+            "tsquery": ma_fields.String(load_default=None, validate=Length(max=50)),
             "order_by": ma_fields.String(
-                missing="recency", validate=OneOf(["recency", "relevance"])
+                load_default="recency", validate=OneOf(["recency", "relevance"])
             ),
             "order_dir": ma_fields.String(
-                missing="DESC", validate=OneOf(["ASC", "DESC"])
+                load_default="DESC", validate=OneOf(["ASC", "DESC"])
             ),
-            "page": ma_fields.Int(missing=0, validate=Range(min=0)),
+            "page": ma_fields.Int(load_default=0, validate=Range(min=0)),
             "per_page": ma_fields.Int(
-                missing=25, validate=OneOf([10, 25, 50, 100, 5000])
+                load_default=25, validate=OneOf([10, 25, 50, 100, 5000])
             ),
         }
     )
