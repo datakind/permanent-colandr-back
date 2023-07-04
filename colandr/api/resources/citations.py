@@ -50,6 +50,10 @@ class CitationResource(Resource):
         },
         location="view_args",
     )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
+        location="query",
+    )
     def get(self, id, fields):
         """get record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
