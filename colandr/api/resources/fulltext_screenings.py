@@ -60,12 +60,14 @@ class FulltextScreeningsResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {"fields": DelimitedList(ma_fields.String, delimiter=",", missing=None)},
+        location="query",
     )
     def get(self, id, fields):
         """get screenings for a single fulltext by id"""
@@ -104,13 +106,12 @@ class FulltextScreeningsResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete current app user's screening for a single fulltext by id"""
         # check current user authorization
@@ -161,17 +162,16 @@ class FulltextScreeningsResource(Resource):
             422: "invalid fulltext screening record",
         },
     )
-    @use_args(ScreeningSchema(partial=["user_id", "review_id"]))
+    @use_args(ScreeningSchema(partial=["user_id", "review_id"]), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, id, test):
         """create a screenings for a single fulltext by id"""
         # check current user authorization
@@ -232,17 +232,16 @@ class FulltextScreeningsResource(Resource):
             422: "invalid modified fulltext screening data",
         },
     )
-    @use_args(ScreeningSchema(only=["status", "exclude_reasons"]))
+    @use_args(ScreeningSchema(only=["status", "exclude_reasons"]), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify current app user's screening of a single fulltext by id"""
         fulltext = db.session.query(Fulltext).get(id)
@@ -312,16 +311,17 @@ class FulltextsScreeningsResource(Resource):
     @use_kwargs(
         {
             "fulltext_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
             "user_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "review_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "status_counts": ma_fields.Bool(missing=False),
-        }
+            "status_counts": ma_fields.Bool(load_default=False),
+        },
+        location="query",
     )
     def get(self, fulltext_id, user_id, review_id, status_counts):
         """get all fulltext screenings by citation, user, or review id"""
@@ -411,21 +411,20 @@ class FulltextsScreeningsResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(ScreeningSchema(many=True, partial=["user_id", "review_id"]))
+    @use_args(
+        ScreeningSchema(many=True, partial=["user_id", "review_id"]), location="json"
+    )
     @use_kwargs(
         {
             "review_id": ma_fields.Int(
-                required=True,
-                location="query",
-                validate=Range(min=1, max=constants.MAX_INT),
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "user_id": ma_fields.Int(
-                missing=None,
-                location="query",
-                validate=Range(min=1, max=constants.MAX_INT),
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(location="query", missing=False),
-        }
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def post(self, args, review_id, user_id, test):
         """create one or more fulltext screenings (ADMIN ONLY)"""

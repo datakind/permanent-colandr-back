@@ -232,7 +232,7 @@ class ReviewsResource(Resource):
         },
     )
     @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, test):
         """create new review"""
         name = args.pop("name")

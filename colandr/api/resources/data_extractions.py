@@ -39,11 +39,10 @@ class DataExtractionResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-        }
+        },
+        location="view_args",
     )
     def get(self, id):
         """get data extraction record for a single study by id"""
@@ -91,13 +90,17 @@ class DataExtractionResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
+        },
+        location="view_args",
+    )
+    @use_kwargs(
+        {
             "labels": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-            "test": ma_fields.Boolean(missing=False),
-        }
+            "test": ma_fields.Boolean(load_default=False),
+        },
+        location="query",
     )
     def delete(self, id, labels, test):
         """delete data extraction record for a single study by id"""
@@ -150,17 +153,16 @@ class DataExtractionResource(Resource):
             404: "no data extraction with matching id was found",
         },
     )
-    @use_args(ExtractedItem(many=True))
+    @use_args(ExtractedItem(many=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify data extraction record for a single study by id"""
         # check current user authorization

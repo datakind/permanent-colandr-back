@@ -50,7 +50,8 @@ class CitationsImportsResource(Resource):
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             )
-        }
+        },
+        location="query",
     )
     def get(self, review_id):
         """get citation import history for a review"""
@@ -117,9 +118,9 @@ class CitationsImportsResource(Resource):
             404: "no review with matching id was found",
         },
     )
+    @use_kwargs({"uploaded_file": ma_fields.Raw(required=True)}, location="files")
     @use_kwargs(
         {
-            "uploaded_file": ma_fields.Raw(required=True, location="files"),
             "review_id": ma_fields.Int(
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
@@ -135,7 +136,8 @@ class CitationsImportsResource(Resource):
                 validate=OneOf(["not_screened", "included", "excluded"]),
             ),
             "test": ma_fields.Boolean(load_default=False),
-        }
+        },
+        location="query",
     )
     def post(
         self,

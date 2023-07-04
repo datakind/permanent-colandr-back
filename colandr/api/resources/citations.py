@@ -45,12 +45,10 @@ class CitationResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "fields": DelimitedList(ma_fields.String, delimiter=",", missing=None),
-        }
+        },
+        location="view_args",
     )
     def get(self, id, fields):
         """get record for a single citation by id"""
@@ -89,13 +87,12 @@ class CitationResource(Resource):
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
@@ -130,17 +127,16 @@ class CitationResource(Resource):
             404: "no citation with matching id was found",
         },
     )
-    @use_args(CitationSchema(partial=True))
+    @use_args(CitationSchema(partial=True), location="json")
     @use_kwargs(
         {
             "id": ma_fields.Int(
-                required=True,
-                location="view_args",
-                validate=Range(min=1, max=constants.MAX_BIGINT),
+                required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
             ),
-            "test": ma_fields.Boolean(missing=False),
-        }
+        },
+        location="view_args",
     )
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single citation by id"""
         citation = db.session.query(Citation).get(id)
@@ -215,7 +211,7 @@ class CitationsResource(Resource):
             404: "no review with matching id was found",
         },
     )
-    @use_args(CitationSchema(partial=True))
+    @use_args(CitationSchema(partial=True), location="json")
     @use_kwargs(
         {
             "review_id": ma_fields.Int(
@@ -233,7 +229,8 @@ class CitationsResource(Resource):
                 validate=OneOf(["not_screened", "included", "excluded"]),
             ),
             "test": ma_fields.Boolean(load_default=False),
-        }
+        },
+        location="query",
     )
     def post(self, args, review_id, source_type, source_name, source_url, status, test):
         """create a single citation"""

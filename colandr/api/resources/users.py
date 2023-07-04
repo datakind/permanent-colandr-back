@@ -98,7 +98,7 @@ class UserResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single user by id"""
         if id != g.current_user.id:
@@ -141,7 +141,7 @@ class UserResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single user by id"""
         if id != g.current_user.id:
@@ -202,9 +202,9 @@ class UsersResource(Resource):
     )
     @use_kwargs(
         {
-            "email": ma_fields.Email(missing=None, validate=Email()),
+            "email": ma_fields.Email(load_default=None, validate=Email()),
             "review_id": ma_fields.Int(
-                missing=None, validate=Range(min=1, max=constants.MAX_INT)
+                load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
         },
         location="query",
@@ -247,7 +247,7 @@ class UsersResource(Resource):
         },
     )
     @use_args(UserSchema(), location="json")
-    @use_kwargs({"test": ma_fields.Boolean(missing=False)}, location="query")
+    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, test):
         """create new user (ADMIN ONLY)"""
         if g.current_user.is_admin is False:
