@@ -10,7 +10,7 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
 COPY requirements/ ./requirements/
-RUN pip install -U pip && pip install -r requirements/prod.txt
+RUN python -m pip install -U pip wheel && python -m pip install -r requirements/prod.txt
 RUN python -m textacy download lang_identifier && python -m spacy download en_core_web_md
 
 COPY . .

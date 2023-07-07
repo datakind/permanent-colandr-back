@@ -42,7 +42,6 @@ dependencies = [
   "python-dateutil~=2.8",
   "python-dotenv~=1.0.0",
   "redis~=4.0",
-  "requests>=2.11.1",  # TODO: do we need this? => figure out what HTML_files is about
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured

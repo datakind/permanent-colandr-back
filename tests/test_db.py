@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 
-from colandr import db
+from colandr.extensions import db
 
 
 def test_db_connection(app):
