@@ -1,0 +1,34 @@
+TY  - JOUR
+AB  - ABSTRACT1
+AU  - AUTHOR1_1
+CY  - PLACE1
+DA  - 2001/01/01
+ID  - 000-463-679-101-319
+IS  - 1
+JF  - JOURNAL1
+L2  - https://example.com/title1/fulltext1.html
+PB  - PUBLISHER1
+PY  - 2001
+TI  - TITLE1
+UR  - https://example.com/title1
+VL  - 1
+ER  -
+TY  - JOUR
+AB  - ABSTRACT2
+AU  - AUTHOR2_1
+AU  - AUTHOR2_2
+CY  - PLACE2
+DA  - 2002/02/02
+DO  - 10.5555/12345678
+IS  - 2
+JF  - JOURNAL2
+KW  - KEYWORD2_1
+KW  - KEYWORD2_2
+PB  - PUBLISHER2
+PY  - 2002
+SN  - 5555-123X
+SP  - 42
+TI  - TITLE2
+UR  - https://example.com/title2
+VL  - 2
+ER  -
