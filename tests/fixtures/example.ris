@@ -12,7 +12,7 @@ PY  - 2001
 TI  - TITLE1
 UR  - https://example.com/title1
 VL  - 1
-ER  -
+ER  - 
 TY  - JOUR
 AB  - ABSTRACT2
 AU  - AUTHOR2_1
@@ -31,4 +31,4 @@ SP  - 42
 TI  - TITLE2
 UR  - https://example.com/title2
 VL  - 2
-ER  -
+ER  - 
