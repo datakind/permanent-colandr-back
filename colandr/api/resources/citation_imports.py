@@ -6,6 +6,7 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
+from werkzeug.utils import secure_filename
 
 from ...lib import constants
 from ...lib.parsers import BibTexFile, RisFile
@@ -13,7 +14,6 @@ from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
-
 
 ns = Namespace(
     "citation_imports",
@@ -153,10 +153,14 @@ class CitationsImportsResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+        ):
             return forbidden_error(
                 "{} forbidden to add citations to this review".format(g.current_user)
             )
+        # TODO: see about using secure_filename(uploaded_file.filename)
         fname = uploaded_file.filename
         if fname.endswith(".bib"):
             try:
