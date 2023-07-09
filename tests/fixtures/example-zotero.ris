@@ -1,0 +1,87 @@
+TY  - JOUR
+TI  - TITLE1
+AU  - LAST_NAME1_1, FIRST_NAME1_1
+AU  - LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2.
+T2  - JOURNAL1
+A2  - LAST_NAME1_3, FIRST_NAME1_3
+T3  - 1
+AB  - ABSTRACT1
+DA  - 2001/01/11/
+PY  - 2001
+DO  - 10.5555/111111111
+VL  - 1
+IS  - 1
+SP  - 1
+EP  - 11
+J2  - JA1
+LA  - English
+SN  - 5555-111X
+ST  - SHORT_TITLE1
+UR  - https://example.com/title1
+Y2  - 2011/01/01/
+L1  - https://example.com/title1.pdf
+L4  - https://example.com/title1/content.html
+N1  - <div data-schema-version="8"><p>NOTE1_1</p>
+</div>
+N1  - <div data-schema-version="8"><p>NOTE1_2</p>
+</div>
+KW  - KEYWORD1_1
+KW  - KEYWORD1_2
+ER  - 
+
+TY  - JOUR
+TI  - TITLE2
+AU  - LAST_NAME2_1, FIRST_NAME2_1
+T2  - JOURNAL2
+AB  - ABSTRACT2
+DA  - 2002/02/22/
+PY  - 2002
+UR  - https://example.com/title2
+KW  - KEYWORD2
+ER  - 
+
+TY  - BOOK
+TI  - TITLE3
+AU  - LAST_NAME3_1, FIRST_NAME3_1
+T2  - SERIES3
+A3  - LAST_NAME3_2, FIRST_NAME3_2
+A4  - LAST_NAME3_3, FIRST_NAME3_3
+AB  - ABSTRACT3
+CY  - PLACE3
+DA  - 2003/03/03/
+PY  - 2003
+ET  - 3
+VL  - 3
+SP  - 33
+LA  - English
+M1  - 3
+NV  - 33
+PB  - PUBLISHER3
+SN  - 555-3-33-333333-0
+ST  - SHORT_TITLE3
+UR  - https://example.com/title3
+Y2  - 2013/03/03/
+N1  - <div data-schema-version="8"><p>NOTE3</p>
+</div>
+KW  - KEYWORD3
+ER  - 
+
+TY  - NEWS
+TI  - TITLE4
+AU  - LAST_NAME4, FIRST_NAME4
+T2  - PUBLISHER4
+AB  - ABSTRACT4
+CY  - PLACE4
+DA  - 2004/04/04/
+PY  - 2004
+ET  - 4
+SP  - 4
+EP  - 44
+LA  - French
+SE  - SECTION4
+SN  - 5555-444X
+ST  - SHORT_TITLE4
+UR  - https://example.com/title4
+Y2  - 2014/04/04/
+KW  - KEYWORD4
+ER  - 
