@@ -271,8 +271,10 @@ VALUE_SANITIZERS = {
     "TY": lambda x: REFERENCE_TYPES_MAPPING.get(x, x),
     "Y1": lambda x: parse_date(
         "-".join(item if item else "01" for item in x[:-1].split("/"))
+    ).strftime("%Y-%m-%d"),
+    "Y2": lambda x: min(parse_date(val) for val in x.split(" through ")).strftime(
+        "%Y-%m-%d"
     ),
-    "Y2": lambda x: min(parse_date(val) for val in x.split(" through ")),
 }
 
 
