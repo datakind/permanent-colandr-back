@@ -30,8 +30,8 @@ REF_TYPE_TAG_OVERRIDES = {
         "secondary_authors": "series_editors",
         "secondary_title": "series_title",
         "start_page": "number_of_pages",
-        "tertiary_authors": "editors",
         "subsidiary_authors": "translators",
+        "tertiary_authors": "editors",
     },
     "newspaper": {
         "custom1": "column",
@@ -51,7 +51,13 @@ DTTM_KEYS = ("access_date", "date")
 INT_KEYS = ("end_page", "number_of_volumes", "publication_year", "start_page", "year")
 
 DEFAULT_TO_ALT_KEYS = {
-    "journal_name": ("alternate_title3", "alternate_title2", "alternate_title1", "J1"),
+    "journal_name": (
+        "alternate_journal",
+        "alternate_title3",
+        "alternate_title2",
+        "alternate_title1",
+        "J1",
+    ),
     "publication_year": ("year",),
     "title": ("primary_title", "short_title", "translated_title"),
 }
