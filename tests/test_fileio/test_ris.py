@@ -1,7 +1,6 @@
 import flask
 import pytest
-
-from colandr.lib.parsers import RisFile
+from colandr.lib.fileio import ris
 
 
 class TestRisFile:
@@ -17,7 +16,7 @@ class TestRisFile:
     )
     def test_parse(self, file_name, app, seed_data, request):
         file_path = request.config.rootpath / "tests" / "fixtures" / file_name
-        rf = RisFile(str(file_path))
-        citations = list(rf.parse())
+        citations = ris.sanitize(ris.parse(file_path))
         assert citations and len(citations) == len(seed_data["citations"])
+        # breakpoint()
         assert flask.jsonify(citations).json == seed_data["citations"]
