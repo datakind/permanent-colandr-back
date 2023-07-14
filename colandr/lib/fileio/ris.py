@@ -15,6 +15,38 @@ TYPE_OF_REFERENCE_MAPPING = {
     key: val.lower() for key, val in rispy.config.TYPE_OF_REFERENCE_MAPPING.items()
 }
 
+REF_TYPE_TAG_OVERRIDES = {
+    "journal": {
+        "alternate_title1": "alternate_journal",
+        "custom7": "article_number",
+        "edition": "epub_date",
+        "M2": "start_page",
+        "number": "issue_number",
+        "secondary_title": "journal_name",
+    },
+    "book": {
+        "issn": "isbn",
+        "note": "series_volume",
+        "secondary_authors": "series_editors",
+        "secondary_title": "series_title",
+        "start_page": "number_of_pages",
+        "tertiary_authors": "editors",
+        "subsidiary_authors": "translators",
+    },
+    "newspaper": {
+        "custom1": "column",
+        "custom2": "issue_number",
+        "note": "start_page",
+        "number_of_volumes": "frequency",
+        "secondary_title": "newspaper",
+    },
+}
+"""
+Partial mapping of "raw" tag name to a type-specific tag name,
+according to the 2011+ RIS specification.
+Ref: https://github.com/aurimasv/translators/wiki/RIS-Tag-Map-(narrow)
+"""
+
 DTTM_KEYS = ("access_date", "date")
 INT_KEYS = ("end_page", "number_of_volumes", "publication_year", "start_page", "year")
 
@@ -25,13 +57,12 @@ DEFAULT_TO_ALT_KEYS = {
 }
 
 
-def parse(file_path: Union[TextIO, pathlib.Path]) -> List[Dict]:
+def parse(ris_data: Union[TextIO, pathlib.Path]) -> List[Dict]:
     for encoding in ["utf-8", "ISO-8859-1"]:
         try:
             return rispy.load(
-                file_path,
+                ris_data,
                 encoding=encoding,
-                implementation=rispy.RisParser,
                 skip_missing_tags=False,
                 skip_unknown_tags=False,
             )
@@ -53,6 +84,10 @@ def sanitize(references: List[Dict]) -> List[Dict]:
 
 
 def _sanitize_reference(reference: dict) -> dict:
+    # rename certain tags with their type-specific names
+    if reference["type_of_reference"] in REF_TYPE_TAG_OVERRIDES:
+        tag_overrides = REF_TYPE_TAG_OVERRIDES[reference["type_of_reference"]]
+        reference = {tag_overrides.get(k, k): v for k, v in reference.items()}
     # try to cast certain values to more specific dtypes
     reference.update(
         {key: _try_to_dttm(reference[key]) for key in DTTM_KEYS if key in reference}
