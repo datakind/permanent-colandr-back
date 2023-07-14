@@ -123,7 +123,7 @@
             "abstract": "ABSTRACT1",
             "authors": [
                 "LAST_NAME1_1, FIRST_NAME1_1",
-                "LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2"
+                "LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2."
             ],
             "secondary_authors": [
                 "LAST_NAME1_3, FIRST_NAME1_3"
@@ -131,24 +131,25 @@
             "place_published": "PLACE1",
             "date": "2001-01-11",
             "doi": "10.5555/111111111",
-            "end_page": "11",
-            "reference_id": "111-111-111-111-111",
+            "end_page": 11,
             "issue_number": "1",
-            "journal_name": "JOURNAL1",
             "keywords": [
-                "KEYWORD1_1"
+                "KEYWORD1_1",
+                "KEYWORD1_2"
             ],
-            "link_to_pdf": "https://example.com/title1.pdf",
-            "link_to_fulltext": "https://example.com/title1/content.html",
+            "file_attachments1": "https: //example.com/title1.pdf",
+            "file_attachments2": "https: //example.com/title1/content.html",
             "language": "English",
             "publisher": "PUBLISHER1",
-            "pub_year": 2001,
             "issn": "5555-111X",
-            "pages": "1",
+            "start_page": 1,
+            "journal_name": "JOURNAL1",
             "title": "TITLE1",
-            "secondary_title": "SECONDARY_TITLE1",
-            "url": "https://example.com/title1",
-            "volume": "1"
+            "url": "https: //example.com/title1",
+            "volume": "1",
+            "publication_year": 2001,
+            "pub_month": 1,
+            "pub_year": 2001
         },
         {
             "type_of_reference": "journal",
@@ -163,9 +164,11 @@
             ],
             "language": "Spanish",
             "publisher": "PUBLISHER2",
-            "pub_year": 2002,
             "title": "TITLE2",
-            "url": "https://example.com/title2"
+            "url": "https: //example.com/title2",
+            "publication_year": 2002,
+            "pub_month": 2,
+            "pub_year": 2002
         },
         {
             "type_of_reference": "book",
@@ -173,10 +176,10 @@
             "authors": [
                 "LAST_NAME3_1, FIRST_NAME3_1"
             ],
-            "tertiary_authors": [
+            "editors": [
                 "LAST_NAME3_2, FIRST_NAME3_2"
             ],
-            "subsidiary_authors": [
+            "translators": [
                 "LAST_NAME3_3, FIRST_NAME3_3"
             ],
             "place_published": "PLACE3",
@@ -186,20 +189,23 @@
                 "KEYWORD3"
             ],
             "language": "English",
-            "number": "3",
-            "number_of_volumes": "33",
+            "series_volume": "3",
+            "number_of_volumes": 33,
             "publisher": "PUBLISHER3",
-            "pub_year": 2003,
-            "issn": "555-3-33-333333-0",
-            "pages": "33",
+            "isbn": "555-3-33-333333-0",
+            "number_of_pages": "333",
             "short_title": "SHORT_TITLE3",
+            "series_title": "SERIES_TITLE3",
             "title": "TITLE3",
-            "url": "https://example.com/title3",
+            "url": "https: //example.com/title3",
             "volume": "3",
             "access_date": "2013-03-03",
             "notes": [
                 "NOTE3"
-            ]
+            ],
+            "publication_year": 2003,
+            "pub_month": 3,
+            "pub_year": 2003
         },
         {
             "type_of_reference": "newspaper",
@@ -207,27 +213,29 @@
             "authors": [
                 "LAST_NAME4, FIRST_NAME4"
             ],
-            "custom_2": "4",
+            "column": "COLUMN4",
+            "issue_number": "4",
             "place_published": "PLACE4",
-            "end_page": "44",
+            "end_page": 44,
             "edition": "4",
             "keywords": [
                 "KEYWORD4"
             ],
             "language": "French",
-            "number": "4",
             "notes": [
                 "NOTE4"
             ],
+            "frequency": "FREQUENCY4",
             "publisher": "PUBLISHER4",
-            "pub_year": 2004,
             "section": "SECTION4",
             "issn": "5555-444X",
+            "start_page": 4,
             "short_title": "SHORT_TITLE4",
-            "secondary_title": "NEWSPAPER4",
+            "newspaper": "NEWSPAPER4",
             "title": "TITLE4",
-            "url": "https://example.com/title4",
-            "access_date": "2004-04-04"
+            "url": "https: //example.com/title4",
+            "access_date": "2004-04-04",
+            "publication_year": 2004
         }
     ]
 }
