@@ -113,6 +113,14 @@ def _sanitize_reference(reference: dict) -> dict:
         reference["pub_month"] = reference["date"].month
         if "pub_year" not in reference:
             reference["pub_year"] = reference["date"].year
+    # HACK HACK HACK
+    reference.update(
+        {
+            key: reference[key].strftime("%Y-%m-%d")
+            for key in DTTM_KEYS
+            if key in reference
+        }
+    )
     return reference
 
 
