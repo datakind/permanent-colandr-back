@@ -1,5 +1,6 @@
 import flask
 import pytest
+
 from colandr.lib.fileio import ris
 
 
@@ -18,5 +19,4 @@ class TestRisFile:
         file_path = request.config.rootpath / "tests" / "fixtures" / file_name
         citations = ris.sanitize(ris.parse(file_path))
         assert citations and len(citations) == len(seed_data["citations"])
-        # breakpoint()
         assert flask.jsonify(citations).json == seed_data["citations"]

@@ -1,3 +1,5 @@
+import io
+
 import flask_praetorian
 from flask import current_app, g
 from flask_restx import Namespace, Resource
@@ -8,7 +10,7 @@ from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
-from ...lib import constants
+from ...lib import constants, fileio
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
@@ -166,13 +168,17 @@ class CitationsImportsResource(Resource):
         if fname.endswith(".bib"):
             try:
                 citations_file = BibTexFile(uploaded_file.stream)
+                records = citations_file.parse()
             except Exception:
                 return validation_error(
                     'unable to parse BibTex citations file: "{}"'.format(fname)
                 )
         elif fname.endswith(".ris") or fname.endswith(".txt"):
             try:
-                citations_file = RisFile(uploaded_file.stream)
+                # citations_file = RisFile(uploaded_file.stream)
+                # TODO: this isn't pretty... revisit later and find a better way!
+                hack = io.TextIOWrapper(uploaded_file._file)
+                records = iter(fileio.ris.sanitize(fileio.ris.parse(hack)))
             except Exception:
                 return validation_error(
                     'unable to parse RIS citations file: "{}"'.format(fname)
@@ -217,7 +223,7 @@ class CitationsImportsResource(Resource):
         # for record in citations_file.parse():
         #     record['review_id'] = review_id
         #     citations_to_insert.append(citation_schema.load(record))
-        records = citations_file.parse()
+        # records = citations_file.parse()
         while True:
             try:
                 record = next(records)
