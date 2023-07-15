@@ -9,6 +9,7 @@ import rispy.utils
 from dateutil.parser import ParserError
 from dateutil.parser import parse as parse_dttm
 
+
 LOGGER = logging.getLogger(__name__)
 
 TYPE_OF_REFERENCE_MAPPING = {
