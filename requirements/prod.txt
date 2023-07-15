@@ -1,7 +1,7 @@
 # TODO: keep aligned with pyproject.toml
 alembic~=1.11.0
 arrow~=1.2.0
-bibtexparser~=1.2.0
+bibtexparser~=1.4.0
 celery~=4.0
 click~=8.0
 dedupe~=1.4.14
