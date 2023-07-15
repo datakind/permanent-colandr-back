@@ -3,6 +3,7 @@ import pathlib
 
 import flask
 import pytest
+
 from colandr.lib.fileio import ris
 
 
@@ -16,7 +17,7 @@ class TestRisFile:
             "example-zotero.ris",
         ],
     )
-    def test_parse(self, file_name, app, request):
+    def test_read(self, file_name, app, request):
         fixtures_dir: pathlib.Path = request.config.rootpath / "tests" / "fixtures"
         file_path = fixtures_dir / file_name
         citations = ris.read(file_path)
