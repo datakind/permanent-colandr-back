@@ -3,11 +3,11 @@ import logging
 import pathlib
 from typing import Dict, List, Optional, TextIO, Union
 
+import markupsafe
 import rispy
 import rispy.utils
 from dateutil.parser import ParserError
-from dateutil.parser import parse as parse_date
-
+from dateutil.parser import parse as parse_dttm
 
 LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ REF_TYPE_TAG_OVERRIDES = {
         "note": "series_volume",
         "secondary_authors": "series_editors",
         "secondary_title": "series_title",
-        "start_page": "number_of_pages",
+        # "start_page": "number_of_pages",  # this requires a special hack
         "subsidiary_authors": "translators",
         "tertiary_authors": "editors",
     },
@@ -48,7 +48,14 @@ Ref: https://github.com/aurimasv/translators/wiki/RIS-Tag-Map-(narrow)
 """
 
 DTTM_KEYS = ("access_date", "date")
-INT_KEYS = ("end_page", "number_of_volumes", "publication_year", "start_page", "year")
+INT_KEYS = (
+    "end_page",
+    "number_of_pages",
+    "number_of_volumes",
+    "publication_year",
+    "start_page",
+    "year",
+)
 
 DEFAULT_TO_ALT_KEYS = {
     "journal_name": (
@@ -58,9 +65,15 @@ DEFAULT_TO_ALT_KEYS = {
         "alternate_title1",
         "J1",
     ),
-    "publication_year": ("year",),
+    "pub_year": ("publication_year", "year"),
     "title": ("primary_title", "short_title", "translated_title"),
 }
+
+
+def read(path_or_stream: Union[TextIO, pathlib.Path]) -> List[Dict]:
+    data = parse(path_or_stream)
+    data = sanitize(data)
+    return data
 
 
 def parse(ris_data: Union[TextIO, pathlib.Path]) -> List[Dict]:
@@ -101,6 +114,16 @@ def _sanitize_reference(reference: dict) -> dict:
     reference.update(
         {key: _try_to_int(reference[key]) for key in INT_KEYS if key in reference}
     )
+    if reference["type_of_reference"] == "book":
+        if "start_page" in reference and "end_page" in reference:
+            try:
+                reference["number_of_pages"] = (
+                    reference["end_page"] - reference["start_page"]
+                )
+            except TypeError:
+                pass
+        elif "start_page" in reference:
+            reference["number_of_pages"] = reference.pop("start_page")
     # assign standardized fields in preferential key order
     for default_key, alt_keys in DEFAULT_TO_ALT_KEYS.items():
         if default_key not in reference:
@@ -108,12 +131,15 @@ def _sanitize_reference(reference: dict) -> dict:
                 if alt_key in reference:
                     reference[default_key] = reference.pop(alt_key)
                     break
+    # clean notes text, which may contain html tags and markup
+    if "notes" in reference:
+        reference["notes"] = _strip_tags_from_notes(reference["notes"])
     # split date key into year (if needed) and month
     if "date" in reference:
         reference["pub_month"] = reference["date"].month
         if "pub_year" not in reference:
             reference["pub_year"] = reference["date"].year
-    # HACK HACK HACK
+    # HACK: cast dttms to dt strings to avoid json encoding error
     reference.update(
         {
             key: reference[key].strftime("%Y-%m-%d")
@@ -134,7 +160,12 @@ def _try_to_int(int_maybe: str) -> Optional[int]:
 
 def _try_to_dttm(dttm_maybe: str) -> Optional[datetime.datetime]:
     try:
-        return parse_date(dttm_maybe)
+        return parse_dttm(dttm_maybe)
     except ParserError:
         LOGGER.debug("unable to cast '%s' into a dttm", dttm_maybe)
         return None
+
+
+def _strip_tags_from_notes(notes: List[str]) -> List[str]:
+    notes = [markupsafe.Markup(note).striptags() for note in notes]
+    return [note for note in notes if note]
