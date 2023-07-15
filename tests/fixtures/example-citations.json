@@ -19,6 +19,10 @@
             "KEYWORD1_2"
         ],
         "language": "English",
+        "notes": [
+            "NOTE1_1",
+            "NOTE1_2"
+        ],
         "place_published": "PLACE1",
         "pub_month": 1,
         "pub_year": 2001,
