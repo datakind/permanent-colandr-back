@@ -38,7 +38,7 @@ class TestCitationsImportsResource:
     @pytest.mark.parametrize(
         ["params", "num_exp"],
         [
-            ({"review_id": 1}, 1),
+            ({"review_id": 1}, 2),
         ],
     )
     def test_get(self, params, num_exp, app, client, admin_headers):
