@@ -59,11 +59,15 @@ def try_to_dttm(value: str) -> Optional[datetime.datetime]:
 
 
 def try_to_int(value: str) -> Optional[int]:
-    try:
-        return int(value)
-    except ValueError:
-        LOGGER.debug("unable to cast '%s' into an int", value)
-        return None
+    """Cast ``value`` into an int, as needed."""
+    if isinstance(value, int):
+        return value
+    else:
+        try:
+            return int(float(value))
+        except ValueError:
+            LOGGER.debug("unable to cast '%s' into an int", value)
+            return None
 
 
 def to_list(value: Any) -> list:
