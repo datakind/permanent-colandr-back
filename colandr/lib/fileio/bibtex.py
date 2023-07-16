@@ -1,10 +1,16 @@
-import io
+"""
+References:
+    - https://www.bibtex.com/g/bibtex-format
+    - https://en.wikipedia.org/wiki/BibTeX
+"""
 import logging
 import pathlib
 import re
-from typing import Dict, List, Optional, TextIO, Tuple, Union
+from typing import BinaryIO, Dict, List, Optional, Tuple, Union
 
 import bibtexparser
+
+from . import utils
 
 
 LOGGER = logging.getLogger(__name__)
@@ -33,10 +39,8 @@ MONTH_TO_INT = {
 }
 
 DEFAULT_TO_SANITIZED_KEYS = {
-    # "document_type": "type_of_work",
     "ENTRYTYPE": "type_of_work",
     "ID": "reference_id",
-    # "address": "publisher_address",
     "author": "authors",
     "editor": "editors",
     "keyword": "keywords",
@@ -48,22 +52,8 @@ DEFAULT_TO_SANITIZED_KEYS = {
 }
 
 
-def read(path_or_stream: Union[TextIO, pathlib.Path]) -> List[Dict]:
-    for encoding in ["utf-8", "ISO-8859-1"]:
-        try:
-            if isinstance(path_or_stream, pathlib.Path):
-                with path_or_stream.open(mode="r", encoding=encoding) as f:
-                    data = f.read()
-            else:
-                data = io.TextIOWrapper(path_or_stream, encoding=encoding).read()
-            break
-        except UnicodeDecodeError:
-            pass
-        except IOError as e:
-            LOGGER.warning(e)
-    else:
-        raise ValueError("unable to parse input BiBTex data")
-
+def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> List[Dict]:
+    data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
     return records
