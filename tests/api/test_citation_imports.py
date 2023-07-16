@@ -14,6 +14,14 @@ class TestCitationsImportsResource:
                 },
                 "example.ris",
             ),
+            (
+                {
+                    "review_id": 1,
+                    "status": "included",
+                    "source_type": "database",
+                },
+                "example.bib",
+            ),
         ],
     )
     def test_post(self, params, file_name, app, client, admin_headers, request):
