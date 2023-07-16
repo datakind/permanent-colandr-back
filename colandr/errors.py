@@ -15,7 +15,7 @@ def handle_error(error):
 
 @bp.app_errorhandler(SQLAlchemyError)
 def handle_sqlalchemy_error(error):
-    current_app.logger.exception("unexpected db error: %s\nrolling back ... %s", error)
+    current_app.logger.exception("unexpected db error: %s\nrolling back ...", error)
     db.session.rollback()
     db.session.remove()
     return (jsonify({"errors": str(error)}), 500)
