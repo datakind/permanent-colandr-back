@@ -1,13 +1,17 @@
-import datetime
+"""
+References:
+    - https://github.com/asreview/citation-file-formatting/tree/main
+    - https://en.wikipedia.org/wiki/RIS_(file_format)
+"""
 import logging
 import pathlib
-from typing import Dict, List, Optional, TextIO, Union
+from typing import BinaryIO, Dict, List, Union
 
 import markupsafe
 import rispy
 import rispy.utils
-from dateutil.parser import ParserError
-from dateutil.parser import parse as parse_dttm
+
+from . import utils
 
 
 LOGGER = logging.getLogger(__name__)
@@ -71,27 +75,20 @@ DEFAULT_TO_ALT_KEYS = {
 }
 
 
-def read(path_or_stream: Union[TextIO, pathlib.Path]) -> List[Dict]:
-    data = parse(path_or_stream)
-    data = sanitize(data)
-    return data
+def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> List[Dict]:
+    data = utils.load_from_path_or_stream(path_or_stream)
+    records = parse(data)
+    records = sanitize(records)
+    return records
 
 
-def parse(ris_data: Union[TextIO, pathlib.Path]) -> List[Dict]:
-    for encoding in ["utf-8", "ISO-8859-1"]:
-        try:
-            return rispy.load(
-                ris_data,
-                encoding=encoding,
-                skip_missing_tags=False,
-                skip_unknown_tags=False,
-            )
-        except UnicodeDecodeError:
-            pass
-        except IOError as e:
-            LOGGER.warning(e)
-    else:
-        raise ValueError("unable to parse input RIS data")
+def parse(data: str) -> List[Dict]:
+    return rispy.loads(
+        data,
+        implementation=rispy.parser.RisParser,  # type: ignore
+        skip_missing_tags=False,
+        skip_unknown_tags=False,
+    )
 
 
 def sanitize(references: List[Dict]) -> List[Dict]:
@@ -110,10 +107,14 @@ def _sanitize_reference(reference: dict) -> dict:
         reference = {tag_overrides.get(k, k): v for k, v in reference.items()}
     # try to cast certain values to more specific dtypes
     reference.update(
-        {key: _try_to_dttm(reference[key]) for key in DTTM_KEYS if key in reference}
+        {
+            key: utils.try_to_dttm(reference[key])
+            for key in DTTM_KEYS
+            if key in reference
+        }
     )
     reference.update(
-        {key: _try_to_int(reference[key]) for key in INT_KEYS if key in reference}
+        {key: utils.try_to_int(reference[key]) for key in INT_KEYS if key in reference}
     )
     if reference["type_of_reference"] == "book":
         if "start_page" in reference and "end_page" in reference:
@@ -149,22 +150,6 @@ def _sanitize_reference(reference: dict) -> dict:
         }
     )
     return reference
-
-
-def _try_to_int(int_maybe: str) -> Optional[int]:
-    try:
-        return int(int_maybe)
-    except ValueError:
-        LOGGER.debug("unable to cast '%s' into an int", int_maybe)
-        return None
-
-
-def _try_to_dttm(dttm_maybe: str) -> Optional[datetime.datetime]:
-    try:
-        return parse_dttm(dttm_maybe)
-    except ParserError:
-        LOGGER.debug("unable to cast '%s' into a dttm", dttm_maybe)
-        return None
 
 
 def _strip_tags_from_notes(notes: List[str]) -> List[str]:

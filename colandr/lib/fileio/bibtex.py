@@ -1,10 +1,16 @@
-import io
+"""
+References:
+    - https://www.bibtex.com/g/bibtex-format
+    - https://en.wikipedia.org/wiki/BibTeX
+"""
 import logging
 import pathlib
 import re
-from typing import Dict, List, Optional, TextIO, Tuple, Union
+from typing import BinaryIO, Dict, List, Optional, Tuple, Union
 
 import bibtexparser
+
+from . import utils
 
 
 LOGGER = logging.getLogger(__name__)
@@ -33,10 +39,8 @@ MONTH_TO_INT = {
 }
 
 DEFAULT_TO_SANITIZED_KEYS = {
-    # "document_type": "type_of_work",
     "ENTRYTYPE": "type_of_work",
     "ID": "reference_id",
-    # "address": "publisher_address",
     "author": "authors",
     "editor": "editors",
     "keyword": "keywords",
@@ -48,22 +52,8 @@ DEFAULT_TO_SANITIZED_KEYS = {
 }
 
 
-def read(path_or_stream: Union[TextIO, pathlib.Path]) -> List[Dict]:
-    for encoding in ["utf-8", "ISO-8859-1"]:
-        try:
-            if isinstance(path_or_stream, pathlib.Path):
-                with path_or_stream.open(mode="r", encoding=encoding) as f:
-                    data = f.read()
-            else:
-                data = io.TextIOWrapper(path_or_stream, encoding=encoding).read()
-            break
-        except UnicodeDecodeError:
-            pass
-        except IOError as e:
-            LOGGER.warning(e)
-    else:
-        raise ValueError("unable to parse input BiBTex data")
-
+def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> List[Dict]:
+    data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
     return records
@@ -89,11 +79,11 @@ def _sanitize_record(record: dict) -> dict:
     # standardize key names
     record = {DEFAULT_TO_SANITIZED_KEYS.get(k, k): v for k, v in record.items()}
     if "note" in record:
-        record["note"] = _to_list(record["note"])
+        record["note"] = utils.to_list(record["note"])
     if "pub_month" in record:
         record["pub_month"] = _sanitize_month(record["pub_month"])
     if "pages" in record:
-        pages = _try_to_int(record["pages"])
+        pages = utils.try_to_int(record["pages"])
         if pages is not None:
             record["number_of_pages"] = pages
         else:
@@ -103,7 +93,9 @@ def _sanitize_record(record: dict) -> dict:
                 record["end_page"] = pages[1]
         del record["pages"]
     # try to cast certain values to more specific dtypes
-    record.update({key: _try_to_int(record[key]) for key in INT_KEYS if key in record})
+    record.update(
+        {key: utils.try_to_int(record[key]) for key in INT_KEYS if key in record}
+    )
     return record
 
 
@@ -151,23 +143,11 @@ def _sanitize_month(value: str) -> Optional[int]:
             return None
 
 
-def _try_to_int(int_maybe: str) -> Optional[int]:
-    try:
-        return int(int_maybe)
-    except ValueError:
-        LOGGER.debug("unable to cast '%s' into an int", int_maybe)
-        return None
-
-
-def _to_list(value: str) -> List[str]:
-    return [value]
-
-
 def _split_pages(value: str) -> Optional[Tuple[int, int]]:
     if "--" in value:
         pages = value.split("--")
         if len(pages) == 2:
             start_page, end_page = pages
-            return (_try_to_int(start_page), _try_to_int(end_page))
+            return (utils.try_to_int(start_page), utils.try_to_int(end_page))
     LOGGER.warning("unable to sanitize pages='%s' value", value)
     return None

@@ -11,7 +11,6 @@ from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
 from ...lib import constants, fileio
-from ...lib.parsers import BibTexFile, RisFile
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import forbidden_error, not_found_error, validation_error
@@ -167,9 +166,6 @@ class CitationsImportsResource(Resource):
         fname = uploaded_file.filename
         if fname.endswith(".bib"):
             try:
-                # citations_file = BibTexFile(uploaded_file.stream)
-                # records = citations_file.parse()
-                # TODO: this isn't pretty... revisit later and find a better way!
                 records = iter(fileio.bibtex.read(uploaded_file._file))
             except Exception:
                 return validation_error(
@@ -177,10 +173,7 @@ class CitationsImportsResource(Resource):
                 )
         elif fname.endswith(".ris") or fname.endswith(".txt"):
             try:
-                # citations_file = RisFile(uploaded_file.stream)
-                # TODO: this isn't pretty... revisit later and find a better way!
-                hack = io.TextIOWrapper(uploaded_file._file)
-                records = iter(fileio.ris.read(hack))
+                records = iter(fileio.ris.read(uploaded_file._file))
             except Exception:
                 return validation_error(
                     'unable to parse RIS citations file: "{}"'.format(fname)
