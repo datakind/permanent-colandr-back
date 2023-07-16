@@ -167,8 +167,10 @@ class CitationsImportsResource(Resource):
         fname = uploaded_file.filename
         if fname.endswith(".bib"):
             try:
-                citations_file = BibTexFile(uploaded_file.stream)
-                records = citations_file.parse()
+                # citations_file = BibTexFile(uploaded_file.stream)
+                # records = citations_file.parse()
+                # TODO: this isn't pretty... revisit later and find a better way!
+                records = iter(fileio.bibtex.read(uploaded_file._file))
             except Exception:
                 return validation_error(
                     'unable to parse BibTex citations file: "{}"'.format(fname)
@@ -178,7 +180,7 @@ class CitationsImportsResource(Resource):
                 # citations_file = RisFile(uploaded_file.stream)
                 # TODO: this isn't pretty... revisit later and find a better way!
                 hack = io.TextIOWrapper(uploaded_file._file)
-                records = iter(fileio.ris.sanitize(fileio.ris.parse(hack)))
+                records = iter(fileio.ris.read(hack))
             except Exception:
                 return validation_error(
                     'unable to parse RIS citations file: "{}"'.format(fname)
