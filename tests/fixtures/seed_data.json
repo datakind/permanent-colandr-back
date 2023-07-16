@@ -117,6 +117,39 @@
             ]
         }
     ],
+    "data_sources": [
+        {
+            "source_type": "database",
+            "source_name": "SOURCE_NAME1",
+            "source_url": "http://www.example.com/database"
+        },
+        {
+            "source_type": "gray_literature",
+            "source_name": "SOURCE_NAME2"
+        }
+    ],
+    "studies": [
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "data_source_id": 1
+        },
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "data_source_id": 1
+        },
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "data_source_id": 1
+        },
+        {
+            "user_id": 3,
+            "review_id": 2,
+            "data_source_id": 1
+        }
+    ],
     "citations": [
         {
             "type_of_reference": "journal",

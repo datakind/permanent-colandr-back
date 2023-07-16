@@ -54,6 +54,10 @@ def _populate_db(db, seed_data):
         db.session.add(user)
     for record in seed_data["reviews"]:
         db.session.add(models.Review(**record))
+    for record in seed_data["data_sources"]:
+        db.session.add(models.DataSource(**record))
+    for record in seed_data["studies"]:
+        db.session.add(models.Study(**record))
     db.session.commit()
     for record in seed_data["review_plans"]:
         # NOTE: this automatically adds the relationship to associated review
