@@ -12,7 +12,6 @@ import bibtexparser
 
 from . import utils
 
-
 LOGGER = logging.getLogger(__name__)
 
 RE_NAME_SPLIT = re.compile(r" and ", flags=re.IGNORECASE)
@@ -79,11 +78,11 @@ def _sanitize_record(record: dict) -> dict:
     # standardize key names
     record = {DEFAULT_TO_SANITIZED_KEYS.get(k, k): v for k, v in record.items()}
     if "note" in record:
-        record["note"] = _to_list(record["note"])
+        record["note"] = utils.to_list(record["note"])
     if "pub_month" in record:
         record["pub_month"] = _sanitize_month(record["pub_month"])
     if "pages" in record:
-        pages = _try_to_int(record["pages"])
+        pages = utils.try_to_int(record["pages"])
         if pages is not None:
             record["number_of_pages"] = pages
         else:
@@ -93,7 +92,9 @@ def _sanitize_record(record: dict) -> dict:
                 record["end_page"] = pages[1]
         del record["pages"]
     # try to cast certain values to more specific dtypes
-    record.update({key: _try_to_int(record[key]) for key in INT_KEYS if key in record})
+    record.update(
+        {key: utils.try_to_int(record[key]) for key in INT_KEYS if key in record}
+    )
     return record
 
 
@@ -141,23 +142,11 @@ def _sanitize_month(value: str) -> Optional[int]:
             return None
 
 
-def _try_to_int(int_maybe: str) -> Optional[int]:
-    try:
-        return int(int_maybe)
-    except ValueError:
-        LOGGER.debug("unable to cast '%s' into an int", int_maybe)
-        return None
-
-
-def _to_list(value: str) -> List[str]:
-    return [value]
-
-
 def _split_pages(value: str) -> Optional[Tuple[int, int]]:
     if "--" in value:
         pages = value.split("--")
         if len(pages) == 2:
             start_page, end_page = pages
-            return (_try_to_int(start_page), _try_to_int(end_page))
+            return (utils.try_to_int(start_page), utils.try_to_int(end_page))
     LOGGER.warning("unable to sanitize pages='%s' value", value)
     return None

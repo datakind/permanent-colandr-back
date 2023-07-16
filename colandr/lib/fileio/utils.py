@@ -1,7 +1,12 @@
+import datetime
 import io
 import logging
 import pathlib
-from typing import BinaryIO, Sequence, Union
+from typing import Any, BinaryIO, Iterable, Optional, Sequence, Union
+
+from dateutil.parser import ParserError
+from dateutil.parser import parse as parse_dttm
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -43,3 +48,29 @@ def load_from_path_or_stream(
         )
 
     return data
+
+
+def try_to_dttm(value: str) -> Optional[datetime.datetime]:
+    try:
+        return parse_dttm(value)
+    except ParserError:
+        LOGGER.debug("unable to cast '%s' into a dttm", value)
+        return None
+
+
+def try_to_int(value: str) -> Optional[int]:
+    try:
+        return int(value)
+    except ValueError:
+        LOGGER.debug("unable to cast '%s' into an int", value)
+        return None
+
+
+def to_list(value: Any) -> list:
+    """Cast ``value`` into a list, as needed."""
+    if isinstance(value, list):
+        return value
+    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+        return list(value)
+    else:
+        return [value]
