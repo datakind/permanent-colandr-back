@@ -1,3 +1,4 @@
+import io
 import logging
 import pathlib
 import re
@@ -50,8 +51,11 @@ DEFAULT_TO_SANITIZED_KEYS = {
 def read(path_or_stream: Union[TextIO, pathlib.Path]) -> List[Dict]:
     for encoding in ["utf-8", "ISO-8859-1"]:
         try:
-            with path_or_stream.open(mode="r", encoding=encoding) as f:
-                data = f.read()
+            if isinstance(path_or_stream, pathlib.Path):
+                with path_or_stream.open(mode="r", encoding=encoding) as f:
+                    data = f.read()
+            else:
+                data = io.TextIOWrapper(path_or_stream, encoding=encoding).read()
             break
         except UnicodeDecodeError:
             pass
