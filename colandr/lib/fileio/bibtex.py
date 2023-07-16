@@ -12,6 +12,7 @@ import bibtexparser
 
 from . import utils
 
+
 LOGGER = logging.getLogger(__name__)
 
 RE_NAME_SPLIT = re.compile(r" and ", flags=re.IGNORECASE)
