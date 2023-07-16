@@ -18,7 +18,7 @@ classifiers = [
 dependencies = [
   "alembic~=1.11.0",
   "arrow~=1.2.0",
-  "bibtexparser~=1.2.0",
+  "bibtexparser~=1.4.0",
   "celery~=4.0",
   "click~=8.0",
   "dedupe~=1.4.14",  # TODO: upgrade this once good process for retraining model in place
@@ -42,6 +42,7 @@ dependencies = [
   "python-dateutil~=2.8",
   "python-dotenv~=1.0.0",
   "redis~=4.0",
+  "rispy~=0.7.1",
   "scikit-learn>=0.21.0,<0.23.0",  # doesn't build for PY >= 3.9
   "sqlalchemy~=1.4",
   "textacy~=0.10.0",  # no higher until most_discriminating_terms replacement secured

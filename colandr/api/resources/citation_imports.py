@@ -1,3 +1,5 @@
+import io
+
 import flask_praetorian
 from flask import current_app, g
 from flask_restx import Namespace, Resource
@@ -6,8 +8,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
+from werkzeug.utils import secure_filename
 
-from ...lib import constants
+from ...lib import constants, fileio
 from ...lib.parsers import BibTexFile, RisFile
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
@@ -153,21 +156,31 @@ class CitationsImportsResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+        ):
             return forbidden_error(
                 "{} forbidden to add citations to this review".format(g.current_user)
             )
+        # TODO: see about using secure_filename(uploaded_file.filename)
         fname = uploaded_file.filename
         if fname.endswith(".bib"):
             try:
-                citations_file = BibTexFile(uploaded_file.stream)
+                # citations_file = BibTexFile(uploaded_file.stream)
+                # records = citations_file.parse()
+                # TODO: this isn't pretty... revisit later and find a better way!
+                records = iter(fileio.bibtex.read(uploaded_file._file))
             except Exception:
                 return validation_error(
                     'unable to parse BibTex citations file: "{}"'.format(fname)
                 )
         elif fname.endswith(".ris") or fname.endswith(".txt"):
             try:
-                citations_file = RisFile(uploaded_file.stream)
+                # citations_file = RisFile(uploaded_file.stream)
+                # TODO: this isn't pretty... revisit later and find a better way!
+                hack = io.TextIOWrapper(uploaded_file._file)
+                records = iter(fileio.ris.read(hack))
             except Exception:
                 return validation_error(
                     'unable to parse RIS citations file: "{}"'.format(fname)
@@ -212,7 +225,7 @@ class CitationsImportsResource(Resource):
         # for record in citations_file.parse():
         #     record['review_id'] = review_id
         #     citations_to_insert.append(citation_schema.load(record))
-        records = citations_file.parse()
+        # records = citations_file.parse()
         while True:
             try:
                 record = next(records)

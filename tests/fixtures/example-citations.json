@@ -1,0 +1,122 @@
+[
+    {
+        "type_of_reference": "journal",
+        "abstract": "ABSTRACT1",
+        "authors": [
+            "LAST_NAME1_1, FIRST_NAME1_1",
+            "LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2."
+        ],
+        "date": "2001-01-11",
+        "doi": "10.5555/111111111",
+        "end_page": 11,
+        "file_attachments1": "https://example.com/title1.pdf",
+        "file_attachments2": "https://example.com/title1/content.html",
+        "issn": "5555-111X",
+        "issue_number": "1",
+        "journal_name": "JOURNAL1",
+        "keywords": [
+            "KEYWORD1_1",
+            "KEYWORD1_2"
+        ],
+        "language": "English",
+        "notes": [
+            "NOTE1_1",
+            "NOTE1_2"
+        ],
+        "place_published": "PLACE1",
+        "pub_month": 1,
+        "pub_year": 2001,
+        "publisher": "PUBLISHER1",
+        "secondary_authors": [
+            "LAST_NAME1_3, FIRST_NAME1_3"
+        ],
+        "start_page": 1,
+        "title": "TITLE1",
+        "url": "https://example.com/title1",
+        "volume": "1"
+    },
+    {
+        "type_of_reference": "journal",
+        "abstract": "ABSTRACT2",
+        "authors": [
+            "LAST_NAME2_1, FIRST_NAME2_1"
+        ],
+        "date": "2002-02-22",
+        "journal_name": "JOURNAL2",
+        "keywords": [
+            "KEYWORD2"
+        ],
+        "language": "Spanish",
+        "pub_month": 2,
+        "pub_year": 2002,
+        "publisher": "PUBLISHER2",
+        "title": "TITLE2",
+        "url": "https://example.com/title2"
+    },
+    {
+        "type_of_reference": "book",
+        "abstract": "ABSTRACT3",
+        "access_date": "2013-03-03",
+        "authors": [
+            "LAST_NAME3_1, FIRST_NAME3_1"
+        ],
+        "date": "2003-03-03",
+        "editors": [
+            "LAST_NAME3_2, FIRST_NAME3_2"
+        ],
+        "edition": "3",
+        "isbn": "555-3-33-333333-0",
+        "keywords": [
+            "KEYWORD3"
+        ],
+        "language": "English",
+        "place_published": "PLACE3",
+        "series_volume": "3",
+        "notes": [
+            "NOTE3"
+        ],
+        "number_of_pages": 330,
+        "number_of_volumes": 33,
+        "pub_month": 3,
+        "pub_year": 2003,
+        "publisher": "PUBLISHER3",
+        "series_title": "SERIES_TITLE3",
+        "short_title": "SHORT_TITLE3",
+        "title": "TITLE3",
+        "translators": [
+            "LAST_NAME3_3, FIRST_NAME3_3"
+        ],
+        "url": "https://example.com/title3",
+        "volume": "3"
+    },
+    {
+        "type_of_reference": "newspaper",
+        "abstract": "ABSTRACT4",
+        "access_date": "2014-04-04",
+        "authors": [
+            "LAST_NAME4, FIRST_NAME4"
+        ],
+        "column": "COLUMN4",
+        "edition": "4",
+        "end_page": 44,
+        "frequency": "FREQUENCY4",
+        "issn": "5555-444X",
+        "issue_number": "4",
+        "keywords": [
+            "KEYWORD4"
+        ],
+        "language": "French",
+        "newspaper": "NEWSPAPER4",
+        "notes": [
+            "NOTE4"
+        ],
+        "place_published": "PLACE4",
+        "pub_year": 2004,
+        "publisher": "PUBLISHER4",
+        "section": "SECTION4",
+        "short_title": "SHORT_TITLE4",
+        "start_page": 4,
+        "title": "TITLE4",
+        "url": "https://example.com/title4"
+    }
+]
