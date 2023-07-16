@@ -330,13 +330,13 @@ class Import(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     data_source_id = db.Column(
         db.BigInteger,
         ForeignKey("data_sources.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
     )
     record_type = db.Column(db.Unicode(length=10), nullable=False)
     num_records = db.Column(db.Integer, nullable=False)
@@ -739,7 +739,7 @@ class CitationScreening(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     citation_id = db.Column(
@@ -812,7 +812,7 @@ class FulltextScreening(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     fulltext_id = db.Column(
