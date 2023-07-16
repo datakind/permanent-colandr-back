@@ -50,15 +50,24 @@ def load_from_path_or_stream(
     return data
 
 
-def try_to_dttm(value: str) -> Optional[datetime.datetime]:
-    try:
-        return parse_dttm(value)
-    except ParserError:
+def try_to_dttm(value: Union[float, int, str]) -> Optional[datetime.datetime]:
+    """Cast ``value`` into a dttm, as needed."""
+    if isinstance(value, int):
+        try:
+            return datetime.datetime.fromtimestamp(value, tz=datetime.timezone.utc)
+        except Exception:
+            LOGGER.debug("unable to cast '%s' into a dttm", value)
+    elif isinstance(value, str):
+        try:
+            return parse_dttm(value)
+        except ParserError:
+            LOGGER.debug("unable to cast '%s' into a dttm", value)
+    else:
         LOGGER.debug("unable to cast '%s' into a dttm", value)
-        return None
+    return None
 
 
-def try_to_int(value: str) -> Optional[int]:
+def try_to_int(value: Union[float, int, str]) -> Optional[int]:
     """Cast ``value`` into an int, as needed."""
     if isinstance(value, int):
         return value
