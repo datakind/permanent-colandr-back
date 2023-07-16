@@ -84,6 +84,8 @@ def sanitize(records: List[Dict]) -> List[Dict]:
 def _sanitize_record(record: dict) -> dict:
     # standardize key names
     record = {DEFAULT_TO_SANITIZED_KEYS.get(k, k): v for k, v in record.items()}
+    if "note" in record:
+        record["note"] = _to_list(record["note"])
     if "pub_month" in record:
         record["pub_month"] = _sanitize_month(record["pub_month"])
     if "pages" in record:
@@ -105,8 +107,19 @@ def _parser_customization(record: dict) -> dict:
     record = bibtexparser.customization.convert_to_unicode(record)
     record = _split_names(record, "author")
     record = _split_names(record, "editor")
-    record = bibtexparser.customization.keyword(record, sep=",|;")
+    record = _split_keyword(record)
     record = bibtexparser.customization.page_double_hyphen(record)
+    return record
+
+
+def _split_keyword(record: dict, sep: str = ",|;") -> dict:
+    """
+    Split keyword into a list of values.
+    Modified from :func:`bibtexparser.customization.keyword()` .
+    """
+    if "keyword" in record:
+        lines = record["keyword"].split("\n")
+        record["keyword"] = [kw.strip() for line in lines for kw in re.split(sep, line)]
     return record
 
 
@@ -140,6 +153,10 @@ def _try_to_int(int_maybe: str) -> Optional[int]:
     except ValueError:
         LOGGER.debug("unable to cast '%s' into an int", int_maybe)
         return None
+
+
+def _to_list(value: str) -> List[str]:
+    return [value]
 
 
 def _split_pages(value: str) -> Optional[Tuple[int, int]]:
