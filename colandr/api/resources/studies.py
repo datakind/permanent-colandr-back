@@ -112,7 +112,10 @@ class StudyResource(Resource):
         study = db.session.query(Study).get(id)
         if not study:
             return not_found_error("<Study(id={})> not found".format(id))
-        if study.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and study.review.users.filter_by(id=g.current_user.id).one_or_none() is None
+        ):
             return forbidden_error(
                 "{} forbidden to delete this study".format(g.current_user)
             )
@@ -156,7 +159,10 @@ class StudyResource(Resource):
         study = db.session.query(Study).get(id)
         if not study:
             return not_found_error("<Study(id={})> not found".format(id))
-        if study.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and study.review.users.filter_by(id=g.current_user.id).one_or_none() is None
+        ):
             return forbidden_error(
                 "{} forbidden to modify this study".format(g.current_user)
             )
