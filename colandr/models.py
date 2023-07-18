@@ -330,13 +330,13 @@ class Import(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     data_source_id = db.Column(
         db.BigInteger,
         ForeignKey("data_sources.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
     )
     record_type = db.Column(db.Unicode(length=10), nullable=False)
     num_records = db.Column(db.Integer, nullable=False)
@@ -389,7 +389,7 @@ class Study(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     review_id = db.Column(
@@ -404,7 +404,7 @@ class Study(db.Model):
     data_source_id = db.Column(
         db.Integer,
         ForeignKey("data_sources.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     dedupe_status = db.Column(
@@ -462,6 +462,7 @@ class Study(db.Model):
         passive_deletes=True,
     )
 
+    # TODO: figure out why we have this here, and if we want it
     def __init__(self, user_id, review_id, data_source_id):
         self.user_id = user_id
         self.review_id = review_id
@@ -738,7 +739,7 @@ class CitationScreening(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     citation_id = db.Column(
@@ -811,7 +812,7 @@ class FulltextScreening(db.Model):
     user_id = db.Column(
         db.Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
     fulltext_id = db.Column(
