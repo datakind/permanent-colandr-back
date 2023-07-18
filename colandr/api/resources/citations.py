@@ -102,7 +102,11 @@ class CitationResource(Resource):
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
-        if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to delete this citation".format(g.current_user)
             )
@@ -146,7 +150,11 @@ class CitationResource(Resource):
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
-        if citation.review.users.filter_by(id=g.current_user.id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to modify this citation".format(g.current_user)
             )
@@ -241,7 +249,10 @@ class CitationsResource(Resource):
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (
+            g.current_user.is_admin is False
+            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+        ):
             return forbidden_error(
                 "{} forbidden to add citations to this review".format(g.current_user)
             )
