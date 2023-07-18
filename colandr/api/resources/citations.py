@@ -291,6 +291,7 @@ class CitationsResource(Resource):
 
         # *now* add the citation
         citation = args
+        citation["review_id"] = review_id
         citation = CitationSchema().load(citation)  # this sanitizes the data
         citation = Citation(study.id, **citation)
         db.session.add(citation)
