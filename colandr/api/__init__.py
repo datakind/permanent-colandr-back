@@ -1,21 +1,6 @@
 import flask_praetorian
 from flask_restx import Api
 
-
-api_ = Api(
-    version="1.0",
-    prefix="/api",
-    doc="/docs",
-    default_mediatype="application/json",
-    title="colandr",
-    description="REST API powering the colandr app",
-    authorizations={
-        "access_token": {"type": "apiKey", "in": "header", "name": "Authorization"}
-        # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
-        # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
-    },
-)
-
 from .auth import ns as ns_auth
 from .errors import ns as errors_ns
 from .health import ns as ns_health
@@ -36,6 +21,20 @@ from .resources.study_tags import ns as study_tags_ns
 from .resources.users import ns as users_ns
 from .swagger import ns as swagger_ns
 
+
+api_ = Api(
+    version="1.0",
+    prefix="/api",
+    doc="/docs",
+    default_mediatype="application/json",
+    title="colandr",
+    description="REST API powering the colandr app",
+    authorizations={
+        "access_token": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
+        # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+    },
+)
 
 # this is a built-in hack!
 flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
