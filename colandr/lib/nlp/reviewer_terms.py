@@ -1,15 +1,16 @@
 import logging
 import math
 import re
+from typing import Dict, List, Tuple
 
 
-def get_keyterms_regex(keyterms):
+def get_keyterms_regex(keyterms: List[Dict]) -> re.Pattern:
     """
     Args:
-        keyterms (List[dict]): given by :attr:``ReviewPlan.keyterms``
+        keyterms: given by :attr:``ReviewPlan.keyterms``
 
     Returns:
-        :class:``_sre.SRE_Pattern``: compiled regex object for all terms
+        compiled regex object for all terms
     """
     all_terms = [
         re.escape(term)
@@ -23,14 +24,16 @@ def get_keyterms_regex(keyterms):
     return keyterms_re
 
 
-def get_incl_excl_terms_regex(suggested_keyterms):
+def get_incl_excl_terms_regex(
+    suggested_keyterms: dict,
+) -> Tuple[re.Pattern, re.Pattern]:
     """
     Args:
-        suggested_keyterms (dict): given by :attr:``ReviewPlan.suggested_keyterms``
+        suggested_keyterms: given by :attr:``ReviewPlan.suggested_keyterms``
 
     Returns:
-        :class:``_sre.SRE_Pattern``: compiled regex pattern for included terms
-        :class:``_sre.SRE_Pattern``: compiled regex pattern for excluded terms
+        compiled regex pattern for included terms
+        compiled regex pattern for excluded terms
     """
     incl_keyterms = suggested_keyterms.get("incl_keyterms", [])
     excl_keyterms = suggested_keyterms.get("excl_keyterms", [])
@@ -45,14 +48,14 @@ def get_incl_excl_terms_regex(suggested_keyterms):
     return incl_regex, excl_regex
 
 
-def get_keyterms_score(keyterms_regex, text_content):
+def get_keyterms_score(keyterms_regex: re.Pattern, text_content: str) -> float:
     """
     Args:
-        keyterms_regex (:class:``_sre.SRE_Pattern``)
-        text_content (str): given by :attr:``Citation.text_content``
+        keyterms_regex
+        text_content: given by :attr:``Citation.text_content``
 
     Returns:
-        float: higher values => more relevant
+        higher values => more relevant
     """
     full_len = len(text_content)
     if full_len == 0:
@@ -68,15 +71,17 @@ def get_keyterms_score(keyterms_regex, text_content):
         return 0.0
 
 
-def get_incl_excl_terms_score(incl_regex, excl_regex, text_content):
+def get_incl_excl_terms_score(
+    incl_regex: re.Pattern, excl_regex: re.Pattern, text_content: str
+) -> float:
     """
     Args:
-        incl_regex (:class:``_sre.SRE_Pattern``)
-        excl_regex (:class:``_sre.SRE_Pattern``)
-        text_content (str): given by :attr:``Citation.text_content``
+        incl_regex
+        excl_regex
+        text_content: given by :attr:``Citation.text_content``
 
     Returns:
-        float: higher values => more relevant
+        higher values => more relevant
     """
     if len(text_content) == 0:
         return 0.0
