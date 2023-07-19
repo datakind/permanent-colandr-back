@@ -11,7 +11,9 @@ def execute_raw_sql_query(query, bindings=None, no_logging=True):
     see: http://docs.sqlalchemy.org/en/latest/core/tutorial.html#specifying-bound-parameter-behaviors
     and: http://docs.sqlalchemy.org/en/latest/core/tutorial.html#using-textual-sql
     """
-    from colandr import create_app, db
+    # TODO: this is not great... we should fix
+    from colandr.app import create_app
+    from colandr.extensions import db
 
     bindings = bindings or {}
     if no_logging is True:  # this doesn't appear to work
