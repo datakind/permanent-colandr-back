@@ -59,13 +59,13 @@ class CitationsImportsResource(Resource):
         """get citation import history for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         if (
             g.current_user.is_admin is False
             and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to add citations to this review".format(g.current_user)
+                f"{g.current_user} forbidden to add citations to this review"
             )
         results = review.imports.filter_by(record_type="citation")
         return ImportSchema(many=True).dump(results.all())
@@ -154,13 +154,13 @@ class CitationsImportsResource(Resource):
         """import citations in bulk for a review"""
         review = db.session.query(Review).get(review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         if (
             g.current_user.is_admin is False
             and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to add citations to this review".format(g.current_user)
+                f"{g.current_user} forbidden to add citations to this review"
             )
         # TODO: see about using secure_filename(uploaded_file.filename)
         fname = uploaded_file.filename
@@ -169,17 +169,17 @@ class CitationsImportsResource(Resource):
                 records = iter(fileio.bibtex.read(uploaded_file._file))
             except Exception:
                 return validation_error(
-                    'unable to parse BibTex citations file: "{}"'.format(fname)
+                    f'unable to parse BibTex citations file: "{fname}"'
                 )
         elif fname.endswith(".ris") or fname.endswith(".txt"):
             try:
                 records = iter(fileio.ris.read(uploaded_file._file))
             except Exception:
                 return validation_error(
-                    'unable to parse RIS citations file: "{}"'.format(fname)
+                    f'unable to parse RIS citations file: "{fname}"'
                 )
         else:
-            return validation_error('unknown file type: "{}"'.format(fname))
+            return validation_error(f'unknown file type: "{fname}"')
 
         # upsert the data source
         try:

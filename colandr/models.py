@@ -8,7 +8,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from .api.utils import assign_status, get_boolean_search_query
 from .extensions import db
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -63,7 +62,7 @@ class User(db.Model):
     )
 
     def __repr__(self):
-        return "<User(id={})>".format(self.id)
+        return f"<User(id={self.id})>"
 
     @property
     def identity(self):
@@ -129,7 +128,7 @@ class DataSource(db.Model):
     @hybrid_property
     def source_type_and_name(self):
         if self.source_name:
-            return "{}: {}".format(self.source_type, self.source_name)
+            return f"{self.source_type}: {self.source_name}"
         else:
             return self.source_type
 
@@ -147,7 +146,7 @@ class DataSource(db.Model):
         self.source_url = source_url
 
     def __repr__(self):
-        return "<DataSource(id={})>".format(self.id)
+        return f"<DataSource(id={self.id})>"
 
 
 class Review(db.Model):
@@ -240,7 +239,7 @@ class Review(db.Model):
         self.description = description
 
     def __repr__(self):
-        return "<Review(id={})>".format(self.id)
+        return f"<Review(id={self.id})>"
 
 
 class ReviewPlan(db.Model):
@@ -308,7 +307,7 @@ class ReviewPlan(db.Model):
         self.data_extraction_form = data_extraction_form
 
     def __repr__(self):
-        return "<ReviewPlan(review_id={})>".format(self.id)
+        return f"<ReviewPlan(review_id={self.id})>"
 
 
 class Import(db.Model):
@@ -367,7 +366,7 @@ class Import(db.Model):
         self.status = status
 
     def __repr__(self):
-        return "<Import(id={})>".format(self.id)
+        return f"<Import(id={self.id})>"
 
 
 class Study(db.Model):
@@ -469,7 +468,7 @@ class Study(db.Model):
         self.data_source_id = data_source_id
 
     def __repr__(self):
-        return "<Study(id={})>".format(self.id)
+        return f"<Study(id={self.id})>"
 
 
 class Dedupe(db.Model):
@@ -510,7 +509,7 @@ class Dedupe(db.Model):
         self.duplicate_score = duplicate_score
 
     def __repr__(self):
-        return "<Dedupe(study_id={})>".format(self.id)
+        return f"<Dedupe(study_id={self.id})>"
 
 
 class Citation(db.Model):
@@ -643,7 +642,7 @@ class Citation(db.Model):
         self.other_fields = other_fields
 
     def __repr__(self):
-        return "<Citation(study_id={})>".format(self.id)
+        return f"<Citation(study_id={self.id})>"
 
 
 class Fulltext(db.Model):
@@ -706,7 +705,7 @@ class Fulltext(db.Model):
         self.original_filename = original_filename
 
     def __repr__(self):
-        return "<Fulltext(study_id={})>".format(self.id)
+        return f"<Fulltext(study_id={self.id})>"
 
 
 class CitationScreening(db.Model):
@@ -779,7 +778,7 @@ class CitationScreening(db.Model):
         self.exclude_reasons = exclude_reasons
 
     def __repr__(self):
-        return "<CitationScreening(citation_id={})>".format(self.citation_id)
+        return f"<CitationScreening(citation_id={self.citation_id})>"
 
 
 class FulltextScreening(db.Model):
@@ -852,7 +851,7 @@ class FulltextScreening(db.Model):
         self.exclude_reasons = exclude_reasons
 
     def __repr__(self):
-        return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
+        return f"<FulltextScreening(fulltext_id={self.fulltext_id})>"
 
 
 class DataExtraction(db.Model):
@@ -900,7 +899,7 @@ class DataExtraction(db.Model):
         self.extracted_items = extracted_items
 
     def __repr__(self):
-        return "<DataExtraction(study_id={})>".format(self.id)
+        return f"<DataExtraction(study_id={self.id})>"
 
 
 # tables for citation deduplication
