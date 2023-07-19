@@ -36,6 +36,7 @@ class TestStudyResource:
         ["id_", "data", "status_code"],
         [
             (1, {"tags": ["TAG1", "TAG2"]}, 200),
+            (1, {"tags": ["THIS-IS-A-REALLLLLLLLLLLLLLLLLLLLLLLLLLY-LONG-TAG1"]}, 200),
             # doesn't work: can't set extraction status until fulltext has been screened
             # (2, {"data_extraction_status": "finished", "tags": ["TAG1"]}, 200),
             (999, {"tags": ["TAG1"]}, 404),

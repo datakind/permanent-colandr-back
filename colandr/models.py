@@ -399,7 +399,7 @@ class Study(db.Model):
         index=True,
     )
     tags = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default="{}", index=False
+        postgresql.ARRAY(db.Unicode(length=64)), server_default="{}", index=False
     )
     data_source_id = db.Column(
         db.Integer,
@@ -749,7 +749,7 @@ class CitationScreening(db.Model):
         index=True,
     )
     status = db.Column(db.Unicode(length=20), nullable=False, index=True)
-    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=25)), nullable=True)
+    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(
@@ -822,7 +822,7 @@ class FulltextScreening(db.Model):
         index=True,
     )
     status = db.Column(db.Unicode(length=20), nullable=False, index=True)
-    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=25)), nullable=True)
+    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(

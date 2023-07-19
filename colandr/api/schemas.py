@@ -146,7 +146,7 @@ class ScreeningSchema(Schema):
     )
     status = fields.Str(required=True, validate=OneOf(["included", "excluded"]))
     exclude_reasons = fields.List(
-        fields.Str(validate=Length(max=25)), load_default=None
+        fields.Str(validate=Length(max=64)), load_default=None
     )
 
 
@@ -220,7 +220,7 @@ class StudySchema(Schema):
     data_source_id = fields.Int(
         required=True, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
-    tags = fields.List(fields.Str(validate=Length(max=25)))
+    tags = fields.List(fields.Str(validate=Length(max=64)))
     dedupe = fields.Nested(DedupeSchema, dump_only=True)
     dedupe_status = fields.Str(
         dump_only=True, validate=OneOf(constants.DEDUPE_STATUSES)
