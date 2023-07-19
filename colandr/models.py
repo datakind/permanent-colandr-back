@@ -399,7 +399,7 @@ class Study(db.Model):
         index=True,
     )
     tags = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default="{}", index=False
+        postgresql.ARRAY(db.Unicode(length=64)), server_default="{}", index=False
     )
     data_source_id = db.Column(
         db.Integer,
