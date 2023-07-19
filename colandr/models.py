@@ -8,6 +8,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from .api.utils import assign_status, get_boolean_search_query
 from .extensions import db
 
+
 logger = logging.getLogger(__name__)
 
 
