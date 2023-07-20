@@ -58,15 +58,16 @@ class ReviewPlanResource(Resource):
     )
     def get(self, id, fields):
         """get review plan record for a single review by id"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get this review plan".format(g.current_user)
+                "{} forbidden to get this review plan".format(current_user)
             )
         if fields and "id" not in fields:
             fields.append("id")
@@ -112,12 +113,13 @@ class ReviewPlanResource(Resource):
     )
     def delete(self, id, fields, test):
         """delete review plan record for a single review by id"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
-        if g.current_user.is_admin is False and review.owner is not g.current_user:
+        if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to delete this review plan".format(g.current_user)
+                "{} forbidden to delete this review plan".format(current_user)
             )
         review_plan = review.review_plan
         if fields:
@@ -182,12 +184,13 @@ class ReviewPlanResource(Resource):
     )
     def put(self, args, id, fields, test):
         """modify review plan record for a single review by id"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
-        if g.current_user.is_admin is False and review.owner is not g.current_user:
+        if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to create this review plan".format(g.current_user)
+                "{} forbidden to create this review plan".format(current_user)
             )
         review_plan = review.review_plan
         if not review_plan:

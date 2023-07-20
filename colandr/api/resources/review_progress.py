@@ -81,16 +81,17 @@ class ReviewProgressResource(Resource):
     )
     def get(self, id, step, user_view):
         """get review progress on one or all steps for a single review by id"""
+        current_user = flask_praetorian.current_user()
         response = {}
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get review progress".format(g.current_user)
+                "{} forbidden to get review progress".format(current_user)
             )
         if step in ("planning", "all"):
             review_plan = review.review_plan
@@ -143,7 +144,7 @@ class ReviewProgressResource(Resource):
                     WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(
-                    user_id=g.current_user.id, review_id=id
+                    user_id=current_user.id, review_id=id
                 )
                 progress = dict(row for row in db.engine.execute(query))
                 progress = {
@@ -190,7 +191,7 @@ class ReviewProgressResource(Resource):
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(
-                    user_id=g.current_user.id, review_id=id
+                    user_id=current_user.id, review_id=id
                 )
                 progress = dict(row for row in db.engine.execute(query))
                 progress = {

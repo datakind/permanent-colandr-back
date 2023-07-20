@@ -56,16 +56,17 @@ class CitationResource(Resource):
     )
     def get(self, id, fields):
         """get record for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+            current_user.is_admin is False
+            and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get this citation".format(g.current_user)
+                "{} forbidden to get this citation".format(current_user)
             )
         if fields and "id" not in fields:
             fields.append("id")
@@ -99,16 +100,17 @@ class CitationResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+            current_user.is_admin is False
+            and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to delete this citation".format(g.current_user)
+                "{} forbidden to delete this citation".format(current_user)
             )
         db.session.delete(citation)
         if test is False:
@@ -147,16 +149,17 @@ class CitationResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+            current_user.is_admin is False
+            and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to modify this citation".format(g.current_user)
+                "{} forbidden to modify this citation".format(current_user)
             )
         for key, value in args.items():
             if key is missing or key == "other_fields":
@@ -246,15 +249,16 @@ class CitationsResource(Resource):
     )
     def post(self, args, review_id, source_type, source_name, source_url, status, test):
         """create a single citation"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to add citations to this review".format(g.current_user)
+                "{} forbidden to add citations to this review".format(current_user)
             )
         # upsert the data source
         try:
@@ -283,7 +287,7 @@ class CitationsResource(Resource):
             return ""
 
         # add the study
-        study = Study(g.current_user.id, review_id, data_source.id)
+        study = Study(current_user.id, review_id, data_source.id)
         if status is not None:
             study.citation_status = status
         db.session.add(study)

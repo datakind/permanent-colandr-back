@@ -67,15 +67,16 @@ class StudyResource(Resource):
     )
     def get(self, id, fields):
         """get record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
             return not_found_error("<Study(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and study.review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get this study".format(g.current_user)
+                "{} forbidden to get this study".format(current_user)
             )
         if fields and "id" not in fields:
             fields.append("id")
@@ -109,15 +110,16 @@ class StudyResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
             return not_found_error("<Study(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and study.review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to delete this study".format(g.current_user)
+                "{} forbidden to delete this study".format(current_user)
             )
         db.session.delete(study)
         if test is False:
@@ -156,15 +158,16 @@ class StudyResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
             return not_found_error("<Study(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and study.review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to modify this study".format(g.current_user)
+                "{} forbidden to modify this study".format(current_user)
             )
         for key, value in args.items():
             if key == "data_extraction_status":
@@ -318,15 +321,16 @@ class StudiesResource(Resource):
         per_page,
     ):
         """get study record(s) for one or more matching studies"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get studies from this review".format(g.current_user)
+                "{} forbidden to get studies from this review".format(current_user)
             )
         if fields and "id" not in fields:
             fields.append("id")
@@ -359,7 +363,7 @@ class StudiesResource(Resource):
                         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(
-                    user_id=g.current_user.id
+                    user_id=current_user.id
                 )
                 query = query.filter(Study.id.in_(text(stmt)))
             elif citation_status == "awaiting_coscreener":
@@ -377,7 +381,7 @@ class StudiesResource(Resource):
                         t.citation_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(
-                    user_id=g.current_user.id
+                    user_id=current_user.id
                 )
                 query = query.filter(Study.id.in_(text(stmt)))
 
@@ -404,7 +408,7 @@ class StudiesResource(Resource):
                         AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(
-                    user_id=g.current_user.id
+                    user_id=current_user.id
                 )
                 query = query.filter(Study.id.in_(text(stmt)))
             elif fulltext_status == "awaiting_coscreener":
@@ -422,7 +426,7 @@ class StudiesResource(Resource):
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(
-                    user_id=g.current_user.id
+                    user_id=current_user.id
                 )
                 query = query.filter(Study.id.in_(text(stmt)))
 

@@ -52,15 +52,16 @@ class StudyTagsResource(Resource):
     )
     def get(self, review_id):
         """get all distinct tags assigned to studies"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get study tags for this review".format(g.current_user)
+                "{} forbidden to get study tags for this review".format(current_user)
             )
         studies = review.studies.filter(Study.tags != []).with_entities(Study.tags)
         current_app.logger.debug("got tags for %s", review)

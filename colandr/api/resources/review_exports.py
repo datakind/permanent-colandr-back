@@ -10,16 +10,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import (
-    DataSource,
-    FulltextScreening,
-    Import,
-    Review,
-    ReviewPlan,
-    Study,
-    db,
-)
+from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -55,15 +48,16 @@ class ReviewExportPrismaResource(Resource):
     )
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get this review".format(g.current_user)
+                "{} forbidden to get this review".format(current_user)
             )
         # get counts by step, i.e. prisma
         n_studies_by_source = dict(
@@ -161,15 +155,16 @@ class ReviewExportStudiesResource(Resource):
     )
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get this review".format(g.current_user)
+                "{} forbidden to get this review".format(current_user)
             )
 
         query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
