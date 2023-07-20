@@ -52,12 +52,13 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "black~=23.0",
+  "httpx~=0.24.0",
   "ipython",
   "isort~=5.0",
   # "jupyter",
+  "mypy~=1.0",
   "pytest~=7.0",
   "ruff",
-  "mypy~=1.0",
 ]
 
 [tool.setuptools.packages.find]
