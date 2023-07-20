@@ -19,7 +19,6 @@ from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
 
-
 ns = Namespace(
     "citation_screenings",
     path="/citations",
@@ -63,17 +62,18 @@ class CitationScreeningsResource(Resource):
     )
     def get(self, id, fields):
         """get screenings for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=citation.review_id).one_or_none()
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=citation.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
-                f"{g.current_user} forbidden to get citation screenings for this review"
+                f"{current_user} forbidden to get citation screenings for this review"
             )
         current_app.logger.debug("got %s", citation)
         return ScreeningSchema(many=True, only=fields).dump(citation.screenings)
@@ -105,23 +105,19 @@ class CitationScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete current app user's screening for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
-        if (
-            g.current_user.reviews.filter_by(id=citation.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=citation.review_id).one_or_none() is None:
             return forbidden_error(
-                f"{g.current_user} forbidden to delete citation screening for this review"
+                f"{current_user} forbidden to delete citation screening for this review"
             )
-        screening = citation.screenings.filter_by(
-            user_id=g.current_user.id
-        ).one_or_none()
+        screening = citation.screenings.filter_by(user_id=current_user.id).one_or_none()
         if not screening:
             return forbidden_error(
-                f"{g.current_user} has not screened {citation}, so nothing to delete"
+                f"{current_user} has not screened {citation}, so nothing to delete"
             )
         db.session.delete(screening)
         if test is False:
@@ -161,29 +157,27 @@ class CitationScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, id, test):
         """create a screening for a single citation by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
-        if (
-            g.current_user.reviews.filter_by(id=citation.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=citation.review_id).one_or_none() is None:
             return forbidden_error(
-                f"{g.current_user} forbidden to screen citations for this review"
+                f"{current_user} forbidden to screen citations for this review"
             )
         # validate and add screening
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return validation_error("screenings that exclude must provide a reason")
         screening = CitationScreening(
             citation.review_id,
-            g.current_user.id,
+            current_user.id,
             id,
             args["status"],
             args["exclude_reasons"],
         )
-        if citation.screenings.filter_by(user_id=g.current_user.id).one_or_none():
-            return forbidden_error(f"{g.current_user} has already screened {citation}")
+        if citation.screenings.filter_by(user_id=current_user.id).one_or_none():
+            return forbidden_error(f"{current_user} has already screened {citation}")
         citation.screenings.append(screening)
         if test is False:
             db.session.commit()
@@ -221,14 +215,13 @@ class CitationScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify current app user's screening of a single citation by id"""
+        current_user = flask_praetorian.current_user()
         citation = db.session.query(Citation).get(id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
-        screening = citation.screenings.filter_by(
-            user_id=g.current_user.id
-        ).one_or_none()
+        screening = citation.screenings.filter_by(user_id=current_user.id).one_or_none()
         if not screening:
-            return not_found_error(f"{g.current_user} has not screened this citation")
+            return not_found_error(f"{current_user} has not screened this citation")
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return validation_error("screenings that exclude must provide a reason")
         for key, value in args.items():
@@ -300,6 +293,7 @@ class CitationsScreeningsResource(Resource):
     )
     def get(self, citation_id, user_id, review_id, status_counts):
         """get all citation screenings by citation, user, or review id"""
+        current_user = flask_praetorian.current_user()
         if not any([citation_id, user_id, review_id]):
             return bad_request_error(
                 "citation, user, and/or review id must be specified"
@@ -311,12 +305,12 @@ class CitationsScreeningsResource(Resource):
             if not citation:
                 return not_found_error(f"<Citation(id={citation_id})> not found")
             if (
-                g.current_user.is_admin is False
-                and citation.review.users.filter_by(id=g.current_user.id).one_or_none()
+                current_user.is_admin is False
+                and citation.review.users.filter_by(id=current_user.id).one_or_none()
                 is None
             ):
                 return forbidden_error(
-                    f"{g.current_user} forbidden to get screenings for {citation}"
+                    f"{current_user} forbidden to get screenings for {citation}"
                 )
             query = query.filter_by(citation_id=citation_id)
         if user_id is not None:
@@ -324,13 +318,13 @@ class CitationsScreeningsResource(Resource):
             user = db.session.query(User).get(user_id)
             if not user:
                 return not_found_error(f"<User(id={user_id})> not found")
-            if g.current_user.is_admin is False and not any(
+            if current_user.is_admin is False and not any(
                 user_id == user.id
-                for review in g.current_user.reviews
+                for review in current_user.reviews
                 for user in review.users
             ):
                 return forbidden_error(
-                    f"{g.current_user} forbidden to get screenings for {user}"
+                    f"{current_user} forbidden to get screenings for {user}"
                 )
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
@@ -339,11 +333,11 @@ class CitationsScreeningsResource(Resource):
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
-                g.current_user.is_admin is False
-                and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+                current_user.is_admin is False
+                and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    f"{g.current_user} forbidden to get screenings for {review}"
+                    f"{current_user} forbidden to get screenings for {review}"
                 )
             query = query.filter_by(review_id=review_id)
         if status_counts is True:
@@ -397,13 +391,14 @@ class CitationsScreeningsResource(Resource):
     )
     def post(self, args, review_id, user_id, test):
         """create one or more citation screenings (ADMIN ONLY)"""
-        if g.current_user.is_admin is False:
+        current_user = flask_praetorian.current_user()
+        if current_user.is_admin is False:
             return forbidden_error("endpoint is admin-only")
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         # bulk insert citation screenings
-        screener_user_id = user_id or g.current_user.id
+        screener_user_id = user_id or current_user.id
         screenings_to_insert = []
         for screening in args:
             screening["review_id"] = review_id

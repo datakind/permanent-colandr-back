@@ -15,7 +15,6 @@ from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
 
-
 ns = Namespace(
     "review_teams", path="/reviews", description="get, modify, and confirm review teams"
 )
@@ -57,15 +56,16 @@ class ReviewTeamResource(Resource):
     )
     def get(self, id, fields):
         """get members of a single review's team"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get this review".format(g.current_user)
+                "{} forbidden to get this review".format(current_user)
             )
         if fields and "id" not in fields:
             fields.append("id")
@@ -142,12 +142,13 @@ class ReviewTeamResource(Resource):
     )
     def put(self, id, action, user_id, user_email, server_name, test):
         """add, invite, remove, or promote a review team member"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(id))
-        if g.current_user.is_admin is False and review.owner is not g.current_user:
+        if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to modify this review team".format(g.current_user)
+                "{} forbidden to modify this review team".format(current_user)
             )
         if user_id is not None:
             user = db.session.query(User).get(user_id)
@@ -187,7 +188,7 @@ class ReviewTeamResource(Resource):
                 html = render_template(
                     "emails/invite_new_user_to_review.html",
                     url=confirm_url,
-                    inviter_email=g.current_user.email,
+                    inviter_email=current_user.email,
                     review_name=review.name,
                 )
             # this user is already in our system
@@ -195,7 +196,7 @@ class ReviewTeamResource(Resource):
                 html = render_template(
                     "emails/invite_user_to_review.html",
                     url=confirm_url,
-                    inviter_email=g.current_user.email,
+                    inviter_email=current_user.email,
                     review_name=review.name,
                 )
             if test is False:

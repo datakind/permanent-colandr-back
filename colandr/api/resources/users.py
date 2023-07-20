@@ -15,7 +15,6 @@ from ..errors import db_integrity_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
 
-
 ns = Namespace("users", path="/users", description="get, create, delete, update users")
 
 
@@ -55,18 +54,17 @@ class UserResource(Resource):
     )
     def get(self, id, fields):
         """get record for a single user by id"""
+        current_user = flask_praetorian.current_user()
         if (
-            g.current_user.is_admin is False
-            and id != g.current_user.id
+            current_user.is_admin is False
+            and id != current_user.id
             and any(
                 review.users.filter_by(id=id).one_or_none()
-                for review in g.current_user.reviews
+                for review in current_user.reviews
             )
             is False
         ):
-            return forbidden_error(
-                "{} forbidden to get this user".format(g.current_user)
-            )
+            return forbidden_error("{} forbidden to get this user".format(current_user))
         user = db.session.query(User).get(id)
         if not user:
             return not_found_error("<User(id={})> not found".format(id))
@@ -101,9 +99,10 @@ class UserResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete record for a single user by id"""
-        if id != g.current_user.id:
+        current_user = flask_praetorian.current_user()
+        if id != current_user.id:
             return forbidden_error(
-                "{} forbidden to delete this user".format(g.current_user)
+                "{} forbidden to delete this user".format(current_user)
             )
         user = db.session.query(User).get(id)
         if not user:
@@ -144,9 +143,10 @@ class UserResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify record for a single user by id"""
-        if id != g.current_user.id:
+        current_user = flask_praetorian.current_user()
+        if id != current_user.id:
             return forbidden_error(
-                "{} forbidden to update this user".format(g.current_user)
+                "{} forbidden to update this user".format(current_user)
             )
         user = db.session.query(User).get(id)
         if not user:
@@ -211,6 +211,7 @@ class UsersResource(Resource):
     )
     def get(self, email, review_id):
         """get user record(s) for one or more matching users"""
+        current_user = flask_praetorian.current_user()
         if email:
             user = db.session.query(User).filter_by(email=email).one_or_none()
             if not user:
@@ -223,11 +224,11 @@ class UsersResource(Resource):
             if not review:
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
-                g.current_user.is_admin is False
-                and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+                current_user.is_admin is False
+                and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    "{} forbidden to see users for this review".format(g.current_user)
+                    "{} forbidden to see users for this review".format(current_user)
                 )
             return UserSchema(many=True).dump(review.users)
 
@@ -250,7 +251,8 @@ class UsersResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, test):
         """create new user (ADMIN ONLY)"""
-        if g.current_user.is_admin is False:
+        current_user = flask_praetorian.current_user()
+        if current_user.is_admin is False:
             return forbidden_error("UsersResource.post is admin-only")
         user = User(**args)
         user.password = guard.hash_password(user.password)

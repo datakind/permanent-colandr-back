@@ -17,7 +17,6 @@ from ...tasks import get_fulltext_text_content_vector
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
 
-
 ns = Namespace(
     "fulltext_uploads",
     path="/fulltexts",
@@ -66,6 +65,7 @@ class FulltextUploadResource(Resource):
     )
     def get(self, id, review_id):
         """get fulltext content file for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         filename = None
         if review_id is None:
             for dirname, _, filenames in os.walk(
@@ -85,11 +85,11 @@ class FulltextUploadResource(Resource):
             if not review:
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
-                g.current_user.is_admin is False
-                and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+                current_user.is_admin is False
+                and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    "{} forbidden to get this review's fulltexts".format(g.current_user)
+                    "{} forbidden to get this review's fulltexts".format(current_user)
                 )
             upload_dir = os.path.join(
                 current_app.config["FULLTEXT_UPLOADS_DIR"], str(review_id)
@@ -139,16 +139,14 @@ class FulltextUploadResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, id, uploaded_file, test):
         """upload fulltext content file for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if (
-            g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
-                    g.current_user
+                    current_user
                 )
             )
         _, ext = os.path.splitext(uploaded_file.filename)
@@ -222,16 +220,14 @@ class FulltextUploadResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete fulltext content file for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if (
-            g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
-                    g.current_user
+                    current_user
                 )
             )
         filename = fulltext.filename

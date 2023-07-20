@@ -16,7 +16,6 @@ from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
-
 ns = Namespace(
     "citation_imports",
     path="/citations/imports",
@@ -57,15 +56,16 @@ class CitationsImportsResource(Resource):
     )
     def get(self, review_id):
         """get citation import history for a review"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                f"{g.current_user} forbidden to add citations to this review"
+                f"{current_user} forbidden to add citations to this review"
             )
         results = review.imports.filter_by(record_type="citation")
         return ImportSchema(many=True).dump(results.all())
@@ -152,15 +152,16 @@ class CitationsImportsResource(Resource):
         test,
     ):
         """import citations in bulk for a review"""
+        current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                f"{g.current_user} forbidden to add citations to this review"
+                f"{current_user} forbidden to add citations to this review"
             )
         # TODO: see about using secure_filename(uploaded_file.filename)
         fname = uploaded_file.filename
@@ -231,7 +232,7 @@ class CitationsImportsResource(Resource):
                 current_app.logger.warning("parsing error: %s", e)
         n_citations = len(citations_to_insert)
 
-        user_id = g.current_user.id
+        user_id = current_user.id
         if status is None:
             studies_to_insert = [
                 {

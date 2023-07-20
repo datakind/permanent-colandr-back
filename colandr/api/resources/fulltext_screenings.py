@@ -27,7 +27,6 @@ from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
 
-
 ns = Namespace(
     "fulltext_screenings",
     path="/fulltexts",
@@ -71,18 +70,19 @@ class FulltextScreeningsResource(Resource):
     )
     def get(self, id, fields):
         """get screenings for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
                 "{} forbidden to get fulltext screenings for this review".format(
-                    g.current_user
+                    current_user
                 )
             )
         return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings)
@@ -114,26 +114,22 @@ class FulltextScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def delete(self, id, test):
         """delete current app user's screening for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if (
-            g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
             return forbidden_error(
                 "{} forbidden to delete fulltext screening for this review".format(
-                    g.current_user
+                    current_user
                 )
             )
-        screening = fulltext.screenings.filter_by(
-            user_id=g.current_user.id
-        ).one_or_none()
+        screening = fulltext.screenings.filter_by(user_id=current_user.id).one_or_none()
         if not screening:
             return forbidden_error(
                 "{} has not screened {}, so nothing to delete".format(
-                    g.current_user, fulltext
+                    current_user, fulltext
                 )
             )
         db.session.delete(screening)
@@ -174,18 +170,14 @@ class FulltextScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def post(self, args, id, test):
         """create a screenings for a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if (
-            g.current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
-            is None
-        ):
+        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
             return forbidden_error(
-                "{} forbidden to screen fulltexts for this review".format(
-                    g.current_user
-                )
+                "{} forbidden to screen fulltexts for this review".format(current_user)
             )
         if fulltext.filename is None:
             return forbidden_error(
@@ -198,14 +190,14 @@ class FulltextScreeningsResource(Resource):
             return validation_error("screenings that exclude must provide a reason")
         screening = FulltextScreening(
             fulltext.review_id,
-            g.current_user.id,
+            current_user.id,
             id,
             args["status"],
             args["exclude_reasons"],
         )
-        if fulltext.screenings.filter_by(user_id=g.current_user.id).one_or_none():
+        if fulltext.screenings.filter_by(user_id=current_user.id).one_or_none():
             return forbidden_error(
-                "{} has already screened {}".format(g.current_user, fulltext)
+                "{} has already screened {}".format(current_user, fulltext)
             )
         if test is False:
             fulltext.screenings.append(screening)
@@ -244,15 +236,14 @@ class FulltextScreeningsResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify current app user's screening of a single fulltext by id"""
+        current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        screening = fulltext.screenings.filter_by(
-            user_id=g.current_user.id
-        ).one_or_none()
+        screening = fulltext.screenings.filter_by(user_id=current_user.id).one_or_none()
         if not screening:
             return not_found_error(
-                "{} has not screened this fulltext".format(g.current_user)
+                "{} has not screened this fulltext".format(current_user)
             )
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return validation_error("screenings that exclude must provide a reason")
@@ -325,6 +316,7 @@ class FulltextsScreeningsResource(Resource):
     )
     def get(self, fulltext_id, user_id, review_id, status_counts):
         """get all fulltext screenings by citation, user, or review id"""
+        current_user = flask_praetorian.current_user()
         if not any([fulltext_id, user_id, review_id]):
             return bad_request_error(
                 "fulltext, user, and/or review id must be specified"
@@ -338,13 +330,13 @@ class FulltextsScreeningsResource(Resource):
                     "<Fulltext(id={})> not found".format(fulltext_id)
                 )
             if (
-                g.current_user.is_admin is False
-                and fulltext.review.users.filter_by(id=g.current_user.id).one_or_none()
+                current_user.is_admin is False
+                and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
                 is None
             ):
                 return forbidden_error(
                     "{} forbidden to get screenings for {}".format(
-                        g.current_user, fulltext
+                        current_user, fulltext
                     )
                 )
             query = query.filter_by(fulltext_id=fulltext_id)
@@ -353,13 +345,13 @@ class FulltextsScreeningsResource(Resource):
             user = db.session.query(User).get(user_id)
             if not user:
                 return not_found_error("<User(id={})> not found".format(user_id))
-            if g.current_user.is_admin is False and not any(
+            if current_user.is_admin is False and not any(
                 user_id == user.id
-                for review in g.current_user.reviews
+                for review in current_user.reviews
                 for user in review.users
             ):
                 return forbidden_error(
-                    "{} forbidden to get screenings for {}".format(g.current_user, user)
+                    "{} forbidden to get screenings for {}".format(current_user, user)
                 )
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
@@ -368,13 +360,11 @@ class FulltextsScreeningsResource(Resource):
             if not review:
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
-                g.current_user.is_admin is False
-                and review.users.filter_by(id=g.current_user.id).one_or_none() is None
+                current_user.is_admin is False
+                and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    "{} forbidden to get screenings for {}".format(
-                        g.current_user, review
-                    )
+                    "{} forbidden to get screenings for {}".format(current_user, review)
                 )
             query = query.filter_by(review_id=review_id)
         if status_counts is True:
@@ -428,14 +418,15 @@ class FulltextsScreeningsResource(Resource):
     )
     def post(self, args, review_id, user_id, test):
         """create one or more fulltext screenings (ADMIN ONLY)"""
-        if g.current_user.is_admin is False:
+        current_user = flask_praetorian.current_user()
+        if current_user.is_admin is False:
             return forbidden_error("FulltextsScreeningsResource.post is admin-only")
         # check current user authorization
         review = db.session.query(Review).get(review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         # bulk insert fulltext screenings
-        screener_user_id = user_id or g.current_user.id
+        screener_user_id = user_id or current_user.id
         screenings_to_insert = []
         for screening in args:
             screening["review_id"] = review_id

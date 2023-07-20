@@ -13,7 +13,6 @@ from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import DataExtractionSchema, ExtractedItem
 from ..swagger import extracted_item_model
 
-
 ns = Namespace(
     "data_extractions",
     path="/data_extractions",
@@ -46,21 +45,20 @@ class DataExtractionResource(Resource):
     )
     def get(self, id):
         """get data extraction record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         extracted_data = db.session.query(DataExtraction).get(id)
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
         if (
-            g.current_user.is_admin is False
-            and g.current_user.reviews.filter_by(
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(
                 id=extracted_data.review_id
             ).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get extracted data for this study".format(
-                    g.current_user
-                )
+                "{} forbidden to get extracted data for this study".format(current_user)
             )
         current_app.logger.debug("got %s", extracted_data)
         return DataExtractionSchema().dump(extracted_data)
@@ -104,18 +102,17 @@ class DataExtractionResource(Resource):
     )
     def delete(self, id, labels, test):
         """delete data extraction record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         extracted_data = db.session.query(DataExtraction).get(id)
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
         if (
-            g.current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none()
+            current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get extracted data for this study".format(
-                    g.current_user
-                )
+                "{} forbidden to get extracted data for this study".format(current_user)
             )
         if labels:
             extracted_data.extracted_items = [
@@ -165,15 +162,16 @@ class DataExtractionResource(Resource):
     @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
     def put(self, args, id, test):
         """modify data extraction record for a single study by id"""
+        current_user = flask_praetorian.current_user()
         # check current user authorization
         extracted_data = db.session.query(DataExtraction).get(id)
         review_id = extracted_data.review_id
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
-        if g.current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return forbidden_error(
                 "{} forbidden to modify extracted data for this study".format(
-                    g.current_user
+                    current_user
                 )
             )
         study = db.session.query(Study).get(id)
