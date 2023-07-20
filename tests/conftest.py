@@ -103,7 +103,8 @@ def db_session(db):
 @pytest.fixture(scope="session")
 def admin_user(db):
     user = db.session.query(models.User).get(1)
-    g.current_user = user
+    # TODO: confirm that we *don't* want this
+    # g.current_user = user
     return user
 
 
