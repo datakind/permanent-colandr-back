@@ -27,6 +27,7 @@ from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
 
+
 ns = Namespace(
     "fulltext_screenings",
     path="/fulltexts",

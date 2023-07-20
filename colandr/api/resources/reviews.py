@@ -16,6 +16,7 @@ from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
 
+
 ns = Namespace(
     "reviews", path="/reviews", description="get, create, delete, update reviews"
 )

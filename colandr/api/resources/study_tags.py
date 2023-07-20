@@ -11,6 +11,7 @@ from ...lib import constants
 from ...models import Review, Study, db
 from ..errors import forbidden_error, not_found_error
 
+
 ns = Namespace(
     "study_tags",
     path="/studies/tags",

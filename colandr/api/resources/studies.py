@@ -27,6 +27,7 @@ from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
 
+
 ns = Namespace("studies", path="/studies", description="get, delete, update studies")
 
 

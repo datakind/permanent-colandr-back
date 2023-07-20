@@ -14,6 +14,7 @@ from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model
 
+
 ns = Namespace(
     "citations", path="/citations", description="get, delete, update citations"
 )

@@ -15,6 +15,7 @@ from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
 
+
 ns = Namespace(
     "review_teams", path="/reviews", description="get, modify, and confirm review teams"
 )

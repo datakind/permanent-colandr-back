@@ -13,6 +13,7 @@ from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import DataExtractionSchema, ExtractedItem
 from ..swagger import extracted_item_model
 
+
 ns = Namespace(
     "data_extractions",
     path="/data_extractions",

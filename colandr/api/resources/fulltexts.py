@@ -11,6 +11,7 @@ from ...models import Fulltext, db
 from ..errors import forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 
+
 ns = Namespace("fulltexts", path="/fulltexts", description="get and delete fulltexts")
 
 

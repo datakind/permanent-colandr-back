@@ -9,6 +9,7 @@ from ...lib import constants
 from ...models import Review, Study, db
 from ..errors import forbidden_error, not_found_error
 
+
 ns = Namespace(
     "review_progress",
     path="/reviews/<int:id>",

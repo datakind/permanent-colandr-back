@@ -17,6 +17,7 @@ from ...tasks import get_fulltext_text_content_vector
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
 
+
 ns = Namespace(
     "fulltext_uploads",
     path="/fulltexts",

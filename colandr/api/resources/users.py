@@ -15,6 +15,7 @@ from ..errors import db_integrity_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
 
+
 ns = Namespace("users", path="/users", description="get, create, delete, update users")
 
 

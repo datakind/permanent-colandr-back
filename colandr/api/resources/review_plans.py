@@ -14,6 +14,7 @@ from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import ReviewPlanSchema
 from ..swagger import review_plan_model
 
+
 ns = Namespace(
     "review_plans",
     path="/reviews/<int:id>/plan",
