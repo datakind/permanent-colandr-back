@@ -58,12 +58,12 @@ class ReviewPlanKeyterm(Schema):
 
 
 class ReviewPlanSelectionCriterion(Schema):
-    label = fields.Str(required=True, validate=Length(max=25))
+    label = fields.Str(required=True, validate=Length(max=50))
     description = fields.Str(validate=Length(max=300))
 
 
 class DataExtractionFormItem(Schema):
-    label = fields.Str(required=True, validate=Length(max=25))
+    label = fields.Str(required=True, validate=Length(max=50))
     description = fields.Str(validate=Length(max=300))
     field_type = fields.Str(
         required=True,
@@ -198,7 +198,7 @@ class FulltextSchema(Schema):
 
 
 class ExtractedItem(Schema):
-    label = fields.Str(required=True, validate=Length(max=25))
+    label = fields.Str(required=True, validate=Length(max=50))
     # validation handled in API Resource based on values in DataExtractionFormItem
     value = fields.Raw(required=True)
 
