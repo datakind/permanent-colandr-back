@@ -287,5 +287,41 @@
                 "url": "https://example.com/title4"
             }
         }
+    ],
+    "citation_screenings": [
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "citation_id": 1,
+            "status": "included"
+        },
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "citation_id": 2,
+            "status": "included"
+        },
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "citation_id": 3,
+            "status": "excluded",
+            "exclude_reasons": [
+                "REASON1",
+                "REASON2"
+            ]
+        },
+        {
+            "user_id": 3,
+            "review_id": 2,
+            "citation_id": 4,
+            "status": "included"
+        },
+        {
+            "user_id": 4,
+            "review_id": 2,
+            "citation_id": 4,
+            "status": "included"
+        }
     ]
 }

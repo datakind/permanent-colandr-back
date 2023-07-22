@@ -2,7 +2,6 @@ import json
 import pathlib
 
 import pytest
-from flask import g
 
 from colandr import extensions, models
 from colandr.app import create_app
@@ -63,8 +62,9 @@ def _populate_db(db, seed_data):
         db.session.add(models.Study(**record))
     for record in seed_data["citations"]:
         db.session.add(models.Citation(**record))
-
     db.session.commit()
+    for record in seed_data["citation_screenings"]:
+        db.session.add(models.CitationScreening(**record))
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
     #     review = db.session.query(models.Review).get(record["id"])
@@ -103,8 +103,6 @@ def db_session(db):
 @pytest.fixture(scope="session")
 def admin_user(db):
     user = db.session.query(models.User).get(1)
-    # TODO: confirm that we *don't* want this
-    # g.current_user = user
     return user
 
 
