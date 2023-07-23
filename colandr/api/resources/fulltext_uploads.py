@@ -1,7 +1,6 @@
 import io
 import os
 
-import fitz
 import flask_praetorian
 import ftfy
 from flask import current_app, g, send_from_directory
@@ -11,7 +10,7 @@ from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
-from ...lib import constants
+from ...lib import constants, fileio
 from ...models import Fulltext, db
 from ...tasks import get_fulltext_text_content_vector
 from ..errors import forbidden_error, not_found_error, validation_error
@@ -144,7 +143,11 @@ class FulltextUploadResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
                     current_user
@@ -164,6 +167,8 @@ class FulltextUploadResource(Resource):
             str(fulltext.review_id),
             filename,
         )
+        # HACK: make review directory if doesn't already exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         if test is False:
             # save file content to disk
             uploaded_file.save(filepath)
@@ -179,7 +184,7 @@ class FulltextUploadResource(Resource):
                 #     [extract_text_script, '--filename', filepath],
                 #     stderr=subprocess.STDOUT,
                 # )
-                text_content = extract_pdf_text(filepath).encode("utf-8")
+                text_content = fileio.pdf.read(filepath).encode("utf-8")
             fulltext.text_content = ftfy.fix_text(text_content.decode(errors="ignore"))
             db.session.commit()
             current_app.logger.info(
@@ -225,7 +230,11 @@ class FulltextUploadResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
                     current_user
@@ -256,10 +265,3 @@ class FulltextUploadResource(Resource):
             return "", 204
         else:
             return "", 200
-
-
-def extract_pdf_text(pdf_path: str) -> str:
-    """Extract text from a PDF file and write it to a text file."""
-    with fitz.open(pdf_path) as doc:
-        text = chr(12).join(page.get_text("text", sort=True) for page in doc)
-    return text

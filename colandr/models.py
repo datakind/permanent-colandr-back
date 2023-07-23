@@ -1031,6 +1031,11 @@ def update_citation_status(mapper, connection, target):
     citation_id = target.citation_id
     review_id = target.review_id
     citation = target.citation
+    # TODO(burton): you added this so that conftest populate_db func would work
+    # for reasons unknown, the target here didn't have a loaded citation object
+    # but this is _probably_ a bad thing, and you should find a way to fix it
+    if citation is None:
+        citation = Citation.query.where(Citation.id == citation_id).one_or_none()
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
