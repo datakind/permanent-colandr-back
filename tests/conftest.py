@@ -1,5 +1,4 @@
 import json
-import os
 import pathlib
 import shutil
 
@@ -36,6 +35,7 @@ def app(tmp_path_factory):
     app = create_app("test")
     # HACK! we should provide a way to customize config before as input to app creation
     app.config.FULLTEXT_UPLOADS_DIR = str(tmp_path_factory.mktemp("colandr_fulltexts"))
+    app.config["FULLTEXT_UPLOADS_DIR"] = app.config.FULLTEXT_UPLOADS_DIR
     # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
