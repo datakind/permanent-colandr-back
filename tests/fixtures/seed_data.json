@@ -337,5 +337,29 @@
             "original_filename": "example-journal.pdf",
             "text_content": "TEXT_CONTENT2"
         }
+    ],
+    "fulltext_screenings": [
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "fulltext_id": 1,
+            "status": "included"
+        },
+        {
+            "user_id": 3,
+            "review_id": 1,
+            "fulltext_id": 1,
+            "status": "included"
+        },
+        {
+            "user_id": 2,
+            "review_id": 1,
+            "fulltext_id": 2,
+            "status": "excluded",
+            "exclude_reasons": [
+                "REASON1",
+                "REASON2"
+            ]
+        }
     ]
 }

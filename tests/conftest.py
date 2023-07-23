@@ -74,6 +74,8 @@ def _populate_db(db, seed_data):
         for key, val in record.items():
             if key != "id":
                 setattr(fulltext, key, val)
+    for record in seed_data["fulltext_screenings"]:
+        db.session.add(models.FulltextScreening(**record))
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
     #     review = db.session.query(models.Review).get(record["id"])
