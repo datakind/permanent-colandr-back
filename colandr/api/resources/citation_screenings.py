@@ -19,7 +19,6 @@ from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
 
-
 ns = Namespace(
     "citation_screenings",
     path="/citations",
@@ -213,7 +212,11 @@ class CitationScreeningsResource(Resource):
         },
     )
     @use_args(
-        ScreeningSchema(only=["user_id", "status", "exclude_reasons"]), location="json"
+        ScreeningSchema(
+            only=["user_id", "status", "exclude_reasons"],
+            partial=["status", "exclude_reasons"],
+        ),
+        location="json",
     )
     @use_kwargs(
         {
