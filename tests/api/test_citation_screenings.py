@@ -81,7 +81,54 @@ class TestCitationScreeningsResource:
         # get_response = client.get(url, headers=admin_headers)
         # assert get_response.status_code == 404  # not found!
 
-    # TODO: def test_post(self, ...):
+    @pytest.mark.parametrize(
+        ["citation_id", "data", "status_code"],
+        [
+            (1, {"user_id": 3, "review_id": 1, "status": "included"}, 200),
+            (
+                3,
+                {
+                    "user_id": 3,
+                    "status": "excluded",
+                    "exclude_reasons": ["REASON3"],
+                },
+                200,
+            ),
+            (999, {"status": "included"}, 404),
+        ],
+    )
+    def test_post(
+        self, citation_id, data, status_code, app, client, admin_headers, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for(
+                "citation_screenings_citation_screenings_resource", id=citation_id
+            )
+        response = client.post(url, json=data, headers=admin_headers)
+        assert response.status_code == status_code
+        if 200 <= status_code < 300:
+            data = response.json
+            for key, val in data.items():
+                assert data.get(key) == val
 
 
-# TODO: TestCitationsScreeningsResource:
+class TestCitationsScreeningsResource:
+    @pytest.mark.parametrize(
+        ["params", "num_exp"],
+        [
+            ({"citation_id": 1}, 1),
+            ({"user_id": 2}, 3),
+            ({"review_id": 2}, 2),
+            ({"review_id": 2, "user_id": 3}, 1),
+        ],
+    )
+    def test_get(self, params, num_exp, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for(
+                "citation_screenings_citations_screenings_resource", **params
+            )
+        response = client.get(url, headers=admin_headers)
+        assert response.status_code == 200
+        response_data = response.json
+        assert isinstance(response_data, list)
+        assert len(response_data) == num_exp
