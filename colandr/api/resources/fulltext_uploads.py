@@ -143,7 +143,11 @@ class FulltextUploadResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
                     current_user
@@ -163,6 +167,8 @@ class FulltextUploadResource(Resource):
             str(fulltext.review_id),
             filename,
         )
+        # HACK: make review directory if doesn't already exist
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         if test is False:
             # save file content to disk
             uploaded_file.save(filepath)
@@ -224,7 +230,11 @@ class FulltextUploadResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to upload fulltext files to this review".format(
                     current_user
