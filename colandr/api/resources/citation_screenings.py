@@ -19,6 +19,7 @@ from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
 
+
 ns = Namespace(
     "citation_screenings",
     path="/citations",
