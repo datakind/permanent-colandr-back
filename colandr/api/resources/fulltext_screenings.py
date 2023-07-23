@@ -176,7 +176,11 @@ class FulltextScreeningsResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to screen fulltexts for this review".format(current_user)
             )
@@ -189,12 +193,17 @@ class FulltextScreeningsResource(Resource):
         # validate and add screening
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return validation_error("screenings that exclude must provide a reason")
+        if current_user.is_admin:
+            if "user_id" not in args:
+                return validation_error(
+                    "admins must specify 'user_id' when creating a fulltext screening"
+                )
+            else:
+                user_id = args["user_id"]
+        else:
+            user_id = current_user.id
         screening = FulltextScreening(
-            fulltext.review_id,
-            current_user.id,
-            id,
-            args["status"],
-            args["exclude_reasons"],
+            fulltext.review_id, user_id, id, args["status"], args["exclude_reasons"]
         )
         if fulltext.screenings.filter_by(user_id=current_user.id).one_or_none():
             return forbidden_error(
@@ -225,7 +234,13 @@ class FulltextScreeningsResource(Resource):
             422: "invalid modified fulltext screening data",
         },
     )
-    @use_args(ScreeningSchema(only=["status", "exclude_reasons"]), location="json")
+    @use_args(
+        ScreeningSchema(
+            only=["user_id", "status", "exclude_reasons"],
+            partial=["status", "exclude_reasons"],
+        ),
+        location="json",
+    )
     @use_kwargs(
         {
             "id": ma_fields.Int(
@@ -241,7 +256,14 @@ class FulltextScreeningsResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        screening = fulltext.screenings.filter_by(user_id=current_user.id).one_or_none()
+        if current_user.is_admin is True and "user_id" in args:
+            screening = fulltext.screenings.filter_by(
+                user_id=args["user_id"]
+            ).one_or_none()
+        else:
+            screening = fulltext.screenings.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
         if not screening:
             return not_found_error(
                 "{} has not screened this fulltext".format(current_user)
