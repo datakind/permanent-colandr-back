@@ -177,12 +177,17 @@ class CitationScreeningsResource(Resource):
         # validate and add screening
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return validation_error("screenings that exclude must provide a reason")
+        if current_user.is_admin:
+            if "user_id" not in args:
+                return validation_error(
+                    "admins must specify 'user_id' when creating a citation screening"
+                )
+            else:
+                user_id = args["user_id"]
+        else:
+            user_id = current_user.id
         screening = CitationScreening(
-            citation.review_id,
-            current_user.id,
-            id,
-            args["status"],
-            args["exclude_reasons"],
+            citation.review_id, user_id, id, args["status"], args["exclude_reasons"]
         )
         if citation.screenings.filter_by(user_id=current_user.id).one_or_none():
             return forbidden_error(f"{current_user} has already screened {citation}")
