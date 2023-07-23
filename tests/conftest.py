@@ -1,5 +1,7 @@
 import json
+import os
 import pathlib
+import shutil
 
 import pytest
 
@@ -29,19 +31,21 @@ def seed_data():
 
 
 @pytest.fixture(scope="session")
-def app():
+def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
-    # create the app with common test config
     app = create_app("test")
+    # HACK! we should provide a way to customize config before as input to app creation
+    app.config.FULLTEXT_UPLOADS_DIR = str(tmp_path_factory.mktemp("colandr_fulltexts"))
     # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
 
 
 @pytest.fixture(scope="session")
-def db(app, seed_data):
+def db(app, seed_data, request):
     extensions.db.drop_all()
     extensions.db.create_all()
+    _store_upload_files(app, seed_data, request)
     _populate_db(extensions.db, seed_data)
     return extensions.db
 
@@ -65,6 +69,11 @@ def _populate_db(db, seed_data):
     db.session.commit()
     for record in seed_data["citation_screenings"]:
         db.session.add(models.CitationScreening(**record))
+    for record in seed_data["fulltext_uploads"]:
+        fulltext = db.session.query(models.Fulltext).get(record["id"])
+        for key, val in record.items():
+            if key != "id":
+                setattr(fulltext, key, val)
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
     #     review = db.session.query(models.Review).get(record["id"])
@@ -74,6 +83,19 @@ def _populate_db(db, seed_data):
     #     else:
     #         raise ValueError()
     db.session.commit()
+
+
+def _store_upload_files(app, seed_data, request):
+    for record in seed_data["fulltext_uploads"]:
+        src_file_path = (
+            request.config.rootpath / "tests" / "fixtures" / record["original_filename"]
+        )
+        tgt_file_path = pathlib.Path(app.config.FULLTEXT_UPLOADS_DIR).joinpath(
+            str(record.get("review_id", 1)),  # HACK
+            record["filename"],
+        )
+        tgt_file_path.parent.mkdir(exist_ok=True)
+        shutil.copy(src_file_path, tgt_file_path)
 
 
 @pytest.fixture

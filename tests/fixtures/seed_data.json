@@ -323,5 +323,19 @@
             "citation_id": 4,
             "status": "included"
         }
+    ],
+    "fulltext_uploads": [
+        {
+            "id": 1,
+            "filename": "1.pdf",
+            "original_filename": "example-journal-short.pdf",
+            "text_content": "TEXT_CONTENT1"
+        },
+        {
+            "id": 2,
+            "filename": "2.pdf",
+            "original_filename": "example-journal.pdf",
+            "text_content": "TEXT_CONTENT2"
+        }
     ]
 }
