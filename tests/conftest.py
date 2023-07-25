@@ -58,10 +58,6 @@ def _populate_db(db, seed_data):
         db.session.add(user)
     for record in seed_data["reviews"]:
         db.session.add(models.Review(**record))
-    # for record in seed_data["review_plans"]:
-    #     # NOTE: this automatically adds the relationship to associated review
-    #     # _ = models.ReviewPlan(**record)
-    #     db.session.add(models.ReviewPlan(**record))
     for record in seed_data["data_sources"]:
         db.session.add(models.DataSource(**record))
     for record in seed_data["studies"]:
@@ -70,7 +66,11 @@ def _populate_db(db, seed_data):
         db.session.add(models.Citation(**record))
     db.session.commit()
     # empty review plans already created w/ review
-    db.session.execute(sa.update(models.ReviewPlan), seed_data["review_plans"])
+    for record in seed_data["review_plans"]:
+        plan = db.session.query(models.ReviewPlan).get(record["id_"])
+        for key, val in record.items():
+            if key != "id_":
+                setattr(plan, key, val)
     for record in seed_data["citation_screenings"]:
         db.session.add(models.CitationScreening(**record))
     for record in seed_data["fulltext_uploads"]:
