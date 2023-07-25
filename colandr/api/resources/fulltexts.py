@@ -99,7 +99,11 @@ class FulltextResource(Resource):
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if fulltext.review.users.filter_by(id=current_user.id).one_or_none() is None:
+        if (
+            current_user.is_admin is False
+            and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to delete this fulltext".format(current_user)
             )

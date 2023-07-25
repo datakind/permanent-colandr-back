@@ -26,10 +26,9 @@ class TestReviewPlanResource:
                 fields.append("id")
             assert "id" in data
             assert data["id"] == id
-            # TODO: figure out why these fields are null in the db :/
-            # for field in ["objective", "pico"]:
-            #     if fields is None or field in fields:
-            #         assert data[field] == seed_data.get(field)
+            for field in ["objective", "pico"]:
+                if fields is None or field in fields:
+                    assert data[field] == seed_data.get(field)
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 

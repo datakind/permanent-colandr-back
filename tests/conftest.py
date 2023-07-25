@@ -3,6 +3,7 @@ import pathlib
 import shutil
 
 import pytest
+import sqlalchemy as sa
 
 from colandr import extensions, models
 from colandr.app import create_app
@@ -57,9 +58,6 @@ def _populate_db(db, seed_data):
         db.session.add(user)
     for record in seed_data["reviews"]:
         db.session.add(models.Review(**record))
-    for record in seed_data["review_plans"]:
-        # NOTE: this automatically adds the relationship to associated review
-        _ = models.ReviewPlan(**record)
     for record in seed_data["data_sources"]:
         db.session.add(models.DataSource(**record))
     for record in seed_data["studies"]:
@@ -67,6 +65,12 @@ def _populate_db(db, seed_data):
     for record in seed_data["citations"]:
         db.session.add(models.Citation(**record))
     db.session.commit()
+    # empty review plans already created w/ review
+    for record in seed_data["review_plans"]:
+        plan = db.session.query(models.ReviewPlan).get(record["id_"])
+        for key, val in record.items():
+            if key != "id_":
+                setattr(plan, key, val)
     for record in seed_data["citation_screenings"]:
         db.session.add(models.CitationScreening(**record))
     for record in seed_data["fulltext_uploads"]:
@@ -74,6 +78,8 @@ def _populate_db(db, seed_data):
         for key, val in record.items():
             if key != "id":
                 setattr(fulltext, key, val)
+    for record in seed_data["fulltext_screenings"]:
+        db.session.add(models.FulltextScreening(**record))
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
     #     review = db.session.query(models.Review).get(record["id"])

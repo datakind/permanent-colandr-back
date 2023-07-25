@@ -1141,6 +1141,11 @@ def update_fulltext_status(mapper, connection, target):
     fulltext_id = target.fulltext_id
     review_id = target.review_id
     fulltext = target.fulltext
+    # TODO(burton): you added this so that conftest populate_db func would work
+    # for reasons unknown, the target here didn't have a loaded fulltext object
+    # but this is _probably_ a bad thing, and you should find a way to fix it
+    if fulltext is None:
+        fulltext = Fulltext.query.where(Fulltext.id == fulltext_id).one_or_none()
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
