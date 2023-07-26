@@ -7,8 +7,6 @@ import joblib
 import numpy as np
 import redis
 import textacy
-import textacy.lang_utils
-import textacy.text_utils
 from celery import current_app as current_celery_app
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -488,7 +486,7 @@ def get_citations_text_content_vectors(review_id):
         citations_to_update = []
         for id_, text_content in results:
             try:
-                lang = textacy.lang_utils.identify_lang(text_content)
+                lang = textacy.identify_lang(text_content)
             except ValueError:
                 logger.exception(
                     "unable to detect language of text content for <Citation(study_id=%s)>",
@@ -565,7 +563,7 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         else:
             text_content = text_content[0]
 
-        lang = textacy.lang_utils.identify_lang(text_content)
+        lang = textacy.identify_lang(text_content)
         try:
             nlp = textacy.load_spacy_lang(
                 lang, tagger=False, parser=False, entity=False, matcher=False
