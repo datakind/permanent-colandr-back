@@ -67,7 +67,7 @@ jobs:
         python -m pip install -e '.[dev]'
     - name: Download language data
       run: |
-        python3 -m textacy download lang_identifier
+        python3 -m textacy download lang_identifier --version 2.0
         python3 -m spacy download en_core_web_md
     - name: Test with pytest
       run: |
