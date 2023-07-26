@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9-slim
 
 ENV COLANDR_APP_DIR /app
 RUN mkdir -p ${COLANDR_APP_DIR}
