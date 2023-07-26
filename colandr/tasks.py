@@ -25,6 +25,7 @@ from sqlalchemy.sql import case, delete, exists, select, text, update
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import cache, db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
+from .lib.nlp import hack
 from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (
     Citation,
@@ -656,7 +657,7 @@ def suggest_keyterms(review_id, sample_size):
         )
 
         # run the analysis!
-        incl_keyterms, excl_keyterms = textacy.ke.utils.most_discriminating_terms(
+        incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
             terms_lists, included_vec, top_n_terms=50
         )
 
