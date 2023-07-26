@@ -7,7 +7,6 @@ import joblib
 import numpy as np
 import redis
 import textacy
-import textacy.ke.utils
 import textacy.lang_utils
 import textacy.text_utils
 from celery import current_app as current_celery_app
