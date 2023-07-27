@@ -2,7 +2,8 @@ import datetime
 import io
 import logging
 import pathlib
-from typing import Any, BinaryIO, Iterable, Optional, Sequence, Union
+from collections.abc import Sequence
+from typing import Any, BinaryIO, Iterable, Optional, Union
 
 from dateutil.parser import ParserError
 from dateutil.parser import parse as parse_dttm

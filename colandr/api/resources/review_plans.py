@@ -61,14 +61,12 @@ class ReviewPlanResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this review plan".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this review plan")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review.review_plan)
@@ -116,10 +114,10 @@ class ReviewPlanResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to delete this review plan".format(current_user)
+                f"{current_user} forbidden to delete this review plan"
             )
         review_plan = review.review_plan
         if fields:
@@ -187,14 +185,14 @@ class ReviewPlanResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to create this review plan".format(current_user)
+                f"{current_user} forbidden to create this review plan"
             )
         review_plan = review.review_plan
         if not review_plan:
-            return not_found_error("<ReviewPlan(review_id={})> not found".format(id))
+            return not_found_error(f"<ReviewPlan(review_id={id})> not found")
         if fields:
             with warnings.catch_warnings():
                 warnings.simplefilter("always", DeprecationWarning)
@@ -206,9 +204,7 @@ class ReviewPlanResource(Resource):
                 try:
                     setattr(review_plan, field, args[field])
                 except KeyError:
-                    return validation_error(
-                        'field "{}" value not specified'.format(field)
-                    )
+                    return validation_error(f'field "{field}" value not specified')
         else:
             for key, value in args.items():
                 setattr(review_plan, key, value)

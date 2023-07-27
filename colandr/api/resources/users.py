@@ -65,10 +65,10 @@ class UserResource(Resource):
             )
             is False
         ):
-            return forbidden_error("{} forbidden to get this user".format(current_user))
+            return forbidden_error(f"{current_user} forbidden to get this user")
         user = db.session.query(User).get(id)
         if not user:
-            return not_found_error("<User(id={})> not found".format(id))
+            return not_found_error(f"<User(id={id})> not found")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", user)
@@ -102,12 +102,10 @@ class UserResource(Resource):
         """delete record for a single user by id"""
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
-            return forbidden_error(
-                "{} forbidden to delete this user".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to delete this user")
         user = db.session.query(User).get(id)
         if not user:
-            return not_found_error("<User(id={})> not found".format(id))
+            return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
         if test is False:
             db.session.commit()
@@ -146,12 +144,10 @@ class UserResource(Resource):
         """modify record for a single user by id"""
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
-            return forbidden_error(
-                "{} forbidden to update this user".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to update this user")
         user = db.session.query(User).get(id)
         if not user:
-            return not_found_error("<User(id={})> not found".format(id))
+            return not_found_error(f"<User(id={id})> not found")
         for key, value in args.items():
             if key is missing:
                 continue
@@ -216,20 +212,20 @@ class UsersResource(Resource):
         if email:
             user = db.session.query(User).filter_by(email=email).one_or_none()
             if not user:
-                return not_found_error('no user found with email "{}"'.format(email))
+                return not_found_error(f'no user found with email "{email}"')
             else:
                 current_app.logger.debug("got %s", user)
                 return UserSchema().dump(user)
         elif review_id:
             review = db.session.query(Review).get(review_id)
             if not review:
-                return not_found_error("<Review(id={})> not found".format(review_id))
+                return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
                 and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    "{} forbidden to see users for this review".format(current_user)
+                    f"{current_user} forbidden to see users for this review"
                 )
             return UserSchema(many=True).dump(review.users)
 

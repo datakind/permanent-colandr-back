@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from decimal import Decimal
 from operator import itemgetter
-from typing import Iterable
 
 import numpy as np
 from textacy import representations

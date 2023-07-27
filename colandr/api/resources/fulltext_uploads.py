@@ -72,7 +72,7 @@ class FulltextUploadResource(Resource):
                 current_app.config["FULLTEXT_UPLOADS_DIR"]
             ):
                 for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
-                    fname = "{}{}".format(id, ext)
+                    fname = f"{id}{ext}"
                     if fname in filenames:
                         filename = fname
                         upload_dir = dirname
@@ -83,26 +83,24 @@ class FulltextUploadResource(Resource):
 
             review = db.session.query(Review).get(review_id)
             if not review:
-                return not_found_error("<Review(id={})> not found".format(review_id))
+                return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
                 and review.users.filter_by(id=current_user.id).one_or_none() is None
             ):
                 return forbidden_error(
-                    "{} forbidden to get this review's fulltexts".format(current_user)
+                    f"{current_user} forbidden to get this review's fulltexts"
                 )
             upload_dir = os.path.join(
                 current_app.config["FULLTEXT_UPLOADS_DIR"], str(review_id)
             )
             for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
-                fname = "{}{}".format(id, ext)
+                fname = f"{id}{ext}"
                 if os.path.isfile(os.path.join(upload_dir, fname)):
                     filename = fname
                     break
         if not filename:
-            return not_found_error(
-                "no uploaded file for <Fulltext(id={})> found".format(id)
-            )
+            return not_found_error(f"no uploaded file for <Fulltext(id={id})> found")
         return send_from_directory(upload_dir, filename)
 
     @ns.doc(
@@ -142,24 +140,20 @@ class FulltextUploadResource(Resource):
         current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to upload fulltext files to this review".format(
-                    current_user
-                )
+                f"{current_user} forbidden to upload fulltext files to this review"
             )
         _, ext = os.path.splitext(uploaded_file.filename)
         if ext not in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
-            return validation_error(
-                'invalid fulltext upload file type: "{}"'.format(ext)
-            )
+            return validation_error(f'invalid fulltext upload file type: "{ext}"')
         # assign filename based an id, and full path
-        filename = "{}{}".format(id, ext)
+        filename = f"{id}{ext}"
         fulltext.filename = filename
         fulltext.original_filename = secure_filename(uploaded_file.filename)
         filepath = os.path.join(
@@ -229,16 +223,14 @@ class FulltextUploadResource(Resource):
         current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to upload fulltext files to this review".format(
-                    current_user
-                )
+                f"{current_user} forbidden to upload fulltext files to this review"
             )
         filename = fulltext.filename
         if filename is None:

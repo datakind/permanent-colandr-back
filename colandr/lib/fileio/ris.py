@@ -5,7 +5,7 @@ References:
 """
 import logging
 import pathlib
-from typing import BinaryIO, Dict, List, Union
+from typing import BinaryIO, List, Union
 
 import markupsafe
 import rispy
@@ -75,14 +75,14 @@ DEFAULT_TO_ALT_KEYS = {
 }
 
 
-def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> List[Dict]:
+def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> list[dict]:
     data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
     return records
 
 
-def parse(data: str) -> List[Dict]:
+def parse(data: str) -> list[dict]:
     return rispy.loads(
         data,
         implementation=rispy.parser.RisParser,  # type: ignore
@@ -91,10 +91,10 @@ def parse(data: str) -> List[Dict]:
     )
 
 
-def sanitize(references: List[Dict]) -> List[Dict]:
+def sanitize(references: list[dict]) -> list[dict]:
     # convert reference types into human-readable equivalents
     # override "BOOK" => "whole book", which is silly
-    type_map = {**TYPE_OF_REFERENCE_MAPPING, **{"BOOK": "book"}}
+    type_map = TYPE_OF_REFERENCE_MAPPING | {"BOOK": "book"}
     references = rispy.utils.convert_reference_types(references, type_map=type_map)
     references = [_sanitize_reference(reference) for reference in references]
     return references
