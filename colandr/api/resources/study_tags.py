@@ -55,13 +55,13 @@ class StudyTagsResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get study tags for this review".format(current_user)
+                f"{current_user} forbidden to get study tags for this review"
             )
         studies = review.studies.filter(Study.tags != []).with_entities(Study.tags)
         current_app.logger.debug("got tags for %s", review)

@@ -61,14 +61,12 @@ class ReviewResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             not current_user.is_admin
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this review")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
@@ -104,11 +102,9 @@ class ReviewResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
-            return forbidden_error(
-                "{} forbidden to delete this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to delete this review")
         db.session.delete(review)
         if test is False:
             db.session.commit()
@@ -156,11 +152,9 @@ class ReviewResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
-            return forbidden_error(
-                "{} forbidden to update this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to update this review")
         for key, value in args.items():
             if key is missing:
                 continue
@@ -213,9 +207,7 @@ class ReviewsResource(Resource):
             reviews = db.session.query(Review).filter(Review.id.in_(_review_ids))
         elif current_user.is_admin is False and _review_ids is not None:
             return forbidden_error(
-                'non-admin {} passed admin-only "_review_ids" param'.format(
-                    current_user
-                )
+                f'non-admin {current_user} passed admin-only "_review_ids" param'
             )
         else:
             reviews = current_user.reviews.order_by(Review.id).all()

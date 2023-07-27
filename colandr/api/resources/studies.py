@@ -70,14 +70,12 @@ class StudyResource(Resource):
         current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
-            return not_found_error("<Study(id={})> not found".format(id))
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this study".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this study")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", study)
@@ -113,14 +111,12 @@ class StudyResource(Resource):
         current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
-            return not_found_error("<Study(id={})> not found".format(id))
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to delete this study".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
         if test is False:
             db.session.commit()
@@ -161,21 +157,18 @@ class StudyResource(Resource):
         current_user = flask_praetorian.current_user()
         study = db.session.query(Study).get(id)
         if not study:
-            return not_found_error("<Study(id={})> not found".format(id))
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and study.review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to modify this study".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():
             if key == "data_extraction_status":
                 if study.fulltext_status != "included":
                     return forbidden_error(
-                        "<Study(id={})> data_extraction_status can't be set until fulltext has passed screening".format(
-                            id
-                        )
+                        f"<Study(id={id})> data_extraction_status can't be set "
+                        "until fulltext has passed screening"
                     )
             setattr(study, key, value)
         if test is False:
@@ -324,13 +317,13 @@ class StudiesResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
             and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to get studies from this review".format(current_user)
+                f"{current_user} forbidden to get studies from this review"
             )
         if fields and "id" not in fields:
             fields.append("id")

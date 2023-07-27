@@ -51,14 +51,12 @@ class ReviewExportPrismaResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this review")
         # get counts by step, i.e. prisma
         n_studies_by_source = dict(
             db.session.query(DataSource.source_type, db.func.sum(Import.num_records))
@@ -158,14 +156,12 @@ class ReviewExportStudiesResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this review")
 
         query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
 

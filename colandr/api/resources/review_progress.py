@@ -85,14 +85,12 @@ class ReviewProgressResource(Resource):
         response = {}
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get review progress".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get review progress")
         if step in ("planning", "all"):
             review_plan = review.review_plan
             progress = {

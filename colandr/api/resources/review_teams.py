@@ -60,14 +60,12 @@ class ReviewTeamResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
             and review.users.filter_by(id=current_user.id).one_or_none() is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this review".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this review")
         if fields and "id" not in fields:
             fields.append("id")
         users = UserSchema(many=True, only=fields).dump(review.users)
@@ -146,10 +144,10 @@ class ReviewTeamResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and review.owner is not current_user:
             return forbidden_error(
-                "{} forbidden to modify this review team".format(current_user)
+                f"{current_user} forbidden to modify this review team"
             )
         if user_id is not None:
             user = db.session.query(User).get(user_id)
@@ -168,7 +166,7 @@ class ReviewTeamResource(Resource):
             elif user not in review_users:
                 review_users.append(user)
             else:
-                return forbidden_error("{} is already on this review".format(user))
+                return forbidden_error(f"{user} is already on this review")
         # TODO: update this to use flask-praetorian tokens + emailing
         # user is being *invited*, so send an invitation email
         elif action == "invite":
@@ -177,9 +175,7 @@ class ReviewTeamResource(Resource):
                 user_email, salt=current_app.config["PASSWORD_SALT"]
             )
             if server_name:
-                confirm_url = server_name + "{}/{}/team/confirm?token={}".format(
-                    ns.path, id, token
-                )
+                confirm_url = f"{server_name}{ns.path}/{id}/team/confirm?token={token}"
             else:
                 confirm_url = api.api_.url_for(
                     ConfirmReviewTeamInviteResource, id=id, token=token, _external=True
@@ -269,7 +265,7 @@ class ConfirmReviewTeamInviteResource(Resource):
 
         review = db.session.query(Review).get(id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(id))
+            return not_found_error(f"<Review(id={id})> not found")
         review_users = review.users
 
         user = db.session.query(User).filter_by(email=user_email).one_or_none()
@@ -278,7 +274,7 @@ class ConfirmReviewTeamInviteResource(Resource):
         if user not in review_users:
             review_users.append(user)
         else:
-            return forbidden_error("{} is already on this review".format(user))
+            return forbidden_error(f"{user} is already on this review")
 
         db.session.commit()
         current_app.logger.info("invitation to %s confirmed by %s", review, user_email)

@@ -54,15 +54,13 @@ class FulltextResource(Resource):
         current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this fulltext".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this fulltext")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", fulltext)
@@ -98,15 +96,13 @@ class FulltextResource(Resource):
         current_user = flask_praetorian.current_user()
         fulltext = db.session.query(Fulltext).get(id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
-            return forbidden_error(
-                "{} forbidden to delete this fulltext".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to delete this fulltext")
         db.session.delete(fulltext)
         if test is False:
             db.session.commit()
