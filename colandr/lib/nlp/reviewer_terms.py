@@ -1,10 +1,9 @@
 import logging
 import math
 import re
-from typing import Dict, List, Tuple
 
 
-def get_keyterms_regex(keyterms: List[Dict]) -> re.Pattern:
+def get_keyterms_regex(keyterms: list[dict]) -> re.Pattern:
     """
     Args:
         keyterms: given by :attr:``ReviewPlan.keyterms``
@@ -26,7 +25,7 @@ def get_keyterms_regex(keyterms: List[Dict]) -> re.Pattern:
 
 def get_incl_excl_terms_regex(
     suggested_keyterms: dict,
-) -> Tuple[re.Pattern, re.Pattern]:
+) -> tuple[re.Pattern, re.Pattern]:
     """
     Args:
         suggested_keyterms: given by :attr:``ReviewPlan.suggested_keyterms``

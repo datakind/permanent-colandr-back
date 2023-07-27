@@ -6,7 +6,7 @@ References:
 import logging
 import pathlib
 import re
-from typing import BinaryIO, Dict, List, Optional, Tuple, Union
+from typing import BinaryIO, Optional, Tuple, Union
 
 import bibtexparser
 
@@ -52,14 +52,14 @@ DEFAULT_TO_SANITIZED_KEYS = {
 }
 
 
-def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> List[Dict]:
+def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> list[dict]:
     data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
     return records
 
 
-def parse(data: str) -> List[Dict]:
+def parse(data: str) -> list[dict]:
     parser = bibtexparser.bparser.BibTexParser(
         ignore_nonstandard_types=False,
         homogenize_fields=True,
@@ -71,7 +71,7 @@ def parse(data: str) -> List[Dict]:
     return bib_db.entries
 
 
-def sanitize(records: List[Dict]) -> List[Dict]:
+def sanitize(records: list[dict]) -> list[dict]:
     return [_sanitize_record(record) for record in records]
 
 
