@@ -94,7 +94,7 @@ def parse(data: str) -> list[dict]:
 def sanitize(references: list[dict]) -> list[dict]:
     # convert reference types into human-readable equivalents
     # override "BOOK" => "whole book", which is silly
-    type_map = {**TYPE_OF_REFERENCE_MAPPING, **{"BOOK": "book"}}
+    type_map = TYPE_OF_REFERENCE_MAPPING | {"BOOK": "book"}
     references = rispy.utils.convert_reference_types(references, type_map=type_map)
     references = [_sanitize_reference(reference) for reference in references]
     return references
