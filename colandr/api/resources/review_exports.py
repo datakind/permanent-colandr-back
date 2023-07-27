@@ -1,6 +1,5 @@
 import collections
 import csv
-import io
 import itertools
 
 import flask_praetorian
@@ -11,7 +10,7 @@ from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
-from ...lib import constants
+from ...lib import constants, fileio
 from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
@@ -241,11 +240,8 @@ class ReviewExportStudiesResource(Resource):
                     row.extend(None for _ in range(len(extraction_labels)))
             rows.append(row)
 
-        f = io.StringIO()
-        writer = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-        writer.writerow(fieldnames)
-        writer.writerows(rows)
-        response = make_response(f.getvalue(), 200)
+        csv_data = fileio.tabular.write(fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC)
+        response = make_response(csv_data, 200)
         response.headers["Content-type"] = "text/csv"
 
         current_app.logger.debug("study data exported for %s", review)
