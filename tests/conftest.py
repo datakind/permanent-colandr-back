@@ -60,6 +60,8 @@ def _populate_db(db, seed_data):
         db.session.add(models.Review(**record))
     for record in seed_data["data_sources"]:
         db.session.add(models.DataSource(**record))
+    for record in seed_data["imports"]:
+        db.session.add(models.Import(**record))
     for record in seed_data["studies"]:
         db.session.add(models.Study(**record))
     for record in seed_data["citations"]:

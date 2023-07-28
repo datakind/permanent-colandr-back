@@ -1,1 +1,1 @@
-from . import bibtex, pdf, ris
+from . import bibtex, pdf, ris, tabular

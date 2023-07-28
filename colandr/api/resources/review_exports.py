@@ -1,7 +1,7 @@
 import collections
 import csv
-import io
 import itertools
+from typing import Optional
 
 import flask_praetorian
 from flask import current_app, g, make_response
@@ -11,7 +11,7 @@ from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
-from ...lib import constants
+from ...lib import constants, fileio
 from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
@@ -164,6 +164,11 @@ class ReviewExportStudiesResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
         query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
+        data_extraction_form = (
+            db.session.query(ReviewPlan.data_extraction_form)
+            .filter_by(id=id)
+            .one_or_none()
+        )
 
         fieldnames = [
             "study_id",
@@ -184,70 +189,127 @@ class ReviewExportStudiesResource(Resource):
             "fulltext_filename",
             "fulltext_exclude_reasons",
         ]
-
-        data_extraction_form = (
-            db.session.query(ReviewPlan.data_extraction_form)
-            .filter_by(id=id)
-            .one_or_none()
-        )
+        extraction_label_types: Optional[list[tuple[str, str]]]
         if data_extraction_form:
-            extraction_labels = [item["label"] for item in data_extraction_form[0]]
-            extraction_types = [item["field_type"] for item in data_extraction_form[0]]
-            fieldnames.extend(extraction_labels)
-
-        rows = []
-        for study in query:
-            row = [
-                study.id,
-                study.dedupe_status,
-                study.citation_status,
-                study.fulltext_status,
-                study.data_extraction_status,
-                study.data_source.source_type,
-                study.data_source.source_name,
-                study.data_source.source_url,
-                study.citation.title,
-                study.citation.abstract,
-                "; ".join(study.citation.authors) if study.citation.authors else None,
-                study.citation.journal_name,
-                study.citation.volume,
-                study.citation.pub_year,
-                "; ".join(study.citation.keywords) if study.citation.keywords else None,
+            extraction_label_types = [
+                (item["label"], item["field_type"]) for item in data_extraction_form[0]
             ]
-            if study.fulltext:
-                row.extend(
-                    [
-                        study.fulltext.original_filename,
-                        "; ".join(study.fulltext.exclude_reasons)
-                        if study.fulltext.exclude_reasons
-                        else None,
-                    ]
-                )
-            else:
-                row.extend([None, None])
-            if data_extraction_form:
-                if study.data_extraction:
-                    extracted_data = {
-                        item["label"]: item["value"]
-                        for item in study.data_extraction.extracted_items
-                    }
-                    row.extend(
-                        "; ".join(extracted_data.get(label, []))
-                        if type_ in ("select_one", "select_many")
-                        else extracted_data.get(label, None)
-                        for label, type_ in zip(extraction_labels, extraction_types)
-                    )
-                else:
-                    row.extend(None for _ in range(len(extraction_labels)))
-            rows.append(row)
+            fieldnames.extend(label for label, _ in extraction_label_types)
+        else:
+            extraction_label_types = None
 
-        f = io.StringIO()
-        writer = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
-        writer.writerow(fieldnames)
-        writer.writerows(rows)
-        response = make_response(f.getvalue(), 200)
+        rows = (_study_to_row(study, extraction_label_types) for study in query)
+        csv_data = fileio.tabular.write_stream(
+            fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
+        )
+
+        # TODO: clean this up when we're confident new approach (above) works
+        # if data_extraction_form:
+        #     extraction_labels = [item["label"] for item in data_extraction_form[0]]
+        #     extraction_types = [item["field_type"] for item in data_extraction_form[0]]
+        #     fieldnames.extend(extraction_labels)
+        # rows = []
+        # for study in query:
+        #     row = [
+        #         study.id,
+        #         study.dedupe_status,
+        #         study.citation_status,
+        #         study.fulltext_status,
+        #         study.data_extraction_status,
+        #         study.data_source.source_type,
+        #         study.data_source.source_name,
+        #         study.data_source.source_url,
+        #         study.citation.title,
+        #         study.citation.abstract,
+        #         "; ".join(study.citation.authors) if study.citation.authors else None,
+        #         study.citation.journal_name,
+        #         study.citation.volume,
+        #         study.citation.pub_year,
+        #         "; ".join(study.citation.keywords) if study.citation.keywords else None,
+        #     ]
+        #     if study.fulltext:
+        #         row.extend(
+        #             [
+        #                 study.fulltext.original_filename,
+        #                 "; ".join(study.fulltext.exclude_reasons)
+        #                 if study.fulltext.exclude_reasons
+        #                 else None,
+        #             ]
+        #         )
+        #     else:
+        #         row.extend([None, None])
+        #     if data_extraction_form:
+        #         if study.data_extraction:
+        #             extracted_data = {
+        #                 item["label"]: item["value"]
+        #                 for item in study.data_extraction.extracted_items
+        #             }
+        #             row.extend(
+        #                 "; ".join(extracted_data.get(label, []))
+        #                 if type_ in ("select_one", "select_many")
+        #                 else extracted_data.get(label, None)
+        #                 for label, type_ in zip(extraction_labels, extraction_types)
+        #             )
+        #         else:
+        #             row.extend(None for _ in range(len(extraction_labels)))
+        #     rows.append(row)
+        # csv_data = fileio.tabular.write(fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC)
+
+        response = make_response(csv_data, 200)
         response.headers["Content-type"] = "text/csv"
-
         current_app.logger.debug("study data exported for %s", review)
 
         return response
+
+
+def _study_to_row(
+    study: Study, extraction_label_types: Optional[list[tuple[str, str]]]
+) -> dict:
+    row = {
+        "study_id": study.id,
+        "deduplication_status": study.dedupe_status,
+        "citation_screening_status": study.citation_status,
+        "fulltext_screening_status": study.fulltext_status,
+        "data_extraction_screening_status": study.data_extraction_status,
+        "data_source_type": study.data_source.source_type,
+        "data_source_name": study.data_source.source_name,
+        "data_source_url": study.data_source.source_url,
+        "citation_title": study.citation.title,
+        "citation_abstract": study.citation.abstract,
+        "citation_authors": (
+            "; ".join(study.citation.authors) if study.citation.authors else None
+        ),
+        "citation_journal_name": study.citation.journal_name,
+        "citation_journal_volume": study.citation.volume,
+        "citation_pub_year": study.citation.pub_year,
+        "citation_keywords": (
+            "; ".join(study.citation.keywords) if study.citation.keywords else None
+        ),
+    }
+    if study.fulltext:
+        row.update(
+            {
+                "fulltext_filename": study.fulltext.original_filename,
+                "fulltext_exclude_reasons": (
+                    "; ".join(study.fulltext.exclude_reasons)
+                    if study.fulltext.exclude_reasons
+                    else None
+                ),
+            }
+        )
+    if extraction_label_types and study.data_extraction:
+        extracted_data = {
+            item["label"]: item["value"]
+            for item in study.data_extraction.extracted_items
+        }
+        row.update(
+            {
+                label: (
+                    "; ".join(extracted_data.get(label, []))
+                    if type_ in ("select_one", "select_many")
+                    else extracted_data.get(label, None)
+                )
+                for label, type_ in extraction_label_types
+            }
+        )
+    return row
