@@ -1,6 +1,7 @@
 import collections
 import csv
 import itertools
+from typing import Optional
 
 import flask_praetorian
 from flask import current_app, g, make_response
@@ -13,7 +14,6 @@ from ...extensions import db
 from ...lib import constants, fileio
 from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
-
 
 ns = Namespace(
     "review_exports",
@@ -164,6 +164,23 @@ class ReviewExportStudiesResource(Resource):
 
         query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
 
+        # TODO: see if we can stream studies into csv file
+        # data_extraction_form = (
+        #     db.session.query(ReviewPlan.data_extraction_form)
+        #     .filter_by(id=id)
+        #     .one_or_none()
+        # )
+        # extraction_label_types: Optional[list[tuple[str, str]]]
+        # if data_extraction_form:
+        #     extraction_label_types = [
+        #         (item["label"], item["field_type"]) for item in data_extraction_form[0]
+        #     ]
+        # else:
+        #     extraction_label_types = None
+
+        # rows = (_study_to_row(study, extraction_label_types) for study in query)
+        # csv_data = fileio.tabular.write_iter(rows, quoting=csv.QUOTE_NONNUMERIC)
+
         fieldnames = [
             "study_id",
             "deduplication_status",
@@ -247,3 +264,56 @@ class ReviewExportStudiesResource(Resource):
         current_app.logger.debug("study data exported for %s", review)
 
         return response
+
+
+def _study_to_row(
+    study: Study, extraction_label_types: Optional[list[tuple[str, str]]]
+) -> dict:
+    row = {
+        "study_id": study.id,
+        "deduplication_status": study.dedupe_status,
+        "citation_screening_status": study.citation_status,
+        "fulltext_screening_status": study.fulltext_status,
+        "data_extraction_screening_status": study.data_extraction_status,
+        "data_source_type": study.data_source.source_type,
+        "data_source_name": study.data_source.source_name,
+        "data_source_url": study.data_source.source_url,
+        "citation_title": study.citation.title,
+        "citation_abstract": study.citation.abstract,
+        "citation_authors": (
+            "; ".join(study.citation.authors) if study.citation.authors else None
+        ),
+        "citation_journal_name": study.citation.journal_name,
+        "citation_journal_volume": study.citation.volume,
+        "citation_pub_year": study.citation.pub_year,
+        "citation_keywords": (
+            "; ".join(study.citation.keywords) if study.citation.keywords else None
+        ),
+    }
+    if study.fulltext:
+        row.update(
+            {
+                "fulltext_filename": study.fulltext.original_filename,
+                "fulltext_exclude_reasons": (
+                    "; ".join(study.fulltext.exclude_reasons)
+                    if study.fulltext.exclude_reasons
+                    else None
+                ),
+            }
+        )
+    if extraction_label_types and study.data_extraction:
+        extracted_data = {
+            item["label"]: item["value"]
+            for item in study.data_extraction.extracted_items
+        }
+        row.update(
+            {
+                label: (
+                    "; ".join(extracted_data.get(label, []))
+                    if type_ in ("select_one", "select_many")
+                    else extracted_data.get(label, None)
+                )
+                for label, type_ in extraction_label_types
+            }
+        )
+    return row
