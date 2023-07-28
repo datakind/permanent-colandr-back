@@ -163,23 +163,11 @@ class ReviewExportStudiesResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
         query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
-
-        # TODO: see if we can stream studies into csv file
-        # data_extraction_form = (
-        #     db.session.query(ReviewPlan.data_extraction_form)
-        #     .filter_by(id=id)
-        #     .one_or_none()
-        # )
-        # extraction_label_types: Optional[list[tuple[str, str]]]
-        # if data_extraction_form:
-        #     extraction_label_types = [
-        #         (item["label"], item["field_type"]) for item in data_extraction_form[0]
-        #     ]
-        # else:
-        #     extraction_label_types = None
-
-        # rows = (_study_to_row(study, extraction_label_types) for study in query)
-        # csv_data = fileio.tabular.write_iter(rows, quoting=csv.QUOTE_NONNUMERIC)
+        data_extraction_form = (
+            db.session.query(ReviewPlan.data_extraction_form)
+            .filter_by(id=id)
+            .one_or_none()
+        )
 
         fieldnames = [
             "study_id",
@@ -200,67 +188,74 @@ class ReviewExportStudiesResource(Resource):
             "fulltext_filename",
             "fulltext_exclude_reasons",
         ]
-
-        data_extraction_form = (
-            db.session.query(ReviewPlan.data_extraction_form)
-            .filter_by(id=id)
-            .one_or_none()
-        )
+        extraction_label_types: Optional[list[tuple[str, str]]]
         if data_extraction_form:
-            extraction_labels = [item["label"] for item in data_extraction_form[0]]
-            extraction_types = [item["field_type"] for item in data_extraction_form[0]]
-            fieldnames.extend(extraction_labels)
-
-        rows = []
-        for study in query:
-            row = [
-                study.id,
-                study.dedupe_status,
-                study.citation_status,
-                study.fulltext_status,
-                study.data_extraction_status,
-                study.data_source.source_type,
-                study.data_source.source_name,
-                study.data_source.source_url,
-                study.citation.title,
-                study.citation.abstract,
-                "; ".join(study.citation.authors) if study.citation.authors else None,
-                study.citation.journal_name,
-                study.citation.volume,
-                study.citation.pub_year,
-                "; ".join(study.citation.keywords) if study.citation.keywords else None,
+            extraction_label_types = [
+                (item["label"], item["field_type"]) for item in data_extraction_form[0]
             ]
-            if study.fulltext:
-                row.extend(
-                    [
-                        study.fulltext.original_filename,
-                        "; ".join(study.fulltext.exclude_reasons)
-                        if study.fulltext.exclude_reasons
-                        else None,
-                    ]
-                )
-            else:
-                row.extend([None, None])
-            if data_extraction_form:
-                if study.data_extraction:
-                    extracted_data = {
-                        item["label"]: item["value"]
-                        for item in study.data_extraction.extracted_items
-                    }
-                    row.extend(
-                        "; ".join(extracted_data.get(label, []))
-                        if type_ in ("select_one", "select_many")
-                        else extracted_data.get(label, None)
-                        for label, type_ in zip(extraction_labels, extraction_types)
-                    )
-                else:
-                    row.extend(None for _ in range(len(extraction_labels)))
-            rows.append(row)
+            fieldnames.extend(label for label, _ in extraction_label_types)
+        else:
+            extraction_label_types = None
 
-        csv_data = fileio.tabular.write(fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC)
+        rows = (_study_to_row(study, extraction_label_types) for study in query)
+        csv_data = fileio.tabular.write_stream(
+            fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
+        )
+
+        # TODO: clean this up when we're confident new approach (above) works
+        # if data_extraction_form:
+        #     extraction_labels = [item["label"] for item in data_extraction_form[0]]
+        #     extraction_types = [item["field_type"] for item in data_extraction_form[0]]
+        #     fieldnames.extend(extraction_labels)
+        # rows = []
+        # for study in query:
+        #     row = [
+        #         study.id,
+        #         study.dedupe_status,
+        #         study.citation_status,
+        #         study.fulltext_status,
+        #         study.data_extraction_status,
+        #         study.data_source.source_type,
+        #         study.data_source.source_name,
+        #         study.data_source.source_url,
+        #         study.citation.title,
+        #         study.citation.abstract,
+        #         "; ".join(study.citation.authors) if study.citation.authors else None,
+        #         study.citation.journal_name,
+        #         study.citation.volume,
+        #         study.citation.pub_year,
+        #         "; ".join(study.citation.keywords) if study.citation.keywords else None,
+        #     ]
+        #     if study.fulltext:
+        #         row.extend(
+        #             [
+        #                 study.fulltext.original_filename,
+        #                 "; ".join(study.fulltext.exclude_reasons)
+        #                 if study.fulltext.exclude_reasons
+        #                 else None,
+        #             ]
+        #         )
+        #     else:
+        #         row.extend([None, None])
+        #     if data_extraction_form:
+        #         if study.data_extraction:
+        #             extracted_data = {
+        #                 item["label"]: item["value"]
+        #                 for item in study.data_extraction.extracted_items
+        #             }
+        #             row.extend(
+        #                 "; ".join(extracted_data.get(label, []))
+        #                 if type_ in ("select_one", "select_many")
+        #                 else extracted_data.get(label, None)
+        #                 for label, type_ in zip(extraction_labels, extraction_types)
+        #             )
+        #         else:
+        #             row.extend(None for _ in range(len(extraction_labels)))
+        #     rows.append(row)
+        # csv_data = fileio.tabular.write(fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC)
+
         response = make_response(csv_data, 200)
         response.headers["Content-type"] = "text/csv"
-
         current_app.logger.debug("study data exported for %s", review)
 
         return response
