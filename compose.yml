@@ -94,7 +94,7 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
-    command: "celery worker --app=celery_worker.celery --loglevel=info"
+    command: "celery --app=celery_worker.celery worker --loglevel=info"
 
 networks:
   default:
