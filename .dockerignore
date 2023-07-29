@@ -4,5 +4,5 @@
 !pyproject.toml
 !restart_service.sh
 !gunicorn_config.py
-!celery_worker.py
+!make_celery.py
 !colandr_data/
