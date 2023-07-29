@@ -15,6 +15,9 @@ migrate = flask_migrate.Migrate()
 
 def init_celery_app(app):
     class FlaskTask(celery.Task):
+        retry_backoff = True
+        retry_jitter = True
+
         def __call__(self, *args, **kwargs):
             with app.app_context():
                 return self.run(*args, **kwargs)

@@ -30,6 +30,9 @@ class Config:
         "accept_content": ["json"],
         "task_serializer": "json",
         "result_serializer": "json",
+        # ref: https://steve.dignam.xyz/2023/05/20/many-problems-with-celery
+        "worker_prefetch_multiplier": 1,
+        "task_acks_late": True,
     }
 
     # cache config
