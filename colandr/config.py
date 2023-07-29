@@ -20,16 +20,17 @@ class Config:
     LOG_LEVEL = os.getenv("COLANDR_LOG_LEVEL", logging.INFO)
 
     # celery+redis config
-    CELERY_BROKER_URL = os.environ.get(
-        "COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0"
-    )
-    CELERY_RESULT_BACKEND = os.environ.get(
-        "COLANDR_CELERY_RESULT_BACKEND", "redis://localhost:6379/0"
-    )
-    CELERY_ACCEPT_CONTENT = ["json"]
-    CELERY_TASK_SERIALIZER = "json"
-    CELERY_RESULT_SERIALIZER = "json"
-    CELERYD_LOG_COLOR = False
+    CELERY = {
+        "broker_url": os.environ.get(
+            "COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0"
+        ),
+        "result_backend": os.environ.get(
+            "COLANDR_CELERY_RESULT_BACKEND", "redis://localhost:6379/0"
+        ),
+        "accept_content": ["json"],
+        "task_serializer": "json",
+        "result_serializer": "json",
+    }
 
     # cache config
     CACHE_TYPE = "SimpleCache"
