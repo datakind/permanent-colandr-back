@@ -10,6 +10,7 @@ import dedupe
 
 from .. import utils
 
+
 LOGGER = logging.getLogger(__name__)
 
 SETTINGS_FNAME = "deduper_settings"
@@ -94,8 +95,7 @@ class Deduper:
     ) -> "Deduper":
         if isinstance(self.model, dedupe.StaticDedupe):
             raise TypeError("deduper loaded from a settings file can't be re-fit")
-        # LOGGER.info("preparing model %s for training ...", self.model)
-        print(f"preparing model {self.model} for training ...")
+        LOGGER.info("preparing model %s for training ...", self.model)
         if training_fpath is None:
             self.model.prepare_training(data)
         else:
