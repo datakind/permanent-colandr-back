@@ -19,7 +19,8 @@ VARIABLES_DEFAULT: list[dict[str, Any]] = [
     {"field": "title", "type": "String"},
     {"field": "pub_year", "type": "Exact"},
     {"field": "authors", "type": "Set", "has missing": True},
-    {"field": "abstract", "type": "Text", "has missing": True},
+    # TODO: figure out if/how we want to incorporate abstract
+    # {"field": "abstract", "type": "Text", "has missing": True},
     {"field": "doi", "type": "ShortString", "has missing": True},
     {"field": "issn", "type": "ShortString", "has missing": True},
 ]
