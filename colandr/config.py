@@ -42,7 +42,12 @@ class Config:
     # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
     # sql db config
-    SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
+    SQLALCHEMY_DATABASE_URI = (
+        "postgresql://"
+        f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
+        "@localhost:5432"
+        f"/{os.environ['COLANDR_DB_NAME']}"
+    )
     SQLALCHEMY_ECHO = False
 
     # authentication config
