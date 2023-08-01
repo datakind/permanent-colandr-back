@@ -37,7 +37,7 @@ def prep_training_data(
     data_fpath: pathlib.Path, data_id_key: str, deduper: Deduper
 ) -> dict[Any, dict[str, Any]]:
     with data_fpath.open(mode="r") as f:
-        data = json.load(f)[:750]
+        data = json.load(f)
     return deduper.preprocess_data(data, data_id_key)
 
 
