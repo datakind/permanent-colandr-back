@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import io
 import logging
 import logging.handlers
+import pathlib
 
 import dedupe
 from sqlalchemy.sql import text
@@ -58,3 +61,12 @@ def make_record_immutable(record: dict) -> dict:
         elif isinstance(val, set):
             record[key] = frozenset(val)
     return record
+
+
+def to_path(path: str | pathlib.Path) -> pathlib.Path:
+    if isinstance(path, pathlib.Path):
+        return path
+    elif isinstance(path, str):
+        return pathlib.Path(path)
+    else:
+        raise TypeError()

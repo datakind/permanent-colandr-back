@@ -10,12 +10,14 @@ on:
 # HACK: let's add fake colandr envvars so tests can run
 # TODO (burton): figure out a better way of configuring the app!
 env:
+  COLANDR_DB_USER: "colandr_app"
+  COLANDR_DB_PASSWORD: "password"
+  COLANDR_DB_NAME: "colandr"
   COLANDR_SECRET_KEY: "colandr_secret_key"
   COLANDR_PASSWORD_SALT: "colandr_password_salt"
-  COLANDR_APP_DIR: "/path/to/colandr"
+  COLANDR_APP_DIR: "/tmp"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
-  COLANDR_DATABASE_URI: "postgresql://colandr_app:password@localhost:5432/colandr"
 
 jobs:
 
@@ -33,9 +35,9 @@ jobs:
       colandr_db:
         image: "postgres:15"
         env:
-          POSTGRES_USER: "colandr_app"
-          POSTGRES_PASSWORD: "password"
-          POSTGRES_DB: "colandr"
+          POSTGRES_USER: ${{ env.COLANDR_DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.COLANDR_DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.COLANDR_DB_NAME }}
         ports:
           - 5432:5432
         options: >-
