@@ -105,8 +105,8 @@ class Deduper:
                 self.model.prepare_training(data, training_file=f)
 
         dedupe.console_label(self.model)
+        LOGGER.info("training model on labeled examples ...")
         self.model.train(recall, index_predicates)
-        self.model.cleanup_training()
         return self
 
     def predict(
