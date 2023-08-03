@@ -11,6 +11,15 @@ from colandr.models import User
 bp = Blueprint("cli", __name__, cli_group=None)
 
 
+@bp.cli.command("create-db")
+def create_db():
+    """
+    Create all tables in the database that do not already exist.
+    Note: This does not update existing tables -- use `flask-migrate` commands for that.
+    """
+    db.create_all()
+
+
 @bp.cli.command("reset-db")
 def reset_db():
     """
