@@ -42,12 +42,15 @@ class Config:
     # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
     # sql db config
-    SQLALCHEMY_DATABASE_URI = (
-        "postgresql://"
-        f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
-        "@localhost:5432"
-        f"/{os.environ['COLANDR_DB_NAME']}"
-    )
+    # TODO: figure out how to properly set this setting in a way that works
+    # from inside and outside docker
+    # SQLALCHEMY_DATABASE_URI = (
+    #     "postgresql://"
+    #     f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
+    #     "@localhost:5432"
+    #     f"/{os.environ['COLANDR_DB_NAME']}"
+    # )
+    SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
     SQLALCHEMY_ECHO = False
 
     # authentication config
