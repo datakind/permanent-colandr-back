@@ -45,9 +45,12 @@ class Config:
     SQLALCHEMY_DATABASE_URI = (
         "postgresql://"
         f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
-        "@localhost:5432"
+        "@colandr-db:5432"
         f"/{os.environ['COLANDR_DB_NAME']}"
     )
+    # TODO: decide if we'd rather just use a single env var for this
+    # at the moment, it seems like "pdfestrian" may require this
+    # SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
     SQLALCHEMY_ECHO = False
 
     # authentication config
