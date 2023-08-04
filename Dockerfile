@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9-slim AS base
 
 ENV COLANDR_APP_DIR /app
 RUN mkdir -p ${COLANDR_APP_DIR}
@@ -17,5 +17,14 @@ COPY . .
 
 EXPOSE 5000
 
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000"]
-# CMD ["gunicorn", "--config", "./gunicorn_config.py", "colandr:create_app('dev')"]
+#####
+FROM base AS dev
+
+RUN python -m pip install -r requirements/dev.txt
+
+CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+#####
+FROM base AS prod
+
+CMD ["gunicorn", "--config", "./gunicorn_config.py", "colandr:create_app('prod')"]
