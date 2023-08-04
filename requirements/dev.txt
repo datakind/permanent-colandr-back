@@ -1,5 +1,4 @@
 # TODO: keep aligned with pyproject.toml
--r prod.txt
 black~=23.0
 ipython
 httpx~=0.24.0
