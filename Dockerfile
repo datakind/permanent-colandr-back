@@ -27,4 +27,4 @@ CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
 #####
 FROM base AS prod
 
-CMD ["gunicorn", "--config", "./gunicorn_config.py", "colandr.app:create_app('prod')"]
+CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app('prod')"]
