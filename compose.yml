@@ -34,7 +34,7 @@ services:
       - MP_MAX_MESSAGES=100
   broker:
     container_name: colandr-broker
-    image: "redis:6.0"
+    image: "redis:7.0"
     restart: unless-stopped
     stop_grace_period: 5s
     volumes:
