@@ -34,7 +34,7 @@ services:
       - MP_MAX_MESSAGES=100
   broker:
     container_name: colandr-broker
-    image: "redis:6.0"
+    image: "redis:7.0"
     restart: unless-stopped
     stop_grace_period: 5s
     volumes:
@@ -51,6 +51,7 @@ services:
     build:
       context: "."
       dockerfile: Dockerfile
+      target: dev
     depends_on:
       - db
       - broker
@@ -77,12 +78,12 @@ services:
       - .:/app
     ports:
       - 5001:5000
-    command: "flask run --host 0.0.0.0 --port 5000 --debug"
   worker:
     container_name: colandr-worker
     build:
       context: "."
       dockerfile: Dockerfile
+      target: dev
     depends_on:
       - db
       - broker

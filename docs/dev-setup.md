@@ -72,7 +72,7 @@ Colandr's back-end system consists of multiple services defined and configured i
 $ docker compose build
 ```
 
-To build and also run the application services in "detached" mode (i.e. in the background), do
+To build and also run the application stack in "detached" mode (i.e. in the background), do
 
 ```shell
 $ docker compose up --build --detach
@@ -98,8 +98,10 @@ Information about all available commands and sub-commands can be had via the `--
 $ docker exec -it colandr-api flask --help
 ```
 
-To run unit tests on your host machine against running application services, do this:
+Unit tests are implemented and invoked using `pytest`. The testing suite may be run on the `colandr-api` container:
 
 ```shell
-$ pytest -v tests
+$ docker exec -it colandr-api python -m pytest
 ```
+
+Interactive API documentation is available in a web browser at "http://localhost:5001/docs". A development email server is available at "http://localhost:8025".
