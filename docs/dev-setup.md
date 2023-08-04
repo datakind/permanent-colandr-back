@@ -98,8 +98,8 @@ Information about all available commands and sub-commands can be had via the `--
 $ docker exec -it colandr-api flask --help
 ```
 
-To run unit tests on your host machine against running application services, do this:
+Unit tests are implemented and invoked using `pytest`. The testing suite may be run on the `colandr-api` container:
 
 ```shell
-$ pytest -v tests
+$ docker exec -it colandr-api python -m pytest
 ```
