@@ -3,9 +3,8 @@ import pathlib
 import shutil
 
 import pytest
-import sqlalchemy as sa
 
-from colandr import extensions, models
+from colandr import cli, extensions, models
 from colandr.app import create_app
 
 
@@ -23,14 +22,6 @@ from colandr.app import create_app
 
 
 @pytest.fixture(scope="session")
-def seed_data():
-    path = pathlib.Path(__file__).parent / "fixtures" / "seed_data.json"
-    with path.open(mode="r") as f:
-        seed_data = json.load(f)
-    return seed_data
-
-
-@pytest.fixture(scope="session")
 def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
     config_overrides = {
@@ -45,54 +36,24 @@ def app(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def db(app, seed_data, request):
+def seed_data_fpath():
+    return pathlib.Path(__file__).parent / "fixtures" / "seed_data.json"
+
+
+@pytest.fixture(scope="session")
+def seed_data(seed_data_fpath):
+    with seed_data_fpath.open(mode="r") as f:
+        seed_data = json.load(f)
+    return seed_data
+
+
+@pytest.fixture(scope="session")
+def db(app, seed_data_fpath, seed_data, request):
     extensions.db.drop_all()
     extensions.db.create_all()
     _store_upload_files(app, seed_data, request)
-    _populate_db(extensions.db, seed_data)
+    app.test_cli_runner().invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
     return extensions.db
-
-
-def _populate_db(db, seed_data):
-    for record in seed_data["users"]:
-        user = models.User(**record)
-        user.password = extensions.guard.hash_password(user.password)
-        db.session.add(user)
-    for record in seed_data["reviews"]:
-        db.session.add(models.Review(**record))
-    for record in seed_data["data_sources"]:
-        db.session.add(models.DataSource(**record))
-    for record in seed_data["imports"]:
-        db.session.add(models.Import(**record))
-    for record in seed_data["studies"]:
-        db.session.add(models.Study(**record))
-    for record in seed_data["citations"]:
-        db.session.add(models.Citation(**record))
-    db.session.commit()
-    # empty review plans already created w/ review
-    for record in seed_data["review_plans"]:
-        plan = db.session.query(models.ReviewPlan).get(record["id_"])
-        for key, val in record.items():
-            if key != "id_":
-                setattr(plan, key, val)
-    for record in seed_data["citation_screenings"]:
-        db.session.add(models.CitationScreening(**record))
-    for record in seed_data["fulltext_uploads"]:
-        fulltext = db.session.query(models.Fulltext).get(record["id"])
-        for key, val in record.items():
-            if key != "id":
-                setattr(fulltext, key, val)
-    for record in seed_data["fulltext_screenings"]:
-        db.session.add(models.FulltextScreening(**record))
-    # # TODO: figure out why this doesn't work :/
-    # for record in seed_data["review_teams"]:
-    #     review = db.session.query(models.Review).get(record["id"])
-    #     user = db.session.query(models.User).get(record["user_id"])
-    #     if record["action"] == "add":
-    #         review.users.append(user)
-    #     else:
-    #         raise ValueError()
-    db.session.commit()
 
 
 def _store_upload_files(app, seed_data, request):
@@ -110,8 +71,7 @@ def _store_upload_files(app, seed_data, request):
 
 @pytest.fixture
 def client(app):
-    with app.test_client() as c:
-        yield c
+    yield app.test_client()
 
 
 @pytest.fixture
