@@ -26,6 +26,10 @@ def create_db():
 @bp.cli.command("db-seed")
 @click.option("--fpath", "file_path", type=pathlib.Path, required=True)
 def db_seed(file_path: pathlib.Path):
+    """
+    Populate tables in the current app's database with records from a seed data file,
+    saved in json format.
+    """
     with file_path.resolve().open(mode="r") as f:
         data = json.load(f)
 
