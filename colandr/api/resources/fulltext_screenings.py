@@ -151,7 +151,7 @@ class FulltextScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(screening_model, "fulltext screening record to be created"),
+        expect=(screening_model, "fulltext screening record to be created"),
         responses={
             200: "fulltext screening record was created (if test = False)",
             403: "current app user forbidden to create fulltext screening; has already created a screening for this fulltext, or no screening can be created because the full-text has not yet been uploaded",
@@ -226,7 +226,7 @@ class FulltextScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(screening_model, "fulltext screening data to be modified"),
+        expect=(screening_model, "fulltext screening data to be modified"),
         responses={
             200: "fulltext screening data was modified (if test = False)",
             403: "current app user forbidden to modify fulltext screening",
@@ -417,7 +417,7 @@ class FulltextsScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=([screening_model], "fulltext screening records to create"),
+        expect=([screening_model], "fulltext screening records to create"),
         responses={
             200: "successfully created fulltext screening record(s)",
             403: "current app user forbidden to create fulltext screening records",

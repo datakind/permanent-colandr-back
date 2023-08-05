@@ -142,7 +142,7 @@ class CitationScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(screening_model, "citation screening record to be created"),
+        expect=(screening_model, "citation screening record to be created"),
         responses={
             200: "citation screening record was created (if test = False)",
             403: "current app user forbidden to create citation screening",
@@ -209,7 +209,7 @@ class CitationScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(screening_model, "citation screening data to be modified"),
+        expect=(screening_model, "citation screening data to be modified"),
         responses={
             200: "citation screening data was modified (if test = False)",
             401: "current app user not authorized to modify citation screening",
@@ -394,7 +394,7 @@ class CitationsScreeningsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=([screening_model], "citation screening records to create"),
+        expect=([screening_model], "citation screening records to create"),
         responses={
             200: "successfully created citation screening record(s)",
             403: "current app user forbidden to create citation screening records",

@@ -157,7 +157,7 @@ class ReviewPlanResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(review_plan_model, "review plan data to be modified"),
+        expect=(review_plan_model, "review plan data to be modified"),
         responses={
             200: "review plan data was modified (if test = False)",
             403: "current app user forbidden to modify review plan",

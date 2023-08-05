@@ -130,7 +130,7 @@ class CitationResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(citation_model, "citation data to be modified"),
+        expect=(citation_model, "citation data to be modified"),
         responses={
             200: "citation data was modified (if test = False)",
             403: "current app user forbidden to modify citation",

@@ -144,7 +144,7 @@ class DataExtractionResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=([extracted_item_model], "data extraction data to be modified"),
+        expect=([extracted_item_model], "data extraction data to be modified"),
         responses={
             200: "data extraction data was modified (if test = False)",
             403: "current app user forbidden to modify data extraction",

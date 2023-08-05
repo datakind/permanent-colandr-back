@@ -130,7 +130,7 @@ class ReviewResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(review_model, "review data to be modified"),
+        expect=(review_model, "review data to be modified"),
         responses={
             200: "review data was modified (if test = False)",
             403: "current app user forbidden to modify review",
@@ -224,7 +224,7 @@ class ReviewsResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(review_model, "review data to be created"),
+        expect=(review_model, "review data to be created"),
         responses={
             200: "review was created (or would have been created if test had been False)"
         },
