@@ -65,7 +65,6 @@ services:
       retries: 3
     env_file: ".env"
     environment:
-      - FLASK_APP=colandr.app:create_app()
       - COLANDR_DATABASE_URI=postgresql://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
@@ -90,7 +89,6 @@ services:
     stop_signal: SIGINT
     env_file: ".env"
     environment:
-      - FLASK_APP=colandr.app:create_app()
       - COLANDR_DATABASE_URI=postgresql://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0

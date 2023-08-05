@@ -22,9 +22,9 @@ FROM base AS dev
 
 RUN python -m pip install -r requirements/dev.txt
 
-CMD ["flask", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
 
 #####
 FROM base AS prod
 
-CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app('prod')"]
+CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
