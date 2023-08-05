@@ -15,15 +15,15 @@ def create_app(config_overrides: Optional[dict[str, Any]] = None) -> flask.Flask
     if config_overrides:
         app.config.update(config_overrides)
 
-    configure_logging(app)
-    register_extensions(app)
+    _configure_logging(app)
+    _register_extensions(app)
     app.register_blueprint(cli.bp)
     app.register_blueprint(errors.bp)
 
     return app
 
 
-def configure_logging(app: flask.Flask) -> None:
+def _configure_logging(app: flask.Flask) -> None:
     """Configure logging on ``app`` ."""
     if app.logger.handlers:
         app.logger.removeHandler(flask.logging.default_handler)
@@ -41,7 +41,7 @@ def configure_logging(app: flask.Flask) -> None:
     app.logger.addFilter(logging.Filter("colandr"))
 
 
-def register_extensions(app: flask.Flask) -> None:
+def _register_extensions(app: flask.Flask) -> None:
     """Register flask extensions on ``app`` ."""
     extensions.cache.init_app(app)
     with app.app_context():
