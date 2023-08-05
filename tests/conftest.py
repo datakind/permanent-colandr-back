@@ -33,10 +33,12 @@ def seed_data():
 @pytest.fixture(scope="session")
 def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
-    app = create_app("test")
-    # HACK! we should provide a way to customize config before as input to app creation
-    app.config.FULLTEXT_UPLOADS_DIR = str(tmp_path_factory.mktemp("colandr_fulltexts"))
-    app.config["FULLTEXT_UPLOADS_DIR"] = app.config.FULLTEXT_UPLOADS_DIR
+    config_overrides = {
+        "TESTING": True,
+        "SQLALCHEMY_ECHO": True,
+        "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
+    }
+    app = create_app(config_overrides)
     # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
@@ -98,7 +100,7 @@ def _store_upload_files(app, seed_data, request):
         src_file_path = (
             request.config.rootpath / "tests" / "fixtures" / record["original_filename"]
         )
-        tgt_file_path = pathlib.Path(app.config.FULLTEXT_UPLOADS_DIR).joinpath(
+        tgt_file_path = pathlib.Path(app.config["FULLTEXT_UPLOADS_DIR"]).joinpath(
             str(record.get("review_id", 1)),  # HACK
             record["filename"],
         )
