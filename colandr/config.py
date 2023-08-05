@@ -12,10 +12,7 @@ load_dotenv(os.path.join(basedir, ".env"))
 TESTING = False
 SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
 MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB file upload limit
-
 LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
-# TODO: figure out what to do with these next two
-APP_URL_DOMAIN = "http://localhost:5001/api"
 
 # sql database config
 SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
