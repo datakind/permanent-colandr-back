@@ -1,18 +1,19 @@
 import logging
 import sys
+from typing import Any, Optional
 
 import flask
 import flask.logging
 
-from colandr import cli, errors, extensions, models
+from colandr import cli, config, errors, extensions, models
 from colandr.api import api_
-from colandr.config import configs
 
 
-def create_app(config_name: str = "dev") -> flask.Flask:
+def create_app(config_overrides: Optional[dict[str, Any]] = None) -> flask.Flask:
     app = flask.Flask("colandr")
-    config = configs[config_name]()
     app.config.from_object(config)
+    if config_overrides:
+        app.config.update(config_overrides)
 
     configure_logging(app)
     register_extensions(app)
