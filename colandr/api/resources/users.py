@@ -123,7 +123,7 @@ class UserResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(user_model, "user data to be modified"),
+        expect=(user_model, "user data to be modified"),
         responses={
             200: "user data was modified (if test = False)",
             403: "current app user forbidden to modify user",
@@ -238,7 +238,7 @@ class UsersResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(user_model, "user data to be created"),
+        expect=(user_model, "user data to be created"),
         responses={
             200: "user was created (or would have been created if test had been False)",
             403: "current app user forbidden to create user",

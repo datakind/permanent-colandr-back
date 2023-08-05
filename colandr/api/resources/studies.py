@@ -135,7 +135,7 @@ class StudyResource(Resource):
                 "description": "if True, request will be validated but no data will be affected",
             },
         },
-        body=(study_model, "study data to be modified"),
+        expect=(study_model, "study data to be modified"),
         responses={
             200: "study data was modified (if test = False)",
             403: "current app user forbidden to modify study; specified field may not be modified",

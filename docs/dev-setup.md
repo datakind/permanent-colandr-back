@@ -66,11 +66,7 @@ Colandr needs a few environment variables to be set in order to configure itself
 
 ## Build and Run Colandr
 
-Colandr's back-end system consists of multiple services defined and configured in `compose.yml`, including a PostgreSQL database, Flask API server, and Redis broker+worker. They are built and run via [Docker Compose](https://docs.docker.com/compose). Docker commands may be run from the `permanent-colandr-back/` directory. To trigger a build, run
-
-```shell
-$ docker compose build
-```
+Colandr's back-end system consists of multiple services defined and configured in `compose.yml`, including a PostgreSQL database, Flask API server, and Redis broker+worker. They are built and run via [Docker Compose](https://docs.docker.com/compose). Docker commands may be run from the `permanent-colandr-back/` directory.
 
 To build and also run the application stack in "detached" mode (i.e. in the background), do
 
@@ -78,16 +74,17 @@ To build and also run the application stack in "detached" mode (i.e. in the back
 $ docker compose up --build --detach
 ```
 
-The Flask application includes a CLI with a few useful commands that may be invoked directly from inside the `colandr-api` container or via docker from outside the container. To create the app's database structure (tables, etc.) from scratch, run
+The Flask application includes a CLI with a few useful commands that may be invoked directly from inside the `colandr-api` container or via docker from outside the container (by prepending `docker exec -it colandr-api`). To create the app's database structure -- tables, etc. -- then populate it with data from scratch, run
 
 ```shell
-$ docker exec -it colandr-api flask create-db
+$ docker exec -it colandr-api flask db-create
+$ docker exec -it colandr-api flask db-seed --fpath /path/to/seed_data.json
 ```
 
-Technically you can run this whenever you like, but it only creates tables that don't already exist in the database. To manually _reset_ an existing database by dropping and then re-creating all of its tables, do
+Technically you can "db-create" whenever you like, but it only creates tables that don't already exist in the database; in contrast, running "db-seed" on an alread-populated database may run into duplicate data violations. To manually _reset_ an existing database by dropping and then re-creating all of its tables, do
 
 ```shell
-$ docker exec -it colandr-api flask reset-db
+$ docker exec -it colandr-api flask db-reset
 ```
 
 **Note:** You will lose all data stored in the database! So be sure to only run this command in development or testing environments.

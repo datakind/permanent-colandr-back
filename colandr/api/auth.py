@@ -34,7 +34,10 @@ ns = Namespace(
 )
 class LoginResource(Resource):
     @ns.doc(
-        body=(login_model, "login credentials (email and password) for existing user"),
+        expect=(
+            login_model,
+            "login credentials (email and password) for existing user",
+        ),
         responses={},
     )
     @use_kwargs(
@@ -98,7 +101,7 @@ class RefreshTokenResource(Resource):
     },
 )
 class RegisterResource(Resource):
-    @ns.doc(body=(user_model, "new user data to be registered"))
+    @ns.doc(expect=(user_model, "new user data to be registered"))
     @use_args(UserSchema(), location="json")
     def post(self, args):
         """
