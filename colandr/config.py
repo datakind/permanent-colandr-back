@@ -14,8 +14,7 @@ SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
 MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB file upload limit
 
 LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
-# TODO: figure out what to do with these next three
-PASSWORD_SALT = os.environ.get("COLANDR_PASSWORD_SALT")  # remove?!
+# TODO: figure out what to do with these next two
 # SSL_DISABLE = False
 APP_URL_DOMAIN = "http://localhost:5001/api"
 
