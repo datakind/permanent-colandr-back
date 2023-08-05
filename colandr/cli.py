@@ -14,7 +14,7 @@ from colandr.models import User
 bp = Blueprint("cli", __name__, cli_group=None)
 
 
-@bp.cli.command("create-db")
+@bp.cli.command("db-create")
 def create_db():
     """
     Create all tables in the database that do not already exist.
@@ -75,6 +75,7 @@ def db_seed(file_path: pathlib.Path):
     db.session.commit()
 
 
+@bp.cli.command("db-reset")
 def reset_db():
     """
     Drop and then create all tables in the database, clear out all uploaded
