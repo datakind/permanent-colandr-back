@@ -72,6 +72,8 @@ DEFAULT_TO_ALT_KEYS = {
     ),
     "pub_year": ("publication_year", "year"),
     "title": ("primary_title", "short_title", "translated_title"),
+    "abstract": ("notes_abstract",),
+    "authors": ("first_authors",),
 }
 
 
