@@ -17,6 +17,7 @@ LOGGER = logging.getLogger(__name__)
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
 VARIABLES: list[dict[str, Any]] = [
+    {"field": "type_of_reference", "type": "ShortString"},
     {"field": "title", "type": "String", "variable name": "title"},
     {"field": "pub_year", "type": "Exact", "variable name": "pub_year"},
     {"field": "authors", "type": "Set", "has missing": True},
@@ -75,6 +76,11 @@ class Deduper:
     def _preprocess_record(self, record: dict[str, Any]) -> dict[str, Any]:
         # base fields
         record = {
+            "type_of_reference": (
+                record["type_of_reference"].strip().lower()
+                if record.get("type_of_reference")
+                else None
+            ),
             "title": (
                 record["title"].strip().strip(".").lower()
                 if record.get("title")
@@ -140,6 +146,6 @@ class Deduper:
 
 def _sanitize_doi(value: str) -> str:
     value = value.strip().lower()
-    if value.startswith("http://"):
+    if value.startswith("http://") or value.startswith("https://"):
         value = urllib.parse.unquote(value)
     return value
