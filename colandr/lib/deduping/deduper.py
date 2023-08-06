@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import pathlib
+import urllib.parse
 from collections.abc import Iterable
 from typing import Any, Optional
 
@@ -15,14 +16,15 @@ LOGGER = logging.getLogger(__name__)
 
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
-VARIABLES_DEFAULT: list[dict[str, Any]] = [
-    {"field": "title", "type": "String"},
-    {"field": "pub_year", "type": "Exact"},
+VARIABLES: list[dict[str, Any]] = [
+    {"field": "type_of_reference", "type": "ShortString"},
+    {"field": "title", "type": "String", "variable name": "title"},
+    {"field": "pub_year", "type": "Exact", "variable name": "pub_year"},
     {"field": "authors", "type": "Set", "has missing": True},
-    # TODO: figure out if/how we want to incorporate abstract
-    # {"field": "abstract", "type": "Text", "has missing": True},
+    {"field": "authors_joined", "type": "String", "has missing": True},
+    {"field": "abstract", "type": "Text", "has missing": True},
     {"field": "doi", "type": "ShortString", "has missing": True},
-    {"field": "issn", "type": "ShortString", "has missing": True},
+    {"type": "Interaction", "interaction variables": ["title", "pub_year"]},
 ]
 
 
@@ -30,12 +32,10 @@ class Deduper:
     def __init__(
         self,
         *,
-        variables: Optional[list[dict[str, Any]]] = None,
         settings_fpath: Optional[str | pathlib.Path] = None,
         num_cores: int = 1,
         in_memory: bool = False,
     ):
-        self.variables = variables or VARIABLES_DEFAULT
         self.settings_fpath = settings_fpath
         self.num_cores = num_cores
         self.in_memory = in_memory
@@ -53,7 +53,7 @@ class Deduper:
     def model(self) -> dedupe.Dedupe | dedupe.StaticDedupe:
         if self.settings_fpath is None:
             _model = dedupe.Dedupe(
-                self.variables,  # type: ignore
+                VARIABLES,  # type: ignore
                 num_cores=self.num_cores,
                 in_memory=self.in_memory,
             )
@@ -69,23 +69,41 @@ class Deduper:
         data: Iterable[dict[str, Any]],
         id_key: str,
     ) -> dict[Any, dict[str, Any]]:
-        def _preprocess_value(value):
-            if not value:
-                return None
-            if isinstance(value, str):
-                value = value.strip().lower() or None
-            elif isinstance(value, list):
-                value = tuple(value)
-            return value
-
         fields = [pv.field for pv in self.model.data_model.primary_variables]
         LOGGER.info("preprocessing data with fields %s ...", fields)
-        return {
-            record.pop(id_key): {
-                field: _preprocess_value(record.get(field, None)) for field in fields
-            }
-            for record in data
+        return {record.pop(id_key): self._preprocess_record(record) for record in data}
+
+    def _preprocess_record(self, record: dict[str, Any]) -> dict[str, Any]:
+        # base fields
+        record = {
+            "type_of_reference": (
+                record["type_of_reference"].strip().lower()
+                if record.get("type_of_reference")
+                else None
+            ),
+            "title": (
+                record["title"].strip().strip(".").lower()
+                if record.get("title")
+                else None
+            ),
+            "pub_year": record.get("pub_year", None),
+            "authors": (
+                tuple(sorted(author.strip().lower() for author in record["authors"]))
+                if record.get("authors")
+                else None
+            ),
+            "abstract": (
+                record["abstract"].strip().lower()[:500]  # truncated for performance
+                if record.get("abstract")
+                else None
+            ),
+            "doi": (_sanitize_doi(record["doi"]) if record.get("doi") else None),
         }
+        # derivative fields
+        record["authors_joined"] = (
+            "; ".join(record["authors"]) if record.get("authors") else None
+        )
+        return record
 
     def fit(
         self,
@@ -105,8 +123,8 @@ class Deduper:
                 self.model.prepare_training(data, training_file=f)
 
         dedupe.console_label(self.model)
+        LOGGER.info("training model on labeled examples ...")
         self.model.train(recall, index_predicates)
-        self.model.cleanup_training()
         return self
 
     def predict(
@@ -124,3 +142,10 @@ class Deduper:
             self.model.write_settings(f)
         with (dir_path / TRAINING_FNAME).open(mode="w") as f:
             self.model.write_training(f)
+
+
+def _sanitize_doi(value: str) -> str:
+    value = value.strip().lower()
+    if value.startswith("http://") or value.startswith("https://"):
+        value = urllib.parse.unquote(value)
+    return value

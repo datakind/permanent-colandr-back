@@ -20,8 +20,9 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import case, delete, exists, select, text, update
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
-from .extensions import cache, db, mail
+from .extensions import db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
+from .lib.deduping import Deduper
 from .lib.nlp import hack
 from .lib.utils import load_dedupe_model, make_record_immutable
 from .models import (
@@ -98,340 +99,158 @@ def deduplicate_citations(review_id):
     )
     lock.acquire()
 
-    deduper = load_dedupe_model(
-        os.path.join(
-            current_app.config["DEDUPE_MODELS_DIR"], "dedupe_citations_settings"
-        )
+    dir_path = os.path.join(
+        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
     )
-    try:
-        engine = create_engine(
-            current_app.config["SQLALCHEMY_DATABASE_URI"],
-            server_side_cursors=True,
-            echo=False,
-            use_batch_mode=True,
-        )
-    except TypeError:  # use_batch_mode kwarg only available in sqlalchemy>=1.2.0
-        engine = create_engine(
-            current_app.config["SQLALCHEMY_DATABASE_URI"],
-            server_side_cursors=True,
-            echo=False,
-        )
+    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
-    with engine.connect() as conn:
-        # wait until no more review citations have been created in 60+ seconds
-        while True:
-            stmt = select([func.max(Citation.created_at)]).where(
-                Citation.review_id == review_id
+    # wait until no more review citations have been created in 60+ seconds
+    stmt = db.select([func.max(Citation.created_at)]).where(
+        Citation.review_id == review_id
+    )
+
+    while True:
+        max_created_at = db.session.execute(stmt).scalar()
+        if max_created_at is None:
+            logger.error(
+                "<Review(id=%s)>: No citations found, so nothing to dedupe...",
+                review_id,
             )
-            max_created_at = conn.execute(stmt).fetchone()[0]
-            if max_created_at is None:
-                logger.error(
-                    "<Review(id=%s)>: No citations found, so nothing to dedupe...",
-                    review_id,
-                )
-                lock.release()
-                return
-            elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-            if elapsed_time < 60:
-                logger.debug(
-                    "citation last created %s seconds ago, sleeping...", elapsed_time
-                )
-                sleep(10)
-            else:
-                break
-
-        # if studies have been deduped since most recent import, cancel
-        # stmt = select(
-        #     [exists().where(Study.review_id == review_id).where(Study.dedupe_status == None)])
-        stmt = select([func.max(Dedupe.created_at)]).where(
-            Dedupe.review_id == review_id
-        )
-        most_recent_dedupe = conn.execute(stmt).fetchone()[0]
-        if most_recent_dedupe and most_recent_dedupe > max_created_at:
-            logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
             lock.release()
             return
-
-        # remove rows for this review
-        # which we'll add back with the latest citations included
-        for table in [
-            Dedupe,
-            DedupeBlockingMap,
-            DedupePluralKey,
-            DedupePluralBlock,
-            DedupeCoveredBlocks,
-            DedupeSmallerCoverage,
-        ]:
-            stmt = delete(table).where(getattr(table, "review_id") == review_id)
-            result = conn.execute(stmt)
-            rows_deleted = result.rowcount
+        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
+        if elapsed_time < 30:
             logger.debug(
-                "<Review(id=%s)>: deleted %s rows from %s",
-                review_id,
-                rows_deleted,
-                table.__tablename__,
+                "citation last created %s seconds ago, sleeping...", elapsed_time
             )
+            sleep(5)
+        else:
+            break
 
-        # if deduper learned an Index Predicate
-        # we have to take a pass through the data and create indices
-        for field in deduper.blocker.index_fields:
-            col_type = getattr(Citation, field).property.columns[0].type
-            # print('index predicate: {} {}'.format(field, col_type))
-            logger.debug(
-                "<Review(id=%s)>: index predicate: %s %s", review_id, field, col_type
-            )
-            stmt = (
-                select([getattr(Citation, field)])
-                .where(Citation.review_id == review_id)
-                .distinct()
-            )
-            results = conn.execute(stmt)
-            if isinstance(col_type, sqltypes.ARRAY):
-                field_data = (tuple(row[0]) for row in results)
-            else:
-                field_data = (row[0] for row in results)
-            deduper.blocker.index(field_data, field)
+    # if studies have been deduped since most recent import, cancel
+    stmt = db.select([func.max(Dedupe.created_at)]).where(Dedupe.review_id == review_id)
+    most_recent_dedupe = db.session.execute(stmt).scalar()
+    if most_recent_dedupe and most_recent_dedupe > max_created_at:
+        logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
+        lock.release()
+        return
 
-        # now we're ready to write our blocking map table by creating a generator
-        # that yields unique (block_key, citation_id, review_id) tuples
-        stmt = select(
-            [
-                Citation.id,
-                Citation.title,
-                Citation.authors,
-                Citation.pub_year.label(
-                    "publication_year"
-                ),  # HACK: trained model expects this field
-                Citation.abstract,
-                Citation.doi,
-            ]
-        ).where(Citation.review_id == review_id)
-        results = conn.execute(stmt)
-        data = ((row[0], make_record_immutable(dict(row))) for row in results)
-        b_data = (
-            (citation_id, review_id, block_key)
-            for block_key, citation_id in deduper.blocker(data)
-        )
-        conn.execute(
-            DedupeBlockingMap.__table__.insert(),
-            [
-                {"citation_id": row[0], "review_id": row[1], "block_key": row[2]}
-                for row in b_data
-            ],
-        )
+    # remove dedupe rows for this review
+    # which we'll add back with the latest citations included
+    stmt = db.delete(Dedupe).where(Dedupe.review_id == review_id)
+    result = db.session.execute(stmt)
+    rows_deleted = result.rowcount
+    logger.debug(
+        "<Review(id=%s)>: deleted %s rows from %s",
+        review_id,
+        rows_deleted,
+        Dedupe.__tablename__,
+    )
 
-        # now fill review rows back in
-        stmt = (
-            select([DedupeBlockingMap.review_id, DedupeBlockingMap.block_key])
-            .where(DedupeBlockingMap.review_id == review_id)
-            .group_by(DedupeBlockingMap.review_id, DedupeBlockingMap.block_key)
-            .having(func.count(1) > 1)
-        )
-        conn.execute(
-            DedupePluralKey.__table__.insert().from_select(
-                ["review_id", "block_key"], stmt
-            )
-        )
+    stmt = db.select(
+        Citation.id,
+        Citation.type_of_reference,
+        Citation.title,
+        Citation.pub_year,
+        Citation.authors,
+        Citation.abstract,
+        Citation.doi,
+    ).where(Citation.review_id == review_id)
+    # results = db.session.execute(stmt).mappings() instead ?
+    results = (row._asdict() for row in db.session.execute(stmt))
+    preproc_data = deduper.preprocess_data(results, id_key="id")
 
-        stmt = (
-            select(
-                [
-                    DedupePluralKey.block_id,
-                    DedupeBlockingMap.citation_id,
-                    DedupeBlockingMap.review_id,
-                ]
-            )
-            .where(DedupePluralKey.block_key == DedupeBlockingMap.block_key)
-            .where(DedupeBlockingMap.review_id == review_id)
-        )
-        conn.execute(
-            DedupePluralBlock.__table__.insert().from_select(
-                ["block_id", "citation_id", "review_id"], stmt
-            )
-        )
-
-        # To use Kolb, et. al's Redundant Free Comparison scheme, we need to
-        # keep track of all the block_ids that are associated with particular
-        # citation records
-        stmt = (
-            select(
-                [
-                    DedupePluralBlock.citation_id,
-                    DedupePluralBlock.review_id,
-                    func.array_agg(
-                        aggregate_order_by(
-                            DedupePluralBlock.block_id,
-                            DedupePluralBlock.block_id.desc(),
-                        ),
-                        type_=sqltypes.ARRAY(sqltypes.BigInteger),
-                    ).label("sorted_ids"),
-                ]
-            )
-            .where(DedupePluralBlock.review_id == review_id)
-            .group_by(DedupePluralBlock.citation_id, DedupePluralBlock.review_id)
-        )
-        conn.execute(
-            DedupeCoveredBlocks.__table__.insert().from_select(
-                ["citation_id", "review_id", "sorted_ids"], stmt
-            )
-        )
-
-        # for every block of records, we need to keep track of a citation records's
-        # associated block_ids that are SMALLER than the current block's id
-        ugh = "dedupe_covered_blocks.sorted_ids[0: array_position(dedupe_covered_blocks.sorted_ids, dedupe_plural_block.block_id) - 1] AS smaller_ids"
-        stmt = (
-            select(
-                [
-                    DedupePluralBlock.citation_id,
-                    DedupePluralBlock.review_id,
-                    DedupePluralBlock.block_id,
-                    text(ugh),
-                ]
-            )
-            .where(DedupePluralBlock.citation_id == DedupeCoveredBlocks.citation_id)
-            .where(DedupePluralBlock.review_id == review_id)
-        )
-        conn.execute(
-            DedupeSmallerCoverage.__table__.insert().from_select(
-                ["citation_id", "review_id", "block_id", "smaller_ids"], stmt
-            )
-        )
-
-        # set dedupe model similarity threshold from the data
-        stmt = (
-            select(
-                [
-                    Citation.id,
-                    Citation.title,
-                    Citation.authors,
-                    Citation.pub_year.label(
-                        "publication_year"
-                    ),  # HACK: trained model expects this field
-                    Citation.abstract,
-                    Citation.doi,
-                ]
-            )
-            .where(Citation.review_id == review_id)
-            .order_by(func.random())
-            .limit(20000)
-        )
-        results = conn.execute(stmt)
-        dupe_threshold = deduper.threshold(
-            {row.id: make_record_immutable(dict(row)) for row in results},
-            recall_weight=0.5,
-        )
-
-        # apply dedupe model to get clusters of duplicate records
-        stmt = (
-            select(
-                [
-                    Citation.id.label("citation_id"),
-                    Citation.title,
-                    Citation.authors,
-                    Citation.pub_year.label(
-                        "publication_year"
-                    ),  # HACK: trained model expects this field
-                    Citation.abstract,
-                    Citation.doi,
-                    DedupeSmallerCoverage.block_id,
-                    DedupeSmallerCoverage.smaller_ids,
-                ]
-            )
-            .where(Citation.id == DedupeSmallerCoverage.citation_id)
-            .where(Citation.review_id == review_id)
-            .order_by(DedupeSmallerCoverage.block_id)
-        )
-        results = conn.execute(stmt)
-
-        clustered_dupes = deduper.matchBlocks(
-            _get_candidate_dupes(results), threshold=dupe_threshold
-        )
-        try:
-            logger.info(
-                "<Review(id=%s)>: found %s duplicate clusters",
-                review_id,
-                len(clustered_dupes),
-            )
-        # newer versions of dedupe made this into a generator, which has no len
-        except TypeError:
-            logger.info("<Review(id=%s)>: found duplicate clusters", review_id)
-
-        # get *all* citation ids for this review, as well as included/excluded
-        stmt = select([Citation.id]).where(Citation.review_id == review_id)
-        all_cids = {result[0] for result in conn.execute(stmt).fetchall()}
-        stmt = (
-            select([Study.id])
-            .where(Study.review_id == review_id)
-            .where(Study.citation_status.in_(["included", "excluded"]))
-        )
-        incl_excl_cids = {result[0] for result in conn.execute(stmt).fetchall()}
-
-        duplicate_cids = set()
-
-        studies_to_update = []
-        dedupes_to_insert = []
-        for cids, scores in clustered_dupes:
-            int_cids = [int(cid) for cid in cids]
-            cid_scores = {cid: float(score) for cid, score in zip(int_cids, scores)}
-            if any(cid in incl_excl_cids for cid in int_cids):
-                canonical_citation_id = sorted(
-                    set(int_cids).intersection(incl_excl_cids)
-                )[0]
-            else:
-                stmt = (
-                    select(
-                        [
-                            Citation.id,
-                            (
-                                case([(Citation.title == None, 1)])
-                                + case([(Citation.abstract == None, 1)])
-                                + case([(Citation.pub_year == None, 1)])
-                                + case([(Citation.pub_month == None, 1)])
-                                + case([(Citation.authors == {}, 1)])
-                                + case([(Citation.keywords == {}, 1)])
-                                + case([(Citation.type_of_reference == None, 1)])
-                                + case([(Citation.journal_name == None, 1)])
-                                + case([(Citation.issue_number == None, 1)])
-                                + case([(Citation.doi == None, 1)])
-                                + case([(Citation.issn == None, 1)])
-                                + case([(Citation.publisher == None, 1)])
-                                + case([(Citation.language == None, 1)])
-                            ).label("n_null_cols"),
-                        ]
-                    )
-                    .where(Citation.review_id == review_id)
-                    .where(Citation.id.in_(int_cids))
-                    .order_by(text("n_null_cols ASC"))
-                    .limit(1)
-                )
-                result = conn.execute(stmt).fetchone()
-                canonical_citation_id = result.id
-            for cid, score in cid_scores.items():
-                if cid != canonical_citation_id:
-                    duplicate_cids.add(cid)
-                    studies_to_update.append({"id": cid, "dedupe_status": "duplicate"})
-                    dedupes_to_insert.append(
-                        {
-                            "id": cid,
-                            "review_id": review_id,
-                            "duplicate_of": canonical_citation_id,
-                            "duplicate_score": score,
-                        }
-                    )
-        non_duplicate_cids = all_cids - duplicate_cids
-        studies_to_update.extend(
-            {"id": cid, "dedupe_status": "not_duplicate"} for cid in non_duplicate_cids
-        )
-        session = Session(bind=conn)
-        session.bulk_update_mappings(Study, studies_to_update)
-        session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
-        session.commit()
+    # TODO: decide on suitable value for threshold; higher => higher precision
+    clustered_dupes = deduper.model.partition(preproc_data, threshold=0.5)
+    try:
         logger.info(
-            "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
+            "<Review(id=%s)>: found %s duplicate clusters",
             review_id,
-            len(duplicate_cids),
-            len(non_duplicate_cids),
+            len(clustered_dupes),
         )
+    # TODO: figure out if this is ever a generator instead
+    except TypeError:
+        logger.info("<Review(id=%s)>: found duplicate clusters", review_id)
+
+    # get *all* citation ids for this review, as well as included/excluded
+    stmt = db.select(Citation.id).where(Citation.review_id == review_id)
+    all_cids = set(db.session.execute(stmt).scalars().all())
+    stmt = (
+        db.select(Study.id)
+        .where(Study.review_id == review_id)
+        .where(Study.citation_status.in_(["included", "excluded"]))
+    )
+    incl_excl_cids = set(db.session.execute(stmt).scalars().all())
+
+    duplicate_cids = set()
+    studies_to_update = []
+    dedupes_to_insert = []
+    for cids, scores in clustered_dupes:
+        int_cids = [int(cid) for cid in cids]  # convert from numpy.int64
+        cid_scores = {cid: float(score) for cid, score in zip(int_cids, scores)}
+        # already an in/excluded citation in this dupe cluster?
+        # take the first one to be "canonical"
+        if any(cid in incl_excl_cids for cid in int_cids):
+            canonical_citation_id = sorted(set(int_cids).intersection(incl_excl_cids))[
+                0
+            ]
+        # otherwise, take the "most complete" citation in the cluster as "canonical"
+        else:
+            stmt = (
+                db.select(
+                    Citation.id,
+                    (
+                        case([(Citation.title == None, 1)])
+                        + case([(Citation.abstract == None, 1)])
+                        + case([(Citation.pub_year == None, 1)])
+                        + case([(Citation.pub_month == None, 1)])
+                        + case([(Citation.authors == {}, 1)])
+                        + case([(Citation.keywords == {}, 1)])
+                        + case([(Citation.type_of_reference == None, 1)])
+                        + case([(Citation.journal_name == None, 1)])
+                        + case([(Citation.issue_number == None, 1)])
+                        + case([(Citation.doi == None, 1)])
+                        + case([(Citation.issn == None, 1)])
+                        + case([(Citation.publisher == None, 1)])
+                        + case([(Citation.language == None, 1)])
+                    ).label("n_null_cols"),
+                )
+                .where(Citation.review_id == review_id)
+                .where(Citation.id.in_(int_cids))
+                .order_by(text("n_null_cols ASC"))
+                .limit(1)
+            )
+            result = db.session.execute(stmt).first()
+            canonical_citation_id = result.id
+
+        for cid, score in cid_scores.items():
+            if cid != canonical_citation_id:
+                duplicate_cids.add(cid)
+                studies_to_update.append({"id": cid, "dedupe_status": "duplicate"})
+                dedupes_to_insert.append(
+                    {
+                        "id": cid,
+                        "review_id": review_id,
+                        "duplicate_of": canonical_citation_id,
+                        "duplicate_score": score,
+                    }
+                )
+    non_duplicate_cids = all_cids - duplicate_cids
+    studies_to_update.extend(
+        {"id": cid, "dedupe_status": "not_duplicate"} for cid in non_duplicate_cids
+    )
+
+    # TODO: update this for sqlalchemy v2
+    # ref: https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-enabled-insert-update-and-delete-statements
+    db.session.bulk_update_mappings(Study, studies_to_update)
+    db.session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
+    db.session.commit()
+    logger.info(
+        "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
+        review_id,
+        len(duplicate_cids),
+        len(non_duplicate_cids),
+    )
 
     lock.release()
 
