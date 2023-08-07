@@ -2,7 +2,7 @@ import itertools
 import logging
 
 import sqlalchemy as sa
-from sqlalchemy import event, false, text
+from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -29,19 +29,19 @@ class User(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     name = sa.Column(sa.String(length=200), nullable=False)
     email = sa.Column(sa.String(length=200), unique=True, nullable=False, index=True)
     password = sa.Column(sa.String(length=256), nullable=False)
-    is_confirmed = sa.Column(sa.Boolean, nullable=False, server_default=false())
-    is_admin = sa.Column(sa.Boolean, nullable=False, server_default=false())
+    is_confirmed = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
+    is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
 
     # relationships
     owned_reviews = db.relationship(
@@ -121,7 +121,7 @@ class DataSource(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
     source_name = sa.Column(sa.String(length=100), index=True)
@@ -159,13 +159,13 @@ class Review(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     owner_user_id = sa.Column(
         sa.Integer,
@@ -254,13 +254,13 @@ class ReviewPlan(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     objective = sa.Column(sa.Text)
     research_questions = sa.Column(
@@ -320,7 +320,7 @@ class Import(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -379,13 +379,13 @@ class Study(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     user_id = sa.Column(
         sa.Integer,
@@ -483,7 +483,7 @@ class Dedupe(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -533,13 +533,13 @@ class Citation(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -658,13 +658,13 @@ class Fulltext(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -724,13 +724,13 @@ class CitationScreening(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -797,13 +797,13 @@ class FulltextScreening(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -867,13 +867,13 @@ class DataExtraction(db.Model):
     created_at = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     last_updated = sa.Column(
         sa.DateTime(timezone=False),
         nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
     review_id = sa.Column(
         sa.Integer,
@@ -1026,9 +1026,9 @@ class DedupeSmallerCoverage(db.Model):
 # EVENTS
 
 
-@event.listens_for(CitationScreening, "after_insert")
-@event.listens_for(CitationScreening, "after_delete")
-@event.listens_for(CitationScreening, "after_update")
+@sa_event.listens_for(CitationScreening, "after_insert")
+@sa_event.listens_for(CitationScreening, "after_delete")
+@sa_event.listens_for(CitationScreening, "after_update")
 def update_citation_status(mapper, connection, target):
     citation_id = target.citation_id
     review_id = target.review_id
@@ -1136,9 +1136,9 @@ def update_citation_status(mapper, connection, target):
                 train_citation_ranking_model.apply_async(args=[review_id])
 
 
-@event.listens_for(FulltextScreening, "after_insert")
-@event.listens_for(FulltextScreening, "after_delete")
-@event.listens_for(FulltextScreening, "after_update")
+@sa_event.listens_for(FulltextScreening, "after_insert")
+@sa_event.listens_for(FulltextScreening, "after_delete")
+@sa_event.listens_for(FulltextScreening, "after_update")
 def update_fulltext_status(mapper, connection, target):
     fulltext_id = target.fulltext_id
     review_id = target.review_id
@@ -1233,7 +1233,7 @@ def update_fulltext_status(mapper, connection, target):
     #         n_included, n_excluded = status_counts
 
 
-@event.listens_for(Review, "after_insert")
+@sa_event.listens_for(Review, "after_insert")
 def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
     with connection.begin():
