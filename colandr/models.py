@@ -1,7 +1,8 @@
 import itertools
 import logging
 
-from sqlalchemy import ForeignKey, event, false, text
+import sqlalchemy as sa
+from sqlalchemy import event, false, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 # association table for users-reviews many-to-many relationship
 users_reviews = db.Table(
     "users_to_reviews",
-    db.Column("user_id", db.Integer, db.ForeignKey("users.id"), index=True),
-    db.Column("review_id", db.Integer, db.ForeignKey("reviews.id"), index=True),
+    sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id"), index=True),
+    sa.Column("review_id", sa.Integer, sa.ForeignKey("reviews.id"), index=True),
 )
 
 
@@ -24,23 +25,23 @@ class User(db.Model):
     __tablename__ = "users"
 
     # columns
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    name = db.Column(db.Unicode(length=200), nullable=False)
-    email = db.Column(db.Unicode(length=200), unique=True, nullable=False, index=True)
-    password = db.Column(db.Unicode(length=256), nullable=False)
-    is_confirmed = db.Column(db.Boolean, nullable=False, server_default=false())
-    is_admin = db.Column(db.Boolean, nullable=False, server_default=false())
+    name = sa.Column(sa.String(length=200), nullable=False)
+    email = sa.Column(sa.String(length=200), unique=True, nullable=False, index=True)
+    password = sa.Column(sa.String(length=256), nullable=False)
+    is_confirmed = sa.Column(sa.Boolean, nullable=False, server_default=false())
+    is_admin = sa.Column(sa.Boolean, nullable=False, server_default=false())
 
     # relationships
     owned_reviews = db.relationship(
@@ -116,15 +117,15 @@ class DataSource(db.Model):
     )
 
     # columns
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    source_type = db.Column(db.Unicode(length=20), nullable=False, index=True)
-    source_name = db.Column(db.Unicode(length=100), index=True)
-    source_url = db.Column(db.Unicode(length=500))
+    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
+    source_name = sa.Column(sa.String(length=100), index=True)
+    source_url = sa.Column(sa.String(length=500))
 
     @hybrid_property
     def source_type_and_name(self):
@@ -154,37 +155,37 @@ class Review(db.Model):
     __tablename__ = "reviews"
 
     # columns
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    owner_user_id = db.Column(
-        db.Integer,
-        ForeignKey("users.id", ondelete="CASCADE"),
+    owner_user_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    name = db.Column(db.Unicode(length=500), nullable=False)
-    description = db.Column(db.UnicodeText)
-    status = db.Column(db.Unicode(length=25), server_default="active", nullable=False)
-    num_citation_screening_reviewers = db.Column(
-        db.SmallInteger, server_default="1", nullable=False
+    name = sa.Column(sa.String(length=500), nullable=False)
+    description = sa.Column(sa.Text)
+    status = sa.Column(sa.String(length=25), server_default="active", nullable=False)
+    num_citation_screening_reviewers = sa.Column(
+        sa.SmallInteger, server_default="1", nullable=False
     )
-    num_fulltext_screening_reviewers = db.Column(
-        db.SmallInteger, server_default="1", nullable=False
+    num_fulltext_screening_reviewers = sa.Column(
+        sa.SmallInteger, server_default="1", nullable=False
     )
-    num_citations_included = db.Column(db.Integer, server_default="0", nullable=False)
-    num_citations_excluded = db.Column(db.Integer, server_default="0", nullable=False)
-    num_fulltexts_included = db.Column(db.Integer, server_default="0", nullable=False)
-    num_fulltexts_excluded = db.Column(db.Integer, server_default="0", nullable=False)
+    num_citations_included = sa.Column(sa.Integer, server_default="0", nullable=False)
+    num_citations_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
+    num_fulltexts_included = sa.Column(sa.Integer, server_default="0", nullable=False)
+    num_fulltexts_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
 
     # relationships
     owner = db.relationship(
@@ -247,33 +248,33 @@ class ReviewPlan(db.Model):
     __tablename__ = "review_plans"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    objective = db.Column(db.UnicodeText)
-    research_questions = db.Column(
-        postgresql.ARRAY(db.Unicode(length=300)), server_default="{}"
+    objective = sa.Column(sa.Text)
+    research_questions = sa.Column(
+        postgresql.ARRAY(sa.String(length=300)), server_default="{}"
     )
-    pico = db.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    keyterms = db.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    selection_criteria = db.Column(
+    pico = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
+    keyterms = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
+    selection_criteria = sa.Column(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    data_extraction_form = db.Column(
+    data_extraction_form = sa.Column(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    suggested_keyterms = db.Column(
+    suggested_keyterms = sa.Column(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -315,32 +316,32 @@ class Import(db.Model):
     __tablename__ = "imports"
 
     # columns
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = db.Column(
-        db.Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
+    user_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    data_source_id = db.Column(
-        db.BigInteger,
-        ForeignKey("data_sources.id", ondelete="SET NULL"),
+    data_source_id = sa.Column(
+        sa.BigInteger,
+        sa.ForeignKey("data_sources.id", ondelete="SET NULL"),
         nullable=True,
     )
-    record_type = db.Column(db.Unicode(length=10), nullable=False)
-    num_records = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.Unicode(length=20), server_default="not_screened")
+    record_type = sa.Column(sa.String(length=10), nullable=False)
+    num_records = sa.Column(sa.Integer, nullable=False)
+    status = sa.Column(sa.String(length=20), server_default="not_screened")
 
     # relationships
     review = db.relationship(
@@ -374,50 +375,50 @@ class Study(db.Model):
     __tablename__ = "studies"
 
     # columns
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    user_id = db.Column(
-        db.Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
+    user_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    tags = db.Column(
-        postgresql.ARRAY(db.Unicode(length=64)), server_default="{}", index=False
+    tags = sa.Column(
+        postgresql.ARRAY(sa.String(length=64)), server_default="{}", index=False
     )
-    data_source_id = db.Column(
-        db.Integer,
-        ForeignKey("data_sources.id", ondelete="SET NULL"),
+    data_source_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("data_sources.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    dedupe_status = db.Column(
-        db.Unicode(length=20), server_default="not_duplicate", nullable=True, index=True
+    dedupe_status = sa.Column(
+        sa.String(length=20), server_default="not_duplicate", nullable=True, index=True
     )
-    citation_status = db.Column(
-        db.Unicode(length=20), server_default="not_screened", nullable=False, index=True
+    citation_status = sa.Column(
+        sa.String(length=20), server_default="not_screened", nullable=False, index=True
     )
-    fulltext_status = db.Column(
-        db.Unicode(length=20), server_default="not_screened", nullable=False, index=True
+    fulltext_status = sa.Column(
+        sa.String(length=20), server_default="not_screened", nullable=False, index=True
     )
-    data_extraction_status = db.Column(
-        db.Unicode(length=20), server_default="not_started", nullable=False, index=True
+    data_extraction_status = sa.Column(
+        sa.String(length=20), server_default="not_started", nullable=False, index=True
     )
 
     # relationships
@@ -476,24 +477,25 @@ class Dedupe(db.Model):
     __tablename__ = "dedupes"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
+    id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    duplicate_of = db.Column(
-        db.BigInteger, nullable=True  # ForeignKey('studies.id', ondelete='SET NULL'),
+    duplicate_of = sa.Column(
+        sa.BigInteger,
+        nullable=True,  # sa.ForeignKey('studies.id', ondelete='SET NULL'),
     )
-    duplicate_score = db.Column(db.Float, nullable=True)
+    duplicate_score = sa.Column(sa.Float, nullable=True)
 
     # relationships
     study = db.relationship(
@@ -525,44 +527,44 @@ class Citation(db.Model):
     #     )
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
+    id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    type_of_work = db.Column(db.Unicode(length=25))
-    title = db.Column(db.Unicode(length=300), server_default="untitled", nullable=False)
-    secondary_title = db.Column(db.Unicode(length=300))
-    abstract = db.Column(db.UnicodeText)
-    pub_year = db.Column(db.SmallInteger)
-    pub_month = db.Column(db.SmallInteger)
-    authors = db.Column(postgresql.ARRAY(db.Unicode(length=100)))
-    keywords = db.Column(postgresql.ARRAY(db.Unicode(length=100)))
-    type_of_reference = db.Column(db.Unicode(length=50))
-    journal_name = db.Column(db.Unicode(length=100))
-    volume = db.Column(db.Unicode(length=20))
-    issue_number = db.Column(db.Unicode(length=20))
-    doi = db.Column(db.Unicode(length=100))
-    issn = db.Column(db.Unicode(length=20))
-    publisher = db.Column(db.Unicode(length=100))
-    language = db.Column(db.Unicode(length=50))
-    other_fields = db.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    text_content_vector_rep = db.Column(postgresql.ARRAY(db.Float), server_default="{}")
+    type_of_work = sa.Column(sa.String(length=25))
+    title = sa.Column(sa.String(length=300), server_default="untitled", nullable=False)
+    secondary_title = sa.Column(sa.String(length=300))
+    abstract = sa.Column(sa.Text)
+    pub_year = sa.Column(sa.SmallInteger)
+    pub_month = sa.Column(sa.SmallInteger)
+    authors = sa.Column(postgresql.ARRAY(sa.String(length=100)))
+    keywords = sa.Column(postgresql.ARRAY(sa.String(length=100)))
+    type_of_reference = sa.Column(sa.String(length=50))
+    journal_name = sa.Column(sa.String(length=100))
+    volume = sa.Column(sa.String(length=20))
+    issue_number = sa.Column(sa.String(length=20))
+    doi = sa.Column(sa.String(length=100))
+    issn = sa.Column(sa.String(length=20))
+    publisher = sa.Column(sa.String(length=100))
+    language = sa.Column(sa.String(length=50))
+    other_fields = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
+    text_content_vector_rep = sa.Column(postgresql.ARRAY(sa.Float), server_default="{}")
 
     @hybrid_property
     def text_content(self):
@@ -650,30 +652,30 @@ class Fulltext(db.Model):
     __tablename__ = "fulltexts"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
+    id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    filename = db.Column(db.Unicode(length=30), unique=True, nullable=True)
-    original_filename = db.Column(db.Unicode, unique=False, nullable=True)
-    text_content = db.Column(db.UnicodeText, nullable=True)
-    text_content_vector_rep = db.Column(postgresql.ARRAY(db.Float), server_default="{}")
+    filename = sa.Column(sa.String(length=30), unique=True, nullable=True)
+    original_filename = sa.Column(sa.String, unique=False, nullable=True)
+    text_content = sa.Column(sa.Text, nullable=True)
+    text_content_vector_rep = sa.Column(postgresql.ARRAY(sa.Float), server_default="{}")
 
     @hybrid_property
     def exclude_reasons(self):
@@ -718,38 +720,38 @@ class CitationScreening(db.Model):
     )
 
     # columns
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = db.Column(
-        db.Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
+    user_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    citation_id = db.Column(
-        db.BigInteger,
-        ForeignKey("citations.id", ondelete="CASCADE"),
+    citation_id = sa.Column(
+        sa.BigInteger,
+        sa.ForeignKey("citations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    status = db.Column(db.Unicode(length=20), nullable=False, index=True)
-    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=64)), nullable=True)
+    status = sa.Column(sa.String(length=20), nullable=False, index=True)
+    exclude_reasons = sa.Column(postgresql.ARRAY(sa.String(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(
@@ -791,38 +793,38 @@ class FulltextScreening(db.Model):
     )
 
     # columns
-    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = db.Column(
-        db.Integer,
-        ForeignKey("users.id", ondelete="SET NULL"),
+    user_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    fulltext_id = db.Column(
-        db.BigInteger,
-        ForeignKey("fulltexts.id", ondelete="CASCADE"),
+    fulltext_id = sa.Column(
+        sa.BigInteger,
+        sa.ForeignKey("fulltexts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    status = db.Column(db.Unicode(length=20), nullable=False, index=True)
-    exclude_reasons = db.Column(postgresql.ARRAY(db.Unicode(length=64)), nullable=True)
+    status = sa.Column(sa.String(length=20), nullable=False, index=True)
+    exclude_reasons = sa.Column(postgresql.ARRAY(sa.String(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(
@@ -859,27 +861,27 @@ class DataExtraction(db.Model):
     __tablename__ = "data_extractions"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
+    id = sa.Column(
+        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False),
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False),
+    last_updated = sa.Column(
+        sa.DateTime(timezone=False),
         nullable=False,
         server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    extracted_items = db.Column(
+    extracted_items = sa.Column(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -910,21 +912,21 @@ class DedupeBlockingMap(db.Model):
     __tablename__ = "dedupe_blocking_map"
 
     # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        ForeignKey("citations.id", ondelete="CASCADE"),
+    citation_id = sa.Column(
+        sa.BigInteger,
+        sa.ForeignKey("citations.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
         index=True,
     )
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         primary_key=True,
         nullable=False,
         index=True,
     )
-    block_key = db.Column(db.UnicodeText, primary_key=True, nullable=False, index=True)
+    block_key = sa.Column(sa.Text, primary_key=True, nullable=False, index=True)
 
     def __init__(self, citation_id, review_id, block_key):
         self.citation_id = citation_id
@@ -939,14 +941,14 @@ class DedupePluralKey(db.Model):
     )
 
     # columns
-    block_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    block_id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    block_key = db.Column(db.UnicodeText, nullable=False, index=True)
+    block_key = sa.Column(sa.Text, nullable=False, index=True)
 
     def __init__(self, block_id, review_id, block_key):
         self.block_id = block_id
@@ -962,11 +964,11 @@ class DedupePluralBlock(db.Model):
     #     )
 
     # columns
-    block_id = db.Column(db.BigInteger, primary_key=True)
-    citation_id = db.Column(db.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    block_id = sa.Column(sa.BigInteger, primary_key=True)
+    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -981,15 +983,15 @@ class DedupeCoveredBlocks(db.Model):
     __tablename__ = "dedupe_covered_blocks"
 
     # columns
-    citation_id = db.Column(db.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    sorted_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger), nullable=False, server_default="{}"
+    sorted_ids = sa.Column(
+        postgresql.ARRAY(sa.BigInteger), nullable=False, server_default="{}"
     )
 
     def __init__(self, citation_id, review_id, sorted_ids):
@@ -1002,16 +1004,16 @@ class DedupeSmallerCoverage(db.Model):
     __tablename__ = "dedupe_smaller_coverage"
 
     # columns
-    citation_id = db.Column(db.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey("reviews.id", ondelete="CASCADE"),
+    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
+    review_id = sa.Column(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    block_id = db.Column(db.BigInteger, primary_key=True, nullable=False)
-    smaller_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger), nullable=True, server_default="{}"
+    block_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False)
+    smaller_ids = sa.Column(
+        postgresql.ARRAY(sa.BigInteger), nullable=True, server_default="{}"
     )
 
     def __init__(self, citation_id, review_id, block_id, smaller_ids):
