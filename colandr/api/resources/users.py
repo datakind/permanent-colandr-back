@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app, g
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -8,9 +9,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...extensions import guard
+from ...extensions import db, guard
 from ...lib import constants
-from ...models import Review, User, db
+from ...models import Review, User
 from ..errors import db_integrity_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
@@ -66,7 +67,7 @@ class UserResource(Resource):
             is False
         ):
             return forbidden_error(f"{current_user} forbidden to get this user")
-        user = db.session.query(User).get(id)
+        user = db.session.execute(sa.select(User).filter_by(id=id)).scalar_one_or_none()
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         if fields and "id" not in fields:
@@ -103,7 +104,7 @@ class UserResource(Resource):
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to delete this user")
-        user = db.session.query(User).get(id)
+        user = db.session.execute(sa.select(User).filter_by(id=id)).scalar_one_or_none()
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
@@ -145,7 +146,7 @@ class UserResource(Resource):
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to update this user")
-        user = db.session.query(User).get(id)
+        user = db.session.execute(sa.select(User).filter_by(id=id)).scalar_one_or_none()
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         for key, value in args.items():
