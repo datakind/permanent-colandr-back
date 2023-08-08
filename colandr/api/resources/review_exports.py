@@ -15,7 +15,6 @@ from ...lib import constants, fileio
 from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
-
 ns = Namespace(
     "review_exports",
     path="/reviews/<int:id>/export",
@@ -49,7 +48,7 @@ class ReviewExportPrismaResource(Resource):
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -154,7 +153,7 @@ class ReviewExportStudiesResource(Resource):
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (

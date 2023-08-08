@@ -8,8 +8,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Citation, DataSource, Review, Study, db
+from ...models import Citation, DataSource, Review, Study
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model
@@ -57,7 +58,7 @@ class CitationResource(Resource):
     def get(self, id, fields):
         """get record for a single citation by id"""
         current_user = flask_praetorian.current_user()
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
@@ -101,7 +102,7 @@ class CitationResource(Resource):
     def delete(self, id, test):
         """delete record for a single citation by id"""
         current_user = flask_praetorian.current_user()
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
@@ -150,7 +151,7 @@ class CitationResource(Resource):
     def put(self, args, id, test):
         """modify record for a single citation by id"""
         current_user = flask_praetorian.current_user()
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error("<Citation(id={})> not found".format(id))
         if (
@@ -250,7 +251,7 @@ class CitationsResource(Resource):
     def post(self, args, review_id, source_type, source_name, source_url, status, test):
         """create a single citation"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         if (

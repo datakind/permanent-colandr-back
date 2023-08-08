@@ -7,16 +7,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import (
-    DataExtraction,
-    Fulltext,
-    FulltextScreening,
-    Review,
-    Study,
-    User,
-    db,
-)
+from ...models import DataExtraction, Fulltext, FulltextScreening, Review, Study, User
 from ..errors import (
     bad_request_error,
     forbidden_error,
@@ -73,7 +66,7 @@ class FulltextScreeningsResource(Resource):
         """get screenings for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
@@ -117,7 +110,7 @@ class FulltextScreeningsResource(Resource):
         """delete current app user's screening for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
@@ -173,7 +166,7 @@ class FulltextScreeningsResource(Resource):
         """create a screenings for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
@@ -253,7 +246,7 @@ class FulltextScreeningsResource(Resource):
     def put(self, args, id, test):
         """modify current app user's screening of a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if current_user.is_admin is True and "user_id" in args:
@@ -347,7 +340,7 @@ class FulltextsScreeningsResource(Resource):
         query = db.session.query(FulltextScreening)
         if fulltext_id is not None:
             # check user authorization
-            fulltext = db.session.query(Fulltext).get(fulltext_id)
+            fulltext = db.session.get(Fulltext, fulltext_id)
             if not fulltext:
                 return not_found_error(
                     "<Fulltext(id={})> not found".format(fulltext_id)
@@ -365,7 +358,7 @@ class FulltextsScreeningsResource(Resource):
             query = query.filter_by(fulltext_id=fulltext_id)
         if user_id is not None:
             # check user authorization
-            user = db.session.query(User).get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return not_found_error("<User(id={})> not found".format(user_id))
             if current_user.is_admin is False and not any(
@@ -379,7 +372,7 @@ class FulltextsScreeningsResource(Resource):
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
             # check user authorization
-            review = db.session.query(Review).get(review_id)
+            review = db.session.get(Review, review_id)
             if not review:
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
@@ -445,7 +438,7 @@ class FulltextsScreeningsResource(Resource):
         if current_user.is_admin is False:
             return forbidden_error("FulltextsScreeningsResource.post is admin-only")
         # check current user authorization
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         # bulk insert fulltext screenings

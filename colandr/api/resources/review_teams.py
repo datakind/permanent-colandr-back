@@ -9,8 +9,9 @@ from webargs.flaskparser import use_kwargs
 
 from colandr import api
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Review, User, db
+from ...models import Review, User
 from ...tasks import send_email
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import UserSchema
@@ -58,7 +59,7 @@ class ReviewTeamResource(Resource):
     def get(self, id, fields):
         """get members of a single review's team"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -142,7 +143,7 @@ class ReviewTeamResource(Resource):
     def put(self, id, action, user_id, user_email, server_name, test):
         """add, invite, remove, or promote a review team member"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and review.owner is not current_user:
@@ -150,7 +151,7 @@ class ReviewTeamResource(Resource):
                 f"{current_user} forbidden to modify this review team"
             )
         if user_id is not None:
-            user = db.session.query(User).get(user_id)
+            user = db.session.get(User, user_id)
         elif user_email is not None:
             user = db.session.query(User).filter_by(email=user_email).one_or_none()
             if user is not None:
@@ -263,7 +264,7 @@ class ConfirmReviewTeamInviteResource(Resource):
         serializer = URLSafeSerializer(current_app.config["SECRET_KEY"])
         user_email = serializer.loads(token, salt=current_app.config["PASSWORD_SALT"])
 
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         review_users = review.users

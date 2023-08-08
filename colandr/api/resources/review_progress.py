@@ -5,8 +5,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Review, Study, db
+from ...models import Review, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -83,7 +84,7 @@ class ReviewProgressResource(Resource):
         """get review progress on one or all steps for a single review by id"""
         current_user = flask_praetorian.current_user()
         response = {}
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (

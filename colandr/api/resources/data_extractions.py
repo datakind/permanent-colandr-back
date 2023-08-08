@@ -7,8 +7,9 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants, sanitizers
-from ...models import DataExtraction, ReviewPlan, Study, db
+from ...models import DataExtraction, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import DataExtractionSchema, ExtractedItem
 from ..swagger import extracted_item_model
@@ -48,7 +49,7 @@ class DataExtractionResource(Resource):
         """get data extraction record for a single study by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction).get(id)
+        extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
         if (
@@ -105,7 +106,7 @@ class DataExtractionResource(Resource):
         """delete data extraction record for a single study by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction).get(id)
+        extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
         if (
@@ -125,7 +126,7 @@ class DataExtractionResource(Resource):
             extracted_data.extracted_items = []
         # in case of "full" deletion, update study's data_extraction_status
         if not extracted_data.extracted_items:
-            study = db.session.query(Study).get(id)
+            study = db.session.get(Study, id)
             study.data_extraction_status = "not_started"
         if test is False:
             db.session.commit()
@@ -165,7 +166,7 @@ class DataExtractionResource(Resource):
         """modify data extraction record for a single study by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        extracted_data = db.session.query(DataExtraction).get(id)
+        extracted_data = db.session.get(DataExtraction, id)
         review_id = extracted_data.review_id
         if not extracted_data:
             return not_found_error("<DataExtraction(study_id={})> not found".format(id))
@@ -175,7 +176,7 @@ class DataExtractionResource(Resource):
                     current_user
                 )
             )
-        study = db.session.query(Study).get(id)
+        study = db.session.get(Study, id)
         if study.data_extraction_status == "finished":
             return forbidden_error(
                 '{} already "finished", so can\'t be modified'.format(extracted_data)

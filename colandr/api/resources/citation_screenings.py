@@ -7,8 +7,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Citation, CitationScreening, Fulltext, Review, Study, User, db
+from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import (
     bad_request_error,
     forbidden_error,
@@ -65,7 +66,7 @@ class CitationScreeningsResource(Resource):
         """get screenings for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -108,7 +109,7 @@ class CitationScreeningsResource(Resource):
         """delete current app user's screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -164,7 +165,7 @@ class CitationScreeningsResource(Resource):
         """create a screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -236,7 +237,7 @@ class CitationScreeningsResource(Resource):
     def put(self, args, id, test):
         """modify current app user's screening of a single citation by id"""
         current_user = flask_praetorian.current_user()
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
@@ -328,7 +329,7 @@ class CitationsScreeningsResource(Resource):
         query = db.session.query(CitationScreening)
         if citation_id is not None:
             # check user authorization
-            citation = db.session.query(Citation).get(citation_id)
+            citation = db.session.get(Citation, citation_id)
             if not citation:
                 return not_found_error(f"<Citation(id={citation_id})> not found")
             if (
@@ -342,7 +343,7 @@ class CitationsScreeningsResource(Resource):
             query = query.filter_by(citation_id=citation_id)
         if user_id is not None:
             # check user authorization
-            user = db.session.query(User).get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return not_found_error(f"<User(id={user_id})> not found")
             if current_user.is_admin is False and not any(
@@ -356,7 +357,7 @@ class CitationsScreeningsResource(Resource):
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
             # check user authorization
-            review = db.session.query(Review).get(review_id)
+            review = db.session.get(Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -421,7 +422,7 @@ class CitationsScreeningsResource(Resource):
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is False:
             return forbidden_error("endpoint is admin-only")
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         # bulk insert citation screenings

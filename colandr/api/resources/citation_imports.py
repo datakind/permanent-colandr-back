@@ -10,8 +10,9 @@ from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
+from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
@@ -58,7 +59,7 @@ class CitationsImportsResource(Resource):
     def get(self, review_id):
         """get citation import history for a review"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -154,7 +155,7 @@ class CitationsImportsResource(Resource):
     ):
         """import citations in bulk for a review"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (

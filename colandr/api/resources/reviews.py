@@ -10,8 +10,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Review, db
+from ...models import Review
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
@@ -59,7 +60,7 @@ class ReviewResource(Resource):
     def get(self, id, fields):
         """get record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -100,7 +101,7 @@ class ReviewResource(Resource):
     def delete(self, id, test):
         """delete record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
@@ -150,7 +151,7 @@ class ReviewResource(Resource):
     def put(self, args, id, test):
         """modify record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
