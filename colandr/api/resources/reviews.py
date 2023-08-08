@@ -2,6 +2,7 @@ import os
 import shutil
 
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -205,7 +206,9 @@ class ReviewsResource(Resource):
         """get all reviews on which current app user is a collaborator"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is True and _review_ids is not None:
-            reviews = db.session.query(Review).filter(Review.id.in_(_review_ids))
+            reviews = db.session.execute(
+                sa.select(Review).filter(Review.id.in_(_review_ids))
+            )
         elif current_user.is_admin is False and _review_ids is not None:
             return forbidden_error(
                 f'non-admin {current_user} passed admin-only "_review_ids" param'

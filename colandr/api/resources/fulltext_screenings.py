@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -487,15 +488,14 @@ class FulltextsScreeningsResource(Resource):
             # now add data extractions for included fulltexts
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
-            results = (
-                db.session.query(Study.id)
-                .filter_by(review_id=review_id)
-                .filter_by(fulltext_status="included")
+            results = db.session.execute(
+                sa.select(Study.id)
+                .filter_by(review_id=review_id, fulltext_status="included")
                 .filter(~Study.data_extraction.has())
                 .order_by(Study.id)
-            )
+            ).scalars()
             data_extractions_to_insert = [
-                {"id": result[0], "review_id": review_id} for result in results
+                {"id": result, "review_id": review_id} for result in results
             ]
             db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
             db.session.commit()
@@ -503,25 +503,23 @@ class FulltextsScreeningsResource(Resource):
                 "inserted %s data extractions", len(data_extractions_to_insert)
             )
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.fulltext_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
+            status_counts = db.session.execute(
+                sa.select(Study.fulltext_status, db.func.count(1))
+                .filter_by(review_id=review_id)
                 .filter(Study.fulltext_status.in_(["included", "excluded"]))
                 .group_by(Study.fulltext_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             review.num_fulltexts_included = status_counts.get("included", 0)
             review.num_fulltexts_excluded = status_counts.get("excluded", 0)
             db.session.commit()
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.fulltext_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
+            status_counts = db.session.execute(
+                sa.select(Study.fulltext_status, db.func.count(1))
+                .filter_by(review_id=review_id)
                 .filter(Study.fulltext_status.in_(["included", "excluded"]))
                 .group_by(Study.fulltext_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             review.num_fulltexts_included = status_counts.get("included", 0)
             review.num_fulltexts_excluded = status_counts.get("excluded", 0)

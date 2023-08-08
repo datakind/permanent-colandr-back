@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -107,12 +108,11 @@ class ReviewProgressResource(Resource):
             ] = progress  # {key: val for key, val in progress.items()}
         if step in ("citation_screening", "all"):
             if user_view is False:
-                progress = (
-                    db.session.query(Study.citation_status, db.func.count(1))
+                progress = db.session.execute(
+                    sa.select(Study.citation_status, db.func.count(1))
                     .filter_by(review_id=id)
                     .group_by(Study.citation_status)
-                    .all()
-                )
+                ).all()
                 progress = dict(progress)
                 progress = {
                     status: progress.get(status, 0)
@@ -153,13 +153,11 @@ class ReviewProgressResource(Resource):
             response["citation_screening"] = progress
         if step in ("fulltext_screening", "all"):
             if user_view is False:
-                progress = (
-                    db.session.query(Study.fulltext_status, db.func.count(1))
-                    .filter_by(review_id=id)
-                    .filter_by(citation_status="included")
+                progress = db.session.execute(
+                    sa.select(Study.fulltext_status, db.func.count(1))
+                    .filter_by(review_id=id, citation_status="included")
                     .group_by(Study.fulltext_status)
-                    .all()
-                )
+                ).all()
                 progress = dict(progress)
                 progress = {
                     status: progress.get(status, 0)
@@ -199,13 +197,11 @@ class ReviewProgressResource(Resource):
                 }
             response["fulltext_screening"] = progress
         if step in ("data_extraction", "all"):
-            progress = (
-                db.session.query(Study.data_extraction_status, db.func.count(1))
-                .filter_by(review_id=id)
-                .filter_by(fulltext_status="included")
+            progress = db.session.execute(
+                sa.select(Study.data_extraction_status, db.func.count(1))
+                .filter_by(review_id=id, fulltext_status="included")
                 .group_by(Study.data_extraction_status)
-                .all()
-            )
+            ).all()
             progress = dict(progress)
             progress = {
                 status: progress.get(status, 0)

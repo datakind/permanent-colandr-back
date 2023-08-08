@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
@@ -193,11 +194,11 @@ class CitationsImportsResource(Resource):
             )
         except ValidationError as e:
             return validation_error(e.messages)
-        data_source = (
-            db.session.query(DataSource)
-            .filter_by(source_type=source_type, source_name=source_name)
-            .one_or_none()
-        )
+        data_source = db.session.execute(
+            sa.select(DataSource).filter_by(
+                source_type=source_type, source_name=source_name
+            )
+        ).scalar_one_or_none()
         if data_source is None:
             data_source = DataSource(source_type, source_name, source_url=source_url)
             db.session.add(data_source)

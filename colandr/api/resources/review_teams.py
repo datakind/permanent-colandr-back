@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app, render_template
 from flask_restx import Namespace, Resource
 from itsdangerous import URLSafeSerializer
@@ -153,7 +154,9 @@ class ReviewTeamResource(Resource):
         if user_id is not None:
             user = db.session.get(User, user_id)
         elif user_email is not None:
-            user = db.session.query(User).filter_by(email=user_email).one_or_none()
+            user = db.session.execute(
+                sa.select(User).filter_by(email=user_email)
+            ).scalar_one_or_none()
             if user is not None:
                 user_id = user.id
         else:
@@ -269,7 +272,9 @@ class ConfirmReviewTeamInviteResource(Resource):
             return not_found_error(f"<Review(id={id})> not found")
         review_users = review.users
 
-        user = db.session.query(User).filter_by(email=user_email).one_or_none()
+        user = db.session.execute(
+            sa.select(User).filter_by(email=user_email)
+        ).scalar_one_or_none()
         if user is None:
             return forbidden_error("user not found")
         if user not in review_users:

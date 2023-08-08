@@ -1,5 +1,6 @@
 import arrow
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -181,11 +182,9 @@ class DataExtractionResource(Resource):
             return forbidden_error(
                 '{} already "finished", so can\'t be modified'.format(extracted_data)
             )
-        data_extraction_form = (
-            db.session.query(ReviewPlan.data_extraction_form)
-            .filter_by(id=review_id)
-            .one_or_none()
-        )
+        data_extraction_form = db.session.execute(
+            sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
+        ).scalar_one_or_none()
         if not data_extraction_form:
             return forbidden_error(
                 "<ReviewPlan({})> does not have a data extraction form".format(

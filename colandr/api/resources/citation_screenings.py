@@ -1,4 +1,5 @@
 import flask_praetorian
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -326,6 +327,7 @@ class CitationsScreeningsResource(Resource):
             return bad_request_error(
                 "citation, user, and/or review id must be specified"
             )
+        # TODO: fix this sqlalchemy usage
         query = db.session.query(CitationScreening)
         if citation_id is not None:
             # check user authorization
@@ -471,28 +473,25 @@ class CitationsScreeningsResource(Resource):
             # now add fulltexts for included citations
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
-            results = (
-                db.session.query(Study.id)
-                .filter_by(review_id=review_id)
-                .filter_by(citation_status="included")
+            results = db.session.execute(
+                sa.select(Study.id)
+                .filter_by(review_id=review_id, citation_status="included")
                 .filter(~Study.fulltext.has())
                 .order_by(Study.id)
-            )
+            ).scalars()
             fulltexts_to_insert = [
-                {"id": result[0], "review_id": review_id} for result in results
+                {"id": result, "review_id": review_id} for result in results
             ]
             db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
             db.session.commit()
             current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.citation_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
-                .filter(Study.dedupe_status == "not_duplicate")
+            status_counts = db.session.execute(
+                sa.select(Study.citation_status, db.func.count(1))
+                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
                 .filter(Study.citation_status.in_(["included", "excluded"]))
                 .group_by(Study.citation_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             n_included = status_counts.get("included", 0)
             n_excluded = status_counts.get("excluded", 0)
