@@ -99,6 +99,7 @@ def db_session(db: flask_sqlalchemy.SQLAlchemy):
 
 @pytest.fixture(scope="session")
 def admin_user(db: flask_sqlalchemy.SQLAlchemy):
+    user = db.session.get(models.User, 1)
     return user
 
 
