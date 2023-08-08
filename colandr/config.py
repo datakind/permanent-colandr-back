@@ -26,6 +26,8 @@ SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
 #     f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
 # )
 SQLALCHEMY_ECHO = False
+# TODO: figure out why future-style sqlalchemy usage fails catastrophically
+# SQLALCHEMY_ENGINE_OPTIONS = {"future": True}
 
 # celery+redis config
 CELERY = {
