@@ -459,7 +459,7 @@ class CitationsScreeningsResource(Resource):
                 """.format(
                 citation_ids=",".join(str(cid) for cid in citation_ids)
             )
-            results = connection.execute(query)
+            results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}
             for row in results

@@ -145,7 +145,7 @@ class ReviewProgressResource(Resource):
                     """.format(
                     user_id=current_user.id, review_id=id
                 )
-                progress = dict(row for row in db.engine.execute(query))
+                progress = dict(row for row in db.engine.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES
@@ -190,7 +190,7 @@ class ReviewProgressResource(Resource):
                     """.format(
                     user_id=current_user.id, review_id=id
                 )
-                progress = dict(row for row in db.engine.execute(query))
+                progress = dict(row for row in db.engine.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES

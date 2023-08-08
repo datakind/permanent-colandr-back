@@ -5,7 +5,6 @@ from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
-from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
@@ -210,7 +209,6 @@ class CitationsImportsResource(Resource):
             data_source_id = 0
 
         # TODO: make this an async task?
-        engine = create_engine(current_app.config["SQLALCHEMY_DATABASE_URI"])
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert
         citation_schema = CitationSchema()
@@ -260,7 +258,7 @@ class CitationsImportsResource(Resource):
 
         # insert studies, and get their primary keys _back_
         stmt = db.insert(Study).values(studies_to_insert).returning(Study.id)
-        with engine.connect() as conn:
+        with db.engine.connect() as conn:
             study_ids = [result[0] for result in conn.execute(stmt)]
 
         # add study ids to citations as their primary keys
@@ -274,7 +272,7 @@ class CitationsImportsResource(Resource):
         # the corresponding fulltexts, since bulk operations won't trigger
         # the fancy events defined in models.py
         if status == "included":
-            with engine.connect() as conn:
+            with db.engine.connect() as conn:
                 conn.execute(
                     Fulltext.__table__.insert(),
                     [
