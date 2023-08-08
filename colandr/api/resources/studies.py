@@ -5,7 +5,7 @@ from operator import itemgetter
 import flask_praetorian
 import joblib
 import numpy as np
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Length, OneOf, Range

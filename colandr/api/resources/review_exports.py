@@ -4,7 +4,7 @@ import itertools
 from typing import Optional
 
 import flask_praetorian
-from flask import current_app, g, make_response
+from flask import current_app, make_response
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -14,6 +14,7 @@ from ...extensions import db
 from ...lib import constants, fileio
 from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
+
 
 ns = Namespace(
     "review_exports",

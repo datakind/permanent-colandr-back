@@ -1,5 +1,5 @@
 import flask_praetorian
-from flask import current_app, g, render_template
+from flask import current_app, render_template
 from flask_restx import Namespace, Resource
 from itsdangerous import URLSafeSerializer
 from marshmallow import fields as ma_fields

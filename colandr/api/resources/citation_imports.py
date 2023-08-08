@@ -1,7 +1,5 @@
-import io
-
 import flask_praetorian
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from marshmallow import fields as ma_fields

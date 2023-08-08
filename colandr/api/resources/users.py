@@ -1,6 +1,6 @@
 import flask_praetorian
 import sqlalchemy as sa
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
