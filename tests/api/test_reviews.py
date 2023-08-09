@@ -76,3 +76,31 @@ class TestReviewsResource:
         data = response.json
         assert data
         assert len(data) == num_exp
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"name": "NAMEX", "description": "DESCX"},
+        ],
+    )
+    def test_post(self, data, app, client, db_session, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for("reviews_reviews_resource")
+        response = client.post(url, json=data, headers=admin_headers)
+        assert response.status_code == 200
+        response_data = response.json
+        assert data["name"] == response_data["name"]
+
+    @pytest.mark.parametrize(
+        ["data", "status_code"],
+        [
+            ({"name": None, "description": "DESCX"}, 422),
+        ],
+    )
+    def test_post_error(
+        self, data, status_code, app, client, db_session, admin_headers
+    ):
+        with app.test_request_context():
+            url = flask.url_for("reviews_reviews_resource")
+        response = client.post(url, json=data, headers=admin_headers)
+        assert response.status_code == status_code
