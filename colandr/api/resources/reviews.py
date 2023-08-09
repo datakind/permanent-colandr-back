@@ -176,6 +176,8 @@ class ReviewResource(Resource):
     produces=["application/json"],
 )
 class ReviewsResource(Resource):
+    method_decorators = [flask_praetorian.auth_required]
+
     @ns.doc(
         params={
             "fields": {
@@ -200,14 +202,17 @@ class ReviewsResource(Resource):
             "_review_ids": DelimitedList(
                 ma_fields.String, delimiter=",", load_default=None
             ),
-        }
+        },
+        location="query",
     )
     def get(self, fields, _review_ids):
         """get all reviews on which current app user is a collaborator"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is True and _review_ids is not None:
-            reviews = db.session.execute(
-                sa.select(Review).filter(Review.id.in_(_review_ids))
+            reviews = (
+                db.session.execute(sa.select(Review).filter(Review.id.in_(_review_ids)))
+                .scalars()
+                .all()
             )
         elif current_user.is_admin is False and _review_ids is not None:
             return forbidden_error(
