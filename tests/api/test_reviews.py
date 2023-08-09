@@ -61,3 +61,18 @@ class TestReviewResource:
         assert response.status_code == 204
         get_response = client.get(url, headers=admin_headers)
         assert get_response.status_code == 404  # not found!
+
+
+class TestReviewsResource:
+    @pytest.mark.parametrize(
+        ["_review_ids", "num_exp"],
+        [("1", 1), ("1,2", 2), ("1,2,99", 2)],
+    )
+    def test_get(self, _review_ids, num_exp, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for("reviews_reviews_resource", _review_ids=_review_ids)
+        response = client.get(url, headers=admin_headers)
+        assert response.status_code == 200
+        data = response.json
+        assert data
+        assert len(data) == num_exp
