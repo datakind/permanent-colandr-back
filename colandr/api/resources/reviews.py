@@ -18,7 +18,6 @@ from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
 
-
 ns = Namespace(
     "reviews", path="/reviews", description="get, create, delete, update reviews"
 )
@@ -259,7 +258,7 @@ class ReviewsResource(Resource):
                 os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review.id)),
             ]
             for dirname in dirnames:
-                os.mkdir(dirname)
+                os.makedirs(dirname, exist_ok=True)
         else:
             db.session.rollback()
         return ReviewSchema().dump(review)
