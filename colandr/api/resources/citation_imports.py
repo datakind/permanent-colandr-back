@@ -1,17 +1,16 @@
-import io
-
 import flask_praetorian
-from flask import current_app, g
+import sqlalchemy as sa
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
-from sqlalchemy import create_engine
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Citation, DataSource, Fulltext, Import, Review, Study, db
+from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
@@ -58,7 +57,7 @@ class CitationsImportsResource(Resource):
     def get(self, review_id):
         """get citation import history for a review"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -154,7 +153,7 @@ class CitationsImportsResource(Resource):
     ):
         """import citations in bulk for a review"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -194,11 +193,11 @@ class CitationsImportsResource(Resource):
             )
         except ValidationError as e:
             return validation_error(e.messages)
-        data_source = (
-            db.session.query(DataSource)
-            .filter_by(source_type=source_type, source_name=source_name)
-            .one_or_none()
-        )
+        data_source = db.session.execute(
+            sa.select(DataSource).filter_by(
+                source_type=source_type, source_name=source_name
+            )
+        ).scalar_one_or_none()
         if data_source is None:
             data_source = DataSource(source_type, source_name, source_url=source_url)
             db.session.add(data_source)
@@ -210,7 +209,6 @@ class CitationsImportsResource(Resource):
             data_source_id = 0
 
         # TODO: make this an async task?
-        engine = create_engine(current_app.config["SQLALCHEMY_DATABASE_URI"])
         # parse and iterate over imported citations
         # create lists of study and citation dicts to insert
         citation_schema = CitationSchema()
@@ -259,8 +257,8 @@ class CitationsImportsResource(Resource):
             return
 
         # insert studies, and get their primary keys _back_
-        stmt = db.insert(Study).values(studies_to_insert).returning(Study.id)
-        with engine.connect() as conn:
+        stmt = sa.insert(Study).values(studies_to_insert).returning(Study.id)
+        with db.engine.connect() as conn:
             study_ids = [result[0] for result in conn.execute(stmt)]
 
         # add study ids to citations as their primary keys
@@ -274,7 +272,7 @@ class CitationsImportsResource(Resource):
         # the corresponding fulltexts, since bulk operations won't trigger
         # the fancy events defined in models.py
         if status == "included":
-            with engine.connect() as conn:
+            with db.engine.connect() as conn:
                 conn.execute(
                     Fulltext.__table__.insert(),
                     [

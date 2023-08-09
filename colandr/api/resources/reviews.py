@@ -2,7 +2,8 @@ import os
 import shutil
 
 import flask_praetorian
-from flask import current_app, g
+import sqlalchemy as sa
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -10,8 +11,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Review, db
+from ...models import Review
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
@@ -59,7 +61,7 @@ class ReviewResource(Resource):
     def get(self, id, fields):
         """get record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -100,7 +102,7 @@ class ReviewResource(Resource):
     def delete(self, id, test):
         """delete record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
@@ -150,7 +152,7 @@ class ReviewResource(Resource):
     def put(self, args, id, test):
         """modify record for a single review by id"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and review.owner is not current_user:
@@ -174,6 +176,8 @@ class ReviewResource(Resource):
     produces=["application/json"],
 )
 class ReviewsResource(Resource):
+    method_decorators = [flask_praetorian.auth_required]
+
     @ns.doc(
         params={
             "fields": {
@@ -198,13 +202,18 @@ class ReviewsResource(Resource):
             "_review_ids": DelimitedList(
                 ma_fields.String, delimiter=",", load_default=None
             ),
-        }
+        },
+        location="query",
     )
     def get(self, fields, _review_ids):
         """get all reviews on which current app user is a collaborator"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is True and _review_ids is not None:
-            reviews = db.session.query(Review).filter(Review.id.in_(_review_ids))
+            reviews = (
+                db.session.execute(sa.select(Review).filter(Review.id.in_(_review_ids)))
+                .scalars()
+                .all()
+            )
         elif current_user.is_admin is False and _review_ids is not None:
             return forbidden_error(
                 f'non-admin {current_user} passed admin-only "_review_ids" param'

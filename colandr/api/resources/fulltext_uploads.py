@@ -3,15 +3,16 @@ import os
 
 import flask_praetorian
 import ftfy
-from flask import current_app, g, send_from_directory
+from flask import current_app, send_from_directory
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Fulltext, db
+from ...models import Fulltext
 from ...tasks import get_fulltext_text_content_vector
 from ..errors import forbidden_error, not_found_error, validation_error
 from ..schemas import FulltextSchema
@@ -81,7 +82,7 @@ class FulltextUploadResource(Resource):
             # authenticate current user
             from colandr.models import Review
 
-            review = db.session.query(Review).get(review_id)
+            review = db.session.get(Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -138,7 +139,7 @@ class FulltextUploadResource(Resource):
     def post(self, id, uploaded_file, test):
         """upload fulltext content file for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
@@ -221,7 +222,7 @@ class FulltextUploadResource(Resource):
     def delete(self, id, test):
         """delete fulltext content file for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (

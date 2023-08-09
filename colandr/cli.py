@@ -55,14 +55,14 @@ def db_seed(file_path: pathlib.Path):
     db.session.commit()
     # empty review plans already created w/ review
     for record in data["review_plans"]:
-        plan = db.session.query(models.ReviewPlan).get(record["id_"])
+        plan = db.session.get(models.ReviewPlan, record["id_"])
         for key, val in record.items():
             if key != "id_":
                 setattr(plan, key, val)
     for record in data["citation_screenings"]:
         db.session.add(models.CitationScreening(**record))
     for record in data["fulltext_uploads"]:
-        fulltext = db.session.query(models.Fulltext).get(record["id"])
+        fulltext = db.session.get(models.Fulltext, record["id"])
         for key, val in record.items():
             if key != "id":
                 setattr(fulltext, key, val)

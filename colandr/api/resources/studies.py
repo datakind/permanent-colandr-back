@@ -5,7 +5,7 @@ from operator import itemgetter
 import flask_praetorian
 import joblib
 import numpy as np
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Length, OneOf, Range
@@ -14,6 +14,7 @@ from sqlalchemy.sql import operators
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
 from ...lib.constants import (
     CITATION_RANKING_MODEL_FNAME,
@@ -22,7 +23,7 @@ from ...lib.constants import (
     USER_SCREENING_STATUSES,
 )
 from ...lib.nlp import reviewer_terms
-from ...models import Citation, Review, Study, db
+from ...models import Citation, Review, Study
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
@@ -68,7 +69,7 @@ class StudyResource(Resource):
     def get(self, id, fields):
         """get record for a single study by id"""
         current_user = flask_praetorian.current_user()
-        study = db.session.query(Study).get(id)
+        study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -109,7 +110,7 @@ class StudyResource(Resource):
     def delete(self, id, test):
         """delete record for a single study by id"""
         current_user = flask_praetorian.current_user()
-        study = db.session.query(Study).get(id)
+        study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -155,7 +156,7 @@ class StudyResource(Resource):
     def put(self, args, id, test):
         """modify record for a single study by id"""
         current_user = flask_praetorian.current_user()
-        study = db.session.query(Study).get(id)
+        study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -315,7 +316,7 @@ class StudiesResource(Resource):
     ):
         """get study record(s) for one or more matching studies"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (

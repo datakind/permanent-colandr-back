@@ -1,7 +1,10 @@
 import json
 import pathlib
 import shutil
+from typing import Any
 
+import flask
+import flask_sqlalchemy
 import pytest
 
 from colandr import cli, extensions, models
@@ -36,19 +39,21 @@ def app(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def seed_data_fpath():
+def seed_data_fpath() -> pathlib.Path:
     return pathlib.Path(__file__).parent / "fixtures" / "seed_data.json"
 
 
 @pytest.fixture(scope="session")
-def seed_data(seed_data_fpath):
+def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, Any]:
     with seed_data_fpath.open(mode="r") as f:
         seed_data = json.load(f)
     return seed_data
 
 
 @pytest.fixture(scope="session")
-def db(app, seed_data_fpath, seed_data, request):
+def db(
+    app: flask.Flask, seed_data_fpath: pathlib.Path, seed_data: dict[str, Any], request
+):
     extensions.db.drop_all()
     extensions.db.create_all()
     _store_upload_files(app, seed_data, request)
@@ -56,7 +61,7 @@ def db(app, seed_data_fpath, seed_data, request):
     return extensions.db
 
 
-def _store_upload_files(app, seed_data, request):
+def _store_upload_files(app: flask.Flask, seed_data: dict[str, Any], request):
     for record in seed_data["fulltext_uploads"]:
         src_file_path = (
             request.config.rootpath / "tests" / "fixtures" / record["original_filename"]
@@ -70,17 +75,17 @@ def _store_upload_files(app, seed_data, request):
 
 
 @pytest.fixture
-def client(app):
+def client(app: flask.Flask):
     yield app.test_client()
 
 
 @pytest.fixture
-def cli_runner(app):
+def cli_runner(app: flask.Flask):
     yield app.test_cli_runner()
 
 
 @pytest.fixture
-def db_session(db):
+def db_session(db: flask_sqlalchemy.SQLAlchemy):
     """
     Allow very fast tests by using rollbacks and nested sessions. This does
     require that your database supports SQL savepoints, and Postgres does.
@@ -93,11 +98,11 @@ def db_session(db):
 
 
 @pytest.fixture(scope="session")
-def admin_user(db):
-    user = db.session.query(models.User).get(1)
+def admin_user(db: flask_sqlalchemy.SQLAlchemy):
+    user = db.session.get(models.User, 1)
     return user
 
 
 @pytest.fixture
-def admin_headers(admin_user):
+def admin_headers(admin_user: models.User):
     return extensions.guard.pack_header_for_user(admin_user)

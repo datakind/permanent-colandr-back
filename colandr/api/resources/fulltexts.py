@@ -1,13 +1,14 @@
 import flask_praetorian
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Fulltext, db
+from ...models import Fulltext
 from ..errors import forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 
@@ -52,7 +53,7 @@ class FulltextResource(Resource):
     def get(self, id, fields):
         """get record for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
@@ -94,7 +95,7 @@ class FulltextResource(Resource):
     def delete(self, id, test):
         """delete record for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (

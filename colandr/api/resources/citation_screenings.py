@@ -1,5 +1,6 @@
 import flask_praetorian
-from flask import current_app, g
+import sqlalchemy as sa
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -7,8 +8,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Citation, CitationScreening, Fulltext, Review, Study, User, db
+from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
 from ..errors import (
     bad_request_error,
     forbidden_error,
@@ -65,7 +67,7 @@ class CitationScreeningsResource(Resource):
         """get screenings for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -108,7 +110,7 @@ class CitationScreeningsResource(Resource):
         """delete current app user's screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -164,7 +166,7 @@ class CitationScreeningsResource(Resource):
         """create a screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
@@ -236,7 +238,7 @@ class CitationScreeningsResource(Resource):
     def put(self, args, id, test):
         """modify current app user's screening of a single citation by id"""
         current_user = flask_praetorian.current_user()
-        citation = db.session.query(Citation).get(id)
+        citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
@@ -325,10 +327,11 @@ class CitationsScreeningsResource(Resource):
             return bad_request_error(
                 "citation, user, and/or review id must be specified"
             )
+        # TODO: fix this sqlalchemy usage
         query = db.session.query(CitationScreening)
         if citation_id is not None:
             # check user authorization
-            citation = db.session.query(Citation).get(citation_id)
+            citation = db.session.get(Citation, citation_id)
             if not citation:
                 return not_found_error(f"<Citation(id={citation_id})> not found")
             if (
@@ -342,7 +345,7 @@ class CitationsScreeningsResource(Resource):
             query = query.filter_by(citation_id=citation_id)
         if user_id is not None:
             # check user authorization
-            user = db.session.query(User).get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return not_found_error(f"<User(id={user_id})> not found")
             if current_user.is_admin is False and not any(
@@ -356,7 +359,7 @@ class CitationsScreeningsResource(Resource):
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
             # check user authorization
-            review = db.session.query(Review).get(review_id)
+            review = db.session.get(Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -421,7 +424,7 @@ class CitationsScreeningsResource(Resource):
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is False:
             return forbidden_error("endpoint is admin-only")
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         # bulk insert citation screenings
@@ -456,7 +459,7 @@ class CitationsScreeningsResource(Resource):
                 """.format(
                 citation_ids=",".join(str(cid) for cid in citation_ids)
             )
-            results = connection.execute(query)
+            results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}
             for row in results
@@ -470,28 +473,25 @@ class CitationsScreeningsResource(Resource):
             # now add fulltexts for included citations
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
-            results = (
-                db.session.query(Study.id)
-                .filter_by(review_id=review_id)
-                .filter_by(citation_status="included")
+            results = db.session.execute(
+                sa.select(Study.id)
+                .filter_by(review_id=review_id, citation_status="included")
                 .filter(~Study.fulltext.has())
                 .order_by(Study.id)
-            )
+            ).scalars()
             fulltexts_to_insert = [
-                {"id": result[0], "review_id": review_id} for result in results
+                {"id": result, "review_id": review_id} for result in results
             ]
             db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
             db.session.commit()
             current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.citation_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
-                .filter(Study.dedupe_status == "not_duplicate")
+            status_counts = db.session.execute(
+                sa.select(Study.citation_status, db.func.count(1))
+                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
                 .filter(Study.citation_status.in_(["included", "excluded"]))
                 .group_by(Study.citation_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             n_included = status_counts.get("included", 0)
             n_excluded = status_counts.get("excluded", 0)

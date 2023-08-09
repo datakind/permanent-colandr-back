@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from flask_restx import Namespace, Resource
 
 from ..extensions import db
@@ -15,5 +16,5 @@ class HealthResource(Resource):
     @ns.doc(responses={200: "api is healthy"})
     def get(self):
         # TODO: redis.ping() ?
-        db.engine.execute("SELECT 1")
+        _ = db.session.execute(sa.text("SELECT 1")).scalar()
         return "OK"

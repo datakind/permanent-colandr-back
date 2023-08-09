@@ -1,5 +1,6 @@
 import flask_praetorian
-from flask import current_app, g
+import sqlalchemy as sa
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -7,16 +8,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import (
-    DataExtraction,
-    Fulltext,
-    FulltextScreening,
-    Review,
-    Study,
-    User,
-    db,
-)
+from ...models import DataExtraction, Fulltext, FulltextScreening, Review, Study, User
 from ..errors import (
     bad_request_error,
     forbidden_error,
@@ -73,7 +67,7 @@ class FulltextScreeningsResource(Resource):
         """get screenings for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
@@ -117,7 +111,7 @@ class FulltextScreeningsResource(Resource):
         """delete current app user's screening for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
@@ -173,7 +167,7 @@ class FulltextScreeningsResource(Resource):
         """create a screenings for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
@@ -253,7 +247,7 @@ class FulltextScreeningsResource(Resource):
     def put(self, args, id, test):
         """modify current app user's screening of a single fulltext by id"""
         current_user = flask_praetorian.current_user()
-        fulltext = db.session.query(Fulltext).get(id)
+        fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if current_user.is_admin is True and "user_id" in args:
@@ -347,7 +341,7 @@ class FulltextsScreeningsResource(Resource):
         query = db.session.query(FulltextScreening)
         if fulltext_id is not None:
             # check user authorization
-            fulltext = db.session.query(Fulltext).get(fulltext_id)
+            fulltext = db.session.get(Fulltext, fulltext_id)
             if not fulltext:
                 return not_found_error(
                     "<Fulltext(id={})> not found".format(fulltext_id)
@@ -365,7 +359,7 @@ class FulltextsScreeningsResource(Resource):
             query = query.filter_by(fulltext_id=fulltext_id)
         if user_id is not None:
             # check user authorization
-            user = db.session.query(User).get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return not_found_error("<User(id={})> not found".format(user_id))
             if current_user.is_admin is False and not any(
@@ -379,7 +373,7 @@ class FulltextsScreeningsResource(Resource):
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
             # check user authorization
-            review = db.session.query(Review).get(review_id)
+            review = db.session.get(Review, review_id)
             if not review:
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
@@ -445,7 +439,7 @@ class FulltextsScreeningsResource(Resource):
         if current_user.is_admin is False:
             return forbidden_error("FulltextsScreeningsResource.post is admin-only")
         # check current user authorization
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error("<Review(id={})> not found".format(review_id))
         # bulk insert fulltext screenings
@@ -480,7 +474,7 @@ class FulltextsScreeningsResource(Resource):
                 """.format(
                 fulltext_ids=",".join(str(cid) for cid in fulltext_ids)
             )
-            results = connection.execute(query)
+            results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "fulltext_status": assign_status(row[1], num_screeners)}
             for row in results
@@ -494,15 +488,14 @@ class FulltextsScreeningsResource(Resource):
             # now add data extractions for included fulltexts
             # normally this is done automatically, but not when we're hacking
             # and doing bulk changes to the database
-            results = (
-                db.session.query(Study.id)
-                .filter_by(review_id=review_id)
-                .filter_by(fulltext_status="included")
+            results = db.session.execute(
+                sa.select(Study.id)
+                .filter_by(review_id=review_id, fulltext_status="included")
                 .filter(~Study.data_extraction.has())
                 .order_by(Study.id)
-            )
+            ).scalars()
             data_extractions_to_insert = [
-                {"id": result[0], "review_id": review_id} for result in results
+                {"id": result, "review_id": review_id} for result in results
             ]
             db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
             db.session.commit()
@@ -510,25 +503,23 @@ class FulltextsScreeningsResource(Resource):
                 "inserted %s data extractions", len(data_extractions_to_insert)
             )
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.fulltext_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
+            status_counts = db.session.execute(
+                sa.select(Study.fulltext_status, db.func.count(1))
+                .filter_by(review_id=review_id)
                 .filter(Study.fulltext_status.in_(["included", "excluded"]))
                 .group_by(Study.fulltext_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             review.num_fulltexts_included = status_counts.get("included", 0)
             review.num_fulltexts_excluded = status_counts.get("excluded", 0)
             db.session.commit()
             # now update include/exclude counts on review
-            status_counts = (
-                db.session.query(Study.fulltext_status, db.func.count(1))
-                .filter(Study.review_id == review_id)
+            status_counts = db.session.execute(
+                sa.select(Study.fulltext_status, db.func.count(1))
+                .filter_by(review_id=review_id)
                 .filter(Study.fulltext_status.in_(["included", "excluded"]))
                 .group_by(Study.fulltext_status)
-                .all()
-            )
+            ).all()
             status_counts = dict(status_counts)
             review.num_fulltexts_included = status_counts.get("included", 0)
             review.num_fulltexts_excluded = status_counts.get("excluded", 0)

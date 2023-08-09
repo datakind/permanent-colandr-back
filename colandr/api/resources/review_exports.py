@@ -4,7 +4,8 @@ import itertools
 from typing import Optional
 
 import flask_praetorian
-from flask import current_app, g, make_response
+import sqlalchemy as sa
+from flask import current_app, make_response
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -49,7 +50,7 @@ class ReviewExportPrismaResource(Resource):
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -59,13 +60,15 @@ class ReviewExportPrismaResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this review")
         # get counts by step, i.e. prisma
         n_studies_by_source = dict(
-            db.session.query(DataSource.source_type, db.func.sum(Import.num_records))
-            .filter(Import.data_source_id == DataSource.id)
-            .filter(Import.review_id == id)
-            .group_by(DataSource.source_type)
-            .all()
+            db.session.execute(
+                sa.select(DataSource.source_type, db.func.sum(Import.num_records))
+                .filter(Import.data_source_id == DataSource.id)
+                .filter(Import.review_id == id)
+                .group_by(DataSource.source_type)
+            ).all()
         )
 
+        # TODO: fix this query
         n_unique_studies = (
             db.session.query(Study)
             .filter(Study.review_id == id)
@@ -74,30 +77,30 @@ class ReviewExportPrismaResource(Resource):
         )
 
         n_citations_by_status = dict(
-            db.session.query(Study.citation_status, db.func.count(1))
-            .filter(Study.review_id == id)
-            .filter(Study.citation_status.in_(["included", "excluded"]))
-            .group_by(Study.citation_status)
-            .all()
+            db.session.execute(
+                sa.select(Study.citation_status, db.func.count(1))
+                .filter(Study.review_id == id)
+                .filter(Study.citation_status.in_(["included", "excluded"]))
+                .group_by(Study.citation_status)
+            ).all()
         )
         n_citations_screened = sum(n_citations_by_status.values())
         n_citations_excluded = n_citations_by_status.get("excluded", 0)
 
         n_fulltexts_by_status = dict(
-            db.session.query(Study.fulltext_status, db.func.count(1))
-            .filter(Study.review_id == id)
-            .filter(Study.fulltext_status.in_(["included", "excluded"]))
-            .group_by(Study.fulltext_status)
-            .all()
+            db.session.execute(
+                sa.select(Study.fulltext_status, db.func.count(1))
+                .filter(Study.review_id == id)
+                .filter(Study.fulltext_status.in_(["included", "excluded"]))
+                .group_by(Study.fulltext_status)
+            ).all()
         )
         n_fulltexts_screened = sum(n_fulltexts_by_status.values())
         n_fulltexts_excluded = n_fulltexts_by_status.get("excluded", 0)
 
-        results = (
-            db.session.query(FulltextScreening.exclude_reasons)
-            .filter(FulltextScreening.review_id == id)
-            .all()
-        )
+        results = db.session.execute(
+            sa.select(FulltextScreening.exclude_reasons).filter_by(review_id=id)
+        ).all()
         exclude_reason_counts = dict(
             collections.Counter(
                 itertools.chain.from_iterable(
@@ -154,7 +157,7 @@ class ReviewExportStudiesResource(Resource):
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(id)
+        review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (

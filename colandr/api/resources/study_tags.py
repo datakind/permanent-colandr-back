@@ -1,14 +1,15 @@
 import itertools
 
 import flask_praetorian
-from flask import current_app, g
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
+from ...extensions import db
 from ...lib import constants
-from ...models import Review, Study, db
+from ...models import Review, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -53,7 +54,7 @@ class StudyTagsResource(Resource):
     def get(self, review_id):
         """get all distinct tags assigned to studies"""
         current_user = flask_praetorian.current_user()
-        review = db.session.query(Review).get(review_id)
+        review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
