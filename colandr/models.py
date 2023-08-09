@@ -1041,7 +1041,7 @@ def update_citation_status(mapper, connection, target):
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
-            db.select([Study.citation_status]).where(Study.id == citation_id)
+            sa.select(Study.citation_status).where(Study.id == citation_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
     status = assign_status(
@@ -1055,7 +1055,7 @@ def update_citation_status(mapper, connection, target):
     )
     with connection.begin():
         connection.execute(
-            db.update(Study)
+            sa.update(Study)
             .where(Study.id == citation_id)
             .values(citation_status=status)
         )
@@ -1063,19 +1063,19 @@ def update_citation_status(mapper, connection, target):
     # we may have to insert or delete a corresponding fulltext record
     with connection.begin():
         fulltext = connection.execute(
-            db.select([Fulltext]).where(Fulltext.id == citation_id)
+            sa.select(Fulltext).where(Fulltext.id == citation_id)
         ).first()
     fulltext_inserted_or_deleted = False
     if status == "included" and fulltext is None:
         with connection.begin():
             connection.execute(
-                db.insert(Fulltext).values(id=citation_id, review_id=review_id)
+                sa.insert(Fulltext).values(id=citation_id, review_id=review_id)
             )
         logger.info("inserted <Fulltext(study_id=%s)>", citation_id)
         fulltext_inserted_or_deleted = True
     elif status != "included" and fulltext is not None:
         with connection.begin():
-            connection.execute(db.delete(Fulltext).where(Fulltext.id == citation_id))
+            connection.execute(sa.delete(Fulltext).where(Fulltext.id == citation_id))
         logger.info("deleted <Fulltext(study_id=%s)>", citation_id)
         fulltext_inserted_or_deleted = True
     # we may have to update our counts for review num_citations_included / excluded
@@ -1083,36 +1083,36 @@ def update_citation_status(mapper, connection, target):
         if old_status == "included":  # decrement num_citations_included
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_citations_included=Review.num_citations_included - 1)
                 )
         elif status == "included":  # increment num_citations_included
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_citations_included=Review.num_citations_included + 1)
                 )
         elif old_status == "excluded":  # decrement num_citations_excluded
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_citations_included=Review.num_citations_excluded - 1)
                 )
         elif status == "excluded":  # increment num_citations_excluded
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_citations_included=Review.num_citations_excluded + 1)
                 )
     if fulltext_inserted_or_deleted is True:
         with connection.begin():
             status_counts = connection.execute(
-                db.select(
-                    [Review.num_citations_included, Review.num_citations_excluded]
+                sa.select(
+                    Review.num_citations_included, Review.num_citations_excluded
                 ).where(Review.id == review_id)
             ).fetchone()
             logger.info(
@@ -1151,7 +1151,7 @@ def update_fulltext_status(mapper, connection, target):
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
-            db.select([Study.fulltext_status]).where(Study.id == fulltext_id)
+            sa.select(Study.fulltext_status).where(Study.id == fulltext_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
     status = assign_status(
@@ -1165,7 +1165,7 @@ def update_fulltext_status(mapper, connection, target):
     )
     with connection.begin():
         connection.execute(
-            db.update(Study)
+            sa.update(Study)
             .where(Study.id == fulltext_id)
             .values(fulltext_status=status)
         )
@@ -1173,20 +1173,20 @@ def update_fulltext_status(mapper, connection, target):
     # we may have to insert or delete a corresponding data extraction record
     with connection.begin():
         data_extraction = connection.execute(
-            db.select([DataExtraction]).where(DataExtraction.id == fulltext_id)
+            sa.select(DataExtraction).where(DataExtraction.id == fulltext_id)
         ).first()
     data_extraction_inserted_or_deleted = False
     if status == "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
-                db.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
+                sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
             )
         logger.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
         data_extraction_inserted_or_deleted = True
     elif status != "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
-                db.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
+                sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
             )
         logger.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
         data_extraction_inserted_or_deleted = True
@@ -1195,28 +1195,28 @@ def update_fulltext_status(mapper, connection, target):
         if old_status == "included":  # decrement num_fulltexts_included
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
                 )
         elif status == "included":  # increment num_fulltexts_included
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
                 )
         elif old_status == "excluded":  # decrement num_fulltexts_excluded
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
                 )
         elif status == "excluded":  # increment num_fulltexts_excluded
             with connection.begin():
                 connection.execute(
-                    db.update(Review)
+                    sa.update(Review)
                     .where(Review.id == review_id)
                     .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
                 )
@@ -1224,7 +1224,7 @@ def update_fulltext_status(mapper, connection, target):
     # if data_extraction_inserted_or_deleted is True:
     #     with connection.begin():
     #         status_counts = connection.execute(
-    #             db.select([Review.num_fulltexts_included, Review.num_fulltexts_excluded])\
+    #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
     #             .where(Review.id == review_id)
     #             ).fetchone()
     #         logger.info(
@@ -1237,5 +1237,5 @@ def update_fulltext_status(mapper, connection, target):
 def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
     with connection.begin():
-        connection.execute(db.insert(ReviewPlan).values(id=target.id))
+        connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     logger.info("inserted %s and %s", target, review_plan)

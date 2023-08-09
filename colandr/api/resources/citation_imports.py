@@ -257,7 +257,7 @@ class CitationsImportsResource(Resource):
             return
 
         # insert studies, and get their primary keys _back_
-        stmt = db.insert(Study).values(studies_to_insert).returning(Study.id)
+        stmt = sa.insert(Study).values(studies_to_insert).returning(Study.id)
         with db.engine.connect() as conn:
             study_ids = [result[0] for result in conn.execute(stmt)]
 

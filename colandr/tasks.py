@@ -6,6 +6,7 @@ import arrow
 import joblib
 import numpy as np
 import redis
+import sqlalchemy as sa
 import textacy
 from celery import current_app as current_celery_app
 from celery import shared_task
@@ -69,7 +70,9 @@ def send_email(recipients, subject, text_body, html_body):
 
 @shared_task
 def remove_unconfirmed_user(email):
-    user = db.session.query(User).filter_by(email=email).one_or_none()
+    user = db.session.execute(
+        sa.select(User).filter_by(email=email)
+    ).scalar_one_or_none()
     if user and user.is_confirmed is False:
         db.session.delete(user)
         db.session.commit()
@@ -105,7 +108,7 @@ def deduplicate_citations(review_id):
     deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # wait until no more review citations have been created in 60+ seconds
-    stmt = db.select([func.max(Citation.created_at)]).where(
+    stmt = sa.select(func.max(Citation.created_at)).where(
         Citation.review_id == review_id
     )
 
@@ -128,7 +131,7 @@ def deduplicate_citations(review_id):
             break
 
     # if studies have been deduped since most recent import, cancel
-    stmt = db.select([func.max(Dedupe.created_at)]).where(Dedupe.review_id == review_id)
+    stmt = sa.select(func.max(Dedupe.created_at)).where(Dedupe.review_id == review_id)
     most_recent_dedupe = db.session.execute(stmt).scalar()
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
         logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
@@ -137,7 +140,7 @@ def deduplicate_citations(review_id):
 
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
-    stmt = db.delete(Dedupe).where(Dedupe.review_id == review_id)
+    stmt = sa.delete(Dedupe).where(Dedupe.review_id == review_id)
     result = db.session.execute(stmt)
     rows_deleted = result.rowcount
     logger.debug(
@@ -147,7 +150,7 @@ def deduplicate_citations(review_id):
         Dedupe.__tablename__,
     )
 
-    stmt = db.select(
+    stmt = sa.select(
         Citation.id,
         Citation.type_of_reference,
         Citation.title,
@@ -173,10 +176,10 @@ def deduplicate_citations(review_id):
         logger.info("<Review(id=%s)>: found duplicate clusters", review_id)
 
     # get *all* citation ids for this review, as well as included/excluded
-    stmt = db.select(Citation.id).where(Citation.review_id == review_id)
+    stmt = sa.select(Citation.id).where(Citation.review_id == review_id)
     all_cids = set(db.session.execute(stmt).scalars().all())
     stmt = (
-        db.select(Study.id)
+        sa.select(Study.id)
         .where(Study.review_id == review_id)
         .where(Study.citation_status.in_(["included", "excluded"]))
     )
@@ -197,7 +200,7 @@ def deduplicate_citations(review_id):
         # otherwise, take the "most complete" citation in the cluster as "canonical"
         else:
             stmt = (
-                db.select(
+                sa.select(
                     Citation.id,
                     (
                         case([(Citation.title == None, 1)])
@@ -275,7 +278,7 @@ def get_citations_text_content_vectors(review_id):
 
     with engine.connect() as conn:
         # wait until no more review citations have been created in 60+ seconds
-        stmt = select([func.max(Citation.created_at)]).where(
+        stmt = sa.select(func.max(Citation.created_at)).where(
             Citation.review_id == review_id
         )
         while True:
@@ -296,7 +299,7 @@ def get_citations_text_content_vectors(review_id):
                 break
 
         stmt = (
-            select([Citation.id, Citation.text_content])
+            sa.select(Citation.id, Citation.text_content)
             .where(Citation.review_id == review_id)
             .where(Citation.text_content_vector_rep == [])
             .order_by(Citation.id)
@@ -356,6 +359,7 @@ def get_citations_text_content_vectors(review_id):
 @shared_task
 def get_fulltext_text_content_vector(review_id, fulltext_id):
     # HACK: let's skip this for now, actually
+    # TODO: burton, fix this!
     return
 
     lock = wait_for_lock(
@@ -440,7 +444,7 @@ def suggest_keyterms(review_id, sample_size):
     with engine.connect() as conn:
         # get random sample of included citations
         stmt = (
-            select([Study.citation_status, Citation.text_content])
+            sa.select(Study.citation_status, Citation.text_content)
             .where(Study.id == Citation.id)
             .where(Study.review_id == review_id)
             .where(Study.citation_status == "included")
@@ -450,7 +454,7 @@ def suggest_keyterms(review_id, sample_size):
         included = conn.execute(stmt).fetchall()
         # get random sample of excluded citations
         stmt = (
-            select([Study.citation_status, Citation.text_content])
+            sa.select(Study.citation_status, Citation.text_content)
             .where(Study.id == Citation.id)
             .where(Study.review_id == review_id)
             .where(Study.citation_status == "excluded")
@@ -492,7 +496,7 @@ def suggest_keyterms(review_id, sample_size):
         )
         # update the review plan
         stmt = (
-            update(ReviewPlan)
+            sa.update(ReviewPlan)
             .where(ReviewPlan.id == review_id)
             .values(suggested_keyterms=suggested_keyterms)
         )
@@ -521,7 +525,7 @@ def train_citation_ranking_model(review_id):
         # make sure at least some citations have had their
         n_iters = 1
         while True:
-            stmt = select(
+            stmt = sa.select(
                 [
                     exists()
                     .where(Citation.review_id == review_id)
@@ -549,7 +553,7 @@ def train_citation_ranking_model(review_id):
 
         # get random sample of included citations
         stmt = (
-            select([Citation.text_content_vector_rep, Study.citation_status])
+            sa.select(Citation.text_content_vector_rep, Study.citation_status)
             .where(Study.id == Citation.id)
             .where(Study.review_id == review_id)
             .where(Study.dedupe_status == "not_duplicate")
