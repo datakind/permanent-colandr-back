@@ -14,11 +14,7 @@ from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 from sklearn.linear_model import SGDClassifier
-from sqlalchemy import create_engine, func
-from sqlalchemy import types as sqltypes
-from sqlalchemy.dialects.postgresql import aggregate_order_by
-from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import case, delete, exists, select, text, update
+from sqlalchemy import create_engine
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
@@ -80,7 +76,7 @@ def deduplicate_citations(review_id):
     deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # wait until no more review citations have been created in 60+ seconds
-    stmt = sa.select(func.max(Citation.created_at)).where(
+    stmt = sa.select(sa.func.max(Citation.created_at)).where(
         Citation.review_id == review_id
     )
 
@@ -103,7 +99,9 @@ def deduplicate_citations(review_id):
             break
 
     # if studies have been deduped since most recent import, cancel
-    stmt = sa.select(func.max(Dedupe.created_at)).where(Dedupe.review_id == review_id)
+    stmt = sa.select(sa.func.max(Dedupe.created_at)).where(
+        Dedupe.review_id == review_id
+    )
     most_recent_dedupe = db.session.execute(stmt).scalar()
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
         logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
@@ -175,24 +173,24 @@ def deduplicate_citations(review_id):
                 sa.select(
                     Citation.id,
                     (
-                        case([(Citation.title == None, 1)])
-                        + case([(Citation.abstract == None, 1)])
-                        + case([(Citation.pub_year == None, 1)])
-                        + case([(Citation.pub_month == None, 1)])
-                        + case([(Citation.authors == {}, 1)])
-                        + case([(Citation.keywords == {}, 1)])
-                        + case([(Citation.type_of_reference == None, 1)])
-                        + case([(Citation.journal_name == None, 1)])
-                        + case([(Citation.issue_number == None, 1)])
-                        + case([(Citation.doi == None, 1)])
-                        + case([(Citation.issn == None, 1)])
-                        + case([(Citation.publisher == None, 1)])
-                        + case([(Citation.language == None, 1)])
+                        sa.case([(Citation.title == None, 1)])
+                        + sa.case([(Citation.abstract == None, 1)])
+                        + sa.case([(Citation.pub_year == None, 1)])
+                        + sa.case([(Citation.pub_month == None, 1)])
+                        + sa.case([(Citation.authors == {}, 1)])
+                        + sa.case([(Citation.keywords == {}, 1)])
+                        + sa.case([(Citation.type_of_reference == None, 1)])
+                        + sa.case([(Citation.journal_name == None, 1)])
+                        + sa.case([(Citation.issue_number == None, 1)])
+                        + sa.case([(Citation.doi == None, 1)])
+                        + sa.case([(Citation.issn == None, 1)])
+                        + sa.case([(Citation.publisher == None, 1)])
+                        + sa.case([(Citation.language == None, 1)])
                     ).label("n_null_cols"),
                 )
                 .where(Citation.review_id == review_id)
                 .where(Citation.id.in_(int_cids))
-                .order_by(text("n_null_cols ASC"))
+                .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
             result = db.session.execute(stmt).first()
@@ -346,7 +344,7 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 
     with engine.connect() as conn:
         # wait until no more review citations have been created in 60+ seconds
-        stmt = select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
+        stmt = sa.select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
         text_content = conn.execute(stmt).fetchone()
         if not text_content:
             logger.warning(
@@ -384,7 +382,7 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
             return
 
         stmt = (
-            update(Fulltext)
+            sa.update(Fulltext)
             .where(Fulltext.id == fulltext_id)
             .values(text_content_vector_rep=text_content_vector_rep)
         )
@@ -420,7 +418,7 @@ def suggest_keyterms(review_id, sample_size):
             .where(Study.id == Citation.id)
             .where(Study.review_id == review_id)
             .where(Study.citation_status == "included")
-            .order_by(func.random())
+            .order_by(sa.func.random())
             .limit(sample_size)
         )
         included = conn.execute(stmt).fetchall()
@@ -430,7 +428,7 @@ def suggest_keyterms(review_id, sample_size):
             .where(Study.id == Citation.id)
             .where(Study.review_id == review_id)
             .where(Study.citation_status == "excluded")
-            .order_by(func.random())
+            .order_by(sa.func.random())
             .limit(sample_size)
         )
         excluded = conn.execute(stmt).fetchall()
@@ -499,7 +497,7 @@ def train_citation_ranking_model(review_id):
         while True:
             stmt = sa.select(
                 [
-                    exists()
+                    sa.exists()
                     .where(Citation.review_id == review_id)
                     .where(Citation.text_content_vector_rep != [])
                 ]
