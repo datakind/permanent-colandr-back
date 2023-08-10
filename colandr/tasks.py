@@ -240,88 +240,79 @@ def get_citations_text_content_vectors(review_id):
     en_nlp = textacy.load_spacy_lang(
         "en_core_web_md", disable=("tagger", "parser", "ner")
     )
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
+
+    # wait until no more review citations have been created in 60+ seconds
+    stmt = sa.select(sa.func.max(Citation.created_at)).where(
+        Citation.review_id == review_id
     )
+    while True:
+        max_created_at = db.session.execute(stmt).scalar_one_or_none()
+        if max_created_at is None:
+            logger.warning("<Review(id=%s)>: no citations found", review_id)
+            lock.release()
+            return
+        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
+        if elapsed_time < 30:
+            logger.debug(
+                "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
+                review_id,
+                elapsed_time,
+            )
+            sleep(5)
+        else:
+            break
 
-    with engine.connect() as conn:
-        # wait until no more review citations have been created in 60+ seconds
-        stmt = sa.select(func.max(Citation.created_at)).where(
-            Citation.review_id == review_id
-        )
-        while True:
-            max_created_at = conn.execute(stmt).fetchone()[0]
-            if not max_created_at:
-                logger.warning("<Review(id=%s)>: no citations found", review_id)
-                lock.release()
-                return
-            elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-            if elapsed_time < 60:
-                logger.debug(
-                    "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
-                    review_id,
-                    elapsed_time,
-                )
-                sleep(10)
-            else:
-                break
-
-        stmt = (
-            sa.select(Citation.id, Citation.text_content)
-            .where(Citation.review_id == review_id)
-            .where(Citation.text_content_vector_rep == [])
-            .order_by(Citation.id)
-        )
-        results = conn.execute(stmt)
-        citations_to_update = []
-        for id_, text_content in results:
+    stmt = (
+        sa.select(Citation.id, Citation.text_content)
+        .where(Citation.review_id == review_id)
+        .where(Citation.text_content_vector_rep == [])
+        .order_by(Citation.id)
+    )
+    results = db.session.execute(stmt)
+    citations_to_update = []
+    for id_, text_content in results:
+        try:
+            lang = textacy.identify_lang(text_content)
+        except ValueError:
+            logger.exception(
+                "unable to detect language of text content for <Citation(study_id=%s)>",
+                id_,
+            )
+            continue
+        if lang == "en":
             try:
-                lang = textacy.identify_lang(text_content)
-            except ValueError:
+                spacy_doc = en_nlp(text_content)
+            except Exception:
                 logger.exception(
-                    "unable to detect language of text content for <Citation(study_id=%s)>",
+                    "unable to tokenize text content for <Citation(study_id=%s)>",
                     id_,
                 )
                 continue
-            if lang == "en":
-                try:
-                    spacy_doc = en_nlp(text_content)
-                except Exception as e:
-                    logger.exception(
-                        "unable to tokenize text content for <Citation(study_id=%s)>",
-                        id_,
-                    )
-                    continue
-                citations_to_update.append(
-                    {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
-                )
-            else:
-                logger.warning(
-                    'lang "%s" detected for <Citation(study_id=%s)>', lang, id_
-                )
-
-        # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
-        # filter to those that can be tokenized and word2vec-torized
-        # group by lang, then load the necessary models to do this for groups
-
-        if not citations_to_update:
-            logger.warning(
-                "<Review(id=%s)>: no citation text_content_vector_reps to update",
-                review_id,
+            citations_to_update.append(
+                {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
             )
-            lock.release()
-            return
+        else:
+            logger.warning('lang "%s" detected for <Citation(study_id=%s)>', lang, id_)
 
-        session = Session(bind=conn)
-        session.bulk_update_mappings(Citation, citations_to_update)
-        session.commit()
-        logger.info(
-            "<Review(id=%s)>: %s citation text_content_vector_reps updated",
+    # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
+    # filter to those that can be tokenized and word2vec-torized
+    # group by lang, then load the necessary models to do this for groups
+
+    if not citations_to_update:
+        logger.warning(
+            "<Review(id=%s)>: no citation text_content_vector_reps to update",
             review_id,
-            len(citations_to_update),
         )
+        lock.release()
+        return
+
+    db.session.bulk_update_mappings(Citation, citations_to_update)
+    db.session.commit()
+    logger.info(
+        "<Review(id=%s)>: %s citation text_content_vector_reps updated",
+        review_id,
+        len(citations_to_update),
+    )
 
     lock.release()
 
