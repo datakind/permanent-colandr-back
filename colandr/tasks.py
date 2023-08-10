@@ -22,6 +22,7 @@ from .extensions import db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
+from .lib.nlp import utils as nlp_utils
 from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
@@ -237,10 +238,6 @@ def get_citations_text_content_vectors(review_id):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    en_nlp = textacy.load_spacy_lang(
-        "en_core_web_md", disable=("tagger", "parser", "ner")
-    )
-
     # wait until no more review citations have been created in 60+ seconds
     stmt = sa.select(sa.func.max(Citation.created_at)).where(
         Citation.review_id == review_id
@@ -262,6 +259,8 @@ def get_citations_text_content_vectors(review_id):
         else:
             break
 
+    lang_models = nlp_utils.get_lang_to_models()
+
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -279,9 +278,13 @@ def get_citations_text_content_vectors(review_id):
                 id_,
             )
             continue
-        if lang == "en":
+        if lang in lang_models:
+            # TODO: figure out a smarter way of handling case when lang has 1+ models
+            spacy_lang = textacy.load_spacy_lang(
+                lang_models[lang][0], disable=("tagger", "parser", "ner")
+            )
             try:
-                spacy_doc = en_nlp(text_content)
+                spacy_doc = spacy_lang(text_content)
             except Exception:
                 logger.exception(
                     "unable to tokenize text content for <Citation(study_id=%s)>",
