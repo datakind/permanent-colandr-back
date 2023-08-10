@@ -6,6 +6,7 @@ import arrow
 import joblib
 import numpy as np
 import redis
+import redis.lock
 import sqlalchemy as sa
 import textacy
 from celery import current_app as current_celery_app
@@ -27,6 +28,13 @@ from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 logger = get_task_logger(__name__)
 
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
+
+
+def _get_redis_lock(lock_id: str) -> redis.lock.Lock:
+    redis_conn = _get_redis_conn()
+    return redis_conn.lock(
+        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
+    )
 
 
 def _get_redis_conn() -> redis.client.Redis:
@@ -63,11 +71,7 @@ def remove_unconfirmed_user(email):
 
 @shared_task
 def deduplicate_citations(review_id):
-    lock_id = f"deduplicate_ciations__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
     dir_path = os.path.join(
@@ -230,11 +234,7 @@ def deduplicate_citations(review_id):
 
 @shared_task
 def get_citations_text_content_vectors(review_id):
-    lock_id = f"get_citations_text_content_vectors__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
     en_nlp = textacy.load_spacy_lang(
