@@ -322,67 +322,54 @@ def get_citations_text_content_vectors(review_id):
 
 @shared_task
 def get_fulltext_text_content_vector(review_id, fulltext_id):
-    # HACK: let's skip this for now, actually
-    # TODO: burton, fix this!
-    return
+    # TODO: why is this lock _per review_?
+    lock = _get_redis_lock(f"get_fulltext_text_content_vector__review_id-{review_id}")
+    lock.acquire()
 
-    lock = wait_for_lock(
-        "get_fulltext_text_content_vector_review_id={}".format(review_id), expire=60
-    )
-
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
-    )
-
-    with engine.connect() as conn:
-        # wait until no more review citations have been created in 60+ seconds
-        stmt = sa.select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
-        text_content = conn.execute(stmt).fetchone()
-        if not text_content:
-            logger.warning(
-                "no fulltext text content found for <Fulltext(study_id=%s)>",
-                fulltext_id,
-            )
-            lock.release()
-            return
-        else:
-            text_content = text_content[0]
-
-        lang = textacy.identify_lang(text_content)
-        try:
-            nlp = textacy.load_spacy_lang(
-                lang, tagger=False, parser=False, entity=False, matcher=False
-            )
-        except RuntimeError:
-            logger.warning(
-                'unable to load spacy lang "%s" for <Fulltext(study_id=%s)>',
-                lang,
-                fulltext_id,
-            )
-            lock.release()
-            return
-        spacy_doc = nlp(text_content)
-        try:
-            text_content_vector_rep = spacy_doc.vector.tolist()
-        except ValueError:
-            logger.warning(
-                'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
-                lang,
-                fulltext_id,
-            )
-            lock.release()
-            return
-
-        stmt = (
-            sa.update(Fulltext)
-            .where(Fulltext.id == fulltext_id)
-            .values(text_content_vector_rep=text_content_vector_rep)
+    stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
+    text_content = db.session.execute(stmt).scalar_one_or_none()
+    if not text_content:
+        logger.warning(
+            "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
         )
-        conn.execute(stmt)
-
         lock.release()
+        return
+
+    lang_models = nlp_utils.get_lang_to_models()
+    lang = textacy.identify_lang(text_content)
+    if lang not in lang_models:
+        logger.warning(
+            "unable to load spacy model for lang='%s' for <Fulltext(study_id=%s)>",
+            lang,
+            fulltext_id,
+        )
+        lock.release()
+        return
+
+    spacy_lang = textacy.load_spacy_lang(
+        lang_models[lang][0], disable=("tagger", "parser", "ner")
+    )
+    try:
+        spacy_doc = spacy_lang(text_content)
+        text_content_vector_rep = spacy_doc.vector.tolist()
+    except ValueError:
+        logger.warning(
+            'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
+            lang,
+            fulltext_id,
+        )
+        lock.release()
+        return
+
+    stmt = (
+        sa.update(Fulltext)
+        .where(Fulltext.id == fulltext_id)
+        .values(text_content_vector_rep=text_content_vector_rep)
+    )
+    db.session.execute(stmt)
+    db.session.commit()
+
+    lock.release()
 
 
 @shared_task

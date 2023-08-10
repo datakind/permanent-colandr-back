@@ -355,13 +355,13 @@
             "id": 1,
             "filename": "1.pdf",
             "original_filename": "example-journal-short.pdf",
-            "text_content": "TEXT_CONTENT1"
+            "text_content": "This is an example text in English."
         },
         {
             "id": 2,
             "filename": "2.pdf",
             "original_filename": "example-journal.pdf",
-            "text_content": "TEXT_CONTENT2"
+            "text_content": "This is another example text in English."
         }
     ],
     "fulltext_screenings": [
