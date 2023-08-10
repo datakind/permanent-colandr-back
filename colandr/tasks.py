@@ -25,20 +25,7 @@ from .extensions import db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
-from .lib.utils import load_dedupe_model, make_record_immutable
-from .models import (
-    Citation,
-    Dedupe,
-    DedupeBlockingMap,
-    DedupeCoveredBlocks,
-    DedupePluralBlock,
-    DedupePluralKey,
-    DedupeSmallerCoverage,
-    Fulltext,
-    ReviewPlan,
-    Study,
-    User,
-)
+from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
 logger = get_task_logger(__name__)
@@ -76,21 +63,6 @@ def remove_unconfirmed_user(email):
     if user and user.is_confirmed is False:
         db.session.delete(user)
         db.session.commit()
-
-
-def _get_candidate_dupes(results):
-    block_id = None
-    records = []
-    for row in results:
-        if row.block_id != block_id:
-            if records:
-                yield records
-            block_id = row.block_id
-            records = []
-        smaller_ids = frozenset(row.smaller_ids)
-        records.append((row.citation_id, make_record_immutable(dict(row)), smaller_ids))
-    if records:
-        yield records
 
 
 @shared_task
