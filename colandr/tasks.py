@@ -449,60 +449,49 @@ def suggest_keyterms(review_id, sample_size):
 
 @shared_task
 def train_citation_ranking_model(review_id):
-    lock_id = f"train_citations_ranking_model__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"train_citations_ranking_model__review-{review_id}")
     lock.acquire()
 
     logger.info("<Review(id=%s)>: training citation ranking model", review_id)
 
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
-    )
-    with engine.connect() as conn:
-        # make sure at least some citations have had their
-        n_iters = 1
-        while True:
-            stmt = sa.select(
-                [
-                    sa.exists()
-                    .where(Citation.review_id == review_id)
-                    .where(Citation.text_content_vector_rep != [])
-                ]
-            )
-            citations_ready = conn.execute(stmt).fetchone()[0]
-            if citations_ready is True:
-                break
-            else:
-                logger.debug(
-                    "<Review(id=%s)>: waiting for vectorized text content for, %s",
-                    review_id,
-                    n_iters,
-                )
-                sleep(30)
-            if n_iters > 6:
-                logger.error(
-                    "<Review(id=%s)>: no citations with vectorized text content found",
-                    review_id,
-                )
-                lock.release()
-                return
-            n_iters += 1
-
-        # get random sample of included citations
-        stmt = (
-            sa.select(Citation.text_content_vector_rep, Study.citation_status)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.dedupe_status == "not_duplicate")
-            .where(Study.citation_status.in_(["included", "excluded"]))
+    # make sure at least some citations have had their text content vectors found
+    n_iters = 1
+    while True:
+        stmt = sa.select(
+            sa.exists()
+            .where(Citation.review_id == review_id)
             .where(Citation.text_content_vector_rep != [])
         )
-        results = conn.execute(stmt).fetchall()
+        citations_ready = db.session.execute(stmt).scalar_one()
+        if citations_ready is True:
+            break
+        else:
+            logger.debug(
+                "<Review(id=%s)>: waiting for vectorized text content for, %s",
+                review_id,
+                n_iters,
+            )
+            sleep(30)
+        if n_iters > 6:
+            logger.error(
+                "<Review(id=%s)>: no citations with vectorized text content found",
+                review_id,
+            )
+            lock.release()
+            return
+        n_iters += 1
+
+    # TODO: should this be a random sample? i think no, but old comment said yes
+    # get included citations
+    stmt = (
+        sa.select(Citation.text_content_vector_rep, Study.citation_status)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.dedupe_status == "not_duplicate")
+        .where(Study.citation_status.in_(["included", "excluded"]))
+        .where(Citation.text_content_vector_rep != [])
+    )
+    results = db.session.execute(stmt).all()
 
     # build features matrix and labels vector
     X = np.vstack(tuple(result[0] for result in results))
