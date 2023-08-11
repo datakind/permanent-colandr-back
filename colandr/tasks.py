@@ -6,6 +6,7 @@ import arrow
 import joblib
 import numpy as np
 import redis
+import redis.lock
 import sqlalchemy as sa
 import textacy
 from celery import current_app as current_celery_app
@@ -14,31 +15,14 @@ from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 from sklearn.linear_model import SGDClassifier
-from sqlalchemy import create_engine, func
-from sqlalchemy import types as sqltypes
-from sqlalchemy.dialects.postgresql import aggregate_order_by
-from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import case, delete, exists, select, text, update
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
 from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
-from .lib.utils import load_dedupe_model, make_record_immutable
-from .models import (
-    Citation,
-    Dedupe,
-    DedupeBlockingMap,
-    DedupeCoveredBlocks,
-    DedupePluralBlock,
-    DedupePluralKey,
-    DedupeSmallerCoverage,
-    Fulltext,
-    ReviewPlan,
-    Study,
-    User,
-)
+from .lib.nlp import utils as nlp_utils
+from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
 logger = get_task_logger(__name__)
@@ -46,11 +30,14 @@ logger = get_task_logger(__name__)
 REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
 
+def _get_redis_lock(lock_id: str) -> redis.lock.Lock:
+    redis_conn = _get_redis_conn()
+    return redis_conn.lock(
+        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
+    )
+
+
 def _get_redis_conn() -> redis.client.Redis:
-    # TODO: figure out if we can actually use current celery app's redis connection info
-    # redis_conn = redis.Redis.from_url(
-    #     os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
-    # )
     redis_conn = current_celery_app.backend.client
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
@@ -78,28 +65,9 @@ def remove_unconfirmed_user(email):
         db.session.commit()
 
 
-def _get_candidate_dupes(results):
-    block_id = None
-    records = []
-    for row in results:
-        if row.block_id != block_id:
-            if records:
-                yield records
-            block_id = row.block_id
-            records = []
-        smaller_ids = frozenset(row.smaller_ids)
-        records.append((row.citation_id, make_record_immutable(dict(row)), smaller_ids))
-    if records:
-        yield records
-
-
 @shared_task
 def deduplicate_citations(review_id):
-    lock_id = f"deduplicate_ciations__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
     dir_path = os.path.join(
@@ -108,7 +76,7 @@ def deduplicate_citations(review_id):
     deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # wait until no more review citations have been created in 60+ seconds
-    stmt = sa.select(func.max(Citation.created_at)).where(
+    stmt = sa.select(sa.func.max(Citation.created_at)).where(
         Citation.review_id == review_id
     )
 
@@ -131,7 +99,9 @@ def deduplicate_citations(review_id):
             break
 
     # if studies have been deduped since most recent import, cancel
-    stmt = sa.select(func.max(Dedupe.created_at)).where(Dedupe.review_id == review_id)
+    stmt = sa.select(sa.func.max(Dedupe.created_at)).where(
+        Dedupe.review_id == review_id
+    )
     most_recent_dedupe = db.session.execute(stmt).scalar()
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
         logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
@@ -203,24 +173,24 @@ def deduplicate_citations(review_id):
                 sa.select(
                     Citation.id,
                     (
-                        case([(Citation.title == None, 1)])
-                        + case([(Citation.abstract == None, 1)])
-                        + case([(Citation.pub_year == None, 1)])
-                        + case([(Citation.pub_month == None, 1)])
-                        + case([(Citation.authors == {}, 1)])
-                        + case([(Citation.keywords == {}, 1)])
-                        + case([(Citation.type_of_reference == None, 1)])
-                        + case([(Citation.journal_name == None, 1)])
-                        + case([(Citation.issue_number == None, 1)])
-                        + case([(Citation.doi == None, 1)])
-                        + case([(Citation.issn == None, 1)])
-                        + case([(Citation.publisher == None, 1)])
-                        + case([(Citation.language == None, 1)])
+                        sa.case([(Citation.title == None, 1)])
+                        + sa.case([(Citation.abstract == None, 1)])
+                        + sa.case([(Citation.pub_year == None, 1)])
+                        + sa.case([(Citation.pub_month == None, 1)])
+                        + sa.case([(Citation.authors == {}, 1)])
+                        + sa.case([(Citation.keywords == {}, 1)])
+                        + sa.case([(Citation.type_of_reference == None, 1)])
+                        + sa.case([(Citation.journal_name == None, 1)])
+                        + sa.case([(Citation.issue_number == None, 1)])
+                        + sa.case([(Citation.doi == None, 1)])
+                        + sa.case([(Citation.issn == None, 1)])
+                        + sa.case([(Citation.publisher == None, 1)])
+                        + sa.case([(Citation.language == None, 1)])
                     ).label("n_null_cols"),
                 )
                 .where(Citation.review_id == review_id)
                 .where(Citation.id.in_(int_cids))
-                .order_by(text("n_null_cols ASC"))
+                .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
             result = db.session.execute(stmt).first()
@@ -260,174 +230,146 @@ def deduplicate_citations(review_id):
 
 @shared_task
 def get_citations_text_content_vectors(review_id):
-    lock_id = f"get_citations_text_content_vectors__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    en_nlp = textacy.load_spacy_lang(
-        "en_core_web_md", disable=("tagger", "parser", "ner")
+    # wait until no more review citations have been created in 60+ seconds
+    stmt = sa.select(sa.func.max(Citation.created_at)).where(
+        Citation.review_id == review_id
     )
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
+    while True:
+        max_created_at = db.session.execute(stmt).scalar_one_or_none()
+        if max_created_at is None:
+            logger.warning("<Review(id=%s)>: no citations found", review_id)
+            lock.release()
+            return
+        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
+        if elapsed_time < 30:
+            logger.debug(
+                "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
+                review_id,
+                elapsed_time,
+            )
+            sleep(5)
+        else:
+            break
+
+    lang_models = nlp_utils.get_lang_to_models()
+
+    stmt = (
+        sa.select(Citation.id, Citation.text_content)
+        .where(Citation.review_id == review_id)
+        .where(Citation.text_content_vector_rep == [])
+        .order_by(Citation.id)
     )
-
-    with engine.connect() as conn:
-        # wait until no more review citations have been created in 60+ seconds
-        stmt = sa.select(func.max(Citation.created_at)).where(
-            Citation.review_id == review_id
-        )
-        while True:
-            max_created_at = conn.execute(stmt).fetchone()[0]
-            if not max_created_at:
-                logger.warning("<Review(id=%s)>: no citations found", review_id)
-                lock.release()
-                return
-            elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-            if elapsed_time < 60:
-                logger.debug(
-                    "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
-                    review_id,
-                    elapsed_time,
-                )
-                sleep(10)
-            else:
-                break
-
-        stmt = (
-            sa.select(Citation.id, Citation.text_content)
-            .where(Citation.review_id == review_id)
-            .where(Citation.text_content_vector_rep == [])
-            .order_by(Citation.id)
-        )
-        results = conn.execute(stmt)
-        citations_to_update = []
-        for id_, text_content in results:
+    results = db.session.execute(stmt)
+    citations_to_update = []
+    for id_, text_content in results:
+        try:
+            lang = textacy.identify_lang(text_content)
+        except ValueError:
+            logger.exception(
+                "unable to detect language of text content for <Citation(study_id=%s)>",
+                id_,
+            )
+            continue
+        if lang in lang_models:
+            # TODO: figure out a smarter way of handling case when lang has 1+ models
+            spacy_lang = textacy.load_spacy_lang(
+                lang_models[lang][0], disable=("tagger", "parser", "ner")
+            )
             try:
-                lang = textacy.identify_lang(text_content)
-            except ValueError:
+                spacy_doc = spacy_lang(text_content)
+            except Exception:
                 logger.exception(
-                    "unable to detect language of text content for <Citation(study_id=%s)>",
+                    "unable to tokenize text content for <Citation(study_id=%s)>",
                     id_,
                 )
                 continue
-            if lang == "en":
-                try:
-                    spacy_doc = en_nlp(text_content)
-                except Exception as e:
-                    logger.exception(
-                        "unable to tokenize text content for <Citation(study_id=%s)>",
-                        id_,
-                    )
-                    continue
-                citations_to_update.append(
-                    {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
-                )
-            else:
-                logger.warning(
-                    'lang "%s" detected for <Citation(study_id=%s)>', lang, id_
-                )
-
-        # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
-        # filter to those that can be tokenized and word2vec-torized
-        # group by lang, then load the necessary models to do this for groups
-
-        if not citations_to_update:
-            logger.warning(
-                "<Review(id=%s)>: no citation text_content_vector_reps to update",
-                review_id,
+            citations_to_update.append(
+                {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
             )
-            lock.release()
-            return
+        else:
+            logger.warning('lang "%s" detected for <Citation(study_id=%s)>', lang, id_)
 
-        session = Session(bind=conn)
-        session.bulk_update_mappings(Citation, citations_to_update)
-        session.commit()
-        logger.info(
-            "<Review(id=%s)>: %s citation text_content_vector_reps updated",
+    # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
+    # filter to those that can be tokenized and word2vec-torized
+    # group by lang, then load the necessary models to do this for groups
+
+    if not citations_to_update:
+        logger.warning(
+            "<Review(id=%s)>: no citation text_content_vector_reps to update",
             review_id,
-            len(citations_to_update),
         )
+        lock.release()
+        return
+
+    db.session.bulk_update_mappings(Citation, citations_to_update)
+    db.session.commit()
+    logger.info(
+        "<Review(id=%s)>: %s citation text_content_vector_reps updated",
+        review_id,
+        len(citations_to_update),
+    )
 
     lock.release()
 
 
 @shared_task
 def get_fulltext_text_content_vector(review_id, fulltext_id):
-    # HACK: let's skip this for now, actually
-    # TODO: burton, fix this!
-    return
+    # TODO: why is this lock _per review_?
+    lock = _get_redis_lock(f"get_fulltext_text_content_vector__review_id-{review_id}")
+    lock.acquire()
 
-    lock = wait_for_lock(
-        "get_fulltext_text_content_vector_review_id={}".format(review_id), expire=60
-    )
-
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
-    )
-
-    with engine.connect() as conn:
-        # wait until no more review citations have been created in 60+ seconds
-        stmt = select([Fulltext.text_content]).where(Fulltext.id == fulltext_id)
-        text_content = conn.execute(stmt).fetchone()
-        if not text_content:
-            logger.warning(
-                "no fulltext text content found for <Fulltext(study_id=%s)>",
-                fulltext_id,
-            )
-            lock.release()
-            return
-        else:
-            text_content = text_content[0]
-
-        lang = textacy.identify_lang(text_content)
-        try:
-            nlp = textacy.load_spacy_lang(
-                lang, tagger=False, parser=False, entity=False, matcher=False
-            )
-        except RuntimeError:
-            logger.warning(
-                'unable to load spacy lang "%s" for <Fulltext(study_id=%s)>',
-                lang,
-                fulltext_id,
-            )
-            lock.release()
-            return
-        spacy_doc = nlp(text_content)
-        try:
-            text_content_vector_rep = spacy_doc.vector.tolist()
-        except ValueError:
-            logger.warning(
-                'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
-                lang,
-                fulltext_id,
-            )
-            lock.release()
-            return
-
-        stmt = (
-            update(Fulltext)
-            .where(Fulltext.id == fulltext_id)
-            .values(text_content_vector_rep=text_content_vector_rep)
+    stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
+    text_content = db.session.execute(stmt).scalar_one_or_none()
+    if not text_content:
+        logger.warning(
+            "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
         )
-        conn.execute(stmt)
-
         lock.release()
+        return
+
+    lang_models = nlp_utils.get_lang_to_models()
+    lang = textacy.identify_lang(text_content)
+    if lang not in lang_models:
+        logger.warning(
+            "unable to load spacy model for lang='%s' for <Fulltext(study_id=%s)>",
+            lang,
+            fulltext_id,
+        )
+        lock.release()
+        return
+
+    spacy_lang = textacy.load_spacy_lang(
+        lang_models[lang][0], disable=("tagger", "parser", "ner")
+    )
+    try:
+        spacy_doc = spacy_lang(text_content)
+        text_content_vector_rep = spacy_doc.vector.tolist()
+    except ValueError:
+        logger.warning(
+            'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
+            lang,
+            fulltext_id,
+        )
+        lock.release()
+        return
+
+    stmt = (
+        sa.update(Fulltext)
+        .where(Fulltext.id == fulltext_id)
+        .values(text_content_vector_rep=text_content_vector_rep)
+    )
+    db.session.execute(stmt)
+    db.session.commit()
+
+    lock.release()
 
 
 @shared_task
 def suggest_keyterms(review_id, sample_size):
-    lock_id = f"suggest_keyterms__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"suggest_keyterms__review-{review_id}")
     lock.acquire()
 
     logger.info(
@@ -436,131 +378,115 @@ def suggest_keyterms(review_id, sample_size):
         sample_size,
     )
 
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
+    # get random sample of included citations
+    stmt = (
+        sa.select(Study.citation_status, Citation.text_content)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.citation_status == "included")
+        .order_by(sa.func.random())
+        .limit(sample_size)
     )
-    with engine.connect() as conn:
-        # get random sample of included citations
-        stmt = (
-            sa.select(Study.citation_status, Citation.text_content)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.citation_status == "included")
-            .order_by(func.random())
-            .limit(sample_size)
-        )
-        included = conn.execute(stmt).fetchall()
-        # get random sample of excluded citations
-        stmt = (
-            sa.select(Study.citation_status, Citation.text_content)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.citation_status == "excluded")
-            .order_by(func.random())
-            .limit(sample_size)
-        )
-        excluded = conn.execute(stmt).fetchall()
+    included = db.session.execute(stmt).all()
+    # get random sample of excluded citations
+    stmt = (
+        sa.select(Study.citation_status, Citation.text_content)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.citation_status == "excluded")
+        .order_by(sa.func.random())
+        .limit(sample_size)
+    )
+    excluded = db.session.execute(stmt).all()
 
-        # munge the results into the form needed by textacy
-        included_vec = [
-            status == "included" for status, _ in itertools.chain(included, excluded)
-        ]
-        docs = (
-            textacy.make_spacy_doc(text, lang="en_core_web_md")
-            for _, text in itertools.chain(included, excluded)
-        )
-        terms_lists = (
-            doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
-            for doc in docs
-        )
+    # munge the results into the form needed by textacy
+    included_vec = [
+        status == "included" for status, _ in itertools.chain(included, excluded)
+    ]
+    # TODO: make this multi-lingual
+    docs = (
+        textacy.make_spacy_doc(text, lang="en_core_web_md")
+        for _, text in itertools.chain(included, excluded)
+    )
+    terms_lists = (
+        doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
+        for doc in docs
+    )
+    # run the analysis!
+    incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
+        terms_lists, included_vec, top_n_terms=50
+    )
 
-        # run the analysis!
-        incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
-            terms_lists, included_vec, top_n_terms=50
-        )
-
-        # munge results into form expected by the database, and validate
-        suggested_keyterms = {
-            "sample_size": sample_size,
-            "incl_keyterms": incl_keyterms,
-            "excl_keyterms": excl_keyterms,
-        }
-        errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
-        if errors:
-            lock.release()
-            raise Exception
-        logger.info(
-            "<Review(id=%s)>: suggested keyterms: %s", review_id, suggested_keyterms
-        )
-        # update the review plan
-        stmt = (
-            sa.update(ReviewPlan)
-            .where(ReviewPlan.id == review_id)
-            .values(suggested_keyterms=suggested_keyterms)
-        )
-        conn.execute(stmt)
+    # munge results into form expected by the database, and validate
+    suggested_keyterms = {
+        "sample_size": sample_size,
+        "incl_keyterms": incl_keyterms,
+        "excl_keyterms": excl_keyterms,
+    }
+    errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
+    if errors:
+        lock.release()
+        raise Exception
+    logger.info(
+        "<Review(id=%s)>: suggested keyterms: %s", review_id, suggested_keyterms
+    )
+    # update the review plan
+    stmt = (
+        sa.update(ReviewPlan)
+        .where(ReviewPlan.id == review_id)
+        .values(suggested_keyterms=suggested_keyterms)
+    )
+    db.session.execute(stmt)
+    db.session.commit()
 
     lock.release()
 
 
 @shared_task
 def train_citation_ranking_model(review_id):
-    lock_id = f"train_citations_ranking_model__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"train_citations_ranking_model__review-{review_id}")
     lock.acquire()
 
     logger.info("<Review(id=%s)>: training citation ranking model", review_id)
 
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
-    )
-    with engine.connect() as conn:
-        # make sure at least some citations have had their
-        n_iters = 1
-        while True:
-            stmt = sa.select(
-                [
-                    exists()
-                    .where(Citation.review_id == review_id)
-                    .where(Citation.text_content_vector_rep != [])
-                ]
-            )
-            citations_ready = conn.execute(stmt).fetchone()[0]
-            if citations_ready is True:
-                break
-            else:
-                logger.debug(
-                    "<Review(id=%s)>: waiting for vectorized text content for, %s",
-                    review_id,
-                    n_iters,
-                )
-                sleep(30)
-            if n_iters > 6:
-                logger.error(
-                    "<Review(id=%s)>: no citations with vectorized text content found",
-                    review_id,
-                )
-                lock.release()
-                return
-            n_iters += 1
-
-        # get random sample of included citations
-        stmt = (
-            sa.select(Citation.text_content_vector_rep, Study.citation_status)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.dedupe_status == "not_duplicate")
-            .where(Study.citation_status.in_(["included", "excluded"]))
+    # make sure at least some citations have had their text content vectors found
+    n_iters = 1
+    while True:
+        stmt = sa.select(
+            sa.exists()
+            .where(Citation.review_id == review_id)
             .where(Citation.text_content_vector_rep != [])
         )
-        results = conn.execute(stmt).fetchall()
+        citations_ready = db.session.execute(stmt).scalar_one()
+        if citations_ready is True:
+            break
+        else:
+            logger.debug(
+                "<Review(id=%s)>: waiting for vectorized text content for, %s",
+                review_id,
+                n_iters,
+            )
+            sleep(30)
+        if n_iters > 6:
+            logger.error(
+                "<Review(id=%s)>: no citations with vectorized text content found",
+                review_id,
+            )
+            lock.release()
+            return
+        n_iters += 1
+
+    # TODO: should this be a random sample? i think no, but old comment said yes
+    # get included citations
+    stmt = (
+        sa.select(Citation.text_content_vector_rep, Study.citation_status)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.dedupe_status == "not_duplicate")
+        .where(Study.citation_status.in_(["included", "excluded"]))
+        .where(Citation.text_content_vector_rep != [])
+    )
+    results = db.session.execute(stmt).all()
 
     # build features matrix and labels vector
     X = np.vstack(tuple(result[0] for result in results))
