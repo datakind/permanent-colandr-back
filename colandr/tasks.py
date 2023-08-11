@@ -15,7 +15,6 @@ from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 from sklearn.linear_model import SGDClassifier
-from sqlalchemy import create_engine
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
@@ -39,10 +38,6 @@ def _get_redis_lock(lock_id: str) -> redis.lock.Lock:
 
 
 def _get_redis_conn() -> redis.client.Redis:
-    # TODO: figure out if we can actually use current celery app's redis connection info
-    # redis_conn = redis.Redis.from_url(
-    #     os.getenv("COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0")
-    # )
     redis_conn = current_celery_app.backend.client
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
