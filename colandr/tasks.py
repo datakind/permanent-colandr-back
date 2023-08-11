@@ -374,11 +374,7 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
 
 @shared_task
 def suggest_keyterms(review_id, sample_size):
-    lock_id = f"suggest_keyterms__review-{review_id}"
-    redis_conn = _get_redis_conn()
-    lock = redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    lock = _get_redis_lock(f"suggest_keyterms__review-{review_id}")
     lock.acquire()
 
     logger.info(
@@ -387,71 +383,66 @@ def suggest_keyterms(review_id, sample_size):
         sample_size,
     )
 
-    engine = create_engine(
-        current_app.config["SQLALCHEMY_DATABASE_URI"],
-        server_side_cursors=True,
-        echo=False,
+    # get random sample of included citations
+    stmt = (
+        sa.select(Study.citation_status, Citation.text_content)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.citation_status == "included")
+        .order_by(sa.func.random())
+        .limit(sample_size)
     )
-    with engine.connect() as conn:
-        # get random sample of included citations
-        stmt = (
-            sa.select(Study.citation_status, Citation.text_content)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.citation_status == "included")
-            .order_by(sa.func.random())
-            .limit(sample_size)
-        )
-        included = conn.execute(stmt).fetchall()
-        # get random sample of excluded citations
-        stmt = (
-            sa.select(Study.citation_status, Citation.text_content)
-            .where(Study.id == Citation.id)
-            .where(Study.review_id == review_id)
-            .where(Study.citation_status == "excluded")
-            .order_by(sa.func.random())
-            .limit(sample_size)
-        )
-        excluded = conn.execute(stmt).fetchall()
+    included = db.session.execute(stmt).all()
+    # get random sample of excluded citations
+    stmt = (
+        sa.select(Study.citation_status, Citation.text_content)
+        .where(Study.id == Citation.id)
+        .where(Study.review_id == review_id)
+        .where(Study.citation_status == "excluded")
+        .order_by(sa.func.random())
+        .limit(sample_size)
+    )
+    excluded = db.session.execute(stmt).all()
 
-        # munge the results into the form needed by textacy
-        included_vec = [
-            status == "included" for status, _ in itertools.chain(included, excluded)
-        ]
-        docs = (
-            textacy.make_spacy_doc(text, lang="en_core_web_md")
-            for _, text in itertools.chain(included, excluded)
-        )
-        terms_lists = (
-            doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
-            for doc in docs
-        )
+    # munge the results into the form needed by textacy
+    included_vec = [
+        status == "included" for status, _ in itertools.chain(included, excluded)
+    ]
+    # TODO: make this multi-lingual
+    docs = (
+        textacy.make_spacy_doc(text, lang="en_core_web_md")
+        for _, text in itertools.chain(included, excluded)
+    )
+    terms_lists = (
+        doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
+        for doc in docs
+    )
+    # run the analysis!
+    incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
+        terms_lists, included_vec, top_n_terms=50
+    )
 
-        # run the analysis!
-        incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
-            terms_lists, included_vec, top_n_terms=50
-        )
-
-        # munge results into form expected by the database, and validate
-        suggested_keyterms = {
-            "sample_size": sample_size,
-            "incl_keyterms": incl_keyterms,
-            "excl_keyterms": excl_keyterms,
-        }
-        errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
-        if errors:
-            lock.release()
-            raise Exception
-        logger.info(
-            "<Review(id=%s)>: suggested keyterms: %s", review_id, suggested_keyterms
-        )
-        # update the review plan
-        stmt = (
-            sa.update(ReviewPlan)
-            .where(ReviewPlan.id == review_id)
-            .values(suggested_keyterms=suggested_keyterms)
-        )
-        conn.execute(stmt)
+    # munge results into form expected by the database, and validate
+    suggested_keyterms = {
+        "sample_size": sample_size,
+        "incl_keyterms": incl_keyterms,
+        "excl_keyterms": excl_keyterms,
+    }
+    errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
+    if errors:
+        lock.release()
+        raise Exception
+    logger.info(
+        "<Review(id=%s)>: suggested keyterms: %s", review_id, suggested_keyterms
+    )
+    # update the review plan
+    stmt = (
+        sa.update(ReviewPlan)
+        .where(ReviewPlan.id == review_id)
+        .values(suggested_keyterms=suggested_keyterms)
+    )
+    db.session.execute(stmt)
+    db.session.commit()
 
     lock.release()
 
