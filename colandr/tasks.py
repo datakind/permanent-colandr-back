@@ -251,8 +251,6 @@ def get_citations_text_content_vectors(review_id):
         else:
             break
 
-    lang_models = nlp_utils.get_lang_to_models()
-
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -260,34 +258,27 @@ def get_citations_text_content_vectors(review_id):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
+    lang_models = nlp_utils.get_lang_to_models()
+    citation_id_docs = (
+        (
+            id_,
+            nlp_utils.make_spacy_doc_if_possible(
+                text, lang_models, disable=("tagger", "parser", "ner")
+            ),
+        )
+        for id_, text in results
+    )
     citations_to_update = []
-    for id_, text_content in results:
-        try:
-            lang = textacy.identify_lang(text_content)
-        except ValueError:
-            logger.exception(
-                "unable to detect language of text content for <Citation(study_id=%s)>",
-                id_,
-            )
+    for id_, spacy_doc in citation_id_docs:
+        if spacy_doc is None:
             continue
-        if lang in lang_models:
-            # TODO: figure out a smarter way of handling case when lang has 1+ models
-            spacy_lang = textacy.load_spacy_lang(
-                lang_models[lang][0], disable=("tagger", "parser", "ner")
-            )
-            try:
-                spacy_doc = spacy_lang(text_content)
-            except Exception:
-                logger.exception(
-                    "unable to tokenize text content for <Citation(study_id=%s)>",
-                    id_,
-                )
-                continue
+
+        try:
             citations_to_update.append(
                 {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
             )
-        else:
-            logger.warning('lang "%s" detected for <Citation(study_id=%s)>', lang, id_)
+        except Exception:
+            pass  # no vector available presumably
 
     if not citations_to_update:
         logger.warning(
@@ -324,27 +315,18 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         return
 
     lang_models = nlp_utils.get_lang_to_models()
-    lang = textacy.identify_lang(text_content)
-    if lang not in lang_models:
-        logger.warning(
-            "unable to load spacy model for lang='%s' for <Fulltext(study_id=%s)>",
-            lang,
-            fulltext_id,
-        )
+    spacy_doc = nlp_utils.make_spacy_doc_if_possible(
+        text_content, lang_models, disable=("tagger", "parser", "ner")
+    )
+    if spacy_doc is None:
         lock.release()
         return
 
-    spacy_lang = textacy.load_spacy_lang(
-        lang_models[lang][0], disable=("tagger", "parser", "ner")
-    )
     try:
-        spacy_doc = spacy_lang(text_content)
         text_content_vector_rep = spacy_doc.vector.tolist()
     except ValueError:
         logger.warning(
-            'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
-            lang,
-            fulltext_id,
+            "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
         lock.release()
         return
