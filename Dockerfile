@@ -11,7 +11,10 @@ RUN apt update \
 
 COPY requirements/ ./requirements/
 RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
-RUN python -m textacy download lang_identifier --version 3.0 && python -m spacy download en_core_web_md
+RUN python -m textacy download lang_identifier --version 3.0 \
+    && python -m spacy download en_core_web_md \
+    && python -m spacy download es_core_news_md \
+    && python -m spacy download fr_core_news_md
 
 #####
 FROM base AS dev
