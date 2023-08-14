@@ -396,14 +396,15 @@ def suggest_keyterms(review_id, sample_size):
     included_vec = [
         status == "included" for status, _ in itertools.chain(included, excluded)
     ]
-    # TODO: make this multi-lingual
+    lang_models = nlp_utils.get_lang_to_models()
     docs = (
-        textacy.make_spacy_doc(text, lang="en_core_web_md")
+        nlp_utils.make_spacy_doc_if_possible(text, lang_models)
         for _, text in itertools.chain(included, excluded)
     )
     terms_lists = (
         doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
         for doc in docs
+        if doc is not None
     )
     # run the analysis!
     incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
