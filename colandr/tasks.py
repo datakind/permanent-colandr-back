@@ -3,8 +3,6 @@ import os
 from time import sleep
 
 import arrow
-import joblib
-import numpy as np
 import redis
 import redis.lock
 import sqlalchemy as sa
@@ -14,11 +12,9 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
-from sklearn.linear_model import SGDClassifier
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
-from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils

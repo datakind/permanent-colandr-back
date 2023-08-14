@@ -3,8 +3,6 @@ import random
 from operator import itemgetter
 
 import flask_praetorian
-import joblib
-import numpy as np
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -17,7 +15,6 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...lib.constants import (
-    CITATION_RANKING_MODEL_FNAME,
     DEDUPE_STATUSES,
     EXTRACTION_STATUSES,
     USER_SCREENING_STATUSES,
