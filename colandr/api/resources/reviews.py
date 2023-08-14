@@ -259,7 +259,10 @@ class ReviewsResource(Resource):
                 os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review.id)),
             ]
             for dirname in dirnames:
-                os.makedirs(dirname, exist_ok=True)
+                try:
+                    os.makedirs(dirname, exist_ok=True)
+                except OSError:
+                    pass  # TODO: fix this / the entire system for saving files to disk
         else:
             db.session.rollback()
         return ReviewSchema().dump(review)
