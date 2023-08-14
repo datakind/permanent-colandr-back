@@ -23,6 +23,7 @@ from ...lib.constants import (
     USER_SCREENING_STATUSES,
 )
 from ...lib.nlp import reviewer_terms
+from ...lib.ranking import Ranker
 from ...models import Citation, Review, Study
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
@@ -462,20 +463,19 @@ class StudiesResource(Resource):
             scores = None
 
             # best option: we have a trained citation ranking model
-            fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-            filepath = os.path.join(
-                current_app.config["RANKING_MODELS_DIR"], str(review_id), fname
-            )
-            if os.path.isfile(filepath):
-                clf = joblib.load(filepath)
-                X = np.vstack(
-                    tuple(
-                        result.citation.text_content_vector_rep
-                        for result in results
-                        if result.citation.text_content_vector_rep
-                    )
+            try:
+                ranker = Ranker.load(
+                    os.path.join(
+                        current_app.config["RANKING_MODELS_DIR"], str(review_id)
+                    ),
+                    review_id,
                 )
-                scores = clf.decision_function(X).tolist()
+                breakpoint()
+                scores = ranker.predict(
+                    result.citation.text_content_vector_rep for result in results
+                )
+            except FileNotFoundError:
+                pass  # no ranker model available :/
 
             # next best option: both positive and negative keyterms
             if not scores:

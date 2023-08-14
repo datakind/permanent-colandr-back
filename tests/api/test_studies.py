@@ -72,6 +72,8 @@ class TestStudiesResource:
             ({"review_id": 2}, 1),
             ({"review_id": 1, "dedupe_status": "not_duplicate"}, 3),
             ({"review_id": 1, "citation_status": "included"}, 2),
+            # TODO: add a proper test for citation ranking model ordering
+            ({"review_id": 1, "order_by": "relevance"}, 3),
         ],
     )
     def test_get(self, params, num_exp, app, client, admin_headers):
