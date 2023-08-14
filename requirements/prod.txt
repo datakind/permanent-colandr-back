@@ -28,5 +28,5 @@ redis~=4.5
 rispy~=0.8.0
 scikit-learn~=1.3.0
 sqlalchemy~=1.4
-textacy~=0.12.0
+textacy~=0.13.0
 webargs~=8.0
