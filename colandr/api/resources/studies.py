@@ -14,11 +14,6 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...extensions import db
 from ...lib import constants
-from ...lib.constants import (
-    DEDUPE_STATUSES,
-    EXTRACTION_STATUSES,
-    USER_SCREENING_STATUSES,
-)
 from ...lib.nlp import reviewer_terms
 from ...lib.ranking import Ranker
 from ...models import Citation, Review, Study
@@ -202,25 +197,25 @@ class StudiesResource(Resource):
             "dedupe_status": {
                 "in": "query",
                 "type": "string",
-                "enum": DEDUPE_STATUSES,
+                "enum": constants.DEDUPE_STATUSES,
                 "description": "filter studies to only those with matching deduplication statuses",
             },
             "citation_status": {
                 "in": "query",
                 "type": "string",
-                "enum": USER_SCREENING_STATUSES,
+                "enum": constants.USER_SCREENING_STATUSES,
                 "description": "filter studies to only those with matching citation statuses",
             },
             "fulltext_status": {
                 "in": "query",
                 "type": "string",
-                "enum": USER_SCREENING_STATUSES,
+                "enum": constants.USER_SCREENING_STATUSES,
                 "description": "filter studies to only those with matching fulltext statuses",
             },
             "data_extraction_status": {
                 "in": "query",
                 "type": "string",
-                "enum": EXTRACTION_STATUSES,
+                "enum": constants.EXTRACTION_STATUSES,
                 "description": "filter studies to only those with matching data extraction statuses",
             },
             "tag": {
@@ -271,16 +266,16 @@ class StudiesResource(Resource):
                 ma_fields.String(), delimiter=",", load_default=None
             ),
             "dedupe_status": ma_fields.String(
-                load_default=None, validate=OneOf(DEDUPE_STATUSES)
+                load_default=None, validate=OneOf(constants.DEDUPE_STATUSES)
             ),
             "citation_status": ma_fields.String(
-                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(constants.USER_SCREENING_STATUSES)
             ),
             "fulltext_status": ma_fields.String(
-                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(constants.USER_SCREENING_STATUSES)
             ),
             "data_extraction_status": ma_fields.String(
-                load_default=None, validate=OneOf(EXTRACTION_STATUSES)
+                load_default=None, validate=OneOf(constants.EXTRACTION_STATUSES)
             ),
             "tag": ma_fields.String(load_default=None, validate=Length(max=25)),
             "tsquery": ma_fields.String(load_default=None, validate=Length(max=50)),
@@ -467,7 +462,6 @@ class StudiesResource(Resource):
                     ),
                     review_id,
                 )
-                breakpoint()
                 scores = ranker.predict(
                     result.citation.text_content_vector_rep for result in results
                 )
