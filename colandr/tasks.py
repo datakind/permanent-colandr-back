@@ -22,6 +22,7 @@ from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
+from .lib.ranking import Ranker
 from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
@@ -482,23 +483,10 @@ def train_citation_ranking_model(review_id):
         .where(Study.citation_status.in_(["included", "excluded"]))
         .where(Citation.text_content_vector_rep != [])
     )
-    results = db.session.execute(stmt).all()
-
-    # build features matrix and labels vector
-    X = np.vstack(tuple(result[0] for result in results))
-    y = np.array(tuple(1 if result[1] == "included" else 0 for result in results))
-
-    # train the classifier
-    clf = SGDClassifier(class_weight="balanced").fit(X, y)
-
-    # save to disk!
-    fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-    filepath = os.path.join(
-        current_app.config["RANKING_MODELS_DIR"], str(review_id), fname
-    )
-    joblib.dump(clf, filepath)
-    logger.info(
-        "<Review(id=%s)>: citation ranking model saved to %s", review_id, filepath
-    )
+    results = db.session.execute(stmt)
+    feature_vecs, labels = zip(*results)
+    ranker = Ranker(review_id=review_id)
+    ranker.fit(feature_vecs, labels)
+    ranker.save(os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review_id)))
 
     lock.release()

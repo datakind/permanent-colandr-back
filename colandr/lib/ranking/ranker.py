@@ -34,7 +34,7 @@ class Ranker:
     @functools.cached_property
     def model(self) -> sklearn.base.ClassifierMixin:
         if self.model_fpath is None:
-            _model = sklearn.linear_model.SGDClassifier()
+            _model = sklearn.linear_model.SGDClassifier(class_weight="balanced")
         else:
             with open(self.model_fpath, mode="rb") as f:
                 _model = joblib.load(f)
