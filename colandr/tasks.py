@@ -292,10 +292,6 @@ def get_citations_text_content_vectors(review_id):
         else:
             logger.warning('lang "%s" detected for <Citation(study_id=%s)>', lang, id_)
 
-    # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
-    # filter to those that can be tokenized and word2vec-torized
-    # group by lang, then load the necessary models to do this for groups
-
     if not citations_to_update:
         logger.warning(
             "<Review(id=%s)>: no citation text_content_vector_reps to update",
