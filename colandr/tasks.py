@@ -299,19 +299,14 @@ def get_citations_text_content_vectors(review_id):
     lock.release()
 
 
-@shared_task
-def get_fulltext_text_content_vector(review_id, fulltext_id):
-    # TODO: why is this lock _per review_?
-    lock = _get_redis_lock(f"get_fulltext_text_content_vector__review_id-{review_id}")
-    lock.acquire()
-
+@shared_task(name="tasks.get_fulltext_text_content_vector")
+def get_fulltext_text_content_vector(fulltext_id: int):
     stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
     text_content = db.session.execute(stmt).scalar_one_or_none()
     if not text_content:
         logger.warning(
             "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
         )
-        lock.release()
         return
 
     lang_models = nlp_utils.get_lang_to_models()
@@ -319,7 +314,6 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         text_content, lang_models, disable=("tagger", "parser", "ner")
     )
     if spacy_doc is None:
-        lock.release()
         return
 
     try:
@@ -328,7 +322,6 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
         logger.warning(
             "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
-        lock.release()
         return
 
     stmt = (
@@ -338,8 +331,6 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
     )
     db.session.execute(stmt)
     db.session.commit()
-
-    lock.release()
 
 
 @shared_task

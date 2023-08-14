@@ -187,9 +187,7 @@ class FulltextUploadResource(Resource):
             )
 
             # parse the fulltext text content and get its word2vec vector
-            get_fulltext_text_content_vector.apply_async(
-                args=[fulltext.review_id, id], countdown=5
-            )
+            get_fulltext_text_content_vector.apply_async(args=[id], countdown=5)
 
         return FulltextSchema().dump(fulltext)
 
