@@ -221,31 +221,11 @@ def deduplicate_citations(review_id):
 
 
 @shared_task
-def get_citations_text_content_vectors(review_id):
+def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    # wait until no more review citations have been created in 60+ seconds
-    stmt = sa.select(sa.func.max(Citation.created_at)).where(
-        Citation.review_id == review_id
-    )
-    while True:
-        max_created_at = db.session.execute(stmt).scalar_one_or_none()
-        if max_created_at is None:
-            logger.warning("<Review(id=%s)>: no citations found", review_id)
-            lock.release()
-            return
-        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-        if elapsed_time < 30:
-            logger.debug(
-                "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
-                review_id,
-                elapsed_time,
-            )
-            time.sleep(5)
-        else:
-            break
-
+    lang_models = nlp_utils.get_lang_to_models()
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -253,7 +233,6 @@ def get_citations_text_content_vectors(review_id):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
-    lang_models = nlp_utils.get_lang_to_models()
     citation_id_docs = (
         (
             id_,
@@ -294,7 +273,7 @@ def get_citations_text_content_vectors(review_id):
     lock.release()
 
 
-@shared_task(name="tasks.get_fulltext_text_content_vector")
+@shared_task
 def get_fulltext_text_content_vector(fulltext_id: int):
     stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
     text_content = db.session.execute(stmt).scalar_one_or_none()
