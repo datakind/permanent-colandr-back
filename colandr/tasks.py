@@ -1,40 +1,32 @@
 import itertools
 import os
-from time import sleep
+import time
 
 import arrow
-import joblib
-import numpy as np
 import redis
 import redis.lock
 import sqlalchemy as sa
-import textacy
 from celery import current_app as current_celery_app
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
-from sklearn.linear_model import SGDClassifier
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
-from .lib.constants import CITATION_RANKING_MODEL_FNAME
 from .lib.deduping import Deduper
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
+from .lib.ranking import Ranker
 from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
 logger = get_task_logger(__name__)
 
-REDIS_LOCK_TIMEOUT = 60 * 3  # seconds
 
-
-def _get_redis_lock(lock_id: str) -> redis.lock.Lock:
+def _get_redis_lock(lock_id: str, timeout: int = 120) -> redis.lock.Lock:
     redis_conn = _get_redis_conn()
-    return redis_conn.lock(
-        lock_id, timeout=REDIS_LOCK_TIMEOUT, sleep=1.0, blocking=True
-    )
+    return redis_conn.lock(lock_id, timeout=timeout, sleep=1.0, blocking=True)
 
 
 def _get_redis_conn() -> redis.client.Redis:
@@ -94,7 +86,7 @@ def deduplicate_citations(review_id):
             logger.debug(
                 "citation last created %s seconds ago, sleeping...", elapsed_time
             )
-            sleep(5)
+            time.sleep(5)
         else:
             break
 
@@ -250,11 +242,9 @@ def get_citations_text_content_vectors(review_id):
                 review_id,
                 elapsed_time,
             )
-            sleep(5)
+            time.sleep(5)
         else:
             break
-
-    lang_models = nlp_utils.get_lang_to_models()
 
     stmt = (
         sa.select(Citation.id, Citation.text_content)
@@ -263,38 +253,27 @@ def get_citations_text_content_vectors(review_id):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
+    lang_models = nlp_utils.get_lang_to_models()
+    citation_id_docs = (
+        (
+            id_,
+            nlp_utils.make_spacy_doc_if_possible(
+                text, lang_models, disable=("tagger", "parser", "ner")
+            ),
+        )
+        for id_, text in results
+    )
     citations_to_update = []
-    for id_, text_content in results:
-        try:
-            lang = textacy.identify_lang(text_content)
-        except ValueError:
-            logger.exception(
-                "unable to detect language of text content for <Citation(study_id=%s)>",
-                id_,
-            )
+    for id_, spacy_doc in citation_id_docs:
+        if spacy_doc is None:
             continue
-        if lang in lang_models:
-            # TODO: figure out a smarter way of handling case when lang has 1+ models
-            spacy_lang = textacy.load_spacy_lang(
-                lang_models[lang][0], disable=("tagger", "parser", "ner")
-            )
-            try:
-                spacy_doc = spacy_lang(text_content)
-            except Exception:
-                logger.exception(
-                    "unable to tokenize text content for <Citation(study_id=%s)>",
-                    id_,
-                )
-                continue
+
+        try:
             citations_to_update.append(
                 {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
             )
-        else:
-            logger.warning('lang "%s" detected for <Citation(study_id=%s)>', lang, id_)
-
-    # TODO: collect (id, lang) pairs for those that aren't lang == 'en'
-    # filter to those that can be tokenized and word2vec-torized
-    # group by lang, then load the necessary models to do this for groups
+        except Exception:
+            pass  # no vector available presumably
 
     if not citations_to_update:
         logger.warning(
@@ -315,45 +294,29 @@ def get_citations_text_content_vectors(review_id):
     lock.release()
 
 
-@shared_task
-def get_fulltext_text_content_vector(review_id, fulltext_id):
-    # TODO: why is this lock _per review_?
-    lock = _get_redis_lock(f"get_fulltext_text_content_vector__review_id-{review_id}")
-    lock.acquire()
-
+@shared_task(name="tasks.get_fulltext_text_content_vector")
+def get_fulltext_text_content_vector(fulltext_id: int):
     stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
     text_content = db.session.execute(stmt).scalar_one_or_none()
     if not text_content:
         logger.warning(
             "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
         )
-        lock.release()
         return
 
     lang_models = nlp_utils.get_lang_to_models()
-    lang = textacy.identify_lang(text_content)
-    if lang not in lang_models:
-        logger.warning(
-            "unable to load spacy model for lang='%s' for <Fulltext(study_id=%s)>",
-            lang,
-            fulltext_id,
-        )
-        lock.release()
+    spacy_doc = nlp_utils.make_spacy_doc_if_possible(
+        text_content, lang_models, disable=("tagger", "parser", "ner")
+    )
+    if spacy_doc is None:
         return
 
-    spacy_lang = textacy.load_spacy_lang(
-        lang_models[lang][0], disable=("tagger", "parser", "ner")
-    )
     try:
-        spacy_doc = spacy_lang(text_content)
         text_content_vector_rep = spacy_doc.vector.tolist()
     except ValueError:
         logger.warning(
-            'unable to get lang "%s" word vectors for <Fulltext(study_id=%s)>',
-            lang,
-            fulltext_id,
+            "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
-        lock.release()
         return
 
     stmt = (
@@ -363,8 +326,6 @@ def get_fulltext_text_content_vector(review_id, fulltext_id):
     )
     db.session.execute(stmt)
     db.session.commit()
-
-    lock.release()
 
 
 @shared_task
@@ -403,14 +364,15 @@ def suggest_keyterms(review_id, sample_size):
     included_vec = [
         status == "included" for status, _ in itertools.chain(included, excluded)
     ]
-    # TODO: make this multi-lingual
+    lang_models = nlp_utils.get_lang_to_models()
     docs = (
-        textacy.make_spacy_doc(text, lang="en_core_web_md")
+        nlp_utils.make_spacy_doc_if_possible(text, lang_models)
         for _, text in itertools.chain(included, excluded)
     )
     terms_lists = (
         doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
         for doc in docs
+        if doc is not None
     )
     # run the analysis!
     incl_keyterms, excl_keyterms = hack.most_discriminating_terms(
@@ -466,7 +428,7 @@ def train_citation_ranking_model(review_id):
                 review_id,
                 n_iters,
             )
-            sleep(30)
+            time.sleep(30)
         if n_iters > 6:
             logger.error(
                 "<Review(id=%s)>: no citations with vectorized text content found",
@@ -486,23 +448,10 @@ def train_citation_ranking_model(review_id):
         .where(Study.citation_status.in_(["included", "excluded"]))
         .where(Citation.text_content_vector_rep != [])
     )
-    results = db.session.execute(stmt).all()
-
-    # build features matrix and labels vector
-    X = np.vstack(tuple(result[0] for result in results))
-    y = np.array(tuple(1 if result[1] == "included" else 0 for result in results))
-
-    # train the classifier
-    clf = SGDClassifier(class_weight="balanced").fit(X, y)
-
-    # save to disk!
-    fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-    filepath = os.path.join(
-        current_app.config["RANKING_MODELS_DIR"], str(review_id), fname
-    )
-    joblib.dump(clf, filepath)
-    logger.info(
-        "<Review(id=%s)>: citation ranking model saved to %s", review_id, filepath
-    )
+    results = db.session.execute(stmt)
+    feature_vecs, labels = zip(*results)
+    ranker = Ranker(review_id=review_id)
+    ranker.fit(feature_vecs, labels)
+    ranker.save(os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review_id)))
 
     lock.release()

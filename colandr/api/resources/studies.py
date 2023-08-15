@@ -3,8 +3,6 @@ import random
 from operator import itemgetter
 
 import flask_praetorian
-import joblib
-import numpy as np
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -16,13 +14,8 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...extensions import db
 from ...lib import constants
-from ...lib.constants import (
-    CITATION_RANKING_MODEL_FNAME,
-    DEDUPE_STATUSES,
-    EXTRACTION_STATUSES,
-    USER_SCREENING_STATUSES,
-)
 from ...lib.nlp import reviewer_terms
+from ...lib.ranking import Ranker
 from ...models import Citation, Review, Study
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
@@ -204,25 +197,25 @@ class StudiesResource(Resource):
             "dedupe_status": {
                 "in": "query",
                 "type": "string",
-                "enum": DEDUPE_STATUSES,
+                "enum": constants.DEDUPE_STATUSES,
                 "description": "filter studies to only those with matching deduplication statuses",
             },
             "citation_status": {
                 "in": "query",
                 "type": "string",
-                "enum": USER_SCREENING_STATUSES,
+                "enum": constants.USER_SCREENING_STATUSES,
                 "description": "filter studies to only those with matching citation statuses",
             },
             "fulltext_status": {
                 "in": "query",
                 "type": "string",
-                "enum": USER_SCREENING_STATUSES,
+                "enum": constants.USER_SCREENING_STATUSES,
                 "description": "filter studies to only those with matching fulltext statuses",
             },
             "data_extraction_status": {
                 "in": "query",
                 "type": "string",
-                "enum": EXTRACTION_STATUSES,
+                "enum": constants.EXTRACTION_STATUSES,
                 "description": "filter studies to only those with matching data extraction statuses",
             },
             "tag": {
@@ -273,16 +266,16 @@ class StudiesResource(Resource):
                 ma_fields.String(), delimiter=",", load_default=None
             ),
             "dedupe_status": ma_fields.String(
-                load_default=None, validate=OneOf(DEDUPE_STATUSES)
+                load_default=None, validate=OneOf(constants.DEDUPE_STATUSES)
             ),
             "citation_status": ma_fields.String(
-                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(constants.USER_SCREENING_STATUSES)
             ),
             "fulltext_status": ma_fields.String(
-                load_default=None, validate=OneOf(USER_SCREENING_STATUSES)
+                load_default=None, validate=OneOf(constants.USER_SCREENING_STATUSES)
             ),
             "data_extraction_status": ma_fields.String(
-                load_default=None, validate=OneOf(EXTRACTION_STATUSES)
+                load_default=None, validate=OneOf(constants.EXTRACTION_STATUSES)
             ),
             "tag": ma_fields.String(load_default=None, validate=Length(max=25)),
             "tsquery": ma_fields.String(load_default=None, validate=Length(max=50)),
@@ -462,20 +455,18 @@ class StudiesResource(Resource):
             scores = None
 
             # best option: we have a trained citation ranking model
-            fname = CITATION_RANKING_MODEL_FNAME.format(review_id=review_id)
-            filepath = os.path.join(
-                current_app.config["RANKING_MODELS_DIR"], str(review_id), fname
-            )
-            if os.path.isfile(filepath):
-                clf = joblib.load(filepath)
-                X = np.vstack(
-                    tuple(
-                        result.citation.text_content_vector_rep
-                        for result in results
-                        if result.citation.text_content_vector_rep
-                    )
+            try:
+                ranker = Ranker.load(
+                    os.path.join(
+                        current_app.config["RANKING_MODELS_DIR"], str(review_id)
+                    ),
+                    review_id,
                 )
-                scores = clf.decision_function(X).tolist()
+                scores = ranker.predict(
+                    result.citation.text_content_vector_rep for result in results
+                )
+            except FileNotFoundError:
+                pass  # no ranker model available :/
 
             # next best option: both positive and negative keyterms
             if not scores:
