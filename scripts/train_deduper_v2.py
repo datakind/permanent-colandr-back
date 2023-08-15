@@ -5,7 +5,7 @@ import pathlib
 import sys
 from typing import Any
 
-from colandr.lib.deduping.deduper import Deduper
+from colandr.lib.models import Deduper
 
 
 def main():
