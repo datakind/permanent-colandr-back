@@ -118,24 +118,25 @@ class RegisterResource(Resource):
         user = User(**args)
         user.password = guard.hash_password(user.password)
         confirm_url = url_for("auth_confirm_registration_resource", _external=True)
-        # TODO: if we use our own template, we must keep url + token separate
-        # since flask praetorian passes them in separately under the hood
-        # for consistency, we should include token as a param on the url
-        # html = render_template(
-        #     "emails/user_registration.html",
-        #     username=user.name,
-        #     confirm_url=confirm_url,
-        # )
+        # NOTE: flask-praetorian passes confirm uri and token into template separately
+        # so we're obliged to follow suit in our email template's href
+        # if we move away from flask-praetorian, it might make more sense
+        # to pass the token into url_for() above as a kwarg
+        html = render_template(
+            "emails/user_registration.html",
+            username=user.name,
+            confirm_url=confirm_url,
+        )
         db.session.add(user)
         db.session.commit()
         if current_app.config["MAIL_SERVER"]:
             guard.send_registration_email(
                 user.email,
                 user=user,
+                template=html,
                 confirmation_uri=confirm_url,
                 confirmation_sender=current_app.config["MAIL_DEFAULT_SENDER"],
                 subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
-                # template=html,
             )
         current_app.logger.info(
             "successfully sent registration email to %s", user.email
