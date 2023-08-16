@@ -61,15 +61,13 @@ class CitationResource(Resource):
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
         if not citation:
-            return not_found_error("<Citation(id={})> not found".format(id))
+            return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
             and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
-            return forbidden_error(
-                "{} forbidden to get this citation".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to get this citation")
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", citation)
@@ -105,15 +103,13 @@ class CitationResource(Resource):
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
         if not citation:
-            return not_found_error("<Citation(id={})> not found".format(id))
+            return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
             and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
-            return forbidden_error(
-                "{} forbidden to delete this citation".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to delete this citation")
         db.session.delete(citation)
         if test is False:
             db.session.commit()
@@ -154,15 +150,13 @@ class CitationResource(Resource):
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
         if not citation:
-            return not_found_error("<Citation(id={})> not found".format(id))
+            return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
             and citation.review.users.filter_by(id=current_user.id).one_or_none()
             is None
         ):
-            return forbidden_error(
-                "{} forbidden to modify this citation".format(current_user)
-            )
+            return forbidden_error(f"{current_user} forbidden to modify this citation")
         for key, value in args.items():
             if key is missing or key == "other_fields":
                 continue
@@ -254,13 +248,13 @@ class CitationsResource(Resource):
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
             and current_user.reviews.filter_by(id=review_id).one_or_none() is None
         ):
             return forbidden_error(
-                "{} forbidden to add citations to this review".format(current_user)
+                f"{current_user} forbidden to add citations to this review"
             )
         # upsert the data source
         try:

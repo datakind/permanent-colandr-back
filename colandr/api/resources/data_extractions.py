@@ -52,7 +52,7 @@ class DataExtractionResource(Resource):
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
-            return not_found_error("<DataExtraction(study_id={})> not found".format(id))
+            return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.reviews.filter_by(
@@ -61,7 +61,7 @@ class DataExtractionResource(Resource):
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get extracted data for this study".format(current_user)
+                f"{current_user} forbidden to get extracted data for this study"
             )
         current_app.logger.debug("got %s", extracted_data)
         return DataExtractionSchema().dump(extracted_data)
@@ -109,13 +109,13 @@ class DataExtractionResource(Resource):
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
-            return not_found_error("<DataExtraction(study_id={})> not found".format(id))
+            return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
             current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none()
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get extracted data for this study".format(current_user)
+                f"{current_user} forbidden to get extracted data for this study"
             )
         if labels:
             extracted_data.extracted_items = [
@@ -170,7 +170,7 @@ class DataExtractionResource(Resource):
         extracted_data = db.session.get(DataExtraction, id)
         review_id = extracted_data.review_id
         if not extracted_data:
-            return not_found_error("<DataExtraction(study_id={})> not found".format(id))
+            return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if current_user.reviews.filter_by(id=review_id).one_or_none() is None:
             return forbidden_error(
                 "{} forbidden to modify extracted data for this study".format(
@@ -180,16 +180,14 @@ class DataExtractionResource(Resource):
         study = db.session.get(Study, id)
         if study.data_extraction_status == "finished":
             return forbidden_error(
-                '{} already "finished", so can\'t be modified'.format(extracted_data)
+                f'{extracted_data} already "finished", so can\'t be modified'
             )
         data_extraction_form = db.session.execute(
             sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
         ).scalar_one_or_none()
         if not data_extraction_form:
             return forbidden_error(
-                "<ReviewPlan({})> does not have a data extraction form".format(
-                    review_id
-                )
+                f"<ReviewPlan({review_id})> does not have a data extraction form"
             )
         labels_map = {
             item["label"]: (item["field_type"], set(item.get("allowed_values", [])))
@@ -206,9 +204,7 @@ class DataExtractionResource(Resource):
             value = item["value"]
             if label not in labels_map:
                 return validation_error(
-                    'label "{}" invalid; available choices are {}'.format(
-                        label, list(labels_map.keys())
-                    )
+                    f"label '{label}' invalid; available choices are {list(labels_map.keys())}"
                 )
             field_type, allowed_values = labels_map[label]
             if field_type == "bool":
@@ -218,18 +214,14 @@ class DataExtractionResource(Resource):
                     validated_value = False
                 else:
                     return validation_error(
-                        'value "{}" for label "{}" invalid; must be {}'.format(
-                            value, label, field_type
-                        )
+                        f'value "{value}" for label "{label}" invalid; must be {field_type}'
                     )
             elif field_type == "date":
                 try:
                     validated_value = str(arrow.get(value).naive)
                 except arrow.parser.ParserError:
                     return validation_error(
-                        'value "{}" for label "{}" invalid; must be ISO-formatted {}'.format(
-                            value, label, field_type
-                        )
+                        f'value "{value}" for label "{label}" invalid; must be ISO-formatted {field_type}'
                     )
             elif field_type in ("int", "float", "str"):
                 type_ = (
@@ -249,9 +241,7 @@ class DataExtractionResource(Resource):
             elif field_type == "select_one":
                 if value not in allowed_values:
                     return validation_error(
-                        'value "{}" for label "{}" invalid; must be one of {}'.format(
-                            value, label, allowed_values
-                        )
+                        f'value "{value}" for label "{label}" invalid; must be one of {allowed_values}'
                     )
                 validated_value = value
             elif field_type == "select_many":
@@ -259,9 +249,7 @@ class DataExtractionResource(Resource):
                 for val in value:
                     if val not in allowed_values:
                         return validation_error(
-                            'value "{}" for label "{}" invalid; must be one of {}'.format(
-                                val, label, allowed_values
-                            )
+                            f'value "{val}" for label "{label}" invalid; must be one of {allowed_values}'
                         )
                     validated_value.append(val)
             # TODO: implement this country validation
@@ -270,9 +258,7 @@ class DataExtractionResource(Resource):
                     '"country" validation has not yet been implemented -- sorry!'
                 )
             else:
-                return validation_error(
-                    'field_type "{}" is not valid'.format(field_type)
-                )
+                return validation_error(f'field_type "{field_type}" is not valid')
             extracted_data_map[label] = validated_value
         extracted_data.extracted_items = [
             {"label": label, "value": value}
