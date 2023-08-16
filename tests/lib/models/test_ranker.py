@@ -7,12 +7,13 @@ from colandr.lib.models import Ranker
 
 
 @pytest.fixture(scope="class")
-def temp_path(tmp_path):
+def tmp_ranker_path(tmp_path_factory):
+    tmp_path = tmp_path_factory.mktemp("ranker")
     yield tmp_path
 
 
 class TestRanker:
-    @pytest.mark.parametrize("review_id", [1])
+    @pytest.mark.parametrize("review_id", [1, 2])
     def test_init(self, review_id):
         ranker = Ranker(review_id=review_id)
         assert ranker.review_id == review_id
@@ -36,5 +37,9 @@ class TestRanker:
         with does_not_raise():
             check_is_fitted(ranker.model)
 
-    def test_save_and_load(self, tmp_path):
-        ...
+    @pytest.mark.parametrize("review_id", [1, 2])
+    def test_save_and_load(self, review_id, tmp_ranker_path):
+        ranker = Ranker(review_id=review_id)
+        ranker.save(tmp_ranker_path)
+        ranker_loaded = Ranker.load(tmp_ranker_path, review_id)
+        assert ranker_loaded.model is not None
