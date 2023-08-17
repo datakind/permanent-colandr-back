@@ -11,7 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...models import Review
-from ..errors import forbidden_error, not_found_error, validation_error
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ReviewPlanSchema
 from ..swagger import review_plan_model
 
@@ -205,7 +205,7 @@ class ReviewPlanResource(Resource):
                 try:
                     setattr(review_plan, field, args[field])
                 except KeyError:
-                    return validation_error(f'field "{field}" value not specified')
+                    return bad_request_error(f'field "{field}" value not specified')
         else:
             for key, value in args.items():
                 setattr(review_plan, key, value)

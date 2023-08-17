@@ -12,7 +12,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...models import Citation, DataSource, Review, Study
-from ..errors import forbidden_error, not_found_error, validation_error
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model
 
@@ -266,7 +266,7 @@ class CitationsResource(Resource):
                 }
             )
         except ValidationError as e:
-            return validation_error(e.messages)
+            return bad_request_error(e.messages)
         data_source = db.session.execute(
             sa.select(DataSource).filter_by(
                 source_type=source_type, source_name=source_name

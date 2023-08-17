@@ -11,7 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants, sanitizers
 from ...models import DataExtraction, ReviewPlan, Study
-from ..errors import forbidden_error, not_found_error, validation_error
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import DataExtractionSchema, ExtractedItem
 from ..swagger import extracted_item_model
 
@@ -203,7 +203,7 @@ class DataExtractionResource(Resource):
             label = item["label"]
             value = item["value"]
             if label not in labels_map:
-                return validation_error(
+                return bad_request_error(
                     f"label '{label}' invalid; available choices are {list(labels_map.keys())}"
                 )
             field_type, allowed_values = labels_map[label]
@@ -213,14 +213,14 @@ class DataExtractionResource(Resource):
                 elif value in (0, False, "false", "f"):
                     validated_value = False
                 else:
-                    return validation_error(
+                    return bad_request_error(
                         f'value "{value}" for label "{label}" invalid; must be {field_type}'
                     )
             elif field_type == "date":
                 try:
                     validated_value = str(arrow.get(value).naive)
                 except arrow.parser.ParserError:
-                    return validation_error(
+                    return bad_request_error(
                         f'value "{value}" for label "{label}" invalid; must be ISO-formatted {field_type}'
                     )
             elif field_type in ("int", "float", "str"):
@@ -233,14 +233,14 @@ class DataExtractionResource(Resource):
                 )
                 validated_value = sanitizers.sanitize_type(value, type_)
                 if validated_value is None:
-                    return validation_error(
+                    return bad_request_error(
                         'value "{}" for label "{}" invalid; must be {}'.format(
                             value, label, field_type
                         )
                     )
             elif field_type == "select_one":
                 if value not in allowed_values:
-                    return validation_error(
+                    return bad_request_error(
                         f'value "{value}" for label "{label}" invalid; must be one of {allowed_values}'
                     )
                 validated_value = value
@@ -248,17 +248,17 @@ class DataExtractionResource(Resource):
                 validated_value = []
                 for val in value:
                     if val not in allowed_values:
-                        return validation_error(
+                        return bad_request_error(
                             f'value "{val}" for label "{label}" invalid; must be one of {allowed_values}'
                         )
                     validated_value.append(val)
             # TODO: implement this country validation
             elif field_type == "country":
-                return validation_error(
+                return bad_request_error(
                     '"country" validation has not yet been implemented -- sorry!'
                 )
             else:
-                return validation_error(f'field_type "{field_type}" is not valid')
+                return bad_request_error(f'field_type "{field_type}" is not valid')
             extracted_data_map[label] = validated_value
         extracted_data.extracted_items = [
             {"label": label, "value": value}
