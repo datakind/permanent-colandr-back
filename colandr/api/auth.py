@@ -1,4 +1,5 @@
-from flask import current_app, jsonify, render_template, url_for
+import sqlalchemy as sa
+from flask import current_app, jsonify, url_for
 from flask_restx import Namespace, Resource, fields
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
@@ -9,7 +10,6 @@ from ..models import User
 from .errors import forbidden_error, not_found_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
-
 
 ns = Namespace(
     "auth",
@@ -122,18 +122,19 @@ class RegisterResource(Resource):
         # so we're obliged to follow suit in our email template's href
         # if we move away from flask-praetorian, it might make more sense
         # to pass the token into url_for() above as a kwarg
-        html = render_template(
-            "emails/user_registration.html",
-            username=user.name,
-            confirm_url=confirm_url,
-        )
+        # also, while we're chatting: flask-praetorian is really limiting in what
+        # we can interpolate into an email; this is bad, and we should move away from it
+        template_fpath = "templates/emails/user_registration.html"
+        with current_app.open_resource(template_fpath, mode="r") as f:
+            template = f.read()
+        current_app.logger.warning("template = %s", template)
         db.session.add(user)
         db.session.commit()
         if current_app.config["MAIL_SERVER"]:
             guard.send_registration_email(
                 user.email,
                 user=user,
-                template=html,
+                template=template,
                 confirmation_uri=confirm_url,
                 confirmation_sender=current_app.config["MAIL_DEFAULT_SENDER"],
                 subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
@@ -215,17 +216,16 @@ class ResetPasswordResource(Resource):
             confirm_url = url_for(
                 "auth_confirm_reset_password_resource", _external=True
             )
-            # TODO: same as for user registration resource
-            # html = render_template(
-            #     "emails/password_reset.html", username=user.name, confirm_url=confirm_url
-            # )
+            template_fpath = "templates/emails/password_reset.html"
+            with current_app.open_resource(template_fpath, mode="r") as f:
+                template = f.read()
             if current_app.config["MAIL_SERVER"]:
                 guard.send_reset_email(
                     user.email,
+                    template=template,
                     reset_uri=confirm_url,
                     reset_sender=current_app.config["MAIL_DEFAULT_SENDER"],
                     subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Reset your password",
-                    # template=html,
                 )
 
 
