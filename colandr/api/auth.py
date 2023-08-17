@@ -206,7 +206,9 @@ class ResetPasswordResource(Resource):
         location="query",
     )
     def post(self, email):
-        user = db.session.query(User).filter_by(email=email).one_or_none()
+        user = db.session.execute(
+            sa.select(User).filter_by(email=email)
+        ).scalar_one_or_none()
         if user is None:
             current_app.logger.warning(
                 "password reset submitted with email='%s', but no such user exists",

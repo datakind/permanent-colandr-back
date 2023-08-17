@@ -70,8 +70,8 @@ def db_seed(file_path: pathlib.Path):
         db.session.add(models.FulltextScreening(**record))
     # # TODO: figure out why this doesn't work :/
     # for record in seed_data["review_teams"]:
-    #     review = db.session.query(models.Review).get(record["id"])
-    #     user = db.session.query(models.User).get(record["user_id"])
+    #     review = db.session.get(models.Review, record["id"])
+    #     user = db.session.get(models.User, record["user_id"])
     #     if record["action"] == "add":
     #         review.users.append(user)
     #     else:
