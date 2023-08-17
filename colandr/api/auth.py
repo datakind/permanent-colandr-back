@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from flask import current_app, jsonify, url_for
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
@@ -10,6 +10,7 @@ from ..models import User
 from .errors import forbidden_error, not_found_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
+
 
 ns = Namespace(
     "auth",
