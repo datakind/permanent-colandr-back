@@ -14,8 +14,8 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...extensions import db
 from ...lib import constants
+from ...lib.models import Ranker
 from ...lib.nlp import reviewer_terms
-from ...lib.ranking import Ranker
 from ...models import Citation, Review, Study
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema

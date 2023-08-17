@@ -43,6 +43,7 @@ CELERY = {
     # ref: https://steve.dignam.xyz/2023/05/20/many-problems-with-celery
     "worker_prefetch_multiplier": 1,
     "task_acks_late": True,
+    "task_create_missing_queues": True,
 }
 
 # cache config

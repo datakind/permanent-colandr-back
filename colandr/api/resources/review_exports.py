@@ -166,12 +166,12 @@ class ReviewExportStudiesResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
-        query = db.session.query(Study).filter_by(review_id=id).order_by(Study.id)
-        data_extraction_form = (
-            db.session.query(ReviewPlan.data_extraction_form)
-            .filter_by(id=id)
-            .one_or_none()
-        )
+        studies = db.session.execute(
+            sa.select(Study).filter_by(review_id=id).order_by(Study.id)
+        ).scalars()
+        data_extraction_form = db.session.execute(
+            sa.select(ReviewPlan.data_extraction_form).filter_by(id=id)
+        ).one_or_none()
 
         fieldnames = [
             "study_id",
@@ -201,7 +201,7 @@ class ReviewExportStudiesResource(Resource):
         else:
             extraction_label_types = None
 
-        rows = (_study_to_row(study, extraction_label_types) for study in query)
+        rows = (_study_to_row(study, extraction_label_types) for study in studies)
         csv_data = fileio.tabular.write_stream(
             fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
         )

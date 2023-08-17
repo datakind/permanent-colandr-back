@@ -1,1 +1,3 @@
-Project structure inspired by [Cookiecutter Data Science](http://drivendata.github.io/cookiecutter-data-science/).
+# `colandr`
+
+Back-end code for [colandr](https://www.colandrapp.com), an ML-assisted online application for conducting systematic reviews and syntheses of text-based evidence.

@@ -1,5 +1,6 @@
-from flask import current_app, jsonify, render_template, url_for
-from flask_restx import Namespace, Resource, fields
+import sqlalchemy as sa
+from flask import current_app, jsonify, url_for
+from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
@@ -118,24 +119,26 @@ class RegisterResource(Resource):
         user = User(**args)
         user.password = guard.hash_password(user.password)
         confirm_url = url_for("auth_confirm_registration_resource", _external=True)
-        # TODO: if we use our own template, we must keep url + token separate
-        # since flask praetorian passes them in separately under the hood
-        # for consistency, we should include token as a param on the url
-        # html = render_template(
-        #     "emails/user_registration.html",
-        #     username=user.name,
-        #     confirm_url=confirm_url,
-        # )
+        # NOTE: flask-praetorian passes confirm uri and token into template separately
+        # so we're obliged to follow suit in our email template's href
+        # if we move away from flask-praetorian, it might make more sense
+        # to pass the token into url_for() above as a kwarg
+        # also, while we're chatting: flask-praetorian is really limiting in what
+        # we can interpolate into an email; this is bad, and we should move away from it
+        template_fpath = "templates/emails/user_registration.html"
+        with current_app.open_resource(template_fpath, mode="r") as f:
+            template = f.read()
+        current_app.logger.warning("template = %s", template)
         db.session.add(user)
         db.session.commit()
         if current_app.config["MAIL_SERVER"]:
             guard.send_registration_email(
                 user.email,
                 user=user,
+                template=template,
                 confirmation_uri=confirm_url,
                 confirmation_sender=current_app.config["MAIL_DEFAULT_SENDER"],
                 subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
-                # template=html,
             )
         current_app.logger.info(
             "successfully sent registration email to %s", user.email
@@ -204,7 +207,9 @@ class ResetPasswordResource(Resource):
         location="query",
     )
     def post(self, email):
-        user = db.session.query(User).filter_by(email=email).one_or_none()
+        user = db.session.execute(
+            sa.select(User).filter_by(email=email)
+        ).scalar_one_or_none()
         if user is None:
             current_app.logger.warning(
                 "password reset submitted with email='%s', but no such user exists",
@@ -214,17 +219,16 @@ class ResetPasswordResource(Resource):
             confirm_url = url_for(
                 "auth_confirm_reset_password_resource", _external=True
             )
-            # TODO: same as for user registration resource
-            # html = render_template(
-            #     "emails/password_reset.html", username=user.name, confirm_url=confirm_url
-            # )
+            template_fpath = "templates/emails/password_reset.html"
+            with current_app.open_resource(template_fpath, mode="r") as f:
+                template = f.read()
             if current_app.config["MAIL_SERVER"]:
                 guard.send_reset_email(
                     user.email,
+                    template=template,
                     reset_uri=confirm_url,
                     reset_sender=current_app.config["MAIL_DEFAULT_SENDER"],
                     subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Reset your password",
-                    # template=html,
                 )
 
 

@@ -14,7 +14,7 @@ from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
 from ...tasks import send_email
-from ..errors import forbidden_error, not_found_error, validation_error
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 
 
@@ -160,7 +160,7 @@ class ReviewTeamResource(Resource):
             if user is not None:
                 user_id = user.id
         else:
-            return validation_error("user_id or user_email is required")
+            return bad_request_error("user_id or user_email is required")
         review_users = review.users
         # an existing user is being added, without an invite email
         if action == "add":

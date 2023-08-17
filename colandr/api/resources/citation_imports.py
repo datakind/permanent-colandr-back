@@ -12,7 +12,7 @@ from ...extensions import db
 from ...lib import constants, fileio
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ...tasks import deduplicate_citations, get_citations_text_content_vectors
-from ..errors import forbidden_error, not_found_error, validation_error
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
 
@@ -169,18 +169,18 @@ class CitationsImportsResource(Resource):
             try:
                 records = iter(fileio.bibtex.read(uploaded_file._file))
             except Exception:
-                return validation_error(
+                return bad_request_error(
                     f'unable to parse BibTex citations file: "{fname}"'
                 )
         elif fname.endswith(".ris") or fname.endswith(".txt"):
             try:
                 records = iter(fileio.ris.read(uploaded_file._file))
             except Exception:
-                return validation_error(
+                return bad_request_error(
                     f'unable to parse RIS citations file: "{fname}"'
                 )
         else:
-            return validation_error(f'unknown file type: "{fname}"')
+            return bad_request_error(f'unknown file type: "{fname}"')
 
         # upsert the data source
         try:
@@ -192,7 +192,7 @@ class CitationsImportsResource(Resource):
                 }
             )
         except ValidationError as e:
-            return validation_error(e.messages)
+            return bad_request_error(e.messages)
         data_source = db.session.execute(
             sa.select(DataSource).filter_by(
                 source_type=source_type, source_name=source_name
@@ -293,4 +293,4 @@ class CitationsImportsResource(Resource):
 
         # lastly, don't forget to deduplicate the citations and get their word2vecs
         deduplicate_citations.apply_async(args=[review_id], countdown=60)
-        get_citations_text_content_vectors.apply_async(args=[review_id], countdown=60)
+        get_citations_text_content_vectors.apply_async(args=[review_id], countdown=3)

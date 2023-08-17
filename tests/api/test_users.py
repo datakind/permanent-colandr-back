@@ -108,7 +108,7 @@ class TestUserResource:
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 403
         # now we check it
-        user = db_session.query(models.User).get(id_)
+        user = db_session.get(models.User, id_)
         user_headers = extensions.guard.pack_header_for_user(user)
         flask.g.current_user = user
         response = client.delete(url, headers=user_headers)
@@ -143,7 +143,7 @@ class TestUserResource:
         response = client.put(url, json=params, headers=admin_headers)
         assert response.status_code == 403
         # now we check it
-        user = db_session.query(models.User).get(id_)
+        user = db_session.get(models.User, id_)
         user_headers = extensions.guard.pack_header_for_user(user)
         flask.g.current_user = user
         response = client.put(url, json=params, headers=user_headers)

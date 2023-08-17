@@ -32,7 +32,7 @@ class Ranker:
         return cls(model_fpath=model_fpath, review_id=review_id)
 
     @functools.cached_property
-    def model(self) -> sklearn.base.ClassifierMixin:
+    def model(self) -> sklearn.base.BaseEstimator:
         if self.model_fpath is None:
             _model = sklearn.linear_model.SGDClassifier(class_weight="balanced")
         else:

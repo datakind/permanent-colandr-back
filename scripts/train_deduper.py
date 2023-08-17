@@ -1,99 +1,45 @@
-#!/usr/bin/env python
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import argparse
-import io
+import json
 import logging
-import os
+import pathlib
 import sys
-import warnings
+from typing import Any
 
-import dedupe
-
-import cipy
-
-LOGGER = logging.getLogger('train_deduper')
-LOGGER.setLevel(logging.INFO)
-if len(LOGGER.handlers) == 0:
-    _handler = logging.StreamHandler()
-    _formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    _handler.setFormatter(_formatter)
-    LOGGER.addHandler(_handler)
+from colandr.lib.models import Deduper
 
 
 def main():
+    args = add_and_parse_args()
+    logging.basicConfig(level=args.loglevel)
+
+    deduper = Deduper(num_cores=args.num_cores, in_memory=args.in_memory)
+    data = prep_training_data(args.data_fpath, args.data_id_key, deduper)
+    deduper.fit(data)
+    if args.save_dir:
+        deduper.save(args.save_dir)
+
+
+def add_and_parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="""Train a model to deduplicate citation records.""")
-    parser.add_argument(
-        '--settings', type=str, required=True, metavar='settings_file_path',
-        help='path to file on disk where dedupe model settings are saved')
-    parser.add_argument(
-        '--training', type=str, required=True, metavar='training_file_path')
-    parser.add_argument(
-        '--database_url', type=str, metavar='psql_database_url', default='DATABASE_URL',
-        help='environment variable to which Postgres connection credentials have been assigned')
-    parser.add_argument(
-        '--update', action='store_true', default=False)
-    parser.add_argument(
-        '--test', action='store_true', default=False,
-        help='flag to run script without modifying any data or models')
-    args = parser.parse_args()
-
-    act = not args.test
-
-    # HACK!
-    if args.update is True:
-        warnings.warn(
-            'updating a trained dedupe model does not appear to work', UserWarning)
-
-    conn_creds = cipy.db.get_conn_creds(args.database_url)
-    citations_db = cipy.db.PostgresDB(conn_creds, ddl='citations')
-
-    if args.update is False and os.path.exists(args.settings):
-        LOGGER.info('reading dedupe settings from %s', args.settings)
-        deduper = cipy.db.get_deduper(args.settings, num_cores=2)
-
-    else:
-        variables = [
-            {'field': 'authors', 'type': 'Set', 'has missing': True},
-            {'field': 'title', 'type': 'String', 'has missing': True},
-            {'field': 'abstract', 'type': 'Text', 'has missing': True},
-            {'field': 'publication_year', 'type': 'Exact', 'has missing': True},
-            {'field': 'doi', 'type': 'String', 'has missing': True}
-            ]
-        deduper = dedupe.Dedupe(variables, num_cores=2)
-
-        data = {row['citation_id']: cipy.db.make_immutable(row)
-                for row in citations_db.run_query(
-                    citations_db.ddl['templates']['select_citations_basic_info'])}
-        deduper.sample(data, 25000)
-
-        if os.path.exists(args.training):
-            LOGGER.info('reading labeled examples from %s', args.training)
-            with io.open(args.training, mode='rt') as f:
-                deduper.readTraining(f)
-
-        LOGGER.info('starting active labeling...')
-        dedupe.consoleLabel(deduper)
-
-        if act is True:
-            LOGGER.info('writing dedupe training data to %s', args.training)
-            with io.open(args.training, mode='wt') as f:
-                deduper.writeTraining(f)
-        else:
-            LOGGER.info('writing dedupe training data to %s (TEST)', args.training)
-
-        deduper.train(maximum_comparisons=1000000, recall=0.95)
-
-        if act is True:
-            LOGGER.info('writing dedupe settings data to %s', args.settings)
-            with io.open(args.settings, mode='wb') as f:
-                deduper.writeSettings(f)
-        else:
-            LOGGER.info('writing dedupe settings data to %s (TEST)', args.settings)
-
-        deduper.cleanupTraining()
+        description="Train a model to deduplicate citation records."
+    )
+    parser.add_argument("--data-fpath", type=pathlib.Path, required=True)
+    parser.add_argument("--data-id-key", type=str, default="id")
+    parser.add_argument("--training-fpath", type=pathlib.Path, default=None)
+    parser.add_argument("--num-cores", type=int, default=1)
+    parser.add_argument("--save-dir", type=pathlib.Path, default=None)
+    parser.add_argument("--in-memory", action="store_true", default=False)
+    parser.add_argument("--loglevel", type=int, default=logging.INFO)
+    return parser.parse_args()
 
 
-if __name__ == '__main__':
+def prep_training_data(
+    data_fpath: pathlib.Path, data_id_key: str, deduper: Deduper
+) -> dict[Any, dict[str, Any]]:
+    with data_fpath.open(mode="r") as f:
+        data = json.load(f)
+    return deduper.preprocess_data(data, data_id_key)
+
+
+if __name__ == "__main__":
     sys.exit(main())

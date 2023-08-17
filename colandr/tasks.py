@@ -14,14 +14,13 @@ from flask_mail import Message
 
 from .api.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
-from .lib.deduping import Deduper
+from .lib.models import Deduper, Ranker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
-from .lib.ranking import Ranker
 from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
-logger = get_task_logger(__name__)
+LOGGER = get_task_logger(__name__)
 
 
 def _get_redis_lock(lock_id: str, timeout: int = 120) -> redis.lock.Lock:
@@ -75,7 +74,7 @@ def deduplicate_citations(review_id):
     while True:
         max_created_at = db.session.execute(stmt).scalar()
         if max_created_at is None:
-            logger.error(
+            LOGGER.error(
                 "<Review(id=%s)>: No citations found, so nothing to dedupe...",
                 review_id,
             )
@@ -83,7 +82,7 @@ def deduplicate_citations(review_id):
             return
         elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
         if elapsed_time < 30:
-            logger.debug(
+            LOGGER.debug(
                 "citation last created %s seconds ago, sleeping...", elapsed_time
             )
             time.sleep(5)
@@ -96,7 +95,7 @@ def deduplicate_citations(review_id):
     )
     most_recent_dedupe = db.session.execute(stmt).scalar()
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
-        logger.warning("<Review(id=%s)>: all studies already deduped!", review_id)
+        LOGGER.warning("<Review(id=%s)>: all studies already deduped!", review_id)
         lock.release()
         return
 
@@ -105,7 +104,7 @@ def deduplicate_citations(review_id):
     stmt = sa.delete(Dedupe).where(Dedupe.review_id == review_id)
     result = db.session.execute(stmt)
     rows_deleted = result.rowcount
-    logger.debug(
+    LOGGER.debug(
         "<Review(id=%s)>: deleted %s rows from %s",
         review_id,
         rows_deleted,
@@ -128,14 +127,14 @@ def deduplicate_citations(review_id):
     # TODO: decide on suitable value for threshold; higher => higher precision
     clustered_dupes = deduper.model.partition(preproc_data, threshold=0.5)
     try:
-        logger.info(
+        LOGGER.info(
             "<Review(id=%s)>: found %s duplicate clusters",
             review_id,
             len(clustered_dupes),
         )
     # TODO: figure out if this is ever a generator instead
     except TypeError:
-        logger.info("<Review(id=%s)>: found duplicate clusters", review_id)
+        LOGGER.info("<Review(id=%s)>: found duplicate clusters", review_id)
 
     # get *all* citation ids for this review, as well as included/excluded
     stmt = sa.select(Citation.id).where(Citation.review_id == review_id)
@@ -210,7 +209,7 @@ def deduplicate_citations(review_id):
     db.session.bulk_update_mappings(Study, studies_to_update)
     db.session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
     db.session.commit()
-    logger.info(
+    LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
         review_id,
         len(duplicate_cids),
@@ -221,31 +220,11 @@ def deduplicate_citations(review_id):
 
 
 @shared_task
-def get_citations_text_content_vectors(review_id):
+def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    # wait until no more review citations have been created in 60+ seconds
-    stmt = sa.select(sa.func.max(Citation.created_at)).where(
-        Citation.review_id == review_id
-    )
-    while True:
-        max_created_at = db.session.execute(stmt).scalar_one_or_none()
-        if max_created_at is None:
-            logger.warning("<Review(id=%s)>: no citations found", review_id)
-            lock.release()
-            return
-        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-        if elapsed_time < 30:
-            logger.debug(
-                "<Review(id=%s)>: citation last created %s seconds ago, sleeping...",
-                review_id,
-                elapsed_time,
-            )
-            time.sleep(5)
-        else:
-            break
-
+    lang_models = nlp_utils.get_lang_to_models()
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -253,7 +232,6 @@ def get_citations_text_content_vectors(review_id):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
-    lang_models = nlp_utils.get_lang_to_models()
     citation_id_docs = (
         (
             id_,
@@ -276,7 +254,7 @@ def get_citations_text_content_vectors(review_id):
             pass  # no vector available presumably
 
     if not citations_to_update:
-        logger.warning(
+        LOGGER.warning(
             "<Review(id=%s)>: no citation text_content_vector_reps to update",
             review_id,
         )
@@ -285,7 +263,7 @@ def get_citations_text_content_vectors(review_id):
 
     db.session.bulk_update_mappings(Citation, citations_to_update)
     db.session.commit()
-    logger.info(
+    LOGGER.info(
         "<Review(id=%s)>: %s citation text_content_vector_reps updated",
         review_id,
         len(citations_to_update),
@@ -294,12 +272,12 @@ def get_citations_text_content_vectors(review_id):
     lock.release()
 
 
-@shared_task(name="tasks.get_fulltext_text_content_vector")
+@shared_task
 def get_fulltext_text_content_vector(fulltext_id: int):
     stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
     text_content = db.session.execute(stmt).scalar_one_or_none()
     if not text_content:
-        logger.warning(
+        LOGGER.warning(
             "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
         )
         return
@@ -314,7 +292,7 @@ def get_fulltext_text_content_vector(fulltext_id: int):
     try:
         text_content_vector_rep = spacy_doc.vector.tolist()
     except ValueError:
-        logger.warning(
+        LOGGER.warning(
             "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
         return
@@ -333,7 +311,7 @@ def suggest_keyterms(review_id, sample_size):
     lock = _get_redis_lock(f"suggest_keyterms__review-{review_id}")
     lock.acquire()
 
-    logger.info(
+    LOGGER.info(
         "<Review(id=%s)>: computing keyterms with sample size = %s",
         review_id,
         sample_size,
@@ -389,7 +367,7 @@ def suggest_keyterms(review_id, sample_size):
     if errors:
         lock.release()
         raise Exception
-    logger.info(
+    LOGGER.info(
         "<Review(id=%s)>: suggested keyterms: %s", review_id, suggested_keyterms
     )
     # update the review plan
@@ -409,7 +387,7 @@ def train_citation_ranking_model(review_id):
     lock = _get_redis_lock(f"train_citations_ranking_model__review-{review_id}")
     lock.acquire()
 
-    logger.info("<Review(id=%s)>: training citation ranking model", review_id)
+    LOGGER.info("<Review(id=%s)>: training citation ranking model", review_id)
 
     # make sure at least some citations have had their text content vectors found
     n_iters = 1
@@ -423,14 +401,14 @@ def train_citation_ranking_model(review_id):
         if citations_ready is True:
             break
         else:
-            logger.debug(
+            LOGGER.debug(
                 "<Review(id=%s)>: waiting for vectorized text content for, %s",
                 review_id,
                 n_iters,
             )
             time.sleep(30)
         if n_iters > 6:
-            logger.error(
+            LOGGER.error(
                 "<Review(id=%s)>: no citations with vectorized text content found",
                 review_id,
             )

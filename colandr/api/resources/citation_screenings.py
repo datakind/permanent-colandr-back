@@ -11,12 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
-from ..errors import (
-    bad_request_error,
-    forbidden_error,
-    not_found_error,
-    validation_error,
-)
+from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
 from ..utils import assign_status
@@ -179,10 +174,10 @@ class CitationScreeningsResource(Resource):
             )
         # validate and add screening
         if args["status"] == "excluded" and not args["exclude_reasons"]:
-            return validation_error("screenings that exclude must provide a reason")
+            return bad_request_error("screenings that exclude must provide a reason")
         if current_user.is_admin:
             if "user_id" not in args:
-                return validation_error(
+                return bad_request_error(
                     "admins must specify 'user_id' when creating a citation screening"
                 )
             else:
@@ -252,7 +247,7 @@ class CitationScreeningsResource(Resource):
         if not screening:
             return not_found_error(f"{current_user} has not screened this citation")
         if args["status"] == "excluded" and not args["exclude_reasons"]:
-            return validation_error("screenings that exclude must provide a reason")
+            return bad_request_error("screenings that exclude must provide a reason")
         for key, value in args.items():
             if key is missing:
                 continue
