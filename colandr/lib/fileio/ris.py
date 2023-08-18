@@ -5,7 +5,7 @@ References:
 """
 import logging
 import pathlib
-from typing import BinaryIO, List, Union
+from typing import BinaryIO, List
 
 import markupsafe
 import rispy
@@ -77,7 +77,7 @@ DEFAULT_TO_ALT_KEYS = {
 }
 
 
-def read(path_or_stream: Union[BinaryIO, pathlib.Path]) -> list[dict]:
+def read(path_or_stream: BinaryIO | pathlib.Path) -> list[dict]:
     data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
