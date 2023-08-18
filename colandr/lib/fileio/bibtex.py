@@ -143,7 +143,7 @@ def _sanitize_month(value: str) -> Optional[int]:
             return None
 
 
-def _split_pages(value: str) -> Optional[Tuple[int, int]]:
+def _split_pages(value: str) -> Optional[Tuple[Optional[int], Optional[int]]]:
     if "--" in value:
         pages = value.split("--")
         if len(pages) == 2:
