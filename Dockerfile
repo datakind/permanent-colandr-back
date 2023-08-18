@@ -1,4 +1,4 @@
-FROM python:3.9-slim AS base
+FROM python:3.10-slim AS base
 
 ENV COLANDR_APP_DIR /app
 RUN mkdir -p ${COLANDR_APP_DIR}
@@ -22,6 +22,9 @@ FROM base AS dev
 RUN python -m pip install -r requirements/dev.txt
 
 COPY . .
+
+# TODO: should we do this instead?
+# RUN python -m pip install -e .[dev]
 
 EXPOSE 5000
 

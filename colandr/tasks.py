@@ -4,6 +4,7 @@ import time
 
 import arrow
 import redis
+import redis.client
 import redis.lock
 import sqlalchemy as sa
 from celery import current_app as current_celery_app
