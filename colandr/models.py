@@ -6,7 +6,7 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from .api.utils import assign_status, get_boolean_search_query
+from .api import utils
 from .extensions import db
 
 
@@ -283,7 +283,7 @@ class ReviewPlan(db.Model):
         if not self.keyterms:
             return ""
         else:
-            return get_boolean_search_query(self.keyterms)
+            return utils.get_boolean_search_query(self.keyterms)
 
     # relationships
     review = db.relationship(
@@ -1044,7 +1044,7 @@ def update_citation_status(mapper, connection, target):
             sa.select(Study.citation_status).where(Study.id == citation_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
-    status = assign_status(
+    status = utils.assign_status(
         [
             cs.status
             for cs in db.session.query(CitationScreening).filter_by(
@@ -1154,7 +1154,7 @@ def update_fulltext_status(mapper, connection, target):
             sa.select(Study.fulltext_status).where(Study.id == fulltext_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
-    status = assign_status(
+    status = utils.assign_status(
         [
             fs.status
             for fs in db.session.query(FulltextScreening).filter_by(
