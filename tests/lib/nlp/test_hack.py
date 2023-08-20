@@ -26,6 +26,7 @@ from colandr.lib.nlp import hack
             (["Friedman", "Times"], ["General", "malls"]),
         ),
     ],
+    ids=[1],
 )
 def test_most_discriminating_terms(text1, text2, exp_result):
     doc1 = [line.split() for line in text1.split("\n")]
