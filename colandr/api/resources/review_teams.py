@@ -1,3 +1,4 @@
+import flask
 import flask_praetorian
 import sqlalchemy as sa
 from flask import current_app, render_template
@@ -7,8 +8,6 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
-
-from colandr import api
 
 from ...extensions import db
 from ...lib import constants
@@ -174,8 +173,11 @@ class ReviewTeamResource(Resource):
             if server_name:
                 confirm_url = f"{server_name}{ns.path}/{id}/team/confirm?token={token}"
             else:
-                confirm_url = api.api_.url_for(
-                    ConfirmReviewTeamInviteResource, id=id, token=token, _external=True
+                confirm_url = flask.url_for(
+                    "review_teams_confirm_review_team_invite_resource",
+                    id=id,
+                    token=token,
+                    _external=True,
                 )
             # this user doesn't exist...
             if user is None:
