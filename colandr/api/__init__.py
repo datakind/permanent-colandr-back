@@ -30,11 +30,11 @@ api_ = Api(
     title="colandr",
     description="REST API powering the colandr app",
     authorizations={
-        "Bearer": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        "api_key": {"type": "apiKey", "in": "header", "name": "Authorization"}
         # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
         # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
     },
-    security="Bearer",
+    security="api_key",
 )
 
 # this is a built-in hack!
