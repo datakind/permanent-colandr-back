@@ -76,16 +76,7 @@ class StudyResource(Resource):
         return StudySchema(only=fields).dump(study)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted study record",
             403: "current app user forbidden to delete study record",
             404: "no study with matching id was found",
@@ -99,8 +90,7 @@ class StudyResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete record for a single study by id"""
         current_user = flask_praetorian.current_user()
         study = db.session.get(Study, id)
@@ -112,26 +102,14 @@ class StudyResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", study)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", study)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(study_model, "study data to be modified"),
         responses={
-            200: "study data was modified (if test = False)",
+            200: "study data was modified",
             403: "current app user forbidden to modify study; specified field may not be modified",
             404: "no study with matching id was found",
         },
@@ -145,8 +123,7 @@ class StudyResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify record for a single study by id"""
         current_user = flask_praetorian.current_user()
         study = db.session.get(Study, id)
@@ -165,11 +142,8 @@ class StudyResource(Resource):
                         "until fulltext has passed screening"
                     )
             setattr(study, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified %s", study)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("modified %s", study)
         return StudySchema().dump(study)
 
 

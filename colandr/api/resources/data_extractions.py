@@ -74,15 +74,8 @@ class DataExtractionResource(Resource):
                 "type": "string",
                 "description": 'comma-delimited list-as-string of data extraction labels to "delete" (set to null)',
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted (nulled) data extraction record",
             403: "current app user forbidden to delete data extraction record",
             404: "no data extraction with matching id was found",
@@ -99,11 +92,10 @@ class DataExtractionResource(Resource):
     @use_kwargs(
         {
             "labels": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def delete(self, id, labels, test):
+    def delete(self, id, labels):
         """delete data extraction record for a single study by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -129,26 +121,14 @@ class DataExtractionResource(Resource):
         if not extracted_data.extracted_items:
             study = db.session.get(Study, id)
             study.data_extraction_status = "not_started"
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted contents of %s", extracted_data)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted contents of %s", extracted_data)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=([extracted_item_model], "data extraction data to be modified"),
         responses={
-            200: "data extraction data was modified (if test = False)",
+            200: "data extraction data was modified",
             403: "current app user forbidden to modify data extraction",
             404: "no data extraction with matching id was found",
         },
@@ -162,8 +142,7 @@ class DataExtractionResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify data extraction record for a single study by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -266,9 +245,7 @@ class DataExtractionResource(Resource):
         ]
         # also update study's data_extraction_status
         study.data_extraction_status = "started"
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified %s", extracted_data)
-        else:
-            db.session.rollback()
+
+        db.session.commit()
+        current_app.logger.info("modified %s", extracted_data)
         return DataExtractionSchema().dump(extracted_data)

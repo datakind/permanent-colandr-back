@@ -81,15 +81,8 @@ class ReviewPlanResource(Resource):
                 "type": "string",
                 "description": 'comma-delimited list-as-string of review fields to "delete" (set to null)',
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted (nulled) review plan record",
             403: "current app user forbidden to delete review plan record",
             404: "no review with matching id was found",
@@ -106,11 +99,10 @@ class ReviewPlanResource(Resource):
     @use_kwargs(
         {
             "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def delete(self, id, fields, test):
+    def delete(self, id, fields):
         """delete review plan record for a single review by id"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -136,13 +128,9 @@ class ReviewPlanResource(Resource):
             review_plan.keyterms = []
             review_plan.selection_criteria = []
             review_plan.data_extraction_form = []
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted contents of %s", review_plan)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted contents of %s", review_plan)
+        return "", 204
 
     @ns.doc(
         params={
@@ -151,16 +139,10 @@ class ReviewPlanResource(Resource):
                 "type": "string",
                 "description": "[DEPRECATED] comma-delimited list-as-string of review fields to modify",
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         expect=(review_plan_model, "review plan data to be modified"),
         responses={
-            200: "review plan data was modified (if test = False)",
+            200: "review plan data was modified",
             403: "current app user forbidden to modify review plan",
             404: "no review with matching id was found",
         },
@@ -177,11 +159,10 @@ class ReviewPlanResource(Resource):
     @use_kwargs(
         {
             "fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def put(self, args, id, fields, test):
+    def put(self, args, id, fields):
         """modify review plan record for a single review by id"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -209,9 +190,7 @@ class ReviewPlanResource(Resource):
         else:
             for key, value in args.items():
                 setattr(review_plan, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified contents of %s", review_plan)
-        else:
-            db.session.rollback()
+
+        db.session.commit()
+        current_app.logger.info("modified contents of %s", review_plan)
         return ReviewPlanSchema().dump(review_plan)

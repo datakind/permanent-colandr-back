@@ -76,14 +76,6 @@ class UserResource(Resource):
         return UserSchema(only=fields).dump(user)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
             204: "successfully deleted user record",
             403: "current app user forbidden to delete user record",
@@ -98,8 +90,7 @@ class UserResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete record for a single user by id"""
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
@@ -108,25 +99,14 @@ class UserResource(Resource):
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", user)
-            return "", 204
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("deleted %s", user)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(user_model, "user data to be modified"),
         responses={
-            200: "user data was modified (if test = False)",
+            200: "user data was modified",
             403: "current app user forbidden to modify user",
             404: "no user with matching id was found",
         },
@@ -140,8 +120,7 @@ class UserResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify record for a single user by id"""
         current_user = flask_praetorian.current_user()
         if id != current_user.id:
@@ -156,18 +135,13 @@ class UserResource(Resource):
                 setattr(user, key, guard.hash_password(value))
             else:
                 setattr(user, key, value)
-        if test is False:
-            try:
-                db.session.commit()
-                current_app.logger.info("modified %s", user)
-            except (IntegrityError, InvalidRequestError) as e:
-                current_app.logger.exception(
-                    "%s: unexpected db error", "UserResource.put"
-                )
-                db.session.rollback()
-                return db_integrity_error(str(e.orig))
-        else:
+        try:
+            db.session.commit()
+            current_app.logger.info("modified %s", user)
+        except (IntegrityError, InvalidRequestError) as e:
+            current_app.logger.exception("%s: unexpected db error", "UserResource.put")
             db.session.rollback()
+            return db_integrity_error(str(e.orig))
         return UserSchema().dump(user)
 
 
@@ -233,23 +207,14 @@ class UsersResource(Resource):
             return UserSchema(many=True).dump(review.users)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(user_model, "user data to be created"),
         responses={
-            200: "user was created (or would have been created if test had been False)",
+            200: "user was created",
             403: "current app user forbidden to create user",
         },
     )
     @use_args(UserSchema(), location="json")
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def post(self, args, test):
+    def post(self, args):
         """create new user (ADMIN ONLY)"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is False:
@@ -258,16 +223,13 @@ class UsersResource(Resource):
         user.password = guard.hash_password(user.password)
         user.is_confirmed = True
         db.session.add(user)
-        if test is False:
-            try:
-                db.session.commit()
-                current_app.logger.info("inserted %s", user)
-            except (IntegrityError, InvalidRequestError) as e:
-                current_app.logger.exception(
-                    "%s: unexpected db error", "UsersResource.post"
-                )
-                db.session.rollback()
-                return db_integrity_error(str(e.orig))
-        else:
+        try:
+            db.session.commit()
+            current_app.logger.info("inserted %s", user)
+        except (IntegrityError, InvalidRequestError) as e:
+            current_app.logger.exception(
+                "%s: unexpected db error", "UsersResource.post"
+            )
             db.session.rollback()
+            return db_integrity_error(str(e.orig))
         return UserSchema().dump(user)

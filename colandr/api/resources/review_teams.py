@@ -106,12 +106,6 @@ class ReviewTeamResource(Resource):
                 "default": None,
                 "description": 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"',
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
             200: "successfully modified review team member's record",
@@ -137,11 +131,10 @@ class ReviewTeamResource(Resource):
             ),
             "user_email": ma_fields.Email(load_default=None),
             "server_name": ma_fields.Str(load_default=None),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def put(self, id, action, user_id, user_email, server_name, test):
+    def put(self, id, action, user_id, user_email, server_name):
         """add, invite, remove, or promote a review team member"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -200,10 +193,7 @@ class ReviewTeamResource(Resource):
                     inviter_email=current_user.email,
                     review_name=review.name,
                 )
-            if test is False:
-                send_email.apply_async(
-                    args=[[user_email], "Let's collaborate!", "", html]
-                )
+            send_email.apply_async(args=[[user_email], "Let's collaborate!", "", html])
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")
@@ -219,11 +209,8 @@ class ReviewTeamResource(Resource):
             if review_users.filter_by(id=user_id).one_or_none() is not None:
                 review_users.remove(user)
 
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("for %s, %s %s", review, action, user)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("for %s, %s %s", review, action, user)
         users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
