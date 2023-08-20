@@ -10,10 +10,10 @@ from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants, fileio
 from ...models import Fulltext
-from ...tasks import get_fulltext_text_content_vector
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 
@@ -179,7 +179,7 @@ class FulltextUploadResource(Resource):
         )
 
         # parse the fulltext text content and get its word2vec vector
-        get_fulltext_text_content_vector.apply_async(
+        tasks.get_fulltext_text_content_vector.apply_async(
             args=[id], queue="fast", countdown=3
         )
 

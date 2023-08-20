@@ -9,10 +9,10 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
-from ...tasks import send_email
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 
@@ -195,7 +195,9 @@ class ReviewTeamResource(Resource):
                     inviter_email=current_user.email,
                     review_name=review.name,
                 )
-            send_email.apply_async(args=[[user_email], "Let's collaborate!", "", html])
+            tasks.send_email.apply_async(
+                args=[[user_email], "Let's collaborate!", "", html]
+            )
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")

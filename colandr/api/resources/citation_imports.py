@@ -8,10 +8,10 @@ from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants, fileio
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study
-from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
@@ -271,5 +271,7 @@ class CitationsImportsResource(Resource):
         )
 
         # lastly, don't forget to deduplicate the citations and get their word2vecs
-        deduplicate_citations.apply_async(args=[review_id], countdown=60)
-        get_citations_text_content_vectors.apply_async(args=[review_id], countdown=3)
+        tasks.deduplicate_citations.apply_async(args=[review_id], countdown=60)
+        tasks.get_citations_text_content_vectors.apply_async(
+            args=[review_id], countdown=3
+        )

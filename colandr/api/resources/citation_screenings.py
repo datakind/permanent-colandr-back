@@ -8,6 +8,7 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants
 from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
@@ -449,12 +450,10 @@ class CitationsScreeningsResource(Resource):
         db.session.commit()
         # do we have to suggest keyterms?
         if n_included >= 25 and n_excluded >= 25:
-            from colandr.tasks import suggest_keyterms
-
             sample_size = min(n_included, n_excluded)
-            suggest_keyterms.apply_async(args=[review_id, sample_size])
+            tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
         # do we have to train a ranking model?
         if n_included >= 100 and n_excluded >= 100:
-            from colandr.tasks import train_citation_ranking_model
-
-            train_citation_ranking_model.apply_async(args=[review_id], countdown=30)
+            tasks.train_citation_ranking_model.apply_async(
+                args=[review_id], countdown=30
+            )
