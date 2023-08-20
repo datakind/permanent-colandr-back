@@ -1,9 +1,7 @@
-from marshmallow import Schema, fields, pre_load
+from marshmallow import Schema, fields
 from marshmallow.validate import URL, Email, Length, OneOf, Range
-from webargs import missing
 
 from ..lib import constants
-from ..lib.sanitizers import CITATION_FIELD_SANITIZERS, sanitize_type
 
 
 class UserSchema(Schema):
@@ -155,36 +153,28 @@ class CitationSchema(Schema):
     created_at = fields.DateTime(dump_only=True, format="iso")
     last_updated = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
-    type_of_work = fields.Str(validate=Length(max=25))
+    type_of_work = fields.Str(load_default=None, validate=Length(max=25))
     title = fields.Str(validate=Length(max=300))
-    secondary_title = fields.Str(validate=Length(max=300))
-    abstract = fields.Str()
-    pub_year = fields.Int(validate=Range(min=1, max=constants.MAX_SMALLINT))
-    pub_month = fields.Int(validate=Range(min=1, max=constants.MAX_SMALLINT))
+    secondary_title = fields.Str(load_default=None, validate=Length(max=300))
+    abstract = fields.Str(load_default=None)
+    pub_year = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_SMALLINT)
+    )
+    pub_month = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_SMALLINT)
+    )
     authors = fields.List(fields.Str(validate=Length(max=100)))
     keywords = fields.List(fields.Str(validate=Length(max=100)))
-    type_of_reference = fields.Str(validate=Length(max=50))
-    journal_name = fields.Str(validate=Length(max=100))
-    volume = fields.Str(validate=Length(max=20))
-    issue_number = fields.Str(validate=Length(max=20))
-    doi = fields.Str(validate=Length(max=100))
-    issn = fields.Str(validate=Length(max=20))
-    publisher = fields.Str(validate=Length(max=100))
-    language = fields.Str(validate=Length(max=50))
+    type_of_reference = fields.Str(load_default=None, validate=Length(max=50))
+    journal_name = fields.Str(load_default=None, validate=Length(max=100))
+    volume = fields.Str(load_default=None, validate=Length(max=20))
+    issue_number = fields.Str(load_default=None, validate=Length(max=20))
+    doi = fields.Str(load_default=None, validate=Length(max=100))
+    issn = fields.Str(load_default=None, validate=Length(max=20))
+    publisher = fields.Str(load_default=None, validate=Length(max=100))
+    language = fields.Str(load_default=None, validate=Length(max=50))
     other_fields = fields.Dict()
     screenings = fields.Nested(ScreeningSchema, many=True, dump_only=True)
-
-    @pre_load(pass_many=False)
-    def sanitize_citation_record(self, record, **kwargs):
-        sanitized_record = {"other_fields": {}}
-        for key, value in record.items():
-            if value is missing or key == "screenings":
-                continue
-            try:
-                sanitized_record[key] = CITATION_FIELD_SANITIZERS[key](value)
-            except KeyError:
-                sanitized_record["other_fields"][key] = sanitize_type(value, str)
-        return sanitized_record
 
 
 class FulltextSchema(Schema):
