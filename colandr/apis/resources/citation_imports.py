@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from ... import tasks
 from ...extensions import db
-from ...lib import constants, fileio
+from ...lib import constants, fileio, preprocessors
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
@@ -149,24 +149,6 @@ class CitationsImportsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to add citations to this review"
             )
-        # TODO: see about using secure_filename(uploaded_file.filename)
-        fname = uploaded_file.filename
-        if fname.endswith(".bib"):
-            try:
-                records = iter(fileio.bibtex.read(uploaded_file._file))
-            except Exception:
-                return bad_request_error(
-                    f'unable to parse BibTex citations file: "{fname}"'
-                )
-        elif fname.endswith(".ris") or fname.endswith(".txt"):
-            try:
-                records = iter(fileio.ris.read(uploaded_file._file))
-            except Exception:
-                return bad_request_error(
-                    f'unable to parse RIS citations file: "{fname}"'
-                )
-        else:
-            return bad_request_error(f'unknown file type: "{fname}"')
 
         # upsert the data source
         try:
@@ -191,27 +173,16 @@ class CitationsImportsResource(Resource):
         current_app.logger.info("inserted %s", data_source)
         data_source_id = data_source.id
 
-        # TODO: make this an async task?
-        # parse and iterate over imported citations
-        # create lists of study and citation dicts to insert
-        citation_schema = CitationSchema()
-        citations_to_insert = []
-        # rather than doing it in a for loop, we've switched to a while loop
-        # so that parsing errors on individual citations can be caught and logged
-        # for record in citations_file.parse():
-        #     record['review_id'] = review_id
-        #     citations_to_insert.append(citation_schema.load(record))
-        # records = citations_file.parse()
-        while True:
-            try:
-                record = next(records)
-                record["review_id"] = review_id
-                # TODO(burton): figure out if this actually works! needs tests ...
-                citations_to_insert.append(citation_schema.load(record))
-            except StopIteration:
-                break
-            except Exception as e:
-                current_app.logger.warning("parsing error: %s", e)
+        # TODO: see about using secure_filename(uploaded_file.filename)
+        fname = uploaded_file.filename
+        try:
+            citations_to_insert = preprocessors.preprocess_citations(
+                uploaded_file._file, fname, review_id
+            )
+        except ValueError as e:
+            current_app.logger.exception(str(e))
+            return bad_request_error(str(e))
+
         n_citations = len(citations_to_insert)
 
         user_id = current_user.id
