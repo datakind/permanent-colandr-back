@@ -74,16 +74,7 @@ class CitationResource(Resource):
         return CitationSchema(only=fields).dump(citation)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted citation record",
             403: "current app user forbidden to delete citation record",
             404: "no citation with matching id was found",
@@ -97,8 +88,7 @@ class CitationResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete record for a single citation by id"""
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
@@ -111,26 +101,14 @@ class CitationResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to delete this citation")
         db.session.delete(citation)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", citation)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", citation)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(citation_model, "citation data to be modified"),
         responses={
-            200: "citation data was modified (if test = False)",
+            200: "citation data was modified",
             403: "current app user forbidden to modify citation",
             404: "no citation with matching id was found",
         },
@@ -144,8 +122,7 @@ class CitationResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify record for a single citation by id"""
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
@@ -162,11 +139,8 @@ class CitationResource(Resource):
                 continue
             else:
                 setattr(citation, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified %s", citation)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("modified %s", citation)
         return CitationSchema().dump(citation)
 
 
@@ -209,12 +183,6 @@ class CitationsResource(Resource):
                 "enum": ["not_screened", "included", "excluded"],
                 "description": "known screening status of citation, if anything",
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
             200: "successfully created citation record",
@@ -239,11 +207,10 @@ class CitationsResource(Resource):
                 load_default=None,
                 validate=OneOf(["not_screened", "included", "excluded"]),
             ),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def post(self, args, review_id, source_type, source_name, source_url, status, test):
+    def post(self, args, review_id, source_type, source_name, source_url, status):
         """create a single citation"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, review_id)
@@ -275,12 +242,8 @@ class CitationsResource(Resource):
         if data_source is None:
             data_source = DataSource(source_type, source_name, source_url=source_url)
             db.session.add(data_source)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("inserted %s", data_source)
-        else:
-            db.session.rollback()
-            return ""
+        db.session.commit()
+        current_app.logger.info("inserted %s", data_source)
 
         # add the study
         study = Study(current_user.id, review_id, data_source.id)

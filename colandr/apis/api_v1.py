@@ -22,40 +22,40 @@ from .resources.users import ns as ns_users
 from .swagger import ns as ns_swagger
 
 
-api_ = Api(
+api_v1 = Api(
     version="1.0",
-    prefix="/api",
+    prefix="/api",  # NOTE: not using "/api/v1" here to maintain backwards compatibility
     doc="/docs",
     default_mediatype="application/json",
     title="colandr",
     description="REST API powering the colandr app",
     authorizations={
-        "Bearer": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        "api_key": {"type": "apiKey", "in": "header", "name": "Authorization"}
         # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
         # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
     },
-    security="Bearer",
+    security="api_key",
 )
 
 # this is a built-in hack!
-flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_)
+flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_v1)
 
-api_.add_namespace(ns_auth)
-api_.add_namespace(ns_errors)
-api_.add_namespace(ns_health)
-api_.add_namespace(ns_swagger)
-api_.add_namespace(ns_users)
-api_.add_namespace(ns_reviews)
-api_.add_namespace(ns_review_teams)
-api_.add_namespace(ns_review_progress)
-api_.add_namespace(ns_review_exports)
-api_.add_namespace(ns_review_plans)
-api_.add_namespace(ns_studies)
-api_.add_namespace(ns_study_tags)
-api_.add_namespace(ns_citations)
-api_.add_namespace(ns_citation_imports)
-api_.add_namespace(ns_citation_screenings)
-api_.add_namespace(ns_fulltexts)
-api_.add_namespace(ns_fulltext_uploads)
-api_.add_namespace(ns_fulltext_screenings)
-api_.add_namespace(ns_data_extractions)
+api_v1.add_namespace(ns_auth)
+api_v1.add_namespace(ns_errors)
+api_v1.add_namespace(ns_health)
+api_v1.add_namespace(ns_swagger)
+api_v1.add_namespace(ns_users)
+api_v1.add_namespace(ns_reviews)
+api_v1.add_namespace(ns_review_teams)
+api_v1.add_namespace(ns_review_progress)
+api_v1.add_namespace(ns_review_exports)
+api_v1.add_namespace(ns_review_plans)
+api_v1.add_namespace(ns_studies)
+api_v1.add_namespace(ns_study_tags)
+api_v1.add_namespace(ns_citations)
+api_v1.add_namespace(ns_citation_imports)
+api_v1.add_namespace(ns_citation_screenings)
+api_v1.add_namespace(ns_fulltexts)
+api_v1.add_namespace(ns_fulltext_uploads)
+api_v1.add_namespace(ns_fulltext_screenings)
+api_v1.add_namespace(ns_data_extractions)

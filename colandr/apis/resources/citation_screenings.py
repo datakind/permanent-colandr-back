@@ -8,6 +8,7 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants
 from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
@@ -77,16 +78,7 @@ class CitationScreeningsResource(Resource):
         return ScreeningSchema(many=True, only=fields).dump(citation.screenings)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted citation screening record",
             403: "current app user forbidden to delete citation screening record",
             404: "no citation with matching id was found",
@@ -100,8 +92,7 @@ class CitationScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete current app user's screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -122,26 +113,14 @@ class CitationScreeningsResource(Resource):
                 f"{current_user} has not screened {citation}, so nothing to delete"
             )
         db.session.delete(screening)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", screening)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", screening)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(screening_model, "citation screening record to be created"),
         responses={
-            200: "citation screening record was created (if test = False)",
+            200: "citation screening record was created",
             403: "current app user forbidden to create citation screening",
             404: "no citation with matching id was found",
             422: "invalid citation screening record",
@@ -156,8 +135,7 @@ class CitationScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def post(self, args, id, test):
+    def post(self, args, id):
         """create a screening for a single citation by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -190,25 +168,14 @@ class CitationScreeningsResource(Resource):
         if citation.screenings.filter_by(user_id=current_user.id).one_or_none():
             return forbidden_error(f"{current_user} has already screened {citation}")
         citation.screenings.append(screening)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("inserted %s", screening)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("inserted %s", screening)
         return ScreeningSchema().dump(screening)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(screening_model, "citation screening data to be modified"),
         responses={
-            200: "citation screening data was modified (if test = False)",
+            200: "citation screening data was modified",
             401: "current app user not authorized to modify citation screening",
             404: "no citation with matching id was found, or no citation screening exists for current app user",
             422: "invalid modified citation screening data",
@@ -229,8 +196,7 @@ class CitationScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify current app user's screening of a single citation by id"""
         current_user = flask_praetorian.current_user()
         citation = db.session.get(Citation, id)
@@ -253,11 +219,8 @@ class CitationScreeningsResource(Resource):
                 continue
             else:
                 setattr(screening, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.debug("modified %s", screening)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.debug("modified %s", screening)
         return ScreeningSchema().dump(screening)
 
 
@@ -385,12 +348,6 @@ class CitationsScreeningsResource(Resource):
                 "type": "integer",
                 "description": "unique identifier of user screening citations, if not current app user",
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         expect=([screening_model], "citation screening records to create"),
         responses={
@@ -410,11 +367,10 @@ class CitationsScreeningsResource(Resource):
             "user_id": ma_fields.Int(
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def post(self, args, review_id, user_id, test):
+    def post(self, args, review_id, user_id):
         """create one or more citation screenings (ADMIN ONLY)"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is False:
@@ -429,12 +385,11 @@ class CitationsScreeningsResource(Resource):
             screening["review_id"] = review_id
             screening["user_id"] = screener_user_id
             screenings_to_insert.append(screening)
-        if test is False:
-            db.session.bulk_insert_mappings(CitationScreening, screenings_to_insert)
-            db.session.commit()
-            current_app.logger.info(
-                "inserted %s citation screenings", len(screenings_to_insert)
-            )
+        db.session.bulk_insert_mappings(CitationScreening, screenings_to_insert)
+        db.session.commit()
+        current_app.logger.info(
+            "inserted %s citation screenings", len(screenings_to_insert)
+        )
         # bulk update citation statuses
         num_screeners = review.num_citation_screening_reviewers
         citation_ids = sorted(s["citation_id"] for s in screenings_to_insert)
@@ -459,48 +414,46 @@ class CitationsScreeningsResource(Resource):
             {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}
             for row in results
         ]
-        if test is False:
-            db.session.bulk_update_mappings(Study, studies_to_update)
-            db.session.commit()
-            current_app.logger.info(
-                "updated citation_status for %s studies", len(studies_to_update)
+
+        db.session.bulk_update_mappings(Study, studies_to_update)
+        db.session.commit()
+        current_app.logger.info(
+            "updated citation_status for %s studies", len(studies_to_update)
+        )
+        # now add fulltexts for included citations
+        # normally this is done automatically, but not when we're hacking
+        # and doing bulk changes to the database
+        results = db.session.execute(
+            sa.select(Study.id)
+            .filter_by(review_id=review_id, citation_status="included")
+            .filter(~Study.fulltext.has())
+            .order_by(Study.id)
+        ).scalars()
+        fulltexts_to_insert = [
+            {"id": result, "review_id": review_id} for result in results
+        ]
+        db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
+        db.session.commit()
+        current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
+        # now update include/exclude counts on review
+        status_counts = db.session.execute(
+            sa.select(Study.citation_status, db.func.count(1))
+            .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+            .filter(Study.citation_status.in_(["included", "excluded"]))
+            .group_by(Study.citation_status)
+        ).all()
+        status_counts = dict(status_counts)
+        n_included = status_counts.get("included", 0)
+        n_excluded = status_counts.get("excluded", 0)
+        review.num_citations_included = n_included
+        review.num_citations_excluded = n_excluded
+        db.session.commit()
+        # do we have to suggest keyterms?
+        if n_included >= 25 and n_excluded >= 25:
+            sample_size = min(n_included, n_excluded)
+            tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
+        # do we have to train a ranking model?
+        if n_included >= 100 and n_excluded >= 100:
+            tasks.train_citation_ranking_model.apply_async(
+                args=[review_id], countdown=30
             )
-            # now add fulltexts for included citations
-            # normally this is done automatically, but not when we're hacking
-            # and doing bulk changes to the database
-            results = db.session.execute(
-                sa.select(Study.id)
-                .filter_by(review_id=review_id, citation_status="included")
-                .filter(~Study.fulltext.has())
-                .order_by(Study.id)
-            ).scalars()
-            fulltexts_to_insert = [
-                {"id": result, "review_id": review_id} for result in results
-            ]
-            db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
-            db.session.commit()
-            current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
-            # now update include/exclude counts on review
-            status_counts = db.session.execute(
-                sa.select(Study.citation_status, db.func.count(1))
-                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-                .filter(Study.citation_status.in_(["included", "excluded"]))
-                .group_by(Study.citation_status)
-            ).all()
-            status_counts = dict(status_counts)
-            n_included = status_counts.get("included", 0)
-            n_excluded = status_counts.get("excluded", 0)
-            review.num_citations_included = n_included
-            review.num_citations_excluded = n_excluded
-            db.session.commit()
-            # do we have to suggest keyterms?
-            if n_included >= 25 and n_excluded >= 25:
-                from colandr.tasks import suggest_keyterms
-
-                sample_size = min(n_included, n_excluded)
-                suggest_keyterms.apply_async(args=[review_id, sample_size])
-            # do we have to train a ranking model?
-            if n_included >= 100 and n_excluded >= 100:
-                from colandr.tasks import train_citation_ranking_model
-
-                train_citation_ranking_model.apply_async(args=[review_id], countdown=30)

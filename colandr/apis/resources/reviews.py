@@ -75,16 +75,7 @@ class ReviewResource(Resource):
         return ReviewSchema(only=fields).dump(review)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted review record",
             403: "current app user forbidden to delete review record",
             404: "no review with matching id was found",
@@ -98,8 +89,7 @@ class ReviewResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete record for a single review by id"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -108,33 +98,21 @@ class ReviewResource(Resource):
         if not current_user.is_admin and review.owner is not current_user:
             return forbidden_error(f"{current_user} forbidden to delete this review")
         db.session.delete(review)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", review)
-            # remove directories on disk for review data
-            dirnames = [
-                os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], str(id)),
-                os.path.join(current_app.config["RANKING_MODELS_DIR"], str(id)),
-            ]
-            for dirname in dirnames:
-                shutil.rmtree(dirname, ignore_errors=True)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", review)
+        # remove directories on disk for review data
+        dirnames = [
+            os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], str(id)),
+            os.path.join(current_app.config["RANKING_MODELS_DIR"], str(id)),
+        ]
+        for dirname in dirnames:
+            shutil.rmtree(dirname, ignore_errors=True)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(review_model, "review data to be modified"),
         responses={
-            200: "review data was modified (if test = False)",
+            200: "review data was modified",
             403: "current app user forbidden to modify review",
             404: "no review with matching id was found",
         },
@@ -148,8 +126,7 @@ class ReviewResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify record for a single review by id"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -162,11 +139,8 @@ class ReviewResource(Resource):
                 continue
             else:
                 setattr(review, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified %s", review)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("modified %s", review)
         return ReviewSchema().dump(review)
 
 
@@ -225,22 +199,11 @@ class ReviewsResource(Resource):
         return ReviewSchema(only=fields, many=True).dump(reviews)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(review_model, "review data to be created"),
-        responses={
-            200: "review was created (or would have been created if test had been False)"
-        },
+        responses={200: "review was created"},
     )
     @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def post(self, args, test):
+    def post(self, args):
         """create new review"""
         current_user = flask_praetorian.current_user()
         name = args.pop("name")
@@ -248,21 +211,16 @@ class ReviewsResource(Resource):
         current_user.owned_reviews.append(review)
         current_user.reviews.append(review)
         db.session.add(review)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("inserted %s", review)
-            # create directories on disk for review data
-            dirnames = [
-                os.path.join(
-                    current_app.config["FULLTEXT_UPLOADS_DIR"], str(review.id)
-                ),
-                os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review.id)),
-            ]
-            for dirname in dirnames:
-                try:
-                    os.makedirs(dirname, exist_ok=True)
-                except OSError:
-                    pass  # TODO: fix this / the entire system for saving files to disk
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("inserted %s", review)
+        # create directories on disk for review data
+        dirnames = [
+            os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], str(review.id)),
+            os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review.id)),
+        ]
+        for dirname in dirnames:
+            try:
+                os.makedirs(dirname, exist_ok=True)
+            except OSError:
+                pass  # TODO: fix this / the entire system for saving files to disk
         return ReviewSchema().dump(review)

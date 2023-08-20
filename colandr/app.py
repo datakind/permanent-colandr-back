@@ -6,7 +6,7 @@ import flask
 import flask.logging
 
 from colandr import cli, config, errors, extensions, models
-from colandr.api import api_
+from colandr.apis import api_v1
 
 
 def create_app(config_overrides: Optional[dict[str, Any]] = None) -> flask.Flask:
@@ -50,5 +50,5 @@ def _register_extensions(app: flask.Flask) -> None:
     extensions.guard.init_app(app, user_class=models.User)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
-    api_.init_app(app)
+    api_v1.init_app(app)
     extensions.init_celery_app(app)

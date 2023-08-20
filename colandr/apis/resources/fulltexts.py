@@ -68,16 +68,7 @@ class FulltextResource(Resource):
         return FulltextSchema(only=fields).dump(fulltext)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted fulltext record",
             403: "current app user forbidden to delete fulltext record",
             404: "no fulltext with matching id was found",
@@ -91,8 +82,7 @@ class FulltextResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete record for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         fulltext = db.session.get(Fulltext, id)
@@ -105,10 +95,6 @@ class FulltextResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to delete this fulltext")
         db.session.delete(fulltext)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", fulltext)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", fulltext)
+        return "", 204

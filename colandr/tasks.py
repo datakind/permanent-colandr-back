@@ -13,7 +13,7 @@ from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 
-from .api.schemas import ReviewPlanSuggestedKeyterms
+from .apis.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
 from .lib.models import Deduper, Ranker
 from .lib.nlp import hack

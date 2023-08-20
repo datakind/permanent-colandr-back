@@ -6,11 +6,11 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from .api.utils import assign_status, get_boolean_search_query
+from .apis import utils
 from .extensions import db
 
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 # association table for users-reviews many-to-many relationship
@@ -283,7 +283,7 @@ class ReviewPlan(db.Model):
         if not self.keyterms:
             return ""
         else:
-            return get_boolean_search_query(self.keyterms)
+            return utils.get_boolean_search_query(self.keyterms)
 
     # relationships
     review = db.relationship(
@@ -1044,7 +1044,7 @@ def update_citation_status(mapper, connection, target):
             sa.select(Study.citation_status).where(Study.id == citation_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
-    status = assign_status(
+    status = utils.assign_status(
         [
             cs.status
             for cs in db.session.query(CitationScreening).filter_by(
@@ -1059,7 +1059,7 @@ def update_citation_status(mapper, connection, target):
             .where(Study.id == citation_id)
             .values(citation_status=status)
         )
-    logger.info("%s => %s with status = %s", target, citation, status)
+    LOGGER.info("%s => %s with status = %s", target, citation, status)
     # we may have to insert or delete a corresponding fulltext record
     with connection.begin():
         fulltext = connection.execute(
@@ -1071,12 +1071,12 @@ def update_citation_status(mapper, connection, target):
             connection.execute(
                 sa.insert(Fulltext).values(id=citation_id, review_id=review_id)
             )
-        logger.info("inserted <Fulltext(study_id=%s)>", citation_id)
+        LOGGER.info("inserted <Fulltext(study_id=%s)>", citation_id)
         fulltext_inserted_or_deleted = True
     elif status != "included" and fulltext is not None:
         with connection.begin():
             connection.execute(sa.delete(Fulltext).where(Fulltext.id == citation_id))
-        logger.info("deleted <Fulltext(study_id=%s)>", citation_id)
+        LOGGER.info("deleted <Fulltext(study_id=%s)>", citation_id)
         fulltext_inserted_or_deleted = True
     # we may have to update our counts for review num_citations_included / excluded
     if old_status != status:
@@ -1115,7 +1115,7 @@ def update_citation_status(mapper, connection, target):
                     Review.num_citations_included, Review.num_citations_excluded
                 ).where(Review.id == review_id)
             ).fetchone()
-            logger.info(
+            LOGGER.info(
                 "<Review(id=%s)> citation_status counts = %s", review_id, status_counts
             )
             n_included, n_excluded = status_counts
@@ -1154,7 +1154,7 @@ def update_fulltext_status(mapper, connection, target):
             sa.select(Study.fulltext_status).where(Study.id == fulltext_id)
         ).fetchone()[0]
     # now compute the new status, and update the study accordingly
-    status = assign_status(
+    status = utils.assign_status(
         [
             fs.status
             for fs in db.session.query(FulltextScreening).filter_by(
@@ -1169,7 +1169,7 @@ def update_fulltext_status(mapper, connection, target):
             .where(Study.id == fulltext_id)
             .values(fulltext_status=status)
         )
-    logger.info("%s => %s with status = %s", target, fulltext, status)
+    LOGGER.info("%s => %s with status = %s", target, fulltext, status)
     # we may have to insert or delete a corresponding data extraction record
     with connection.begin():
         data_extraction = connection.execute(
@@ -1181,14 +1181,14 @@ def update_fulltext_status(mapper, connection, target):
             connection.execute(
                 sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
             )
-        logger.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
+        LOGGER.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
         data_extraction_inserted_or_deleted = True
     elif status != "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
                 sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
             )
-        logger.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
+        LOGGER.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
         data_extraction_inserted_or_deleted = True
     # we may have to update our counts for review num_fulltexts_included / excluded
     if old_status != status:
@@ -1227,7 +1227,7 @@ def update_fulltext_status(mapper, connection, target):
     #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
     #             .where(Review.id == review_id)
     #             ).fetchone()
-    #         logger.info(
+    #         LOGGER.info(
     #             '<Review(id=%s)> fulltext_status counts = %s',
     #             review_id, status_counts)
     #         n_included, n_excluded = status_counts
@@ -1238,4 +1238,4 @@ def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
     with connection.begin():
         connection.execute(sa.insert(ReviewPlan).values(id=target.id))
-    logger.info("inserted %s and %s", target, review_plan)
+    LOGGER.info("inserted %s and %s", target, review_plan)

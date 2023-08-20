@@ -1,3 +1,4 @@
+import flask
 import flask_praetorian
 import sqlalchemy as sa
 from flask import current_app, render_template
@@ -8,12 +9,10 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
-from colandr import api
-
+from ... import tasks
 from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
-from ...tasks import send_email
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 
@@ -106,12 +105,6 @@ class ReviewTeamResource(Resource):
                 "default": None,
                 "description": 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"',
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
             200: "successfully modified review team member's record",
@@ -137,11 +130,10 @@ class ReviewTeamResource(Resource):
             ),
             "user_email": ma_fields.Email(load_default=None),
             "server_name": ma_fields.Str(load_default=None),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def put(self, id, action, user_id, user_email, server_name, test):
+    def put(self, id, action, user_id, user_email, server_name):
         """add, invite, remove, or promote a review team member"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, id)
@@ -181,8 +173,11 @@ class ReviewTeamResource(Resource):
             if server_name:
                 confirm_url = f"{server_name}{ns.path}/{id}/team/confirm?token={token}"
             else:
-                confirm_url = api.api_.url_for(
-                    ConfirmReviewTeamInviteResource, id=id, token=token, _external=True
+                confirm_url = flask.url_for(
+                    "review_teams_confirm_review_team_invite_resource",
+                    id=id,
+                    token=token,
+                    _external=True,
                 )
             # this user doesn't exist...
             if user is None:
@@ -200,10 +195,9 @@ class ReviewTeamResource(Resource):
                     inviter_email=current_user.email,
                     review_name=review.name,
                 )
-            if test is False:
-                send_email.apply_async(
-                    args=[[user_email], "Let's collaborate!", "", html]
-                )
+            tasks.send_email.apply_async(
+                args=[[user_email], "Let's collaborate!", "", html]
+            )
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")
@@ -219,11 +213,8 @@ class ReviewTeamResource(Resource):
             if review_users.filter_by(id=user_id).one_or_none() is not None:
                 review_users.remove(user)
 
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("for %s, %s %s", review, action, user)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("for %s, %s %s", review, action, user)
         users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:

@@ -78,16 +78,7 @@ class FulltextScreeningsResource(Resource):
         return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         responses={
-            200: "request was valid, but record not deleted because `test=False`",
             204: "successfully deleted fulltext screening record",
             403: "current app user forbidden to delete fulltext screening record; has not screened fulltext, so nothing to delete",
             404: "no fulltext with matching id was found",
@@ -101,8 +92,7 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def delete(self, id, test):
+    def delete(self, id):
         """delete current app user's screening for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -123,26 +113,14 @@ class FulltextScreeningsResource(Resource):
                 )
             )
         db.session.delete(screening)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("deleted %s", screening)
-            return "", 204
-        else:
-            db.session.rollback()
-            return "", 200
+        db.session.commit()
+        current_app.logger.info("deleted %s", screening)
+        return "", 204
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(screening_model, "fulltext screening record to be created"),
         responses={
-            200: "fulltext screening record was created (if test = False)",
+            200: "fulltext screening record was created",
             403: "current app user forbidden to create fulltext screening; has already created a screening for this fulltext, or no screening can be created because the full-text has not yet been uploaded",
             404: "no fulltext with matching id was found",
             422: "invalid fulltext screening record",
@@ -157,8 +135,7 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def post(self, args, id, test):
+    def post(self, args, id):
         """create a screenings for a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         # check current user authorization
@@ -198,26 +175,15 @@ class FulltextScreeningsResource(Resource):
             return forbidden_error(
                 "{} has already screened {}".format(current_user, fulltext)
             )
-        if test is False:
-            fulltext.screenings.append(screening)
-            db.session.commit()
-            current_app.logger.info("inserted %s", screening)
-        else:
-            db.session.rollback()
+        fulltext.screenings.append(screening)
+        db.session.commit()
+        current_app.logger.info("inserted %s", screening)
         return ScreeningSchema().dump(screening)
 
     @ns.doc(
-        params={
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
-        },
         expect=(screening_model, "fulltext screening data to be modified"),
         responses={
-            200: "fulltext screening data was modified (if test = False)",
+            200: "fulltext screening data was modified",
             403: "current app user forbidden to modify fulltext screening",
             404: "no fulltext with matching id was found, or no fulltext screening exists for current app user",
             422: "invalid modified fulltext screening data",
@@ -238,8 +204,7 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"test": ma_fields.Boolean(load_default=False)}, location="query")
-    def put(self, args, id, test):
+    def put(self, args, id):
         """modify current app user's screening of a single fulltext by id"""
         current_user = flask_praetorian.current_user()
         fulltext = db.session.get(Fulltext, id)
@@ -264,11 +229,8 @@ class FulltextScreeningsResource(Resource):
                 continue
             else:
                 setattr(screening, key, value)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("modified %s", screening)
-        else:
-            db.session.rollback()
+        db.session.commit()
+        current_app.logger.info("modified %s", screening)
         return ScreeningSchema().dump(screening)
 
 
@@ -399,12 +361,6 @@ class FulltextsScreeningsResource(Resource):
                 "type": "integer",
                 "description": "unique identifier of user screening fulltexts, if not current app user",
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         expect=([screening_model], "fulltext screening records to create"),
         responses={
@@ -424,11 +380,10 @@ class FulltextsScreeningsResource(Resource):
             "user_id": ma_fields.Int(
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
-    def post(self, args, review_id, user_id, test):
+    def post(self, args, review_id, user_id):
         """create one or more fulltext screenings (ADMIN ONLY)"""
         current_user = flask_praetorian.current_user()
         if current_user.is_admin is False:
@@ -444,12 +399,11 @@ class FulltextsScreeningsResource(Resource):
             screening["review_id"] = review_id
             screening["user_id"] = screener_user_id
             screenings_to_insert.append(screening)
-        if test is False:
-            db.session.bulk_insert_mappings(FulltextScreening, screenings_to_insert)
-            db.session.commit()
-            current_app.logger.info(
-                "inserted %s fulltext screenings", len(screenings_to_insert)
-            )
+        db.session.bulk_insert_mappings(FulltextScreening, screenings_to_insert)
+        db.session.commit()
+        current_app.logger.info(
+            "inserted %s fulltext screenings", len(screenings_to_insert)
+        )
         # bulk update fulltext statuses
         num_screeners = review.num_fulltext_screening_reviewers
         fulltext_ids = sorted(s["fulltext_id"] for s in screenings_to_insert)
@@ -474,48 +428,48 @@ class FulltextsScreeningsResource(Resource):
             {"id": row[0], "fulltext_status": assign_status(row[1], num_screeners)}
             for row in results
         ]
-        if test is False:
-            db.session.bulk_update_mappings(Study, studies_to_update)
-            db.session.commit()
-            current_app.logger.info(
-                "updated fulltext_status for %s studies", len(studies_to_update)
-            )
-            # now add data extractions for included fulltexts
-            # normally this is done automatically, but not when we're hacking
-            # and doing bulk changes to the database
-            results = db.session.execute(
-                sa.select(Study.id)
-                .filter_by(review_id=review_id, fulltext_status="included")
-                .filter(~Study.data_extraction.has())
-                .order_by(Study.id)
-            ).scalars()
-            data_extractions_to_insert = [
-                {"id": result, "review_id": review_id} for result in results
-            ]
-            db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
-            db.session.commit()
-            current_app.logger.info(
-                "inserted %s data extractions", len(data_extractions_to_insert)
-            )
-            # now update include/exclude counts on review
-            status_counts = db.session.execute(
-                sa.select(Study.fulltext_status, db.func.count(1))
-                .filter_by(review_id=review_id)
-                .filter(Study.fulltext_status.in_(["included", "excluded"]))
-                .group_by(Study.fulltext_status)
-            ).all()
-            status_counts = dict(status_counts)
-            review.num_fulltexts_included = status_counts.get("included", 0)
-            review.num_fulltexts_excluded = status_counts.get("excluded", 0)
-            db.session.commit()
-            # now update include/exclude counts on review
-            status_counts = db.session.execute(
-                sa.select(Study.fulltext_status, db.func.count(1))
-                .filter_by(review_id=review_id)
-                .filter(Study.fulltext_status.in_(["included", "excluded"]))
-                .group_by(Study.fulltext_status)
-            ).all()
-            status_counts = dict(status_counts)
-            review.num_fulltexts_included = status_counts.get("included", 0)
-            review.num_fulltexts_excluded = status_counts.get("excluded", 0)
-            db.session.commit()
+
+        db.session.bulk_update_mappings(Study, studies_to_update)
+        db.session.commit()
+        current_app.logger.info(
+            "updated fulltext_status for %s studies", len(studies_to_update)
+        )
+        # now add data extractions for included fulltexts
+        # normally this is done automatically, but not when we're hacking
+        # and doing bulk changes to the database
+        results = db.session.execute(
+            sa.select(Study.id)
+            .filter_by(review_id=review_id, fulltext_status="included")
+            .filter(~Study.data_extraction.has())
+            .order_by(Study.id)
+        ).scalars()
+        data_extractions_to_insert = [
+            {"id": result, "review_id": review_id} for result in results
+        ]
+        db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
+        db.session.commit()
+        current_app.logger.info(
+            "inserted %s data extractions", len(data_extractions_to_insert)
+        )
+        # now update include/exclude counts on review
+        status_counts = db.session.execute(
+            sa.select(Study.fulltext_status, db.func.count(1))
+            .filter_by(review_id=review_id)
+            .filter(Study.fulltext_status.in_(["included", "excluded"]))
+            .group_by(Study.fulltext_status)
+        ).all()
+        status_counts = dict(status_counts)
+        review.num_fulltexts_included = status_counts.get("included", 0)
+        review.num_fulltexts_excluded = status_counts.get("excluded", 0)
+        db.session.commit()
+        # now update include/exclude counts on review
+        status_counts = db.session.execute(
+            sa.select(Study.fulltext_status, db.func.count(1))
+            .filter_by(review_id=review_id)
+            .filter(Study.fulltext_status.in_(["included", "excluded"]))
+            .group_by(Study.fulltext_status)
+        ).all()
+        status_counts = dict(status_counts)
+        review.num_fulltexts_included = status_counts.get("included", 0)
+        review.num_fulltexts_excluded = status_counts.get("excluded", 0)
+        db.session.commit()

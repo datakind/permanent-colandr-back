@@ -8,10 +8,10 @@ from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
+from ... import tasks
 from ...extensions import db
 from ...lib import constants, fileio
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study
-from ...tasks import deduplicate_citations, get_citations_text_content_vectors
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
@@ -107,12 +107,6 @@ class CitationsImportsResource(Resource):
                 "enum": ["not_screened", "included", "excluded"],
                 "description": "known screening status of citations, if anything",
             },
-            "test": {
-                "in": "query",
-                "type": "boolean",
-                "default": False,
-                "description": "if True, request will be validated but no data will be affected",
-            },
         },
         responses={
             200: "successfully imported citations in bulk",
@@ -137,19 +131,11 @@ class CitationsImportsResource(Resource):
                 load_default=None,
                 validate=OneOf(["not_screened", "included", "excluded"]),
             ),
-            "test": ma_fields.Boolean(load_default=False),
         },
         location="query",
     )
     def post(
-        self,
-        uploaded_file,
-        review_id,
-        source_type,
-        source_name,
-        source_url,
-        status,
-        test,
+        self, uploaded_file, review_id, source_type, source_name, source_url, status
     ):
         """import citations in bulk for a review"""
         current_user = flask_praetorian.current_user()
@@ -201,12 +187,9 @@ class CitationsImportsResource(Resource):
         if data_source is None:
             data_source = DataSource(source_type, source_name, source_url=source_url)
             db.session.add(data_source)
-        if test is False:
-            db.session.commit()
-            current_app.logger.info("inserted %s", data_source)
-            data_source_id = data_source.id
-        else:
-            data_source_id = 0
+        db.session.commit()
+        current_app.logger.info("inserted %s", data_source)
+        data_source_id = data_source.id
 
         # TODO: make this an async task?
         # parse and iterate over imported citations
@@ -252,10 +235,6 @@ class CitationsImportsResource(Resource):
                 for i in range(n_citations)
             ]
 
-        if test is True:
-            db.session.rollback()
-            return
-
         # insert studies, and get their primary keys _back_
         stmt = sa.insert(Study).values(studies_to_insert).returning(Study.id)
         with db.engine.connect() as conn:
@@ -292,5 +271,7 @@ class CitationsImportsResource(Resource):
         )
 
         # lastly, don't forget to deduplicate the citations and get their word2vecs
-        deduplicate_citations.apply_async(args=[review_id], countdown=60)
-        get_citations_text_content_vectors.apply_async(args=[review_id], countdown=3)
+        tasks.deduplicate_citations.apply_async(args=[review_id], countdown=60)
+        tasks.get_citations_text_content_vectors.apply_async(
+            args=[review_id], countdown=3
+        )
