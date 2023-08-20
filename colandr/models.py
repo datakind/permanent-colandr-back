@@ -6,7 +6,7 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
 
-from .api import utils
+from .apis import utils
 from .extensions import db
 
 
