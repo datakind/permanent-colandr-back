@@ -36,7 +36,7 @@ def make_spacy_doc_if_possible(
         )
         lang = "en"
     if lang not in lang_models:
-        LOGGER.warning(
+        LOGGER.info(
             "unable to load spacy model for text='%s' with lang='%s'", text[:50], lang
         )
         return None
