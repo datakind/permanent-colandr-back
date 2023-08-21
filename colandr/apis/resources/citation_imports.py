@@ -177,7 +177,7 @@ class CitationsImportsResource(Resource):
         fname = uploaded_file.filename
         try:
             citations_to_insert = preprocessors.preprocess_citations(
-                uploaded_file._file, fname, review_id
+                uploaded_file.stream, fname, review_id
             )
         except ValueError as e:
             current_app.logger.exception(str(e))

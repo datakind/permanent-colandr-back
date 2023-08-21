@@ -2,6 +2,7 @@ import datetime
 import io
 import logging
 import pathlib
+import tempfile
 from collections.abc import Sequence
 from typing import Any, BinaryIO, Iterable, Optional
 
@@ -31,6 +32,12 @@ def load_from_path_or_stream(
                     data = f.read()
             elif isinstance(path_or_stream, io.BytesIO):
                 data = io.TextIOWrapper(path_or_stream, encoding=encoding).read()
+            # HACK: apparently this got fixed in PY3.11,
+            # for which case this next if block can probably be removed
+            elif isinstance(path_or_stream, tempfile.SpooledTemporaryFile):
+                data = io.TextIOWrapper(
+                    io.BytesIO(path_or_stream.read()), encoding=encoding
+                ).read()
             else:
                 raise TypeError(f"expected Path or BytesIO, got {type(path_or_stream)}")
             break

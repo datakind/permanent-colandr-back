@@ -26,7 +26,15 @@ def get_lang_to_models() -> dict[str, list[str]]:
 def make_spacy_doc_if_possible(
     text: str, lang_models: dict[str, list[str]], **kwargs: Any
 ) -> Optional[Doc]:
-    lang = textacy.identify_lang(text)
+    text = text.replace("\n", " ")
+    lang, prob = textacy.identify_lang(text, with_probs=True)
+    if prob < 0.5 and lang != "en":
+        LOGGER.warning(
+            "identified lang=%s with probability=%s; falling back to 'en' default",
+            lang,
+            prob,
+        )
+        lang = "en"
     if lang not in lang_models:
         LOGGER.warning(
             "unable to load spacy model for text='%s' with lang='%s'", text[:50], lang
