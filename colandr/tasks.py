@@ -62,43 +62,35 @@ def deduplicate_citations(review_id):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
-    dir_path = os.path.join(
-        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
-    )
-    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
-
-    # wait until no more review citations have been created in 60+ seconds
     stmt = sa.select(sa.func.max(Citation.created_at)).where(
         Citation.review_id == review_id
     )
+    max_created_at = db.session.execute(stmt).scalar()
+    # no citations? cancel dedupe
+    if max_created_at is None:
+        LOGGER.warning(
+            "<Review(id=%s)>: no citations found; skipping dedupe ...", review_id
+        )
+        lock.release()
+        return
 
-    while True:
-        max_created_at = db.session.execute(stmt).scalar()
-        if max_created_at is None:
-            LOGGER.error(
-                "<Review(id=%s)>: No citations found, so nothing to dedupe...",
-                review_id,
-            )
-            lock.release()
-            return
-        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-        if elapsed_time < 30:
-            LOGGER.debug(
-                "citation last created %s seconds ago, sleeping...", elapsed_time
-            )
-            time.sleep(5)
-        else:
-            break
-
-    # if studies have been deduped since most recent import, cancel
     stmt = sa.select(sa.func.max(Dedupe.created_at)).where(
         Dedupe.review_id == review_id
     )
     most_recent_dedupe = db.session.execute(stmt).scalar()
+    # no citations added since most recent dedupe? cancel dedupe
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
-        LOGGER.warning("<Review(id=%s)>: all studies already deduped!", review_id)
+        LOGGER.info(
+            "<Review(id=%s)>: all citations already deduped; skipping dedupe ...",
+            review_id,
+        )
         lock.release()
         return
+
+    dir_path = os.path.join(
+        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
+    )
+    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
