@@ -1,5 +1,8 @@
 import collections
+import itertools
 import logging
+from collections.abc import Iterable
+from operator import itemgetter
 from typing import Any, Optional
 
 import spacy
@@ -21,6 +24,44 @@ def get_lang_to_models() -> dict[str, list[str]]:
             LOGGER.warning("found unexpected spacy model name: %s", model)
 
     return dict(lang_to_models)
+
+
+def get_text_content_vectors(
+    texts: Iterable[str],
+    *,
+    max_len: Optional[int] = 1000,
+    min_prob: Optional[float] = 0.5,
+    fallback_lang: Optional[str] = "en",
+    **kwargs,
+) -> Iterable[Optional[list[float]]]:
+    # clean up whitespace, since lang identifier model is picky
+    texts = (text.strip().replace("\n", " ") for text in texts)
+    # optionally truncate texts
+    texts = [text[:max_len] for text in texts] if max_len is not None else list(texts)
+    # identify most probable language (w/ optional fallback) for texts
+    if min_prob is not None:
+        lang_probs = (textacy.identify_lang(text, with_probs=True) for text in texts)
+        langs = (
+            lang if prob >= min_prob else fallback_lang for lang, prob in lang_probs
+        )
+    else:
+        langs = (textacy.identify_lang(text, with_probs=False) for text in texts)
+    # join texts to langs, then iterate over lang-groups for processing efficiency
+    lang_models = get_lang_to_models()
+    text_langs = zip(texts, langs, strict=True)
+    for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):
+        if lang in lang_models:
+            spacy_lang = textacy.load_spacy_lang(lang_models[lang][0], **kwargs)
+            spacy_docs = spacy_lang.pipe((text for text, _ in tl_grp), n_process=1)
+            for spacy_doc in spacy_docs:
+                yield spacy_doc.vector.tolist()
+        else:
+            LOGGER.info(
+                "unable to load spacy model for lang='%s'; content vectors are set to null ...",
+                lang,
+            )
+            for _ in tl_grp:
+                yield None
 
 
 def make_spacy_doc_if_possible(
