@@ -217,7 +217,6 @@ def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    lang_models = nlp_utils.get_lang_to_models()
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -225,27 +224,19 @@ def get_citations_text_content_vectors(review_id: int):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
-    citation_id_docs = (
-        (
-            id_,
-            nlp_utils.make_spacy_doc_if_possible(
-                text, lang_models, disable=("tagger", "parser", "ner")
-            ),
-        )
-        for id_, text in results
+    ids, texts = zip(*results)
+    cvs = nlp_utils.get_text_content_vectors(
+        texts,
+        max_len=1000,
+        min_prob=0.75,
+        fallback_lang="en",
+        disable=("parser", "ner"),
     )
-    citations_to_update = []
-    for id_, spacy_doc in citation_id_docs:
-        if spacy_doc is None:
-            continue
-
-        try:
-            citations_to_update.append(
-                {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
-            )
-        except Exception:
-            pass  # no vector available presumably
-
+    citations_to_update = [
+        {"id": id_, "text_content_vector_rep": cv}
+        for id_, cv in zip(ids, cvs)
+        if cv is not None
+    ]
     if not citations_to_update:
         LOGGER.warning(
             "<Review(id=%s)>: no citation text_content_vector_reps to update",
