@@ -2,7 +2,6 @@ import itertools
 import os
 import time
 
-import arrow
 import redis
 import redis.client
 import redis.lock
@@ -266,16 +265,15 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         )
         return
 
-    lang_models = nlp_utils.get_lang_to_models()
-    spacy_doc = nlp_utils.make_spacy_doc_if_possible(
-        text_content, lang_models, disable=("tagger", "parser", "ner")
+    cvs = nlp_utils.get_text_content_vectors(
+        [text_content],
+        max_len=3000,
+        min_prob=0.75,
+        fallback_lang=None,
+        disable=("parser", "ner"),
     )
-    if spacy_doc is None:
-        return
-
-    try:
-        text_content_vector_rep = spacy_doc.vector.tolist()
-    except ValueError:
+    text_content_vector_rep = next(cvs)
+    if text_content_vector_rep is None:
         LOGGER.warning(
             "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
