@@ -2,7 +2,6 @@ import itertools
 import os
 import time
 
-import arrow
 import redis
 import redis.client
 import redis.lock
@@ -38,12 +37,12 @@ def _get_redis_conn() -> redis.client.Redis:
 @shared_task
 def send_email(recipients, subject, text_body, html_body):
     msg = Message(
-        current_app.config["MAIL_SUBJECT_PREFIX"] + " " + subject,
+        subject=current_app.config["MAIL_SUBJECT_PREFIX"] + " " + subject,
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
         recipients=recipients,
+        body=text_body,
+        html=html_body,
     )
-    msg.body = text_body
-    msg.html = html_body
     mail.send(msg)
 
 
@@ -62,43 +61,35 @@ def deduplicate_citations(review_id):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
-    dir_path = os.path.join(
-        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
-    )
-    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
-
-    # wait until no more review citations have been created in 60+ seconds
     stmt = sa.select(sa.func.max(Citation.created_at)).where(
         Citation.review_id == review_id
     )
+    max_created_at = db.session.execute(stmt).scalar()
+    # no citations? cancel dedupe
+    if max_created_at is None:
+        LOGGER.warning(
+            "<Review(id=%s)>: no citations found; skipping dedupe ...", review_id
+        )
+        lock.release()
+        return
 
-    while True:
-        max_created_at = db.session.execute(stmt).scalar()
-        if max_created_at is None:
-            LOGGER.error(
-                "<Review(id=%s)>: No citations found, so nothing to dedupe...",
-                review_id,
-            )
-            lock.release()
-            return
-        elapsed_time = (arrow.utcnow().naive - max_created_at).total_seconds()
-        if elapsed_time < 30:
-            LOGGER.debug(
-                "citation last created %s seconds ago, sleeping...", elapsed_time
-            )
-            time.sleep(5)
-        else:
-            break
-
-    # if studies have been deduped since most recent import, cancel
     stmt = sa.select(sa.func.max(Dedupe.created_at)).where(
         Dedupe.review_id == review_id
     )
     most_recent_dedupe = db.session.execute(stmt).scalar()
+    # no citations added since most recent dedupe? cancel dedupe
     if most_recent_dedupe and most_recent_dedupe > max_created_at:
-        LOGGER.warning("<Review(id=%s)>: all studies already deduped!", review_id)
+        LOGGER.info(
+            "<Review(id=%s)>: all citations already deduped; skipping dedupe ...",
+            review_id,
+        )
         lock.release()
         return
+
+    dir_path = os.path.join(
+        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
+    )
+    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
@@ -225,7 +216,6 @@ def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
-    lang_models = nlp_utils.get_lang_to_models()
     stmt = (
         sa.select(Citation.id, Citation.text_content)
         .where(Citation.review_id == review_id)
@@ -233,27 +223,19 @@ def get_citations_text_content_vectors(review_id: int):
         .order_by(Citation.id)
     )
     results = db.session.execute(stmt)
-    citation_id_docs = (
-        (
-            id_,
-            nlp_utils.make_spacy_doc_if_possible(
-                text, lang_models, disable=("tagger", "parser", "ner")
-            ),
-        )
-        for id_, text in results
+    ids, texts = zip(*results)
+    cvs = nlp_utils.get_text_content_vectors(
+        texts,
+        max_len=1000,
+        min_prob=0.75,
+        fallback_lang="en",
+        disable=("parser", "ner"),
     )
-    citations_to_update = []
-    for id_, spacy_doc in citation_id_docs:
-        if spacy_doc is None:
-            continue
-
-        try:
-            citations_to_update.append(
-                {"id": id_, "text_content_vector_rep": spacy_doc.vector.tolist()}
-            )
-        except Exception:
-            pass  # no vector available presumably
-
+    citations_to_update = [
+        {"id": id_, "text_content_vector_rep": cv}
+        for id_, cv in zip(ids, cvs)
+        if cv is not None
+    ]
     if not citations_to_update:
         LOGGER.warning(
             "<Review(id=%s)>: no citation text_content_vector_reps to update",
@@ -283,16 +265,15 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         )
         return
 
-    lang_models = nlp_utils.get_lang_to_models()
-    spacy_doc = nlp_utils.make_spacy_doc_if_possible(
-        text_content, lang_models, disable=("tagger", "parser", "ner")
+    cvs = nlp_utils.get_text_content_vectors(
+        [text_content],
+        max_len=3000,
+        min_prob=0.75,
+        fallback_lang=None,
+        disable=("parser", "ner"),
     )
-    if spacy_doc is None:
-        return
-
-    try:
-        text_content_vector_rep = spacy_doc.vector.tolist()
-    except ValueError:
+    text_content_vector_rep = next(cvs)
+    if text_content_vector_rep is None:
         LOGGER.warning(
             "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
         )
