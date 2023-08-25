@@ -3,14 +3,13 @@ import flask_praetorian
 import sqlalchemy as sa
 from flask import current_app, render_template
 from flask_restx import Namespace, Resource
-from itsdangerous import URLSafeSerializer
 from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
 from ... import tasks
-from ...extensions import db
+from ...extensions import db, guard
 from ...lib import constants
 from ...models import Review, User
 from ..errors import bad_request_error, forbidden_error, not_found_error
@@ -163,41 +162,28 @@ class ReviewTeamResource(Resource):
                 review_users.append(user)
             else:
                 return forbidden_error(f"{user} is already on this review")
-        # TODO: update this to use flask-praetorian tokens + emailing
         # user is being *invited*, so send an invitation email
         elif action == "invite":
-            serializer = URLSafeSerializer(current_app.config["SECRET_KEY"])
-            token = serializer.dumps(
-                user_email, salt=current_app.config["PASSWORD_SALT"]
-            )
-            if server_name:
-                confirm_url = f"{server_name}{ns.path}/{id}/team/confirm?token={token}"
+            if user is None:
+                return not_found_error("no user found with given id or email")
             else:
+                token = guard.encode_jwt_token(user, bypass_user_check=False)
                 confirm_url = flask.url_for(
                     "review_teams_confirm_review_team_invite_resource",
                     id=id,
                     token=token,
                     _external=True,
                 )
-            # this user doesn't exist...
-            if user is None:
-                html = render_template(
-                    "emails/invite_new_user_to_review.html",
-                    url=confirm_url,
-                    inviter_email=current_user.email,
-                    review_name=review.name,
-                )
-            # this user is already in our system
-            else:
                 html = render_template(
                     "emails/invite_user_to_review.html",
                     url=confirm_url,
                     inviter_email=current_user.email,
                     review_name=review.name,
                 )
-            tasks.send_email.apply_async(
-                args=[[user_email], "Let's collaborate!", "", html]
-            )
+                if current_app.config["MAIL_SERVER"]:
+                    tasks.send_email.apply_async(
+                        args=[[user.email], "Let's collaborate!", "", html]
+                    )
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")
@@ -255,17 +241,14 @@ class ConfirmReviewTeamInviteResource(Resource):
     @use_kwargs({"token": ma_fields.String(required=True)}, location="query")  # TODO
     def get(self, id, token):
         """confirm review team invitation via emailed token"""
-        serializer = URLSafeSerializer(current_app.config["SECRET_KEY"])
-        user_email = serializer.loads(token, salt=current_app.config["PASSWORD_SALT"])
-
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         review_users = review.users
 
-        user = db.session.execute(
-            sa.select(User).filter_by(email=user_email)
-        ).scalar_one_or_none()
+        data = guard.extract_jwt_token(token)
+        user_id = data.get("id")
+        user = db.session.get(User, user_id)
         if user is None:
             return forbidden_error("user not found")
         if user not in review_users:
@@ -274,7 +257,7 @@ class ConfirmReviewTeamInviteResource(Resource):
             return forbidden_error(f"{user} is already on this review")
 
         db.session.commit()
-        current_app.logger.info("invitation to %s confirmed by %s", review, user_email)
+        current_app.logger.info("invitation to %s confirmed by %s", review, user.email)
         users = UserSchema(many=True).dump(review.users)
         owner_user_id = review.owner_user_id
         for user in users:
