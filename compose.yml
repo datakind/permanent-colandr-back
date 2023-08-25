@@ -94,6 +94,10 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
+      - COLANDR_MAIL_SERVER=colandr-email
+      - COLANDR_MAIL_PORT=1025
+      - COLANDR_MAIL_USE_TLS=0
+      - COLANDR_MAIL_USE_SSL=0
     command: "celery --app=make_celery.celery_app worker --loglevel=info"
 
 networks:
