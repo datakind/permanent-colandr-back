@@ -92,7 +92,9 @@ class User(db.Model):
         Look up user in db with given ``username`` (stored as "email" in the db)
         and return it, or None if not found, required by ``flask-praetorian`` .
         """
-        return cls.query.filter_by(email=username).one_or_none()
+        return db.session.execute(
+            sa.select(cls).filter_by(email=username)
+        ).scalar_one_or_none()
 
     @classmethod
     def identify(cls, id):
@@ -100,7 +102,7 @@ class User(db.Model):
         Identify a single user by their ``id`` and return their user instance,
         or None if not found, required by ``flask-praetorian`` .
         """
-        return cls.query.get(id)
+        return db.session.get(cls, id)
 
     # TODO: figure out if flask praetorian needs this / how uses this
     def is_valid(self):
