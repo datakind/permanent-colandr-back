@@ -3,6 +3,8 @@ import os
 import pathlib
 import shutil
 
+import alembic.command
+import alembic.config
 import click
 from flask import Blueprint, current_app
 
@@ -17,10 +19,20 @@ bp = Blueprint("cli", __name__, cli_group=None)
 @bp.cli.command("db-create")
 def db_create():
     """
-    Create all tables in the database that do not already exist.
-    Note: This does not update existing tables -- use `flask-migrate` commands for that.
+    Create all tables in the database that do not already exist,
+    and stamp alembic version "head" with the latest available revision.
+
+    Reference:
+        https://alembic.sqlalchemy.org/en/latest/cookbook.html#building-an-up-to-date-database-from-scratch
+
+    Note:
+        This does not update existing tables -- use `flask-migrate` commands for that.
     """
     db.create_all()
+    alembic_cfg = alembic.config.Config(
+        pathlib.Path(current_app.root_path).parent / "migrations" / "alembic.ini"
+    )
+    alembic.command.stamp(alembic_cfg, "head")
 
 
 @bp.cli.command("db-seed")

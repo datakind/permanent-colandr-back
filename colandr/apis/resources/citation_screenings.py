@@ -285,8 +285,12 @@ class CitationsScreeningsResource(Resource):
             return bad_request_error(
                 "citation, user, and/or review id must be specified"
             )
-        # TODO: fix this sqlalchemy usage
-        query = db.session.query(CitationScreening)
+
+        stmt = (
+            sa.select(CitationScreening)
+            if status_counts is False
+            else sa.select(CitationScreening.status, db.func.count(1))
+        )
         if citation_id is not None:
             # check user authorization
             citation = db.session.get(Citation, citation_id)
@@ -300,7 +304,7 @@ class CitationsScreeningsResource(Resource):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {citation}"
                 )
-            query = query.filter_by(citation_id=citation_id)
+            stmt = stmt.where(CitationScreening.citation_id == citation_id)
         if user_id is not None:
             # check user authorization
             user = db.session.get(User, user_id)
@@ -314,7 +318,7 @@ class CitationsScreeningsResource(Resource):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {user}"
                 )
-            query = query.filter_by(user_id=user_id)
+            stmt = stmt.where(CitationScreening.user_id == user_id)
         if review_id is not None:
             # check user authorization
             review = db.session.get(Review, review_id)
@@ -327,13 +331,14 @@ class CitationsScreeningsResource(Resource):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {review}"
                 )
-            query = query.filter_by(review_id=review_id)
+            stmt = stmt.where(CitationScreening.review_id == review_id)
+
         if status_counts is True:
-            query = query.with_entities(
-                CitationScreening.status, db.func.count(1)
-            ).group_by(CitationScreening.status)
-            return dict(query.all())
-        return ScreeningSchema(partial=True, many=True).dump(query.all())
+            stmt = stmt.group_by(CitationScreening.status)
+            return dict(db.session.execute(stmt).all())
+        else:
+            results = db.session.execute(stmt)
+            return ScreeningSchema(partial=True, many=True).dump(results)
 
     @ns.doc(
         params={

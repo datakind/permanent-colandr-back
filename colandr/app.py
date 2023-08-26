@@ -37,8 +37,7 @@ def _configure_logging(app: flask.Flask) -> None:
     )
     handler.setLevel(app.config["LOG_LEVEL"])
     app.logger.addHandler(handler)
-    # TODO: do we *want* to filter to just colandr's logging, or others' (deps') too?
-    app.logger.addFilter(logging.Filter("colandr"))
+    # app.logger.addFilter(logging.Filter("colandr"))
 
 
 def _register_extensions(app: flask.Flask) -> None:

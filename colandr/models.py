@@ -92,7 +92,9 @@ class User(db.Model):
         Look up user in db with given ``username`` (stored as "email" in the db)
         and return it, or None if not found, required by ``flask-praetorian`` .
         """
-        return cls.query.filter_by(email=username).one_or_none()
+        return db.session.execute(
+            sa.select(cls).filter_by(email=username)
+        ).scalar_one_or_none()
 
     @classmethod
     def identify(cls, id):
@@ -100,7 +102,7 @@ class User(db.Model):
         Identify a single user by their ``id`` and return their user instance,
         or None if not found, required by ``flask-praetorian`` .
         """
-        return cls.query.get(id)
+        return db.session.get(cls, id)
 
     # TODO: figure out if flask praetorian needs this / how uses this
     def is_valid(self):
@@ -903,124 +905,6 @@ class DataExtraction(db.Model):
 
     def __repr__(self):
         return f"<DataExtraction(study_id={self.id})>"
-
-
-# tables for citation deduplication
-
-
-class DedupeBlockingMap(db.Model):
-    __tablename__ = "dedupe_blocking_map"
-
-    # columns
-    citation_id = sa.Column(
-        sa.BigInteger,
-        sa.ForeignKey("citations.id", ondelete="CASCADE"),
-        primary_key=True,
-        nullable=False,
-        index=True,
-    )
-    review_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        primary_key=True,
-        nullable=False,
-        index=True,
-    )
-    block_key = sa.Column(sa.Text, primary_key=True, nullable=False, index=True)
-
-    def __init__(self, citation_id, review_id, block_key):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralKey(db.Model):
-    __tablename__ = "dedupe_plural_key"
-    __table_args__ = (
-        db.UniqueConstraint("review_id", "block_key", name="review_id_block_key_uc"),
-    )
-
-    # columns
-    block_id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    review_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    block_key = sa.Column(sa.Text, nullable=False, index=True)
-
-    def __init__(self, block_id, review_id, block_key):
-        self.block_id = block_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralBlock(db.Model):
-    __tablename__ = "dedupe_plural_block"
-    # __table_args__ = (
-    #     db.UniqueConstraint('block_id', 'citation_id',
-    #                         name='block_id_citation_id_uc'),
-    #     )
-
-    # columns
-    block_id = sa.Column(sa.BigInteger, primary_key=True)
-    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    def __init__(self, block_id, citation_id, review_id):
-        self.block_id = block_id
-        self.citation_id = citation_id
-        self.review_id = review_id
-
-
-class DedupeCoveredBlocks(db.Model):
-    __tablename__ = "dedupe_covered_blocks"
-
-    # columns
-    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    sorted_ids = sa.Column(
-        postgresql.ARRAY(sa.BigInteger), nullable=False, server_default="{}"
-    )
-
-    def __init__(self, citation_id, review_id, sorted_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.sorted_ids = sorted_ids
-
-
-class DedupeSmallerCoverage(db.Model):
-    __tablename__ = "dedupe_smaller_coverage"
-
-    # columns
-    citation_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False, index=True)
-    review_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    block_id = sa.Column(sa.BigInteger, primary_key=True, nullable=False)
-    smaller_ids = sa.Column(
-        postgresql.ARRAY(sa.BigInteger), nullable=True, server_default="{}"
-    )
-
-    def __init__(self, citation_id, review_id, block_id, smaller_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_id = block_id
-        self.smaller_ids = smaller_ids
 
 
 # EVENTS

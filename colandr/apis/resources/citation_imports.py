@@ -10,10 +10,10 @@ from werkzeug.utils import secure_filename
 
 from ... import tasks
 from ...extensions import db
-from ...lib import constants, fileio, preprocessors
+from ...lib import constants, preprocessors
 from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ..errors import bad_request_error, forbidden_error, not_found_error
-from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
+from ..schemas import DataSourceSchema, ImportSchema
 
 
 ns = Namespace(
