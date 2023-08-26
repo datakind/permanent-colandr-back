@@ -132,3 +132,26 @@ class TestCitationsScreeningsResource:
         response_data = response.json
         assert isinstance(response_data, list)
         assert len(response_data) == num_exp
+
+    @pytest.mark.parametrize(
+        ["params", "exp_data"],
+        [
+            ({"review_id": 1, "status_counts": True}, {"excluded": 1, "included": 2}),
+            ({"review_id": 2, "status_counts": True}, {"included": 2}),
+            ({"user_id": 3, "status_counts": True}, {"included": 1}),
+            (
+                {"user_id": 2, "review_id": 1, "status_counts": True},
+                {"excluded": 1, "included": 2},
+            ),
+        ],
+    )
+    def test_get_status_counts(self, params, exp_data, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for(
+                "citation_screenings_citations_screenings_resource", **params
+            )
+        response = client.get(url, headers=admin_headers)
+        assert response.status_code == 200
+        response_data = response.json
+        assert response_data and isinstance(response_data, dict)
+        assert response_data == exp_data
