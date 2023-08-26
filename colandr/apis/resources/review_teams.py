@@ -155,13 +155,14 @@ class ReviewTeamResource(Resource):
         review_users = review.users
         # an existing user is being added, without an invite email
         if action == "add":
-            # TODO: should this be admins only?
             if user is None:
                 return not_found_error("no user found with given id or email")
-            elif user not in review_users:
-                review_users.append(user)
-            else:
+            elif current_user.is_admin is False:
+                return forbidden_error(f"{current_user} is not an admin")
+            elif user in review_users:
                 return forbidden_error(f"{user} is already on this review")
+            else:
+                review_users.append(user)
         # user is being *invited*, so send an invitation email
         elif action == "invite":
             if user is None:
@@ -238,7 +239,7 @@ class ConfirmReviewTeamInviteResource(Resource):
         },
         location="view_args",
     )
-    @use_kwargs({"token": ma_fields.String(required=True)}, location="query")  # TODO
+    @use_kwargs({"token": ma_fields.String(required=True)}, location="query")
     def get(self, id, token):
         """confirm review team invitation via emailed token"""
         review = db.session.get(Review, id)
