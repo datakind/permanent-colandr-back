@@ -1,6 +1,5 @@
 import itertools
 import os
-import time
 
 import redis
 import redis.client
@@ -376,31 +375,19 @@ def train_citation_ranking_model(review_id: int):
     LOGGER.info("<Review(id=%s)>: training citation ranking model", review_id)
 
     # make sure at least some citations have had their text content vectors found
-    n_iters = 1
-    while True:
-        stmt = sa.select(
-            sa.exists()
-            .where(Citation.review_id == review_id)
-            .where(Citation.text_content_vector_rep != [])
+    stmt = sa.select(
+        sa.exists()
+        .where(Citation.review_id == review_id)
+        .where(Citation.text_content_vector_rep != [])
+    )
+    citations_ready = db.session.execute(stmt).scalar_one()
+    if citations_ready is False:
+        LOGGER.warning(
+            "<Review(id=%s)>: no citations found with vectorized text content for, %s",
+            review_id,
         )
-        citations_ready = db.session.execute(stmt).scalar_one()
-        if citations_ready is True:
-            break
-        else:
-            LOGGER.debug(
-                "<Review(id=%s)>: waiting for vectorized text content for, %s",
-                review_id,
-                n_iters,
-            )
-            time.sleep(30)
-        if n_iters > 6:
-            LOGGER.error(
-                "<Review(id=%s)>: no citations with vectorized text content found",
-                review_id,
-            )
-            lock.release()
-            return
-        n_iters += 1
+        lock.release()
+        return
 
     # TODO: should this be a random sample? i think no, but old comment said yes
     # get included citations
