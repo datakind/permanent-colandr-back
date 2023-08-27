@@ -8,6 +8,7 @@ from .resources.citation_imports import ns as ns_citation_imports
 from .resources.citation_screenings import ns as ns_citation_screenings
 from .resources.citations import ns as ns_citations
 from .resources.data_extractions import ns as ns_data_extractions
+from .resources.deduplicate_studies import ns as ns_deduplicate_studies
 from .resources.fulltext_screenings import ns as ns_fulltext_screenings
 from .resources.fulltext_uploads import ns as ns_fulltext_uploads
 from .resources.fulltexts import ns as ns_fulltexts
@@ -55,6 +56,7 @@ api_v1.add_namespace(ns_study_tags)
 api_v1.add_namespace(ns_citations)
 api_v1.add_namespace(ns_citation_imports)
 api_v1.add_namespace(ns_citation_screenings)
+api_v1.add_namespace(ns_deduplicate_studies)
 api_v1.add_namespace(ns_fulltexts)
 api_v1.add_namespace(ns_fulltext_uploads)
 api_v1.add_namespace(ns_fulltext_screenings)

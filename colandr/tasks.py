@@ -1,6 +1,5 @@
 import itertools
 import os
-import time
 
 import redis
 import redis.client
@@ -47,7 +46,7 @@ def send_email(recipients, subject, text_body, html_body):
 
 
 @shared_task
-def remove_unconfirmed_user(email):
+def remove_unconfirmed_user(email: str):
     user = db.session.execute(
         sa.select(User).filter_by(email=email)
     ).scalar_one_or_none()
@@ -57,7 +56,7 @@ def remove_unconfirmed_user(email):
 
 
 @shared_task
-def deduplicate_citations(review_id):
+def deduplicate_citations(review_id: int):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
@@ -224,13 +223,14 @@ def get_citations_text_content_vectors(review_id: int):
     )
     results = db.session.execute(stmt)
     ids, texts = zip(*results)
-    cvs = nlp_utils.get_text_content_vectors(
+    docs = nlp_utils.process_texts_into_docs(
         texts,
         max_len=1000,
         min_prob=0.75,
         fallback_lang="en",
-        disable=("parser", "ner"),
+        exclude=("parser", "ner"),
     )
+    cvs = (doc.vector.tolist() if doc is not None else None for doc in docs)
     citations_to_update = [
         {"id": id_, "text_content_vector_rep": cv}
         for id_, cv in zip(ids, cvs)
@@ -265,14 +265,15 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         )
         return
 
-    cvs = nlp_utils.get_text_content_vectors(
+    docs = nlp_utils.process_texts_into_docs(
         [text_content],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
-        disable=("parser", "ner"),
+        exclude=("parser", "ner"),
     )
-    text_content_vector_rep = next(cvs)
+    doc = next(docs)
+    text_content_vector_rep = doc.vector.tolist() if doc is not None else None
     if text_content_vector_rep is None:
         LOGGER.warning(
             "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
@@ -289,7 +290,7 @@ def get_fulltext_text_content_vector(fulltext_id: int):
 
 
 @shared_task
-def suggest_keyterms(review_id, sample_size):
+def suggest_keyterms(review_id: int, sample_size: int):
     lock = _get_redis_lock(f"suggest_keyterms__review-{review_id}")
     lock.acquire()
 
@@ -324,10 +325,12 @@ def suggest_keyterms(review_id, sample_size):
     included_vec = [
         status == "included" for status, _ in itertools.chain(included, excluded)
     ]
-    lang_models = nlp_utils.get_lang_to_models()
-    docs = (
-        nlp_utils.make_spacy_doc_if_possible(text, lang_models)
-        for _, text in itertools.chain(included, excluded)
+    docs = nlp_utils.process_texts_into_docs(
+        (text for _, text in itertools.chain(included, excluded)),
+        max_len=3000,
+        min_prob=0.75,
+        fallback_lang=None,
+        exclude=("parser", "ner"),
     )
     terms_lists = (
         doc._.to_terms_list(include_pos={"NOUN", "VERB"}, as_strings=True)
@@ -365,38 +368,26 @@ def suggest_keyterms(review_id, sample_size):
 
 
 @shared_task
-def train_citation_ranking_model(review_id):
+def train_citation_ranking_model(review_id: int):
     lock = _get_redis_lock(f"train_citations_ranking_model__review-{review_id}")
     lock.acquire()
 
     LOGGER.info("<Review(id=%s)>: training citation ranking model", review_id)
 
     # make sure at least some citations have had their text content vectors found
-    n_iters = 1
-    while True:
-        stmt = sa.select(
-            sa.exists()
-            .where(Citation.review_id == review_id)
-            .where(Citation.text_content_vector_rep != [])
+    stmt = sa.select(
+        sa.exists()
+        .where(Citation.review_id == review_id)
+        .where(Citation.text_content_vector_rep != [])
+    )
+    citations_ready = db.session.execute(stmt).scalar_one()
+    if citations_ready is False:
+        LOGGER.warning(
+            "<Review(id=%s)>: no citations found with vectorized text content for, %s",
+            review_id,
         )
-        citations_ready = db.session.execute(stmt).scalar_one()
-        if citations_ready is True:
-            break
-        else:
-            LOGGER.debug(
-                "<Review(id=%s)>: waiting for vectorized text content for, %s",
-                review_id,
-                n_iters,
-            )
-            time.sleep(30)
-        if n_iters > 6:
-            LOGGER.error(
-                "<Review(id=%s)>: no citations with vectorized text content found",
-                review_id,
-            )
-            lock.release()
-            return
-        n_iters += 1
+        lock.release()
+        return
 
     # TODO: should this be a random sample? i think no, but old comment said yes
     # get included citations
