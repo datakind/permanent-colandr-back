@@ -229,7 +229,7 @@ def get_citations_text_content_vectors(review_id: int):
         max_len=1000,
         min_prob=0.75,
         fallback_lang="en",
-        disable=("parser", "ner"),
+        exclude=("parser", "ner"),
     )
     citations_to_update = [
         {"id": id_, "text_content_vector_rep": cv}
@@ -270,7 +270,7 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
-        disable=("parser", "ner"),
+        exclude=("parser", "ner"),
     )
     text_content_vector_rep = next(cvs)
     if text_content_vector_rep is None:
