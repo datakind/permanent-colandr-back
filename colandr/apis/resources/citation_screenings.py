@@ -460,5 +460,5 @@ class CitationsScreeningsResource(Resource):
         # do we have to train a ranking model?
         if n_included >= 100 and n_excluded >= 100:
             tasks.train_citation_ranking_model.apply_async(
-                args=[review_id], countdown=30
+                args=[review_id], countdown=3
             )
