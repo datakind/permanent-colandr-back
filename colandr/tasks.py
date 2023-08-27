@@ -47,7 +47,7 @@ def send_email(recipients, subject, text_body, html_body):
 
 
 @shared_task
-def remove_unconfirmed_user(email):
+def remove_unconfirmed_user(email: str):
     user = db.session.execute(
         sa.select(User).filter_by(email=email)
     ).scalar_one_or_none()
@@ -57,7 +57,7 @@ def remove_unconfirmed_user(email):
 
 
 @shared_task
-def deduplicate_citations(review_id):
+def deduplicate_citations(review_id: int):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
@@ -291,7 +291,7 @@ def get_fulltext_text_content_vector(fulltext_id: int):
 
 
 @shared_task
-def suggest_keyterms(review_id, sample_size):
+def suggest_keyterms(review_id: int, sample_size: int):
     lock = _get_redis_lock(f"suggest_keyterms__review-{review_id}")
     lock.acquire()
 
@@ -369,7 +369,7 @@ def suggest_keyterms(review_id, sample_size):
 
 
 @shared_task
-def train_citation_ranking_model(review_id):
+def train_citation_ranking_model(review_id: int):
     lock = _get_redis_lock(f"train_citations_ranking_model__review-{review_id}")
     lock.acquire()
 

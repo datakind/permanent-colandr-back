@@ -3,7 +3,7 @@ import itertools
 import logging
 from collections.abc import Iterable
 from operator import itemgetter
-from typing import Any, Optional
+from typing import Optional
 
 import spacy
 import textacy
@@ -14,6 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def get_lang_to_models() -> dict[str, list[str]]:
+    """Get a mapping of ISO language code to installed spacy language models."""
     lang_to_models = collections.defaultdict(list)
     models = spacy.util.get_installed_models()
     for model in models:
