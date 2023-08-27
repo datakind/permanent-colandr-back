@@ -107,6 +107,12 @@ class CitationsImportsResource(Resource):
                 "enum": ["not_screened", "included", "excluded"],
                 "description": "known screening status of citations, if anything",
             },
+            "dedupe": {
+                "in": "query",
+                "type": "boolean",
+                "default": True,
+                "description": "if True, all review citations will be (re-)deduped",
+            },
         },
         responses={
             200: "successfully imported citations in bulk",
@@ -131,11 +137,19 @@ class CitationsImportsResource(Resource):
                 load_default=None,
                 validate=OneOf(["not_screened", "included", "excluded"]),
             ),
+            "dedupe": ma_fields.Boolean(load_default=True),
         },
         location="query",
     )
     def post(
-        self, uploaded_file, review_id, source_type, source_name, source_url, status
+        self,
+        uploaded_file,
+        review_id,
+        source_type,
+        source_name,
+        source_url,
+        status,
+        dedupe,
     ):
         """import citations in bulk for a review"""
         current_user = flask_praetorian.current_user()
@@ -242,7 +256,8 @@ class CitationsImportsResource(Resource):
         )
 
         # lastly, don't forget to deduplicate the citations and get their word2vecs
-        tasks.deduplicate_citations.apply_async(args=[review_id], countdown=60)
         tasks.get_citations_text_content_vectors.apply_async(
             args=[review_id], countdown=3
         )
+        if dedupe is True:
+            tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)
