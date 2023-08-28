@@ -218,11 +218,10 @@ class ExportScreeningsResource(Resource):
         screenings = itertools.chain(citation_screenings, fulltext_screenings)
 
         fieldnames = [
-            "screening_id",
+            "study_id",
+            "screening_stage",
             "screening_status",
             "screening_exclude_reasons",
-            "screening_stage",
-            "study_id",
             "user_email",
             "user_name",
         ]
@@ -240,15 +239,16 @@ class ExportScreeningsResource(Resource):
 
 
 def _screening_to_row(screening: CitationScreening | FulltextScreening) -> dict:
-    row = {
-        "screening_id": screening.id,
-        "screening_status": screening.status,
-        "screening_exclude_reasons": screening.exclude_reasons,
-    }
     if isinstance(screening, CitationScreening):
-        row.update({"screening_stage": "citation", "study_id": screening.citation_id})
+        row = {"study_id": screening.citation_id, "screening_stage": "citation"}
     elif isinstance(screening, FulltextScreening):
-        row.update({"screening_stage": "fulltext", "study_id": screening.fulltext_id})
+        row = {"study_id": screening.fulltext_id, "screening_stage": "fulltext"}
+    row.update(
+        {
+            "screening_status": screening.status,
+            "screening_exclude_reasons": screening.exclude_reasons,
+        }
+    )
     user = screening.user
     if user:
         row.update({"user_email": user.email, "user_name": user.name})
