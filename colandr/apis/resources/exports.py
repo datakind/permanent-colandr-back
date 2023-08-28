@@ -1,0 +1,170 @@
+import csv
+from typing import Optional
+
+import flask_praetorian
+import sqlalchemy as sa
+from flask import current_app, make_response
+from flask_restx import Namespace, Resource
+from marshmallow import fields as ma_fields
+from marshmallow.validate import OneOf, Range
+from webargs.flaskparser import use_kwargs
+
+from ...extensions import db
+from ...lib import constants, fileio
+from ...models import Review, ReviewPlan, Study
+from ..errors import forbidden_error, not_found_error
+
+
+ns = Namespace("exports", path="/export", description="export data")
+
+
+@ns.route("/studies")
+@ns.doc(summary="export studies data")
+class ExportStudiesResource(Resource):
+    method_decorators = [flask_praetorian.auth_required]
+
+    @ns.doc(
+        description="export studies data",
+        responses={
+            200: "successfully got studies data for specified review",
+            403: "current app user forbidden to export studies data for specified review",
+            404: "no review with matching id was found",
+        },
+    )
+    @use_kwargs(
+        {
+            "review_id": ma_fields.Int(
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            ),
+            "content_type": ma_fields.String(
+                load_default="text/csv", validate=OneOf(["text/csv"])
+            ),
+        },
+        location="query",
+    )
+    def get(self, review_id, content_type):
+        """export a CSV of studies metadata and extracted data"""
+        current_user = flask_praetorian.current_user()
+        review = db.session.get(Review, review_id)
+        if not review:
+            return not_found_error(f"<Review(id={review_id})> not found")
+        if (
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
+        ):
+            return forbidden_error(f"{current_user} forbidden to get this review")
+
+        studies = db.session.execute(
+            sa.select(Study).filter_by(review_id=review_id).order_by(Study.id)
+        ).scalars()
+        data_extraction_form = db.session.execute(
+            sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
+        ).one_or_none()
+
+        fieldnames = [
+            "study_id",
+            "study_tags",
+            "deduplication_status",
+            "citation_screening_status",
+            "fulltext_screening_status",
+            "data_extraction_screening_status",
+            "data_source_type",
+            "data_source_name",
+            "data_source_url",
+            "citation_title",
+            "citation_abstract",
+            "citation_authors",
+            "citation_journal_name",
+            "citation_journal_volume",
+            "citation_pub_year",
+            "citation_keywords",
+            "citation_exclude_reasons",
+            "fulltext_filename",
+            "fulltext_exclude_reasons",
+        ]
+        extraction_label_types: Optional[list[tuple[str, str]]]
+        if data_extraction_form:
+            extraction_label_types = [
+                (item["label"], item["field_type"]) for item in data_extraction_form[0]
+            ]
+            fieldnames.extend(label for label, _ in extraction_label_types)
+        else:
+            extraction_label_types = None
+
+        rows = (_study_to_row(study, extraction_label_types) for study in studies)
+        if content_type == "text/csv":
+            export_data = fileio.tabular.write_stream(
+                fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
+            )
+
+        response = make_response(export_data, 200)
+        response.headers["Content-type"] = content_type
+        current_app.logger.info("studies data exported for %s", review)
+
+        return response
+
+
+def _study_to_row(
+    study: Study, extraction_label_types: Optional[list[tuple[str, str]]]
+) -> dict:
+    row = {
+        "study_id": study.id,
+        "study_tags": "; ".join(study.tags) if study.tags else None,
+        "deduplication_status": study.dedupe_status,
+        "citation_screening_status": study.citation_status,
+        "fulltext_screening_status": study.fulltext_status,
+        "data_extraction_screening_status": study.data_extraction_status,
+        "data_source_type": study.data_source.source_type,
+        "data_source_name": study.data_source.source_name,
+        "data_source_url": study.data_source.source_url,
+    }
+    if study.citation:
+        citation = study.citation
+        row.update(
+            {
+                "citation_title": citation.title,
+                "citation_abstract": citation.abstract,
+                "citation_authors": (
+                    "; ".join(citation.authors) if citation.authors else None
+                ),
+                "citation_journal_name": citation.journal_name,
+                "citation_journal_volume": citation.volume,
+                "citation_pub_year": citation.pub_year,
+                "citation_keywords": (
+                    "; ".join(citation.keywords) if citation.keywords else None
+                ),
+                "citation_exclude_reasons": (
+                    "; ".join(citation.exclude_reasons)
+                    if citation.exclude_reasons
+                    else None
+                ),
+            }
+        )
+    if study.fulltext:
+        fulltext = study.fulltext
+        row.update(
+            {
+                "fulltext_filename": fulltext.original_filename,
+                "fulltext_exclude_reasons": (
+                    "; ".join(fulltext.exclude_reasons)
+                    if fulltext.exclude_reasons
+                    else None
+                ),
+            }
+        )
+    if extraction_label_types and study.data_extraction:
+        extracted_data = {
+            item["label"]: item["value"]
+            for item in study.data_extraction.extracted_items
+        }
+        row.update(
+            {
+                label: (
+                    "; ".join(extracted_data.get(label, []))
+                    if type_ in ("select_one", "select_many")
+                    else extracted_data.get(label, None)
+                )
+                for label, type_ in extraction_label_types
+            }
+        )
+    return row
