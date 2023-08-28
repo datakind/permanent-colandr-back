@@ -1,4 +1,5 @@
 import csv
+import itertools
 from typing import Optional
 
 import flask_praetorian
@@ -11,7 +12,7 @@ from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Review, ReviewPlan, Study
+from ...models import CitationScreening, FulltextScreening, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -43,7 +44,6 @@ class ExportStudiesResource(Resource):
         location="query",
     )
     def get(self, review_id, content_type):
-        """export a CSV of studies metadata and extracted data"""
         current_user = flask_praetorian.current_user()
         review = db.session.get(Review, review_id)
         if not review:
@@ -167,4 +167,89 @@ def _study_to_row(
                 for label, type_ in extraction_label_types
             }
         )
+    return row
+
+
+@ns.route("/screenings")
+@ns.doc(summary="export screenings data")
+class ExportScreeningsResource(Resource):
+    method_decorators = [flask_praetorian.auth_required]
+
+    @ns.doc(
+        description="export screenings data",
+        responses={
+            200: "successfully got screenings data for specified review",
+            403: "current app user forbidden to export screenings data for specified review",
+            404: "no review with matching id was found",
+        },
+    )
+    @use_kwargs(
+        {
+            "review_id": ma_fields.Int(
+                required=True, validate=Range(min=1, max=constants.MAX_INT)
+            ),
+            "content_type": ma_fields.String(
+                load_default="text/csv", validate=OneOf(["text/csv"])
+            ),
+        },
+        location="query",
+    )
+    def get(self, review_id, content_type):
+        current_user = flask_praetorian.current_user()
+        review = db.session.get(Review, review_id)
+        if not review:
+            return not_found_error(f"<Review(id={review_id})> not found")
+        if (
+            current_user.is_admin is False
+            and review.users.filter_by(id=current_user.id).one_or_none() is None
+        ):
+            return forbidden_error(f"{current_user} forbidden to get this review")
+
+        citation_screenings = db.session.execute(
+            sa.select(CitationScreening)
+            .filter_by(review_id=review_id)
+            .order_by(CitationScreening.id)
+        ).scalars()
+        fulltext_screenings = db.session.execute(
+            sa.select(FulltextScreening)
+            .filter_by(review_id=review_id)
+            .order_by(FulltextScreening.id)
+        ).scalars()
+        screenings = itertools.chain(citation_screenings, fulltext_screenings)
+
+        fieldnames = [
+            "screening_id",
+            "screening_status",
+            "screening_exclude_reasons",
+            "screening_stage",
+            "study_id",
+            "user_email",
+            "user_name",
+        ]
+        rows = (_screening_to_row(screening) for screening in screenings)
+        if content_type == "text/csv":
+            export_data = fileio.tabular.write_stream(
+                fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
+            )
+
+        response = make_response(export_data, 200)
+        response.headers["Content-type"] = content_type
+        current_app.logger.info("screenings data exported for %s", review)
+
+        return response
+
+
+def _screening_to_row(screening: CitationScreening | FulltextScreening) -> dict:
+    row = {
+        "screening_id": screening.id,
+        "screening_status": screening.status,
+        "screening_exclude_reasons": screening.exclude_reasons,
+    }
+    if isinstance(screening, CitationScreening):
+        row.update({"screening_stage": "citation", "study_id": screening.citation_id})
+    elif isinstance(screening, FulltextScreening):
+        row.update({"screening_stage": "fulltext", "study_id": screening.fulltext_id})
+    user = screening.user
+    if user:
+        row.update({"user_email": user.email, "user_name": user.name})
     return row
