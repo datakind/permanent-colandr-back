@@ -184,6 +184,7 @@ class CitationsResource(Resource):
                 "description": "known screening status of citation, if anything",
             },
         },
+        expect=(citation_model, "citation data to be created"),
         responses={
             200: "successfully created citation record",
             403: "current app user forbidden to create citation for this review",
