@@ -6,7 +6,8 @@ class TestStudyTagsResource:
     @pytest.mark.parametrize(
         ["params", "status_code", "exp_result"],
         [
-            ({"review_id": 1}, 200, []),
+            ({"review_id": 1}, 200, ["TAG1", "TAG2", "TAG3"]),
+            ({"review_id": 2}, 200, ["TAG4"]),
             ({"review_id": 999}, 404, None),
         ],
     )
