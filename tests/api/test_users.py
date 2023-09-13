@@ -139,18 +139,17 @@ class TestUserResource:
     ):
         with app.test_request_context():
             url = flask.url_for("users_user_resource", id=id_)
-        # only user can modify themself
-        response = client.put(url, json=params, headers=admin_headers)
-        assert response.status_code == 403
-        # now we check it
+
+        # only admin or user can modify themself
         user = db_session.get(models.User, id_)
         user_headers = extensions.guard.pack_header_for_user(user)
-        flask.g.current_user = user
-        response = client.put(url, json=params, headers=user_headers)
-        assert response.status_code == status_code
-        if 200 <= status_code < 300:
-            data = response.json
-            for key, val in params.items():
-                assert data.get(key) == val
+        for u, uheaders in [(user, user_headers), (admin_user, admin_headers)]:
+            flask.g.current_user = u
+            response = client.put(url, json=params, headers=uheaders)
+            assert response.status_code == status_code
+            if 200 <= status_code < 300:
+                data = response.json
+                for key, val in params.items():
+                    assert data.get(key) == val
         # reset current user to admin
         flask.g.current_user = admin_user
