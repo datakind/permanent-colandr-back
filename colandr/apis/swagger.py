@@ -2,7 +2,6 @@ from flask_restx import Namespace, fields
 
 from ..lib import constants
 
-
 ns = Namespace("models")
 
 
@@ -55,9 +54,10 @@ review_plan_pico_model = ns.model(
 review_plan_keyterm_model = ns.model(
     "ReviewPlanKeyterm",
     {
-        "label": fields.String(required=True, max_length=25),
-        "description": fields.String(max_length=300),
-    },
+        "group": fields.String(required=True, max_length=100),
+        "term": fields.String(required=True, max_length=100),
+        "synonyms": fields.List(fields.String(max_length=100)),
+    }
 )
 
 review_plan_selection_criterion_model = ns.model(
