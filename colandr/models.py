@@ -466,12 +466,6 @@ class Study(db.Model):
         passive_deletes=True,
     )
 
-    # TODO: figure out why we have this here, and if we want it
-    def __init__(self, user_id, review_id, data_source_id):
-        self.user_id = user_id
-        self.review_id = review_id
-        self.data_source_id = data_source_id
-
     def __repr__(self):
         return f"<Study(id={self.id})>"
 

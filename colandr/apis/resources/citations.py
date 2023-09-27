@@ -184,6 +184,7 @@ class CitationsResource(Resource):
                 "description": "known screening status of citation, if anything",
             },
         },
+        expect=(citation_model, "citation data to be created"),
         responses={
             200: "successfully created citation record",
             403: "current app user forbidden to create citation for this review",
@@ -246,7 +247,9 @@ class CitationsResource(Resource):
         current_app.logger.info("inserted %s", data_source)
 
         # add the study
-        study = Study(current_user.id, review_id, data_source.id)
+        study = Study(
+            user_id=current_user.id, review_id=review_id, data_source_id=data_source.id
+        )
         if status is not None:
             study.citation_status = status
         db.session.add(study)

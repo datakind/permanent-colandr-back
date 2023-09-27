@@ -158,12 +158,20 @@
         {
             "user_id": 2,
             "review_id": 1,
-            "data_source_id": 1
+            "data_source_id": 1,
+            "tags": [
+                "TAG1"
+            ]
         },
         {
             "user_id": 2,
             "review_id": 1,
-            "data_source_id": 1
+            "data_source_id": 1,
+            "tags": [
+                "TAG3",
+                "TAG2",
+                "TAG1"
+            ]
         },
         {
             "user_id": 2,
@@ -173,7 +181,10 @@
         {
             "user_id": 3,
             "review_id": 2,
-            "data_source_id": 1
+            "data_source_id": 1,
+            "tags": [
+                "TAG4"
+            ]
         }
     ],
     "citations": [

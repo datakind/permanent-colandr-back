@@ -49,7 +49,7 @@ class StudyTagsResource(Resource):
                 required=True, validate=Range(min=1, max=constants.MAX_INT)
             ),
         },
-        location="view_args",
+        location="query",
     )
     def get(self, review_id):
         """get all distinct tags assigned to studies"""

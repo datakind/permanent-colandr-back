@@ -37,6 +37,16 @@ class TestReviewPlanResource:
         [
             (1, {"objective": "NEW_OBJECTIVE1"}, 200),
             (1, {"research_questions": ["NEW_Q1", "NEW_Q2"]}, 200),
+            (
+                1,
+                {
+                    "keyterms": [
+                        {"group": "GROUP1", "term": "TERM1", "synonyms": ["SYN1"]},
+                        {"group": "GROUP1", "term": "TERM2"},
+                    ]
+                },
+                200,
+            ),
             (999, {"objective": "NEW_OBJECTIVE999"}, 404),
         ],
     )

@@ -123,7 +123,7 @@ class UserResource(Resource):
     def put(self, args, id):
         """modify record for a single user by id"""
         current_user = flask_praetorian.current_user()
-        if id != current_user.id:
+        if current_user.is_admin is False and id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to update this user")
         user = db.session.get(User, id)
         if not user:
@@ -134,6 +134,14 @@ class UserResource(Resource):
             elif key == "password":
                 setattr(user, key, guard.hash_password(value))
             else:
+                if key == "email":
+                    current_app.logger.warning(
+                        "%s is modifying %s email, from %s to %s",
+                        current_user,
+                        user,
+                        user.email,
+                        value,
+                    )
                 setattr(user, key, value)
         try:
             db.session.commit()

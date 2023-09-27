@@ -16,6 +16,8 @@ services:
       - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
       - POSTGRES_DB=${COLANDR_DB_NAME}
       - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_HOST_AUTH_METHOD=md5
+      - POSTGRES_INITDB_ARGS="--auth-host=md5"
     healthcheck:
       test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
       interval: 10s
