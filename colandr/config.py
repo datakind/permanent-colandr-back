@@ -53,6 +53,7 @@ CACHE_TYPE = "SimpleCache"
 # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
 # api auth keys config
+JWT_SECRET_KEY = os.environ["COLANDR_JWT_SECRET_KEY"]
 JWT_ACCESS_LIFESPAN = {"hours": 3}
 JWT_REFRESH_LIFESPAN = {"days": 7}
 
