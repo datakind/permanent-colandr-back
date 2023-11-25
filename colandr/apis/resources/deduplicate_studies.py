@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -23,8 +23,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class DeduplicateStudiesResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "review_id": {
@@ -47,9 +45,10 @@ class DeduplicateStudiesResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def post(self, review_id):
         """get all distinct tags assigned to studies"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")

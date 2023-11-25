@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -29,8 +29,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class CitationsImportsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "review_id": {
@@ -54,9 +52,10 @@ class CitationsImportsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, review_id):
         """get citation import history for a review"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
@@ -141,6 +140,7 @@ class CitationsImportsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def post(
         self,
         uploaded_file,
@@ -152,7 +152,7 @@ class CitationsImportsResource(Resource):
         dedupe,
     ):
         """import citations in bulk for a review"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")

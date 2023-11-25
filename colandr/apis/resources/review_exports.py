@@ -3,7 +3,7 @@ import csv
 import itertools
 from typing import Optional
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app, make_response
 from flask_restx import Namespace, Resource
@@ -30,8 +30,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class ReviewExportPrismaResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         responses={
             200: "successfully got review prisma data",
@@ -47,9 +45,10 @@ class ReviewExportPrismaResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -136,8 +135,6 @@ class ReviewExportPrismaResource(Resource):
     produces=["text/csv"],
 )
 class ReviewExportStudiesResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         description="NOTE: Calling this endpoint via Swagger could cause it to crash on account of #BigData",
         responses={
@@ -154,9 +151,10 @@ class ReviewExportStudiesResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")

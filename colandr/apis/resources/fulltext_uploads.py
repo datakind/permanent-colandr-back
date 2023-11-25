@@ -1,7 +1,7 @@
 import io
 import os
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import ftfy
 from flask import current_app, send_from_directory
 from flask_restx import Namespace, Resource
@@ -31,8 +31,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class FulltextUploadResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "review_id": {
@@ -64,9 +62,10 @@ class FulltextUploadResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, review_id):
         """get fulltext content file for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         filename = None
         if review_id is None:
             for dirname, _, filenames in os.walk(
@@ -129,9 +128,10 @@ class FulltextUploadResource(Resource):
         location="view_args",
     )
     @use_kwargs({"uploaded_file": ma_fields.Raw(required=True)}, location="files")
+    @jwtext.jwt_required()
     def post(self, id, uploaded_file):
         """upload fulltext content file for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
@@ -201,9 +201,10 @@ class FulltextUploadResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete fulltext content file for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")

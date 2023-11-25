@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -30,8 +30,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class FulltextScreeningsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -58,9 +56,10 @@ class FulltextScreeningsResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get screenings for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
@@ -92,9 +91,10 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete current app user's screening for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
@@ -135,9 +135,10 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def post(self, args, id):
         """create a screenings for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
@@ -204,9 +205,10 @@ class FulltextScreeningsResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def put(self, args, id):
         """modify current app user's screening of a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
@@ -240,8 +242,6 @@ class FulltextScreeningsResource(Resource):
     produces=["application/json"],
 )
 class FulltextsScreeningsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fulltext_id": {
@@ -288,9 +288,10 @@ class FulltextsScreeningsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, fulltext_id, user_id, review_id, status_counts):
         """get all fulltext screenings by citation, user, or review id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if not any([fulltext_id, user_id, review_id]):
             return bad_request_error(
                 "fulltext, user, and/or review id must be specified"
@@ -383,9 +384,10 @@ class FulltextsScreeningsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def post(self, args, review_id, user_id):
         """create one or more fulltext screenings (ADMIN ONLY)"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if current_user.is_admin is False:
             return forbidden_error("FulltextsScreeningsResource.post is admin-only")
         # check current user authorization

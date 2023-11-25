@@ -2,7 +2,7 @@ import csv
 import itertools
 from typing import Optional
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app, make_response
 from flask_restx import Namespace, Resource
@@ -22,7 +22,6 @@ ns = Namespace("exports", path="/export", description="export data")
 @ns.route("/studies")
 @ns.doc(summary="export studies data")
 class ExportStudiesResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         description="export studies data",
@@ -43,8 +42,9 @@ class ExportStudiesResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, review_id, content_type):
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
@@ -173,7 +173,6 @@ def _study_to_row(
 @ns.route("/screenings")
 @ns.doc(summary="export screenings data")
 class ExportScreeningsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
 
     @ns.doc(
         description="export screenings data",
@@ -194,8 +193,9 @@ class ExportScreeningsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, review_id, content_type):
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")

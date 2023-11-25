@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -22,8 +22,6 @@ ns = Namespace("fulltexts", path="/fulltexts", description="get and delete fullt
     produces=["application/json"],
 )
 class FulltextResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -50,9 +48,10 @@ class FulltextResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get record for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")
@@ -82,9 +81,10 @@ class FulltextResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete record for a single fulltext by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error(f"<Fulltext(id={id})> not found")

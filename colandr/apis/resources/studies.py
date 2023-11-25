@@ -2,7 +2,7 @@ import os
 import random
 from operator import itemgetter
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -31,8 +31,6 @@ ns = Namespace("studies", path="/studies", description="get, delete, update stud
     produces=["application/json"],
 )
 class StudyResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -59,9 +57,10 @@ class StudyResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
@@ -90,9 +89,10 @@ class StudyResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
@@ -123,9 +123,10 @@ class StudyResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def put(self, args, id):
         """modify record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         study = db.session.get(Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
@@ -153,8 +154,6 @@ class StudyResource(Resource):
     produces=["application/json"],
 )
 class StudiesResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "review_id": {
@@ -266,6 +265,7 @@ class StudiesResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(
         self,
         review_id,
@@ -282,7 +282,7 @@ class StudiesResource(Resource):
         per_page,
     ):
         """get study record(s) for one or more matching studies"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")

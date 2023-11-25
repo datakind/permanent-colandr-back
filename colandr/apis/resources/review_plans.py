@@ -1,6 +1,6 @@
 import warnings
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -29,8 +29,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class ReviewPlanResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -57,9 +55,10 @@ class ReviewPlanResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get review plan record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -102,9 +101,10 @@ class ReviewPlanResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id, fields):
         """delete review plan record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -162,9 +162,10 @@ class ReviewPlanResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def put(self, args, id, fields):
         """modify review plan record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
