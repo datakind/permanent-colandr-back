@@ -342,3 +342,12 @@ def get_user_from_token(token: str) -> Optional[User]:
     user_id = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
     user = db.session.get(User, user_id)
     return user
+
+
+def pack_header_for_user(user) -> dict[str, str]:
+    """
+    Create an access token for ``user`` and pack it into a suitable header dict.
+    """
+    token = jwtext.create_access_token(identity=user)
+    header_key = f"{current_app.config['JWT_HEADER_TYPE']} {token}"
+    return {current_app.config["JWT_HEADER_NAME"]: header_key}
