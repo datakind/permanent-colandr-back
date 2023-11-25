@@ -22,7 +22,6 @@ ns = Namespace("exports", path="/export", description="export data")
 @ns.route("/studies")
 @ns.doc(summary="export studies data")
 class ExportStudiesResource(Resource):
-
     @ns.doc(
         description="export studies data",
         responses={
@@ -173,7 +172,6 @@ def _study_to_row(
 @ns.route("/screenings")
 @ns.doc(summary="export screenings data")
 class ExportScreeningsResource(Resource):
-
     @ns.doc(
         description="export screenings data",
         responses={
