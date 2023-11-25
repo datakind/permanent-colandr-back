@@ -2,6 +2,7 @@ import itertools
 import logging
 
 import sqlalchemy as sa
+import werkzeug.security
 from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -40,7 +41,7 @@ class User(db.Model):
     )
     name = sa.Column(sa.String(length=200), nullable=False)
     email = sa.Column(sa.String(length=200), unique=True, nullable=False, index=True)
-    password = sa.Column(sa.String(length=256), nullable=False)
+    _password = sa.Column("password", sa.String(length=256), nullable=False)
     is_confirmed = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
     is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
 
@@ -68,6 +69,16 @@ class User(db.Model):
         return f"<User(id={self.id})>"
 
     @property
+    def password(self):
+        """User's (automatically hashed) password."""
+        return self._password
+
+    @password.setter
+    def password(self, value):
+        """Hash and set user password."""
+        self._password = self.hash_password(value)
+
+    @property
     def identity(self):
         """Unique id of the user instance, required by ``flask-praetorian`` ."""
         return self.id
@@ -81,14 +92,15 @@ class User(db.Model):
         else:
             return ["user"]
 
-    # NOTE: user model already has a password attribute! so we don't need this here
-    # @property
-    # def password(self):
-    #     """Hashed password assigned to the user instance, required by ``flask-praetorian`` ."""
-    #     return self.password
+    def check_password(self, password: str) -> bool:
+        return werkzeug.security.check_password_hash(self._password, password)
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return werkzeug.security.generate_password_hash(password, method="pbkdf2")
 
     @classmethod
-    def lookup(cls, username):
+    def lookup(cls, username) -> "User":
         """
         Look up user in db with given ``username`` (stored as "email" in the db)
         and return it, or None if not found, required by ``flask-praetorian`` .
