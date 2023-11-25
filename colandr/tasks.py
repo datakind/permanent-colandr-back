@@ -36,7 +36,7 @@ def _get_redis_conn() -> redis.client.Redis:
 @shared_task
 def send_email(recipients, subject, text_body, html_body):
     msg = Message(
-        subject=current_app.config["MAIL_SUBJECT_PREFIX"] + " " + subject,
+        subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} {subject}",
         sender=current_app.config["MAIL_DEFAULT_SENDER"],
         recipients=recipients,
         body=text_body,
