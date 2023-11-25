@@ -1,5 +1,5 @@
 import flask
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app, render_template
 from flask_restx import Namespace, Resource
@@ -9,9 +9,10 @@ from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
 from ... import tasks
-from ...extensions import db, guard
+from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
+from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 
@@ -27,8 +28,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class ReviewTeamResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -55,9 +54,10 @@ class ReviewTeamResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get members of a single review's team"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -132,9 +132,10 @@ class ReviewTeamResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required(fresh=True)
     def put(self, id, action, user_id, user_email, server_name):
         """add, invite, remove, or promote a review team member"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -168,7 +169,7 @@ class ReviewTeamResource(Resource):
             if user is None:
                 return not_found_error("no user found with given id or email")
             else:
-                token = guard.encode_jwt_token(user, bypass_user_check=False)
+                token = jwtext.create_access_token(identity=user)
                 confirm_url = flask.url_for(
                     "review_teams_confirm_review_team_invite_resource",
                     id=id,
@@ -247,11 +248,10 @@ class ConfirmReviewTeamInviteResource(Resource):
             return not_found_error(f"<Review(id={id})> not found")
         review_users = review.users
 
-        data = guard.extract_jwt_token(token)
-        user_id = data.get("id")
-        user = db.session.get(User, user_id)
+        user = auth.get_user_from_token(token)
         if user is None:
-            return forbidden_error("user not found")
+            return not_found_error(f"no user found for token='{token}'")
+
         if user not in review_users:
             review_users.append(user)
         else:
