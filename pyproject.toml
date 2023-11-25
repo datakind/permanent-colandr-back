@@ -49,6 +49,7 @@ dependencies = [
   "sqlalchemy~=1.4",           # TODO: update this once all usage updated to future-style
   "textacy~=0.13.0",
   "webargs~=8.0",
+  "werkzeug",
 ]
 
 [project.optional-dependencies]
