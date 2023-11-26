@@ -69,7 +69,28 @@ class LoginResource(Resource):
         return {"access_token": access_token, "refresh_token": refresh_token}
 
 
-# TODO: logout, including jwt revokation
+@ns.route(
+    "/logout",
+    doc={
+        "summary": "logout user by revoking given JWT token",
+        "produces": ["application/json"],
+    },
+)
+class LogoutResource(Resource):
+    @jwtext.jwt_required(verify_type=False)
+    def delete(self):
+        """
+        Log a user out by revoking the given JWT token.
+
+        .. example::
+        $ curl http://localhost:5000/api/auth/logout -X DELETE \
+            -H "Authorization: Bearer <your_token>"
+        """
+        current_user = jwtext.get_current_user()
+        jwt_data = jwtext.get_jwt()
+        token = jwt_data["jti"]
+        JWT_BLOCKLIST.add(token)
+        return ({"message": f"{current_user} successfully logged out"}, 200)
 
 
 @ns.route(
