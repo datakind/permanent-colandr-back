@@ -162,11 +162,13 @@ class RegisterResource(Resource):
         current_app.logger.info("%s successfully registered", user)
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = url_for("auth_confirm_registration_resource", _external=True)
+        confirm_url = url_for(
+            "auth_confirm_registration_resource", token=access_token, _external=True
+        )
         html = render_template(
             "emails/user_registration.html",
-            action_uri=confirm_url,
-            token=access_token,
+            url=confirm_url,
+            name=user.name,
         )
         if current_app.config["MAIL_SERVER"]:
             tasks.send_email.apply_async(
@@ -252,12 +254,14 @@ class ResetPasswordResource(Resource):
         else:
             access_token = jwtext.create_access_token(identity=user, fresh=False)
             confirm_url = url_for(
-                "auth_confirm_reset_password_resource", _external=True
+                "auth_confirm_reset_password_resource",
+                token=access_token,
+                _external=True,
             )
             html = render_template(
                 "emails/password_reset.html",
-                action_uri=confirm_url,
-                token=access_token,
+                url=confirm_url,
+                name=user.name,
             )
             if current_app.config["MAIL_SERVER"]:
                 tasks.send_email.apply_async(
