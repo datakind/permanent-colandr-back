@@ -78,49 +78,12 @@ class User(db.Model):
         """Hash and set user password."""
         self._password = self.hash_password(value)
 
-    @property
-    def identity(self):
-        """Unique id of the user instance, required by ``flask-praetorian`` ."""
-        return self.id
-
-    @property
-    def rolenames(self):
-        """Names of roles attached to the user instance, required by ``flask-praetorian`` ."""
-        # TODO: actually implement user roles for real in the db model?
-        if self.is_admin is True:
-            return ["user", "admin"]
-        else:
-            return ["user"]
-
     def check_password(self, password: str) -> bool:
         return werkzeug.security.check_password_hash(self._password, password)
 
     @staticmethod
     def hash_password(password: str) -> str:
         return werkzeug.security.generate_password_hash(password, method="pbkdf2")
-
-    @classmethod
-    def lookup(cls, username) -> "User":
-        """
-        Look up user in db with given ``username`` (stored as "email" in the db)
-        and return it, or None if not found, required by ``flask-praetorian`` .
-        """
-        return db.session.execute(
-            sa.select(cls).filter_by(email=username)
-        ).scalar_one_or_none()
-
-    @classmethod
-    def identify(cls, id):
-        """
-        Identify a single user by their ``id`` and return their user instance,
-        or None if not found, required by ``flask-praetorian`` .
-        """
-        return db.session.get(cls, id)
-
-    # TODO: figure out if flask praetorian needs this / how uses this
-    def is_valid(self):
-        # return self.is_confirmed
-        return True
 
 
 class DataSource(db.Model):

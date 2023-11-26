@@ -2,6 +2,7 @@ import functools
 from typing import Optional
 
 import flask_jwt_extended as jwtext
+import sqlalchemy as sa
 from flask import current_app, render_template, url_for
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -147,7 +148,10 @@ class RegisterResource(Resource):
                 "password":"PASSWORD" \
             }'
         """
-        if User.lookup(args["email"]) is not None:
+        existing_user = db.session.execute(
+            sa.select(User).filter_by(email=args["email"])
+        ).scalar_one_or_none()
+        if existing_user is not None:
             return db_integrity_error(
                 f"email={args['email']} already assigned to user in database"
             )
@@ -237,7 +241,9 @@ class ResetPasswordResource(Resource):
         location="query",
     )
     def post(self, email):
-        user = User.lookup(email)
+        user = db.session.execute(
+            sa.select(User).filter_by(email=email)
+        ).scalar_one_or_none()
         if user is None:
             current_app.logger.warning(
                 "password reset submitted with email='%s', but no such user exists",
@@ -357,7 +363,9 @@ def authenticate_user(email: str, password: str) -> User:
     Verify that password matches the stored password for specified user email;
     if credentials are valid, the corresponding user instance is returned.
     """
-    user = User.lookup(email)
+    user = db.session.execute(
+        sa.select(User).filter_by(email=email)
+    ).scalar_one_or_none()
     if user is None or user.check_password(password) is False:
         raise ValueError("invalid user email or password")
     else:

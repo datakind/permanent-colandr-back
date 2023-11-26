@@ -5,7 +5,7 @@ from typing import Any, Optional
 import flask
 import flask.logging
 
-from colandr import cli, config, errors, extensions, models
+from colandr import cli, config, errors, extensions
 from colandr.apis import api_v1
 
 
