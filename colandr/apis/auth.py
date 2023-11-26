@@ -25,6 +25,8 @@ ns = Namespace(
     ),
 )
 
+JWT_BLOCKLIST = set()  # TODO: we should really use redis for this ...
+
 
 @ns.route(
     "/login",
@@ -288,18 +290,29 @@ def user_identity_loader(user: User):
 
 
 @jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data) -> User:
+def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
     """
     Callback function that loads a user from the database by its identity (id)
     whenever a protected API route is accessed.
     """
     identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    return db.session.get(User, identity)
+    user = db.session.get(User, identity)
+    return user
 
 
 @jwt.additional_claims_loader
 def additional_claims_loader(user: User) -> dict:
     return {"is_admin": user.is_admin}
+
+
+@jwt.token_in_blocklist_loader
+def token_in_blocklist_loader(jwt_header, jwt_data: dict) -> bool:
+    """
+    Callback function that checks if a JWT is in the blocklist, i.e. has been revoked.
+    """
+    token = jwt_data["jti"]
+    token_in_blocklist = token in JWT_BLOCKLIST
+    return token_in_blocklist
 
 
 def jwt_admin_required():
