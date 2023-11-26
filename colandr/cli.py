@@ -8,8 +8,8 @@ import alembic.config
 import click
 from flask import Blueprint, current_app
 
-from colandr import extensions, models
-from colandr.extensions import db, guard
+from colandr import models
+from colandr.extensions import db
 from colandr.models import User
 
 

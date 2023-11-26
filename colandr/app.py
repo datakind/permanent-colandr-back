@@ -46,7 +46,6 @@ def _register_extensions(app: flask.Flask) -> None:
     with app.app_context():
         extensions.cache.clear()
     extensions.db.init_app(app)
-    extensions.guard.init_app(app, user_class=models.User)
     extensions.jwt.init_app(app)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)

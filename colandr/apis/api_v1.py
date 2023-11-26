@@ -1,4 +1,3 @@
-import flask_praetorian
 from flask_restx import Api
 
 from .auth import ns as ns_auth
@@ -38,9 +37,6 @@ api_v1 = Api(
     },
     security="api_key",
 )
-
-# this is a built-in hack!
-flask_praetorian.PraetorianError.register_error_handler_with_flask_restx(api_v1)
 
 api_v1.add_namespace(ns_auth)
 api_v1.add_namespace(ns_errors)
