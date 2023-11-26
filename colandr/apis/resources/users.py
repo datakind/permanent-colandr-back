@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -9,9 +9,10 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ...extensions import db, guard
+from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
+from .. import auth
 from ..errors import db_integrity_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
@@ -26,8 +27,6 @@ ns = Namespace("users", path="/users", description="get, create, delete, update 
     produces=["application/json"],
 )
 class UserResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -54,9 +53,10 @@ class UserResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get record for a single user by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if (
             current_user.is_admin is False
             and id != current_user.id
@@ -90,9 +90,10 @@ class UserResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete record for a single user by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to delete this user")
         user = db.session.get(User, id)
@@ -120,9 +121,10 @@ class UserResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def put(self, args, id):
         """modify record for a single user by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if current_user.is_admin is False and id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to update this user")
         user = db.session.get(User, id)
@@ -131,8 +133,6 @@ class UserResource(Resource):
         for key, value in args.items():
             if key is missing:
                 continue
-            elif key == "password":
-                setattr(user, key, guard.hash_password(value))
             else:
                 if key == "email":
                     current_app.logger.warning(
@@ -159,8 +159,6 @@ class UserResource(Resource):
     produces=["application/json"],
 )
 class UsersResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "email": {
@@ -189,9 +187,10 @@ class UsersResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, email, review_id):
         """get user record(s) for one or more matching users"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if email:
             user = db.session.execute(
                 sa.select(User).filter_by(email=email)
@@ -222,13 +221,10 @@ class UsersResource(Resource):
         },
     )
     @use_args(UserSchema(), location="json")
+    @auth.jwt_admin_required()
     def post(self, args):
         """create new user (ADMIN ONLY)"""
-        current_user = flask_praetorian.current_user()
-        if current_user.is_admin is False:
-            return forbidden_error("UsersResource.post is admin-only")
         user = User(**args)
-        user.password = guard.hash_password(user.password)
         user.is_confirmed = True
         db.session.add(user)
         try:

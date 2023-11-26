@@ -1,7 +1,8 @@
 import flask
 import pytest
 
-from colandr import extensions, models
+from colandr import models
+from colandr.apis import auth
 
 
 def test_api_path(client, admin_headers):
@@ -109,7 +110,7 @@ class TestUserResource:
         assert response.status_code == 403
         # now we check it
         user = db_session.get(models.User, id_)
-        user_headers = extensions.guard.pack_header_for_user(user)
+        user_headers = auth.pack_header_for_user(user)
         flask.g.current_user = user
         response = client.delete(url, headers=user_headers)
         assert response.status_code == 204
@@ -142,7 +143,7 @@ class TestUserResource:
 
         # only admin or user can modify themself
         user = db_session.get(models.User, id_)
-        user_headers = extensions.guard.pack_header_for_user(user)
+        user_headers = auth.pack_header_for_user(user)
         for u, uheaders in [(user, user_headers), (admin_user, admin_headers)]:
             flask.g.current_user = u
             response = client.put(url, json=params, headers=uheaders)

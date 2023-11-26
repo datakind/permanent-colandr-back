@@ -1,3 +1,4 @@
+import datetime
 import os
 
 from dotenv import load_dotenv
@@ -53,8 +54,14 @@ CACHE_TYPE = "SimpleCache"
 # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
 # api auth keys config
-JWT_ACCESS_LIFESPAN = {"hours": 3}
-JWT_REFRESH_LIFESPAN = {"days": 7}
+JWT_SECRET_KEY = os.environ.get("COLANDR_JWT_SECRET_KEY")
+JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=3)
+JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=7)
+JWT_TOKEN_LOCATION = "headers"
+# configure auth header structure: "{JWT_HEADER_NAME}: {JWT_HEADER_TYPE} {JWT}"
+JWT_HEADER_NAME = "Authorization"
+JWT_HEADER_TYPE = "Bearer"
+PROPAGATE_EXCEPTIONS = True  # may be needed for error handlers to work
 
 # email server config
 MAIL_SERVER = os.environ.get("COLANDR_MAIL_SERVER")

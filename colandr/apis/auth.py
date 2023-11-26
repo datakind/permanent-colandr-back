@@ -1,13 +1,18 @@
+import functools
+from typing import Optional
+
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
-from flask import current_app, jsonify, url_for
+from flask import current_app, render_template, url_for
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email
 from webargs.flaskparser import use_args, use_kwargs
 
-from ..extensions import db, guard
+from .. import tasks
+from ..extensions import db, jwt
 from ..models import User
-from .errors import forbidden_error, not_found_error
+from .errors import db_integrity_error, forbidden_error, not_found_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
 
@@ -20,6 +25,8 @@ ns = Namespace(
         "issue/refresh API tokens, and handle password reset requests"
     ),
 )
+
+JWT_BLOCKLIST = set()  # TODO: we should really use redis for this ...
 
 
 @ns.route(
@@ -57,9 +64,34 @@ class LoginResource(Resource):
         $ curl http://localhost:5000/api/auth/login -X POST \
             -d '{"email":"foo@gmail.com","password":"PASSWORD"}'
         """
-        user = guard.authenticate(email, password)
-        ret = {"access_token": guard.encode_jwt_token(user)}
-        return jsonify(ret)
+        user = authenticate_user(email, password)
+        access_token = jwtext.create_access_token(identity=user, fresh=True)
+        refresh_token = jwtext.create_refresh_token(identity=user)
+        return {"access_token": access_token, "refresh_token": refresh_token}
+
+
+@ns.route(
+    "/logout",
+    doc={
+        "summary": "logout user by revoking given JWT token",
+        "produces": ["application/json"],
+    },
+)
+class LogoutResource(Resource):
+    @jwtext.jwt_required(verify_type=False)
+    def delete(self):
+        """
+        Log a user out by revoking the given JWT token.
+
+        .. example::
+        $ curl http://localhost:5000/api/auth/logout -X DELETE \
+            -H "Authorization: Bearer <your_token>"
+        """
+        current_user = jwtext.get_current_user()
+        jwt_data = jwtext.get_jwt()
+        token = jwt_data["jti"]
+        JWT_BLOCKLIST.add(token)
+        return ({"message": f"{current_user} successfully logged out"}, 200)
 
 
 @ns.route(
@@ -75,6 +107,7 @@ class LoginResource(Resource):
 )
 class RefreshTokenResource(Resource):
     @ns.doc()
+    @jwtext.jwt_required(refresh=True)
     def get(self):
         """
         Refresh an existing token by creating a new copy of the old one
@@ -84,10 +117,9 @@ class RefreshTokenResource(Resource):
         $ curl http://localhost:5000/api/auth/refresh -X GET \
             -H "Authorization: Bearer <your_token>"
         """
-        old_token = guard.read_token_from_header()
-        new_token = guard.refresh_jwt_token(old_token)
-        ret = {"access_token": new_token}
-        return jsonify(ret)
+        user = jwtext.get_current_user()
+        access_token = jwtext.create_access_token(identity=user, fresh=False)
+        return {"access_token": access_token}
 
 
 @ns.route(
@@ -116,33 +148,35 @@ class RegisterResource(Resource):
                 "password":"PASSWORD" \
             }'
         """
+        existing_user = db.session.execute(
+            sa.select(User).filter_by(email=args["email"])
+        ).scalar_one_or_none()
+        if existing_user is not None:
+            return db_integrity_error(
+                f"email={args['email']} already assigned to user in database"
+            )
+
         user = User(**args)
-        user.password = guard.hash_password(user.password)
-        confirm_url = url_for("auth_confirm_registration_resource", _external=True)
-        # NOTE: flask-praetorian passes confirm uri and token into template separately
-        # so we're obliged to follow suit in our email template's href
-        # if we move away from flask-praetorian, it might make more sense
-        # to pass the token into url_for() above as a kwarg
-        # also, while we're chatting: flask-praetorian is really limiting in what
-        # we can interpolate into an email; this is bad, and we should move away from it
-        template_fpath = "templates/emails/user_registration.html"
-        with current_app.open_resource(template_fpath, mode="r") as f:
-            template = f.read()
-        current_app.logger.warning("template = %s", template)
         db.session.add(user)
         db.session.commit()
-        if current_app.config["MAIL_SERVER"]:
-            guard.send_registration_email(
-                user.email,
-                user=user,
-                template=template,
-                confirmation_uri=confirm_url,
-                confirmation_sender=current_app.config["MAIL_DEFAULT_SENDER"],
-                subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Confirm your registration",
-            )
-        current_app.logger.info(
-            "successfully sent registration email to %s", user.email
+        current_app.logger.info("%s successfully registered", user)
+
+        access_token = jwtext.create_access_token(identity=user, fresh=True)
+        confirm_url = url_for(
+            "auth_confirm_registration_resource", token=access_token, _external=True
         )
+        html = render_template(
+            "emails/user_registration.html",
+            url=confirm_url,
+            name=user.name,
+        )
+        if current_app.config["MAIL_SERVER"]:
+            tasks.send_email.apply_async(
+                args=[[user.email], "Confirm your registration", "", html]
+            )
+            current_app.logger.info(
+                "successfully sent registration email to %s", user.email
+            )
         return UserSchema().dump(user)
 
 
@@ -168,11 +202,13 @@ class ConfirmRegistrationResource(Resource):
         .. example::
         $ curl http://localhost:5000/api/auth/confirm?token=<TOKEN> -X GET
         """
-        user = guard.get_user_from_registration_token(token)
+        user = get_user_from_token(token)
+        if user is None:
+            return not_found_error(f"no user found for token='{token}'")
         user.is_confirmed = True
         db.session.commit()
-        ret = {"access_token": guard.encode_jwt_token(user)}
-        return jsonify(ret)
+        access_token = jwtext.create_access_token(identity=user)
+        return {"access_token": access_token}
 
 
 @ns.route(
@@ -216,19 +252,20 @@ class ResetPasswordResource(Resource):
                 email,
             )
         else:
+            access_token = jwtext.create_access_token(identity=user, fresh=False)
             confirm_url = url_for(
-                "auth_confirm_reset_password_resource", _external=True
+                "auth_confirm_reset_password_resource",
+                token=access_token,
+                _external=True,
             )
-            template_fpath = "templates/emails/password_reset.html"
-            with current_app.open_resource(template_fpath, mode="r") as f:
-                template = f.read()
+            html = render_template(
+                "emails/password_reset.html",
+                url=confirm_url,
+                name=user.name,
+            )
             if current_app.config["MAIL_SERVER"]:
-                guard.send_reset_email(
-                    user.email,
-                    template=template,
-                    reset_uri=confirm_url,
-                    reset_sender=current_app.config["MAIL_DEFAULT_SENDER"],
-                    subject=f"{current_app.config['MAIL_SUBJECT_PREFIX']} Reset your password",
+                tasks.send_email.apply_async(
+                    args=[[user.email], "Reset your password", "", html]
                 )
 
 
@@ -260,7 +297,7 @@ class ConfirmResetPasswordResource(Resource):
     @use_kwargs({"token": ma_fields.Str(required=True)}, location="query")
     def put(self, args, token):
         """confirm a user's password reset via emailed token"""
-        user = guard.validate_reset_token(token)
+        user = get_user_from_token(token)
         if user is None:
             return not_found_error(f"no user found for token='{token}'")
         elif user.is_confirmed is False:
@@ -268,6 +305,95 @@ class ConfirmResetPasswordResource(Resource):
                 "user not confirmed! please first confirm your email address."
             )
         current_app.logger.info("password reset confirmed by %s", user.email)
-        user.password = guard.hash_password(args["password"])
+        user.password = args["password"]
         db.session.commit()
         return UserSchema().dump(user)
+
+
+@jwt.user_identity_loader
+def user_identity_loader(user: User):
+    """
+    Callback function that takes the ``User`` passed in as the "identity"
+    when creating JWTs and returns it in JSON serializable format,
+    i.e. as the corresponding unique integer ``User.id`` .
+    """
+    return user.id
+
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
+    """
+    Callback function that loads a user from the database by its identity (id)
+    whenever a protected API route is accessed.
+    """
+    identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
+    user = db.session.get(User, identity)
+    return user
+
+
+@jwt.additional_claims_loader
+def additional_claims_loader(user: User) -> dict:
+    return {"is_admin": user.is_admin}
+
+
+@jwt.token_in_blocklist_loader
+def token_in_blocklist_loader(jwt_header, jwt_data: dict) -> bool:
+    """
+    Callback function that checks if a JWT is in the blocklist, i.e. has been revoked.
+    """
+    token = jwt_data["jti"]
+    token_in_blocklist = token in JWT_BLOCKLIST
+    return token_in_blocklist
+
+
+def jwt_admin_required():
+    def wrapper(fn):
+        @functools.wraps(fn)
+        def decorator(*args, **kwargs):
+            jwtext.verify_jwt_in_request()
+            jwt_data = jwtext.get_jwt()
+            if jwt_data["is_admin"]:
+                return fn(*args, **kwargs)
+            else:
+                return ({"msg": "this endpoint is for admin users only"}, 403)
+
+        return decorator
+
+    return wrapper
+
+
+def authenticate_user(email: str, password: str) -> User:
+    """
+    Verify that password matches the stored password for specified user email;
+    if credentials are valid, the corresponding user instance is returned.
+    """
+    user = db.session.execute(
+        sa.select(User).filter_by(email=email)
+    ).scalar_one_or_none()
+    if user is None or user.check_password(password) is False:
+        raise ValueError("invalid user email or password")
+    else:
+        current_app.logger.info(
+            "%s successfully authenticated using email='%s'", user, email
+        )
+        return user
+
+
+def get_user_from_token(token: str) -> Optional[User]:
+    """
+    Get a ``User`` from the identity stored in an encoded, unexpired JWT token,
+    if it exists in the database; otherwise, return None.
+    """
+    jwt_data = jwtext.decode_token(token, allow_expired=False)
+    user_id = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
+    user = db.session.get(User, user_id)
+    return user
+
+
+def pack_header_for_user(user) -> dict[str, str]:
+    """
+    Create an access token for ``user`` and pack it into a suitable header dict.
+    """
+    token = jwtext.create_access_token(identity=user, fresh=True)
+    header_key = f"{current_app.config['JWT_HEADER_TYPE']} {token}"
+    return {current_app.config["JWT_HEADER_NAME"]: header_key}

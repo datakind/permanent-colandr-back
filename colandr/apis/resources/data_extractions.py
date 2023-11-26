@@ -1,5 +1,5 @@
 import arrow
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -29,8 +29,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class DataExtractionResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         responses={
             200: "successfully got data extraction record",
@@ -46,9 +44,10 @@ class DataExtractionResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def get(self, id):
         """get data extraction record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
@@ -95,9 +94,10 @@ class DataExtractionResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id, labels):
         """delete data extraction record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
         if not extracted_data:
@@ -142,9 +142,10 @@ class DataExtractionResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def put(self, args, id):
         """modify data extraction record for a single study by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
         review_id = extracted_data.review_id

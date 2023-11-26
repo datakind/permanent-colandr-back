@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -28,8 +28,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class CitationResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -56,9 +54,10 @@ class CitationResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get record for a single citation by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
@@ -88,9 +87,10 @@ class CitationResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete record for a single citation by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
@@ -122,9 +122,10 @@ class CitationResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def put(self, args, id):
         """modify record for a single citation by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         citation = db.session.get(Citation, id)
         if not citation:
             return not_found_error(f"<Citation(id={id})> not found")
@@ -150,8 +151,6 @@ class CitationResource(Resource):
     produces=["application/json"],
 )
 class CitationsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "review_id": {
@@ -211,9 +210,10 @@ class CitationsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def post(self, args, review_id, source_type, source_name, source_url, status):
         """create a single citation"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")

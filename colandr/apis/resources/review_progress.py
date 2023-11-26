@@ -1,4 +1,4 @@
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -25,8 +25,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class ReviewProgressResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "step": {
@@ -81,9 +79,10 @@ class ReviewProgressResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, step, user_view):
         """get review progress on one or all steps for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         response = {}
         review = db.session.get(Review, id)
         if not review:

@@ -5,7 +5,7 @@ from typing import Any, Optional
 import flask
 import flask.logging
 
-from colandr import cli, config, errors, extensions, models
+from colandr import cli, config, errors, extensions
 from colandr.apis import api_v1
 
 
@@ -46,7 +46,7 @@ def _register_extensions(app: flask.Flask) -> None:
     with app.app_context():
         extensions.cache.clear()
     extensions.db.init_app(app)
-    extensions.guard.init_app(app, user_class=models.User)
+    extensions.jwt.init_app(app)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
     api_v1.init_app(app)

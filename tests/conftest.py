@@ -8,6 +8,7 @@ import flask_sqlalchemy
 import pytest
 
 from colandr import cli, extensions, models
+from colandr.apis import auth
 from colandr.app import create_app
 
 
@@ -105,4 +106,4 @@ def admin_user(db: flask_sqlalchemy.SQLAlchemy):
 
 @pytest.fixture
 def admin_headers(admin_user: models.User):
-    return extensions.guard.pack_header_for_user(admin_user)
+    return auth.pack_header_for_user(admin_user)

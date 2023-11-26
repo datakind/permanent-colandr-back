@@ -1,7 +1,7 @@
 import os
 import shutil
 
-import flask_praetorian
+import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
@@ -30,8 +30,6 @@ ns = Namespace(
     produces=["application/json"],
 )
 class ReviewResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -58,9 +56,10 @@ class ReviewResource(Resource):
         {"fields": DelimitedList(ma_fields.String, delimiter=",", load_default=None)},
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, id, fields):
         """get record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -89,9 +88,10 @@ class ReviewResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         """delete record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -126,9 +126,10 @@ class ReviewResource(Resource):
         },
         location="view_args",
     )
+    @jwtext.jwt_required()
     def put(self, args, id):
         """modify record for a single review by id"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
@@ -150,8 +151,6 @@ class ReviewResource(Resource):
     produces=["application/json"],
 )
 class ReviewsResource(Resource):
-    method_decorators = [flask_praetorian.auth_required]
-
     @ns.doc(
         params={
             "fields": {
@@ -179,9 +178,10 @@ class ReviewsResource(Resource):
         },
         location="query",
     )
+    @jwtext.jwt_required()
     def get(self, fields, _review_ids):
         """get all reviews on which current app user is a collaborator"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         if current_user.is_admin is True and _review_ids is not None:
             reviews = (
                 db.session.execute(sa.select(Review).filter(Review.id.in_(_review_ids)))
@@ -203,9 +203,10 @@ class ReviewsResource(Resource):
         responses={200: "review was created"},
     )
     @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
+    @jwtext.jwt_required()
     def post(self, args):
         """create new review"""
-        current_user = flask_praetorian.current_user()
+        current_user = jwtext.get_current_user()
         name = args.pop("name")
         review = Review(name, current_user.id, **args)
         current_user.owned_reviews.append(review)
