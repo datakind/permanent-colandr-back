@@ -27,7 +27,6 @@ dependencies = [
   "flask-jwt-extended~=4.5.0",
   "flask_mail>=0.9.1",         # TODO: this package is dead, we should replace it
   "flask_migrate~=4.0.0",
-  "flask-praetorian~=1.4.0",
   "flask_sqlalchemy~=3.0.0",
   "flask-restx~=1.2.0",
   "ftfy~=6.0",
