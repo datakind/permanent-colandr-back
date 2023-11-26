@@ -101,7 +101,7 @@ class UserResource(Resource):
             return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
         db.session.commit()
-        current_app.logger.info("deleted %s", user)
+        current_app.logger.info("%s deleted %s", current_user, user)
         return "", 204
 
     @ns.doc(
@@ -145,7 +145,9 @@ class UserResource(Resource):
                 setattr(user, key, value)
         try:
             db.session.commit()
-            current_app.logger.info("modified %s", user)
+            current_app.logger.info(
+                "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
+            )
         except (IntegrityError, InvalidRequestError) as e:
             current_app.logger.exception("%s: unexpected db error", "UserResource.put")
             db.session.rollback()
