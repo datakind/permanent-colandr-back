@@ -348,6 +348,6 @@ def pack_header_for_user(user) -> dict[str, str]:
     """
     Create an access token for ``user`` and pack it into a suitable header dict.
     """
-    token = jwtext.create_access_token(identity=user)
+    token = jwtext.create_access_token(identity=user, fresh=True)
     header_key = f"{current_app.config['JWT_HEADER_TYPE']} {token}"
     return {current_app.config["JWT_HEADER_NAME"]: header_key}
