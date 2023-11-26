@@ -67,6 +67,7 @@ class LoginResource(Resource):
         user = authenticate_user(email, password)
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
+        current_app.logger.info("%s logged in", user)
         return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -91,7 +92,8 @@ class LogoutResource(Resource):
         jwt_data = jwtext.get_jwt()
         token = jwt_data["jti"]
         JWT_BLOCKLIST.add(token)
-        return ({"message": f"{current_user} successfully logged out"}, 200)
+        current_app.logger.info("%s logged out", current_user)
+        return {"message": f"{current_user} logged out"}
 
 
 @ns.route(
@@ -117,8 +119,9 @@ class RefreshTokenResource(Resource):
         $ curl http://localhost:5000/api/auth/refresh -X GET \
             -H "Authorization: Bearer <your_token>"
         """
-        user = jwtext.get_current_user()
-        access_token = jwtext.create_access_token(identity=user, fresh=False)
+        current_user = jwtext.get_current_user()
+        access_token = jwtext.create_access_token(identity=current_user, fresh=False)
+        current_app.logger.debug("%s refreshed JWT access token", current_user)
         return {"access_token": access_token}
 
 
@@ -174,9 +177,8 @@ class RegisterResource(Resource):
             tasks.send_email.apply_async(
                 args=[[user.email], "Confirm your registration", "", html]
             )
-            current_app.logger.info(
-                "successfully sent registration email to %s", user.email
-            )
+            current_app.logger.info("registration email sent to %s", user.email)
+        current_app.logger.info("registration submitted for %s", user)
         return UserSchema().dump(user)
 
 
@@ -208,6 +210,7 @@ class ConfirmRegistrationResource(Resource):
         user.is_confirmed = True
         db.session.commit()
         access_token = jwtext.create_access_token(identity=user)
+        current_app.logger.info("%s confirmed registration", user)
         return {"access_token": access_token}
 
 
@@ -267,6 +270,8 @@ class ResetPasswordResource(Resource):
                 tasks.send_email.apply_async(
                     args=[[user.email], "Reset your password", "", html]
                 )
+                current_app.logger.info("password reset email sent to %s", user.email)
+            current_app.logger.info("password reset submitted by %s", user)
 
 
 @ns.route(
@@ -304,7 +309,7 @@ class ConfirmResetPasswordResource(Resource):
             return forbidden_error(
                 "user not confirmed! please first confirm your email address."
             )
-        current_app.logger.info("password reset confirmed by %s", user.email)
+        current_app.logger.info("password reset confirmed for %s", user)
         user.password = args["password"]
         db.session.commit()
         return UserSchema().dump(user)
@@ -372,11 +377,7 @@ def authenticate_user(email: str, password: str) -> User:
     ).scalar_one_or_none()
     if user is None or user.check_password(password) is False:
         raise ValueError("invalid user email or password")
-    else:
-        current_app.logger.info(
-            "%s successfully authenticated using email='%s'", user, email
-        )
-        return user
+    return user
 
 
 def get_user_from_token(token: str) -> Optional[User]:
