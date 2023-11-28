@@ -86,49 +86,6 @@ class User(db.Model):
         return werkzeug.security.generate_password_hash(password, method="pbkdf2")
 
 
-class DataSource(db.Model):
-    __tablename__ = "data_sources"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "source_type", "source_name", name="source_type_source_name_uc"
-        ),
-    )
-
-    # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
-        sa.DateTime(timezone=False),
-        nullable=False,
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-    )
-    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
-    source_name = sa.Column(sa.String(length=100), index=True)
-    source_url = sa.Column(sa.String(length=500))
-
-    @hybrid_property
-    def source_type_and_name(self):
-        if self.source_name:
-            return f"{self.source_type}: {self.source_name}"
-        else:
-            return self.source_type
-
-    # relationships
-    imports = db.relationship(
-        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
-    )
-    studies = db.relationship(
-        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
-    )
-
-    def __init__(self, source_type, source_name=None, source_url=None):
-        self.source_type = source_type
-        self.source_name = source_name
-        self.source_url = source_url
-
-    def __repr__(self):
-        return f"<DataSource(id={self.id})>"
-
-
 class Review(db.Model):
     __tablename__ = "reviews"
 
@@ -288,6 +245,49 @@ class ReviewPlan(db.Model):
 
     def __repr__(self):
         return f"<ReviewPlan(review_id={self.id})>"
+
+
+class DataSource(db.Model):
+    __tablename__ = "data_sources"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "source_type", "source_name", name="source_type_source_name_uc"
+        ),
+    )
+
+    # columns
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
+    source_name = sa.Column(sa.String(length=100), index=True)
+    source_url = sa.Column(sa.String(length=500))
+
+    @hybrid_property
+    def source_type_and_name(self):
+        if self.source_name:
+            return f"{self.source_type}: {self.source_name}"
+        else:
+            return self.source_type
+
+    # relationships
+    imports = db.relationship(
+        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    )
+    studies = db.relationship(
+        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    )
+
+    def __init__(self, source_type, source_name=None, source_url=None):
+        self.source_type = source_type
+        self.source_name = source_name
+        self.source_url = source_url
+
+    def __repr__(self):
+        return f"<DataSource(id={self.id})>"
 
 
 class Import(db.Model):
