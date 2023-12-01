@@ -5,6 +5,7 @@ import sqlalchemy as sa
 import werkzeug.security
 from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
 # from . import tasks  # do this once circular import issue gets fixed
@@ -13,14 +14,6 @@ from .extensions import db
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-# association table for users-reviews many-to-many relationship
-users_reviews = db.Table(
-    "users_to_reviews",
-    sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id"), index=True),
-    sa.Column("review_id", sa.Integer, sa.ForeignKey("reviews.id"), index=True),
-)
 
 
 class User(db.Model):
@@ -46,12 +39,9 @@ class User(db.Model):
     is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
 
     # relationships
-    owned_reviews = db.relationship(
-        "Review", back_populates="owner", lazy="dynamic", passive_deletes=True
-    )
-    reviews = db.relationship(
-        "Review", secondary=users_reviews, back_populates="users", lazy="dynamic"
-    )
+    review_users = db.relationship("ReviewUserAssoc", back_populates="user")
+    reviews = association_proxy("review_users", "review")
+
     imports = db.relationship(
         "Import", back_populates="user", lazy="dynamic", passive_deletes=True
     )
@@ -67,6 +57,16 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User(id={self.id})>"
+
+    @property
+    def owned_reviews(self) -> list["Review"]:
+        # return [ru.review for ru in self.review_users if ru.user_role == "owner"]
+        return [
+            ru.review
+            for ru in db.session.query(User).filter(
+                User.review_users.has(ReviewUserAssoc.user_role == "owner")
+            )
+        ]
 
     @property
     def password(self):
@@ -102,12 +102,6 @@ class Review(db.Model):
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    owner_user_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
     name = sa.Column(sa.String(length=500), nullable=False)
     description = sa.Column(sa.Text)
     status = sa.Column(sa.String(length=25), server_default="active", nullable=False)
@@ -123,15 +117,9 @@ class Review(db.Model):
     num_fulltexts_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
 
     # relationships
-    owner = db.relationship(
-        "User",
-        foreign_keys=[owner_user_id],
-        back_populates="owned_reviews",
-        lazy="select",
-    )
-    users = db.relationship(
-        "User", secondary=users_reviews, back_populates="reviews", lazy="dynamic"
-    )
+    review_users = db.relationship("ReviewUserAssoc", back_populates="review")
+    users = association_proxy("review_users", "user")
+
     review_plan = db.relationship(
         "ReviewPlan",
         uselist=False,
@@ -177,6 +165,47 @@ class Review(db.Model):
 
     def __repr__(self):
         return f"<Review(id={self.id})>"
+
+    @property
+    def owners(self) -> list[User]:
+        # return [ru.user for ru in self.review_users if ru.user_role == "owner"]
+        return [
+            ru.user
+            for ru in db.session.query(Review).filter(
+                Review.review_users.has(ReviewUserAssoc.user_role == "owner")
+            )
+        ]
+
+
+class ReviewUserAssoc(db.Model):
+    __tablename__ = "review_user_assoc"
+
+    review_id = sa.Column(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id = sa.Column(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_role = sa.Column(sa.Text, nullable=False, server_default=sa.text("'member'"))
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+    updated_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+
+    review = db.relationship("Review", back_populates="review_users")
+    user = db.relationship("User", back_populates="review_users")
+
+    def __init__(self, review: Review, user: User, user_role: str):
+        self.review = review
+        self.user = user
+        self.user_role = user_role
 
 
 class ReviewPlan(db.Model):
