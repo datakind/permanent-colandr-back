@@ -39,8 +39,10 @@ class User(db.Model):
     is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
 
     # relationships
-    review_users = db.relationship("ReviewUserAssoc", back_populates="user")
-    reviews = association_proxy("review_users", "review")
+    review_user_assoc = db.relationship(
+        "ReviewUserAssoc", back_populates="user", cascade="all, delete"
+    )
+    reviews = association_proxy("review_user_assoc", "review")
 
     imports = db.relationship(
         "Import", back_populates="user", lazy="dynamic", passive_deletes=True
@@ -60,11 +62,11 @@ class User(db.Model):
 
     @property
     def owned_reviews(self) -> list["Review"]:
-        # return [ru.review for ru in self.review_users if ru.user_role == "owner"]
+        # return [ru.review for ru in self.review_user_assoc if ru.user_role == "owner"]
         return [
             ru.review
             for ru in db.session.query(User).filter(
-                User.review_users.has(ReviewUserAssoc.user_role == "owner")
+                User.review_user_assoc.any(ReviewUserAssoc.user_role == "owner")
             )
         ]
 
@@ -117,8 +119,10 @@ class Review(db.Model):
     num_fulltexts_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
 
     # relationships
-    review_users = db.relationship("ReviewUserAssoc", back_populates="review")
-    users = association_proxy("review_users", "user")
+    review_user_assoc = db.relationship(
+        "ReviewUserAssoc", back_populates="review", cascade="all, delete"
+    )
+    users = association_proxy("review_user_assoc", "user")
 
     review_plan = db.relationship(
         "ReviewPlan",
@@ -168,11 +172,11 @@ class Review(db.Model):
 
     @property
     def owners(self) -> list[User]:
-        # return [ru.user for ru in self.review_users if ru.user_role == "owner"]
+        # return [ru.user for ru in self.review_user_assoc if ru.user_role == "owner"]
         return [
             ru.user
             for ru in db.session.query(Review).filter(
-                Review.review_users.has(ReviewUserAssoc.user_role == "owner")
+                Review.review_user_assoc.any(ReviewUserAssoc.user_role == "owner")
             )
         ]
 
@@ -199,8 +203,8 @@ class ReviewUserAssoc(db.Model):
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
 
-    review = db.relationship("Review", back_populates="review_users")
-    user = db.relationship("User", back_populates="review_users")
+    review = db.relationship("Review", back_populates="review_user_assoc")
+    user = db.relationship("User", back_populates="review_user_assoc")
 
     def __init__(self, review: Review, user: User, user_role: str):
         self.review = review
