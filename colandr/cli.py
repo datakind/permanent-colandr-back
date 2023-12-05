@@ -78,14 +78,33 @@ def db_seed(file_path: pathlib.Path):
                 setattr(fulltext, key, val)
     for record in data["fulltext_screenings"]:
         db.session.add(models.FulltextScreening(**record))
-    # # TODO: figure out why this doesn't work :/
-    # for record in seed_data["review_teams"]:
+    # TODO: figure out how to make this work with user deletes
+    # for record in data["review_teams"]:
     #     review = db.session.get(models.Review, record["id"])
     #     user = db.session.get(models.User, record["user_id"])
     #     if record["action"] == "add":
     #         review.users.append(user)
     #     else:
     #         raise ValueError()
+    review_user_associations = [
+        models.ReviewUserAssoc(
+            db.session.get(models.Review, 1), db.session.get(models.User, 1), "owner"
+        ),
+        models.ReviewUserAssoc(
+            db.session.get(models.Review, 1), db.session.get(models.User, 2), "owner"
+        ),
+        models.ReviewUserAssoc(
+            db.session.get(models.Review, 1), db.session.get(models.User, 3), "member"
+        ),
+        models.ReviewUserAssoc(
+            db.session.get(models.Review, 2), db.session.get(models.User, 2), "owner"
+        ),
+        models.ReviewUserAssoc(
+            db.session.get(models.Review, 2), db.session.get(models.User, 3), "member"
+        ),
+    ]
+    for rua in review_user_associations:
+        db.session.add(rua)
     db.session.commit()
 
 
