@@ -62,11 +62,10 @@ class User(db.Model):
 
     @property
     def owned_reviews(self) -> list["Review"]:
-        # return [ru.review for ru in self.review_user_assoc if ru.user_role == "owner"]
         return [
-            ru.review
-            for ru in db.session.query(User).filter(
-                User.review_user_assoc.any(ReviewUserAssoc.user_role == "owner")
+            rua.review
+            for rua in db.session.query(ReviewUserAssoc).filter_by(
+                user_id=self.id, user_role="owner"
             )
         ]
 
@@ -172,11 +171,10 @@ class Review(db.Model):
 
     @property
     def owners(self) -> list[User]:
-        # return [ru.user for ru in self.review_user_assoc if ru.user_role == "owner"]
         return [
-            ru.user
-            for ru in db.session.query(Review).filter(
-                Review.review_user_assoc.any(ReviewUserAssoc.user_role == "owner")
+            rua.user
+            for rua in db.session.query(ReviewUserAssoc).filter_by(
+                review_id=self.id, user_role="owner"
             )
         ]
 
