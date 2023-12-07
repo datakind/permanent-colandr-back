@@ -40,7 +40,10 @@ class User(db.Model):
 
     # relationships
     review_user_assoc = db.relationship(
-        "ReviewUserAssoc", back_populates="user", cascade="all, delete"
+        "ReviewUserAssoc",
+        back_populates="user",
+        cascade="all, delete",
+        lazy="dynamic",
     )
     reviews = association_proxy("review_user_assoc", "review")
 
@@ -119,7 +122,10 @@ class Review(db.Model):
 
     # relationships
     review_user_assoc = db.relationship(
-        "ReviewUserAssoc", back_populates="review", cascade="all, delete"
+        "ReviewUserAssoc",
+        back_populates="review",
+        cascade="all, delete",
+        lazy="dynamic",
     )
     users = association_proxy("review_user_assoc", "user")
 
