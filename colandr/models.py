@@ -1,5 +1,6 @@
 import itertools
 import logging
+from typing import Optional
 
 import sqlalchemy as sa
 import werkzeug.security
@@ -209,7 +210,7 @@ class ReviewUserAssoc(db.Model):
     review = db.relationship("Review", back_populates="review_user_assoc")
     user = db.relationship("User", back_populates="review_user_assoc")
 
-    def __init__(self, review: Review, user: User, user_role: str):
+    def __init__(self, review: Review, user: User, user_role: Optional[str] = None):
         self.review = review
         self.user = user
         self.user_role = user_role
