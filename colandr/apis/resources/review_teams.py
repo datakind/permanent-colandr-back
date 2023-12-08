@@ -11,7 +11,7 @@ from webargs.flaskparser import use_kwargs
 from ... import tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, User
+from ...models import Review, ReviewUserAssoc, User
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
@@ -188,16 +188,18 @@ class ReviewTeamResource(Resource):
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")
-            review.owners.append(user)
+            review.review_user_assoc.append(ReviewUserAssoc(review, user, "owner"))
         elif action == "remove":
             if user is None:
                 return not_found_error("no user found with given id or email")
-            if user in review.owners:
-                return forbidden_error(
-                    "current review owner can not be removed from team"
-                )
-            if review_users.filter_by(id=user_id).one_or_none() is not None:
-                review_users.remove(user)
+            review_owners = review.owners
+            if user in review_owners and len(review_owners) == 1:
+                return forbidden_error("only review owner can not be removed from team")
+            if (
+                review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
+                is not None
+            ):
+                review.review_user_assoc.remove(ReviewUserAssoc(review, user))
 
         db.session.commit()
         current_app.logger.info("for %s, %s %s", review, action, user)
