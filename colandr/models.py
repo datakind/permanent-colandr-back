@@ -167,9 +167,8 @@ class Review(db.Model):
         "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
     )
 
-    def __init__(self, name, owner_user_id, description=None):
+    def __init__(self, name, description=None):
         self.name = name
-        self.owner_user_id = owner_user_id
         self.description = description
 
     def __repr__(self):

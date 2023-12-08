@@ -32,9 +32,6 @@ class ReviewSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
     last_updated = fields.DateTime(dump_only=True, format="iso")
-    owner_user_id = fields.Int(
-        required=True, validate=Range(min=1, max=constants.MAX_INT)
-    )
     name = fields.Str(required=True, validate=Length(max=500))
     description = fields.Str(load_default=None)
     status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
