@@ -31,12 +31,10 @@
     ],
     "reviews": [
         {
-            "owner_user_id": 2,
             "name": "NAME1",
             "description": "DESCRIPTION1"
         },
         {
-            "owner_user_id": 3,
             "name": "NAME2",
             "description": "DESCRIPTION2"
         }

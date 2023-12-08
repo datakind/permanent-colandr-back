@@ -202,13 +202,13 @@ class ReviewsResource(Resource):
         expect=(review_model, "review data to be created"),
         responses={200: "review was created"},
     )
-    @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
+    @use_args(ReviewSchema(), location="json")
     @jwtext.jwt_required()
     def post(self, args):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
-        review = Review(name, current_user.id, **args)
+        review = Review(name, **args)
         # TODO: do we want to allow admins to set other users as owners?
         review.review_user_assoc.append(ReviewUserAssoc(review, current_user, "owner"))
         db.session.add(review)
