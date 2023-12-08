@@ -69,10 +69,9 @@ class ReviewTeamResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         users = UserSchema(many=True, only=fields).dump(review.users)
-        owner_user_id = review.owner_user_id
+        owner_user_ids = {owner.id for owner in review.owners}
         for user in users:
-            if user["id"] == owner_user_id:
-                user["is_owner"] = True
+            user["is_owner"] = user["id"] in owner_user_ids
         current_app.logger.debug("got %s team members for %s", len(users), review)
         return users
 
@@ -139,7 +138,7 @@ class ReviewTeamResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if current_user.is_admin is False and review.owner is not current_user:
+        if current_user.is_admin is False and current_user not in review.owners:
             return forbidden_error(
                 f"{current_user} forbidden to modify this review team"
             )
@@ -189,12 +188,11 @@ class ReviewTeamResource(Resource):
         elif action == "make_owner":
             if user is None:
                 return not_found_error("no user found with given id or email")
-            review.owner_user_id = user_id
-            review.owner = user
+            review.owners.append(user)
         elif action == "remove":
             if user is None:
                 return not_found_error("no user found with given id or email")
-            if user_id == review.owner_user_id:
+            if user in review.owners:
                 return forbidden_error(
                     "current review owner can not be removed from team"
                 )
@@ -204,10 +202,9 @@ class ReviewTeamResource(Resource):
         db.session.commit()
         current_app.logger.info("for %s, %s %s", review, action, user)
         users = UserSchema(many=True).dump(review.users)
-        owner_user_id = review.owner_user_id
+        owner_user_ids = {owner.id for owner in review.owners}
         for user in users:
-            if user["id"] == owner_user_id:
-                user["is_owner"] = True
+            user["is_owner"] = user["id"] in owner_user_ids
         return users
 
 
@@ -260,8 +257,7 @@ class ConfirmReviewTeamInviteResource(Resource):
         db.session.commit()
         current_app.logger.info("invitation to %s confirmed by %s", review, user.email)
         users = UserSchema(many=True).dump(review.users)
-        owner_user_id = review.owner_user_id
+        owner_user_ids = {owner.id for owner in review.owners}
         for user in users:
-            if user["id"] == owner_user_id:
-                user["is_owner"] = True
+            user["is_owner"] = user["id"] in owner_user_ids
         return users

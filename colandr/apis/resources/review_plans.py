@@ -108,7 +108,7 @@ class ReviewPlanResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if current_user.is_admin is False and review.owner is not current_user:
+        if current_user.is_admin is False and current_user not in review.owners:
             return forbidden_error(
                 f"{current_user} forbidden to delete this review plan"
             )
@@ -169,7 +169,7 @@ class ReviewPlanResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if current_user.is_admin is False and review.owner is not current_user:
+        if current_user.is_admin is False and current_user not in review.owners:
             return forbidden_error(
                 f"{current_user} forbidden to create this review plan"
             )
