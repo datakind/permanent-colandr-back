@@ -431,9 +431,7 @@ class FulltextsScreeningsResource(Resource):
                 WHERE fulltext_id IN ({fulltext_ids})
                 GROUP BY fulltext_id
                 ORDER BY fulltext_id
-                """.format(
-                fulltext_ids=",".join(str(cid) for cid in fulltext_ids)
-            )
+                """.format(fulltext_ids=",".join(str(cid) for cid in fulltext_ids))
             results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "fulltext_status": assign_status(row[1], num_screeners)}
