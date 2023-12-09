@@ -76,7 +76,7 @@ jobs:
     - name: Test with pytest
       run: |
         python -m pytest tests --verbose
-  format_and_lint:
+  lint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
