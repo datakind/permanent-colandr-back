@@ -297,7 +297,10 @@ class StudiesResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            and current_user.user_review_assoc.filter_by(
+                review_id=review_id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to get studies from this review"
