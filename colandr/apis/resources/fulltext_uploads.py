@@ -235,7 +235,7 @@ class FulltextUploadResource(Resource):
         )
         try:
             os.remove(filepath)
-        except OSError as e:
+        except OSError:
             msg = "error removing uploaded full-text file from disk"
             current_app.logger.exception(msg + "\n")
             return not_found_error(msg)

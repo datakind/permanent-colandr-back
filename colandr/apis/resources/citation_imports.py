@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
-from werkzeug.utils import secure_filename
+# from werkzeug.utils import secure_filename
 
 from ... import tasks
 from ...extensions import db

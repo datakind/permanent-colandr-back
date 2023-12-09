@@ -1066,21 +1066,21 @@ def update_fulltext_status(mapper, connection, target):
         data_extraction = connection.execute(
             sa.select(DataExtraction).where(DataExtraction.id == fulltext_id)
         ).first()
-    data_extraction_inserted_or_deleted = False
+    # data_extraction_inserted_or_deleted = False
     if status == "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
                 sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
             )
         LOGGER.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
-        data_extraction_inserted_or_deleted = True
+        # data_extraction_inserted_or_deleted = True
     elif status != "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
                 sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
             )
         LOGGER.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
-        data_extraction_inserted_or_deleted = True
+        # data_extraction_inserted_or_deleted = True
     # we may have to update our counts for review num_fulltexts_included / excluded
     if old_status != status:
         if old_status == "included":  # decrement num_fulltexts_included
