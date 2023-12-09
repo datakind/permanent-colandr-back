@@ -73,6 +73,8 @@ class ReviewTeamResource(Resource):
             fields.append("id")
         users = UserSchema(many=True, only=fields).dump(review.users)
         owner_user_ids = {owner.id for owner in review.owners}
+        # TODO: don't always include is-owner, maybe?
+        # if fields is None or "is_owner" in fields:
         for user in users:
             user["is_owner"] = user["id"] in owner_user_ids
         current_app.logger.debug("got %s team members for %s", len(users), review)
