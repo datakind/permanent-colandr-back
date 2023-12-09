@@ -66,7 +66,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to get this study")
         if fields and "id" not in fields:
@@ -98,7 +101,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
@@ -132,7 +138,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():

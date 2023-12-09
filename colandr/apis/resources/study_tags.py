@@ -58,7 +58,10 @@ class StudyTagsResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and review.users.filter_by(id=current_user.id).one_or_none() is None
+            and review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to get study tags for this review"

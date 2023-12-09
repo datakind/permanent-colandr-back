@@ -315,7 +315,9 @@ class FulltextsScreeningsResource(Resource):
                 )
             if (
                 current_user.is_admin is False
-                and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
+                and fulltext.review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
                 is None
             ):
                 return forbidden_error(
@@ -345,7 +347,10 @@ class FulltextsScreeningsResource(Resource):
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
                 current_user.is_admin is False
-                and review.users.filter_by(id=current_user.id).one_or_none() is None
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
             ):
                 return forbidden_error(
                     "{} forbidden to get screenings for {}".format(current_user, review)
