@@ -63,7 +63,10 @@ class ReviewTeamResource(Resource):
             return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
-            and review.users.filter_by(id=current_user.id).one_or_none() is None
+            and review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
         if fields and "id" not in fields:
@@ -81,8 +84,8 @@ class ReviewTeamResource(Resource):
                 "in": "query",
                 "type": "string",
                 "required": True,
-                "enum": ["add", "invite", "remove", "make_owner"],
-                "description": "add, invite, remove, or promote to owner a particular user",
+                "enum": ["add", "invite", "remove", "make_owner", "set_role"],
+                "description": "add, invite, remove, or set the role for a particular user",
             },
             "user_id": {
                 "in": "query",
@@ -96,6 +99,12 @@ class ReviewTeamResource(Resource):
                 "type": "string",
                 "format": "email",
                 "description": "email address of the user to invite",
+            },
+            "user_role": {
+                "in": "query",
+                "type": "string",
+                "enum": ["member", "owner"],
+                "description": "type of role to set for user on review",
             },
         },
         responses={
@@ -115,18 +124,22 @@ class ReviewTeamResource(Resource):
     @use_kwargs(
         {
             "action": ma_fields.Str(
-                required=True, validate=OneOf(["add", "invite", "remove", "make_owner"])
+                required=True,
+                validate=OneOf(["add", "invite", "remove", "make_owner", "set_role"]),
             ),
             "user_id": ma_fields.Int(
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "user_email": ma_fields.Email(load_default=None),
+            "user_role": ma_fields.Str(
+                validate=OneOf(["member", "owner"]), load_default=None
+            ),
         },
         location="query",
     )
     @jwtext.jwt_required(fresh=True)
-    def put(self, id, action, user_id, user_email):
-        """add, invite, remove, or promote a review team member"""
+    def put(self, id, action, user_id, user_email, user_role):
+        """add, invite, remove, or set the role for a particular user"""
         current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
         if not review:
@@ -178,10 +191,14 @@ class ReviewTeamResource(Resource):
                     tasks.send_email.apply_async(
                         args=[[user.email], "Let's collaborate!", "", html]
                     )
-        elif action == "make_owner":
+        elif action in ("make_owner", "set_role"):
             if user is None:
                 return not_found_error("no user found with given id or email")
-            review.review_user_assoc.append(ReviewUserAssoc(review, user, "owner"))
+            rua = review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
+            if rua is None:
+                return not_found_error("no such user found with access to this review")
+            else:
+                rua.user_role = "owner" if action == "make_owner" else user_role
         elif action == "remove":
             if user is None:
                 return not_found_error("no user found with given id or email")
