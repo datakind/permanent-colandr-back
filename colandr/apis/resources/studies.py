@@ -335,9 +335,7 @@ class StudiesResource(Resource):
                         t.dedupe_status = 'not_duplicate' -- this is necessary!
                         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif citation_status == "awaiting_coscreener":
                 stmt = """
@@ -353,9 +351,7 @@ class StudiesResource(Resource):
                     WHERE
                         t.citation_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
 
         if fulltext_status is not None:
@@ -380,9 +376,7 @@ class StudiesResource(Resource):
                         t.citation_status = 'included' -- this is necessary!
                         AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif fulltext_status == "awaiting_coscreener":
                 stmt = """
@@ -398,18 +392,14 @@ class StudiesResource(Resource):
                     WHERE
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
                 query = query.filter(
                     Study.data_extraction_status == data_extraction_status
-                ).filter(
-                    Study.fulltext_status == "included"
-                )  # this is necessary!
+                ).filter(Study.fulltext_status == "included")  # this is necessary!
             else:
                 query = query.filter(
                     Study.data_extraction_status == data_extraction_status
