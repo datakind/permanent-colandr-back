@@ -1,9 +1,7 @@
 # TODO: keep aligned with pyproject.toml
-black~=23.0
 ipython
 httpx~=0.24.0
-isort~=5.0
 # jupyter
 mypy~=1.0
 pytest~=7.0
-ruff
+ruff~=0.1.0
