@@ -61,7 +61,7 @@ class UserResource(Resource):
             current_user.is_admin is False
             and id != current_user.id
             and any(
-                review.users.filter_by(id=id).one_or_none()
+                review.review_user_assoc.filter_by(user_id=id).one_or_none()
                 for review in current_user.reviews
             )
             is False
