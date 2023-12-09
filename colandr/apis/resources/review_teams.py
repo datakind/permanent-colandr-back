@@ -97,12 +97,6 @@ class ReviewTeamResource(Resource):
                 "format": "email",
                 "description": "email address of the user to invite",
             },
-            "server_name": {
-                "in": "query",
-                "type": "string",
-                "default": None,
-                "description": 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"',
-            },
         },
         responses={
             200: "successfully modified review team member's record",
@@ -127,12 +121,11 @@ class ReviewTeamResource(Resource):
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
             "user_email": ma_fields.Email(load_default=None),
-            "server_name": ma_fields.Str(load_default=None),
         },
         location="query",
     )
     @jwtext.jwt_required(fresh=True)
-    def put(self, id, action, user_id, user_email, server_name):
+    def put(self, id, action, user_id, user_email):
         """add, invite, remove, or promote a review team member"""
         current_user = jwtext.get_current_user()
         review = db.session.get(Review, id)
