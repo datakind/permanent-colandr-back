@@ -31,7 +31,6 @@ dependencies = [
   "flask-restx~=1.3.0",
   "ftfy~=6.0",
   "gunicorn~=21.0",
-  "itsdangerous~=2.0",
   "jinja2~=3.0",
   "joblib~=1.0",
   "markupsafe~=2.0",
