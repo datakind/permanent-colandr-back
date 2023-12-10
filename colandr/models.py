@@ -215,6 +215,9 @@ class ReviewUserAssoc(db.Model):
         self.user = user
         self.user_role = user_role
 
+    def __repr__(self):
+        return f"<ReviewUserAssoc(review_id={self.review_id}, user_id={self.user_id})>"
+
 
 class ReviewPlan(db.Model):
     __tablename__ = "review_plans"

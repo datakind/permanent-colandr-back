@@ -207,11 +207,9 @@ class ReviewTeamResource(Resource):
             review_owners = review.owners
             if user in review_owners and len(review_owners) == 1:
                 return forbidden_error("only review owner can not be removed from team")
-            if (
-                review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
-                is not None
-            ):
-                review.review_user_assoc.remove(ReviewUserAssoc(review, user))
+            rua = review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
+            if rua is not None:
+                db.session.delete(rua)
 
         db.session.commit()
         current_app.logger.info("for %s, %s %s", review, action, user)
