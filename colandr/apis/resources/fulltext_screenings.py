@@ -66,7 +66,9 @@ class FulltextScreeningsResource(Resource):
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            and current_user.review_user_assoc.filter_by(
+                review_id=fulltext.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -99,7 +101,12 @@ class FulltextScreeningsResource(Resource):
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
             return not_found_error("<Fulltext(id={})> not found".format(id))
-        if current_user.reviews.filter_by(id=fulltext.review_id).one_or_none() is None:
+        if (
+            current_user.review_user_assoc.filter_by(
+                review_id=fulltext.review_id
+            ).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to delete fulltext screening for this review".format(
                     current_user
@@ -145,7 +152,9 @@ class FulltextScreeningsResource(Resource):
             return not_found_error("<Fulltext(id={})> not found".format(id))
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            and current_user.review_user_assoc.filter_by(
+                review_id=fulltext.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -306,7 +315,9 @@ class FulltextsScreeningsResource(Resource):
                 )
             if (
                 current_user.is_admin is False
-                and fulltext.review.users.filter_by(id=current_user.id).one_or_none()
+                and fulltext.review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
                 is None
             ):
                 return forbidden_error(
@@ -336,7 +347,10 @@ class FulltextsScreeningsResource(Resource):
                 return not_found_error("<Review(id={})> not found".format(review_id))
             if (
                 current_user.is_admin is False
-                and review.users.filter_by(id=current_user.id).one_or_none() is None
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
             ):
                 return forbidden_error(
                     "{} forbidden to get screenings for {}".format(current_user, review)
@@ -422,9 +436,7 @@ class FulltextsScreeningsResource(Resource):
                 WHERE fulltext_id IN ({fulltext_ids})
                 GROUP BY fulltext_id
                 ORDER BY fulltext_id
-                """.format(
-                fulltext_ids=",".join(str(cid) for cid in fulltext_ids)
-            )
+                """.format(fulltext_ids=",".join(str(cid) for cid in fulltext_ids))
             results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "fulltext_status": assign_status(row[1], num_screeners)}

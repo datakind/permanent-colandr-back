@@ -66,7 +66,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to get this study")
         if fields and "id" not in fields:
@@ -98,7 +101,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
@@ -132,7 +138,10 @@ class StudyResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and study.review.users.filter_by(id=current_user.id).one_or_none() is None
+            and study.review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():
@@ -288,7 +297,10 @@ class StudiesResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=review_id).one_or_none() is None
+            and current_user.user_review_assoc.filter_by(
+                review_id=review_id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to get studies from this review"
@@ -323,9 +335,7 @@ class StudiesResource(Resource):
                         t.dedupe_status = 'not_duplicate' -- this is necessary!
                         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif citation_status == "awaiting_coscreener":
                 stmt = """
@@ -341,9 +351,7 @@ class StudiesResource(Resource):
                     WHERE
                         t.citation_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
 
         if fulltext_status is not None:
@@ -368,9 +376,7 @@ class StudiesResource(Resource):
                         t.citation_status = 'included' -- this is necessary!
                         AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
             elif fulltext_status == "awaiting_coscreener":
                 stmt = """
@@ -386,18 +392,14 @@ class StudiesResource(Resource):
                     WHERE
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
-                    """.format(
-                    user_id=current_user.id
-                )
+                    """.format(user_id=current_user.id)
                 query = query.filter(Study.id.in_(text(stmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
                 query = query.filter(
                     Study.data_extraction_status == data_extraction_status
-                ).filter(
-                    Study.fulltext_status == "included"
-                )  # this is necessary!
+                ).filter(Study.fulltext_status == "included")  # this is necessary!
             else:
                 query = query.filter(
                     Study.data_extraction_status == data_extraction_status

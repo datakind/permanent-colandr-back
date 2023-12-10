@@ -61,7 +61,7 @@ class UserResource(Resource):
             current_user.is_admin is False
             and id != current_user.id
             and any(
-                review.users.filter_by(id=id).one_or_none()
+                review.review_user_assoc.filter_by(user_id=id).one_or_none()
                 for review in current_user.reviews
             )
             is False
@@ -101,7 +101,7 @@ class UserResource(Resource):
             return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
         db.session.commit()
-        current_app.logger.info("deleted %s", user)
+        current_app.logger.info("%s deleted %s", current_user, user)
         return "", 204
 
     @ns.doc(
@@ -145,7 +145,9 @@ class UserResource(Resource):
                 setattr(user, key, value)
         try:
             db.session.commit()
-            current_app.logger.info("modified %s", user)
+            current_app.logger.info(
+                "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
+            )
         except (IntegrityError, InvalidRequestError) as e:
             current_app.logger.exception("%s: unexpected db error", "UserResource.put")
             db.session.rollback()
@@ -206,7 +208,10 @@ class UsersResource(Resource):
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
-                and review.users.filter_by(id=current_user.id).one_or_none() is None
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
             ):
                 return forbidden_error(
                     f"{current_user} forbidden to see users for this review"

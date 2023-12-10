@@ -13,7 +13,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...extensions import db
 from ...lib import constants
-from ...models import Review
+from ...models import Review, ReviewUserAssoc
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
@@ -65,7 +65,10 @@ class ReviewResource(Resource):
             return not_found_error(f"<Review(id={id})> not found")
         if (
             not current_user.is_admin
-            and review.users.filter_by(id=current_user.id).one_or_none() is None
+            and review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
         if fields and "id" not in fields:
@@ -95,7 +98,7 @@ class ReviewResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if not current_user.is_admin and review.owner is not current_user:
+        if not current_user.is_admin and current_user not in review.owners:
             return forbidden_error(f"{current_user} forbidden to delete this review")
         db.session.delete(review)
         db.session.commit()
@@ -133,7 +136,7 @@ class ReviewResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if not current_user.is_admin and review.owner is not current_user:
+        if not current_user.is_admin and current_user not in review.owners:
             return forbidden_error(f"{current_user} forbidden to update this review")
         for key, value in args.items():
             if key is missing:
@@ -202,15 +205,15 @@ class ReviewsResource(Resource):
         expect=(review_model, "review data to be created"),
         responses={200: "review was created"},
     )
-    @use_args(ReviewSchema(partial=["owner_user_id"]), location="json")
+    @use_args(ReviewSchema(), location="json")
     @jwtext.jwt_required()
     def post(self, args):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
-        review = Review(name, current_user.id, **args)
-        current_user.owned_reviews.append(review)
-        current_user.reviews.append(review)
+        review = Review(name, **args)
+        # TODO: do we want to allow admins to set other users as owners?
+        review.review_user_assoc.append(ReviewUserAssoc(review, current_user, "owner"))
         db.session.add(review)
         db.session.commit()
         current_app.logger.info("inserted %s", review)

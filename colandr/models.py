@@ -1,10 +1,12 @@
 import itertools
 import logging
+from typing import Optional
 
 import sqlalchemy as sa
 import werkzeug.security
 from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
 # from . import tasks  # do this once circular import issue gets fixed
@@ -13,14 +15,6 @@ from .extensions import db
 
 
 LOGGER = logging.getLogger(__name__)
-
-
-# association table for users-reviews many-to-many relationship
-users_reviews = db.Table(
-    "users_to_reviews",
-    sa.Column("user_id", sa.Integer, sa.ForeignKey("users.id"), index=True),
-    sa.Column("review_id", sa.Integer, sa.ForeignKey("reviews.id"), index=True),
-)
 
 
 class User(db.Model):
@@ -46,12 +40,14 @@ class User(db.Model):
     is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
 
     # relationships
-    owned_reviews = db.relationship(
-        "Review", back_populates="owner", lazy="dynamic", passive_deletes=True
+    review_user_assoc = db.relationship(
+        "ReviewUserAssoc",
+        back_populates="user",
+        cascade="all, delete",
+        lazy="dynamic",
     )
-    reviews = db.relationship(
-        "Review", secondary=users_reviews, back_populates="users", lazy="dynamic"
-    )
+    reviews = association_proxy("review_user_assoc", "review")
+
     imports = db.relationship(
         "Import", back_populates="user", lazy="dynamic", passive_deletes=True
     )
@@ -67,6 +63,15 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User(id={self.id})>"
+
+    @property
+    def owned_reviews(self) -> list["Review"]:
+        return [
+            rua.review
+            for rua in db.session.query(ReviewUserAssoc).filter_by(
+                user_id=self.id, user_role="owner"
+            )
+        ]
 
     @property
     def password(self):
@@ -86,49 +91,6 @@ class User(db.Model):
         return werkzeug.security.generate_password_hash(password, method="pbkdf2")
 
 
-class DataSource(db.Model):
-    __tablename__ = "data_sources"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "source_type", "source_name", name="source_type_source_name_uc"
-        ),
-    )
-
-    # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
-        sa.DateTime(timezone=False),
-        nullable=False,
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-    )
-    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
-    source_name = sa.Column(sa.String(length=100), index=True)
-    source_url = sa.Column(sa.String(length=500))
-
-    @hybrid_property
-    def source_type_and_name(self):
-        if self.source_name:
-            return f"{self.source_type}: {self.source_name}"
-        else:
-            return self.source_type
-
-    # relationships
-    imports = db.relationship(
-        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
-    )
-    studies = db.relationship(
-        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
-    )
-
-    def __init__(self, source_type, source_name=None, source_url=None):
-        self.source_type = source_type
-        self.source_name = source_name
-        self.source_url = source_url
-
-    def __repr__(self):
-        return f"<DataSource(id={self.id})>"
-
-
 class Review(db.Model):
     __tablename__ = "reviews"
 
@@ -145,12 +107,6 @@ class Review(db.Model):
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    owner_user_id = sa.Column(
-        sa.Integer,
-        sa.ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
     name = sa.Column(sa.String(length=500), nullable=False)
     description = sa.Column(sa.Text)
     status = sa.Column(sa.String(length=25), server_default="active", nullable=False)
@@ -166,15 +122,14 @@ class Review(db.Model):
     num_fulltexts_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
 
     # relationships
-    owner = db.relationship(
-        "User",
-        foreign_keys=[owner_user_id],
-        back_populates="owned_reviews",
-        lazy="select",
+    review_user_assoc = db.relationship(
+        "ReviewUserAssoc",
+        back_populates="review",
+        cascade="all, delete",
+        lazy="dynamic",
     )
-    users = db.relationship(
-        "User", secondary=users_reviews, back_populates="reviews", lazy="dynamic"
-    )
+    users = association_proxy("review_user_assoc", "user")
+
     review_plan = db.relationship(
         "ReviewPlan",
         uselist=False,
@@ -213,13 +168,55 @@ class Review(db.Model):
         "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
     )
 
-    def __init__(self, name, owner_user_id, description=None):
+    def __init__(self, name, description=None):
         self.name = name
-        self.owner_user_id = owner_user_id
         self.description = description
 
     def __repr__(self):
         return f"<Review(id={self.id})>"
+
+    @property
+    def owners(self) -> list[User]:
+        return [
+            rua.user
+            for rua in db.session.query(ReviewUserAssoc).filter_by(
+                review_id=self.id, user_role="owner"
+            )
+        ]
+
+
+class ReviewUserAssoc(db.Model):
+    __tablename__ = "review_user_assoc"
+
+    review_id = sa.Column(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id = sa.Column(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_role = sa.Column(sa.Text, nullable=False, server_default=sa.text("'member'"))
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+    updated_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+
+    review = db.relationship("Review", back_populates="review_user_assoc")
+    user = db.relationship("User", back_populates="review_user_assoc")
+
+    def __init__(self, review: Review, user: User, user_role: Optional[str] = None):
+        self.review = review
+        self.user = user
+        self.user_role = user_role
+
+    def __repr__(self):
+        return f"<ReviewUserAssoc(review_id={self.review_id}, user_id={self.user_id})>"
 
 
 class ReviewPlan(db.Model):
@@ -288,6 +285,49 @@ class ReviewPlan(db.Model):
 
     def __repr__(self):
         return f"<ReviewPlan(review_id={self.id})>"
+
+
+class DataSource(db.Model):
+    __tablename__ = "data_sources"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "source_type", "source_name", name="source_type_source_name_uc"
+        ),
+    )
+
+    # columns
+    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = sa.Column(
+        sa.DateTime(timezone=False),
+        nullable=False,
+        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    )
+    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
+    source_name = sa.Column(sa.String(length=100), index=True)
+    source_url = sa.Column(sa.String(length=500))
+
+    @hybrid_property
+    def source_type_and_name(self):
+        if self.source_name:
+            return f"{self.source_type}: {self.source_name}"
+        else:
+            return self.source_type
+
+    # relationships
+    imports = db.relationship(
+        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    )
+    studies = db.relationship(
+        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    )
+
+    def __init__(self, source_type, source_name=None, source_url=None):
+        self.source_type = source_type
+        self.source_name = source_name
+        self.source_url = source_url
+
+    def __repr__(self):
+        return f"<DataSource(id={self.id})>"
 
 
 class Import(db.Model):
@@ -1029,21 +1069,21 @@ def update_fulltext_status(mapper, connection, target):
         data_extraction = connection.execute(
             sa.select(DataExtraction).where(DataExtraction.id == fulltext_id)
         ).first()
-    data_extraction_inserted_or_deleted = False
+    # data_extraction_inserted_or_deleted = False
     if status == "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
                 sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
             )
         LOGGER.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
-        data_extraction_inserted_or_deleted = True
+        # data_extraction_inserted_or_deleted = True
     elif status != "included" and data_extraction is None:
         with connection.begin():
             connection.execute(
                 sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
             )
         LOGGER.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
-        data_extraction_inserted_or_deleted = True
+        # data_extraction_inserted_or_deleted = True
     # we may have to update our counts for review num_fulltexts_included / excluded
     if old_status != status:
         if old_status == "included":  # decrement num_fulltexts_included

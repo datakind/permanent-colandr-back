@@ -31,26 +31,39 @@
     ],
     "reviews": [
         {
-            "owner_user_id": 2,
             "name": "NAME1",
             "description": "DESCRIPTION1"
         },
         {
-            "owner_user_id": 3,
             "name": "NAME2",
             "description": "DESCRIPTION2"
         }
     ],
-    "review_teams": [
+    "review_user_associations": [
         {
-            "id": 1,
-            "action": "add",
-            "user_id": 3
+            "review_id": 1,
+            "user_id": 1,
+            "user_role": "owner"
         },
         {
-            "id": 2,
-            "action": "add",
-            "user_id": 4
+            "review_id": 1,
+            "user_id": 2,
+            "user_role": "owner"
+        },
+        {
+            "review_id": 1,
+            "user_id": 3,
+            "user_role": "member"
+        },
+        {
+            "review_id": 2,
+            "user_id": 2,
+            "user_role": "owner"
+        },
+        {
+            "review_id": 2,
+            "user_id": 3,
+            "user_role": "member"
         }
     ],
     "review_plans": [

@@ -103,7 +103,9 @@ class DataExtractionResource(Resource):
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
-            current_user.reviews.filter_by(id=extracted_data.review_id).one_or_none()
+            current_user.user_review_assoc.filter_by(
+                review_id=extracted_data.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -151,7 +153,10 @@ class DataExtractionResource(Resource):
         review_id = extracted_data.review_id
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
-        if current_user.reviews.filter_by(id=review_id).one_or_none() is None:
+        if (
+            current_user.user_review_assoc.filter_by(review_id=review_id).one_or_none()
+            is None
+        ):
             return forbidden_error(
                 "{} forbidden to modify extracted data for this study".format(
                     current_user

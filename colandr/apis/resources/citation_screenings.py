@@ -68,7 +68,9 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=citation.review_id).one_or_none()
+            and current_user.user_review_assoc.filter_by(
+                review_id=citation.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -102,7 +104,9 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=citation.review_id).one_or_none()
+            and current_user.user_review_assoc.filter_by(
+                review_id=citation.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -146,7 +150,9 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=citation.review_id).one_or_none()
+            and current_user.user_review_assoc.filter_by(
+                review_id=citation.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -300,7 +306,9 @@ class CitationsScreeningsResource(Resource):
                 return not_found_error(f"<Citation(id={citation_id})> not found")
             if (
                 current_user.is_admin is False
-                and citation.review.users.filter_by(id=current_user.id).one_or_none()
+                and citation.review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
                 is None
             ):
                 return forbidden_error(
@@ -328,7 +336,10 @@ class CitationsScreeningsResource(Resource):
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
-                and review.users.filter_by(id=current_user.id).one_or_none() is None
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
             ):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {review}"
@@ -412,9 +423,7 @@ class CitationsScreeningsResource(Resource):
                 WHERE citation_id IN ({citation_ids})
                 GROUP BY citation_id
                 ORDER BY citation_id
-                """.format(
-                citation_ids=",".join(str(cid) for cid in citation_ids)
-            )
+                """.format(citation_ids=",".join(str(cid) for cid in citation_ids))
             results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}

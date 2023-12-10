@@ -89,7 +89,10 @@ class ReviewProgressResource(Resource):
             return not_found_error(f"<Review(id={id})> not found")
         if (
             current_user.is_admin is False
-            and review.users.filter_by(id=current_user.id).one_or_none() is None
+            and review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
         ):
             return forbidden_error(f"{current_user} forbidden to get review progress")
         if step in ("planning", "all"):
@@ -141,9 +144,7 @@ class ReviewProgressResource(Resource):
                           ) AS t
                     WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
-                    """.format(
-                    user_id=current_user.id, review_id=id
-                )
+                    """.format(user_id=current_user.id, review_id=id)
                 progress = dict(row for row in db.engine.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)
@@ -186,9 +187,7 @@ class ReviewProgressResource(Resource):
                           ) AS t
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
-                    """.format(
-                    user_id=current_user.id, review_id=id
-                )
+                    """.format(user_id=current_user.id, review_id=id)
                 progress = dict(row for row in db.engine.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)

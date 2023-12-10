@@ -86,7 +86,10 @@ class FulltextUploadResource(Resource):
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
-                and review.users.filter_by(id=current_user.id).one_or_none() is None
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
             ):
                 return forbidden_error(
                     f"{current_user} forbidden to get this review's fulltexts"
@@ -137,7 +140,9 @@ class FulltextUploadResource(Resource):
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            and current_user.user_review_assoc.filter_by(
+                review_id=fulltext.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -210,7 +215,9 @@ class FulltextUploadResource(Resource):
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.reviews.filter_by(id=fulltext.review_id).one_or_none()
+            and current_user.user_review_assoc.filter_by(
+                review_id=fulltext.review_id
+            ).one_or_none()
             is None
         ):
             return forbidden_error(
@@ -228,7 +235,7 @@ class FulltextUploadResource(Resource):
         )
         try:
             os.remove(filepath)
-        except OSError as e:
+        except OSError:
             msg = "error removing uploaded full-text file from disk"
             current_app.logger.exception(msg + "\n")
             return not_found_error(msg)
