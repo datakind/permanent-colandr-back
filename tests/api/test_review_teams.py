@@ -44,3 +44,37 @@ class TestReviewTeamResource:
             assert all("id" in record for record in data)
             if fields:
                 assert all(sorted(record.keys()) == sorted(fields) for record in data)
+
+    @pytest.mark.parametrize(
+        ["id_", "params", "status_code"],
+        [
+            (1, {"action": "make_owner", "user_id": 3}, 200),
+            (1, {"action": "set_role", "user_id": 3, "user_role": "owner"}, 200),
+            (1, {"action": "set_role", "user_id": 3, "user_role": "member"}, 200),
+            (1, {"action": "set_role", "user_id": 4, "user_role": "member"}, 404),
+            (1, {"action": "remove", "user_id": 3}, 200),
+        ],
+    )
+    def test_put(
+        self, id_, params, status_code, app, client, admin_headers, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for("review_teams_review_team_resource", id=id_, **params)
+        response = client.put(url, json=params, headers=admin_headers)
+        assert response.status_code == status_code
+        if 200 <= status_code < 300:
+            data = response.json
+            if params["action"] == "make_owner":
+                modified_user = [
+                    record for record in data if record["id"] == params["user_id"]
+                ][0]
+                assert modified_user["is_owner"] is True
+            elif params["action"] == "set_role":
+                modified_user = [
+                    record for record in data if record["id"] == params["user_id"]
+                ][0]
+                assert modified_user["is_owner"] is (params["user_role"] == "owner")
+            elif params["action"] == "remove":
+                assert not [
+                    record for record in data if record["id"] == params["user_id"]
+                ]
