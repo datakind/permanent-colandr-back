@@ -68,9 +68,9 @@ class User(db.Model):
     def owned_reviews(self) -> list["Review"]:
         return [
             rua.review
-            for rua in db.session.query(ReviewUserAssoc).filter_by(
-                user_id=self.id, user_role="owner"
-            )
+            for rua in db.session.execute(
+                sa.select(ReviewUserAssoc).filter_by(user_id=self.id, user_role="owner")
+            ).scalars()
         ]
 
     @property
@@ -179,9 +179,11 @@ class Review(db.Model):
     def owners(self) -> list[User]:
         return [
             rua.user
-            for rua in db.session.query(ReviewUserAssoc).filter_by(
-                review_id=self.id, user_role="owner"
-            )
+            for rua in db.session.execute(
+                sa.select(ReviewUserAssoc).filter_by(
+                    review_id=self.id, user_role="owner"
+                )
+            ).scalars()
         ]
 
 
@@ -931,7 +933,9 @@ def update_citation_status(mapper, connection, target):
     # for reasons unknown, the target here didn't have a loaded citation object
     # but this is _probably_ a bad thing, and you should find a way to fix it
     if citation is None:
-        citation = Citation.query.where(Citation.id == citation_id).one_or_none()
+        citation = db.session.execute(
+            sa.select(Citation).filter_by(id=citation_id)
+        ).scalar_one_or_none()
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
@@ -941,9 +945,9 @@ def update_citation_status(mapper, connection, target):
     status = utils.assign_status(
         [
             cs.status
-            for cs in db.session.query(CitationScreening).filter_by(
-                citation_id=citation_id
-            )
+            for cs in db.session.execute(
+                sa.select(CitationScreening).filter_by(citation_id=citation_id)
+            ).scalars()
         ],
         citation.review.num_citation_screening_reviewers,
     )
@@ -1041,7 +1045,9 @@ def update_fulltext_status(mapper, connection, target):
     # for reasons unknown, the target here didn't have a loaded fulltext object
     # but this is _probably_ a bad thing, and you should find a way to fix it
     if fulltext is None:
-        fulltext = Fulltext.query.where(Fulltext.id == fulltext_id).one_or_none()
+        fulltext = db.session.execute(
+            sa.select(Fulltext).filter_by(id=fulltext_id)
+        ).scalar_one_or_none()
     # get the current (soon to be *old*) citation_status of the study
     with connection.begin():
         old_status = connection.execute(
@@ -1051,9 +1057,9 @@ def update_fulltext_status(mapper, connection, target):
     status = utils.assign_status(
         [
             fs.status
-            for fs in db.session.query(FulltextScreening).filter_by(
-                fulltext_id=fulltext_id
-            )
+            for fs in db.session.execute(
+                sa.select(FulltextScreening).filter_by(fulltext_id=fulltext_id)
+            ).scalars()
         ],
         fulltext.review.num_fulltext_screening_reviewers,
     )
