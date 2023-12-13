@@ -158,9 +158,7 @@ class DataExtractionResource(Resource):
             is None
         ):
             return forbidden_error(
-                "{} forbidden to modify extracted data for this study".format(
-                    current_user
-                )
+                f"{current_user} forbidden to modify extracted data for this study"
             )
         study = db.session.get(Study, id)
         if study.data_extraction_status == "finished":
@@ -219,9 +217,7 @@ class DataExtractionResource(Resource):
                 validated_value = sanitizers.sanitize_type(value, type_)
                 if validated_value is None:
                     return bad_request_error(
-                        'value "{}" for label "{}" invalid; must be {}'.format(
-                            value, label, field_type
-                        )
+                        f"value '{value} for label '{label}' invalid; must be {field_type}"
                     )
             elif field_type == "select_one":
                 if value not in allowed_values:
