@@ -72,7 +72,9 @@ class ReviewExportPrismaResource(Resource):
 
         n_unique_studies = db.session.execute(
             sa.select(sa.func.count()).select_from(
-                sa.select(Study).filter_by(review_id=id, dedupe_status="not_duplicate")
+                sa.select(Study)
+                .filter_by(review_id=id, dedupe_status="not_duplicate")
+                .subquery()
             )
         ).scalar_one()
 
@@ -111,9 +113,9 @@ class ReviewExportPrismaResource(Resource):
 
         n_data_extractions = db.session.execute(
             sa.select(sa.func.count()).select_from(
-                sa.select(Study).filter_by(
-                    review_id=id, data_extraction_status="finished"
-                )
+                sa.select(Study)
+                .filter_by(review_id=id, data_extraction_status="finished")
+                .subquery()
             )
         ).scalar_one()
 
