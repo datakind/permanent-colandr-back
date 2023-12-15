@@ -19,7 +19,6 @@ api_v1 = Api(
 
 
 from .auth import ns as ns_auth
-from .errors import ns as ns_errors
 from .health import ns as ns_health
 from .resources.citation_imports import ns as ns_citation_imports
 from .resources.citation_screenings import ns as ns_citation_screenings
@@ -42,7 +41,6 @@ from .swagger import ns as ns_swagger
 
 
 api_v1.add_namespace(ns_auth)
-api_v1.add_namespace(ns_errors)
 api_v1.add_namespace(ns_health)
 api_v1.add_namespace(ns_swagger)
 api_v1.add_namespace(ns_users)
