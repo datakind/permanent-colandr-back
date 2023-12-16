@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestFulltextUploadResource:
     @pytest.mark.parametrize(
         ["id_", "params"],
@@ -28,9 +29,7 @@ class TestFulltextUploadResource:
             (2, "example-journal.pdf"),
         ],
     )
-    def test_post(
-        self, id_, file_name, app, client, admin_headers, db_session, request
-    ):
+    def test_post(self, id_, file_name, app, client, admin_headers, request):
         with app.test_request_context():
             url = flask.url_for("fulltext_uploads_fulltext_upload_resource", id=id_)
         dir_path = request.config.rootpath

@@ -8,6 +8,7 @@ import pytest
 
 
 @pytest.mark.skip(reason="doesn't play nicely with other resource tests")
+@pytest.mark.usefixtures("db_session")
 class TestCitationsImportsResource:
     @pytest.mark.parametrize(
         ["params", "file_name"],
@@ -30,9 +31,7 @@ class TestCitationsImportsResource:
             ),
         ],
     )
-    def test_post(
-        self, params, file_name, app, client, admin_headers, db_session, request
-    ):
+    def test_post(self, params, file_name, app, client, admin_headers, request):
         with app.test_request_context():
             url = flask.url_for(
                 "citation_imports_citations_imports_resource", **(params or {})

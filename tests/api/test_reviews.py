@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -41,9 +42,7 @@ class TestReviewResource:
             (999, {"name": "NEW_REVIEW_NAME999"}, 404),
         ],
     )
-    def test_put(
-        self, id_, params, status_code, app, client, admin_headers, db_session
-    ):
+    def test_put(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("reviews_review_resource", id=id_)
         response = client.put(url, json=params, headers=admin_headers)
@@ -54,7 +53,7 @@ class TestReviewResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers, db_session):
+    def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("reviews_review_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
@@ -83,7 +82,7 @@ class TestReviewsResource:
             {"name": "NAMEX", "description": "DESCX"},
         ],
     )
-    def test_post(self, data, app, client, db_session, admin_headers):
+    def test_post(self, data, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("reviews_reviews_resource")
         response = client.post(url, json=data, headers=admin_headers)
@@ -97,9 +96,7 @@ class TestReviewsResource:
             ({"name": None, "description": "DESCX"}, 422),
         ],
     )
-    def test_post_error(
-        self, data, status_code, app, client, db_session, admin_headers
-    ):
+    def test_post_error(self, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("reviews_reviews_resource")
         response = client.post(url, json=data, headers=admin_headers)

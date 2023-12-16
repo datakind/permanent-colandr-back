@@ -11,6 +11,7 @@ def test_api_path(client, admin_headers):
     assert response.status_code == 200
 
 
+@pytest.mark.usefixtures("db_session")
 class TestUsersResource:
     @pytest.mark.parametrize(
         ["email", "review_id", "num_exp"],
@@ -43,7 +44,7 @@ class TestUsersResource:
             {"name": "NAMEX", "email": "namex@example.net", "password": "PASSWORD"},
         ],
     )
-    def test_post(self, data, app, client, db_session, admin_headers):
+    def test_post(self, data, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("users_users_resource")
         response = client.post(url, json=data, headers=admin_headers)
@@ -66,6 +67,7 @@ class TestUsersResource:
         assert response.status_code == status_code
 
 
+@pytest.mark.usefixtures("db_session")
 class TestUserResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],

@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewProgressResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],

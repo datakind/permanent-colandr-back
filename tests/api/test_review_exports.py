@@ -4,6 +4,7 @@ import pytest
 from colandr.lib.fileio import tabular
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewExportPrismaResource:
     @pytest.mark.parametrize(
         ["review_id", "exp_data"],

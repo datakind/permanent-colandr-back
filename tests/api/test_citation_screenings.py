@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestCitationScreeningsResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code", "num_exp"],
@@ -57,7 +58,7 @@ class TestCitationScreeningsResource:
             (999, {"status": "included"}, 422),
         ],
     )
-    def test_put(self, id_, data, status_code, app, client, admin_headers, db_session):
+    def test_put(self, id_, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "citation_screenings_citation_screenings_resource", id=id_
@@ -70,7 +71,7 @@ class TestCitationScreeningsResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers, db_session):
+    def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "citation_screenings_citation_screenings_resource", id=id_
@@ -97,9 +98,7 @@ class TestCitationScreeningsResource:
             (999, {"status": "included"}, 404),
         ],
     )
-    def test_post(
-        self, citation_id, data, status_code, app, client, admin_headers, db_session
-    ):
+    def test_post(self, citation_id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "citation_screenings_citation_screenings_resource", id=citation_id
@@ -112,6 +111,7 @@ class TestCitationScreeningsResource:
                 assert data.get(key) == val
 
 
+@pytest.mark.usefixtures("db_session")
 class TestCitationsScreeningsResource:
     @pytest.mark.parametrize(
         ["params", "num_exp"],

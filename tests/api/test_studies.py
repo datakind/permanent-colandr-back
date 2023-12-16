@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestStudyResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -42,7 +43,7 @@ class TestStudyResource:
             (999, {"tags": ["TAG1"]}, 404),
         ],
     )
-    def test_put(self, id_, data, status_code, app, client, admin_headers, db_session):
+    def test_put(self, id_, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("studies_study_resource", id=id_)
         response = client.put(url, json=data, headers=admin_headers)
@@ -55,7 +56,7 @@ class TestStudyResource:
     # doesn't work!
     # AssertionError: Dependency rule tried to blank-out primary key column 'citations.id' on instance '<Citation at 0x15791bb50>'
     # @pytest.mark.parametrize("id_", [1, 2])
-    # def test_delete(self, id_, app, client, admin_headers, db_session):
+    # def test_delete(self, id_, app, client, admin_headers):
     #     with app.test_request_context():
     #         url = flask.url_for("studies_study_resource", id=id_)
     #     response = client.delete(url, headers=admin_headers)
@@ -64,6 +65,7 @@ class TestStudyResource:
     #     assert get_response.status_code == 404  # not found!
 
 
+@pytest.mark.usefixtures("db_session")
 class TestStudiesResource:
     @pytest.mark.parametrize(
         ["params", "num_exp"],
