@@ -9,8 +9,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 
-# from . import tasks  # do this once circular import issue gets fixed
-from .apis import utils  # TODO: figure out if this is the cause of circular imports?
+from . import tasks, utils
 from .extensions import db
 
 
@@ -1009,17 +1008,13 @@ def update_citation_status(mapper, connection, target):
         # and only once every 25 included citations
         # (re-)compute the suggested keyterms
         if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
-            from .tasks import suggest_keyterms
-
             sample_size = min(n_included, n_excluded)
-            suggest_keyterms.apply_async(args=[review_id, sample_size])
+            tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
         # if at least 100 citations have been included AND excluded
         # and only once every 50 included citations
         # (re-)train a citation ranking model
         if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
-            from .tasks import train_citation_ranking_model
-
-            train_citation_ranking_model.apply_async(args=[review_id])
+            tasks.train_citation_ranking_model.apply_async(args=[review_id])
 
 
 @sa_event.listens_for(FulltextScreening, "after_insert")

@@ -11,10 +11,10 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...models import DataExtraction, Fulltext, FulltextScreening, Review, Study, User
+from ...utils import assign_status
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
-from ..utils import assign_status
 
 
 ns = Namespace(
