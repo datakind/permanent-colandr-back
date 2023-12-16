@@ -27,7 +27,7 @@ dependencies = [
   "flask-jwt-extended~=4.5.0",
   "flask_mail>=0.9.1",         # TODO: this package is dead, we should replace it
   "flask_migrate~=4.0.0",
-  "flask_sqlalchemy~=3.0.0",
+  "flask_sqlalchemy~=3.1.0",   # constrained by sqlalchemy
   "flask-restx~=1.3.0",
   "ftfy~=6.0",
   "gunicorn~=21.0",
@@ -43,7 +43,7 @@ dependencies = [
   "redis~=5.0",
   "rispy~=0.8.0",
   "scikit-learn~=1.3.0",
-  "sqlalchemy~=1.4",           # TODO: update this once all usage updated to future-style
+  "sqlalchemy~=2.0.0",         # TODO: update this once all usage updated to future-style
   "textacy~=0.13.0",
   "webargs~=8.0",
   "werkzeug",
