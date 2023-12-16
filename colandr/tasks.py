@@ -195,10 +195,8 @@ def deduplicate_citations(review_id: int):
         {"id": cid, "dedupe_status": "not_duplicate"} for cid in non_duplicate_cids
     )
 
-    # TODO: update this for sqlalchemy v2
-    # ref: https://docs.sqlalchemy.org/en/20/orm/queryguide/dml.html#orm-enabled-insert-update-and-delete-statements
-    db.session.bulk_update_mappings(Study, studies_to_update)
-    db.session.bulk_insert_mappings(Dedupe, dedupes_to_insert)
+    db.session.execute(sa.update(Study), studies_to_update)
+    db.session.execute(sa.insert(Dedupe), dedupes_to_insert)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
@@ -244,7 +242,7 @@ def get_citations_text_content_vectors(review_id: int):
         lock.release()
         return
 
-    db.session.bulk_update_mappings(Citation, citations_to_update)
+    db.session.execute(sa.update(Citation), citations_to_update)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: %s citation text_content_vector_reps updated",
