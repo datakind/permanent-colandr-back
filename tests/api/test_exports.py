@@ -4,6 +4,7 @@ import pytest
 from colandr.lib.fileio import tabular
 
 
+@pytest.mark.usefixtures("db_session")
 class TestExportStudiesResource:
     @pytest.mark.parametrize(
         ["review_id", "content_type", "num_rows_exp", "num_cols_exp"],
@@ -38,6 +39,7 @@ class TestExportStudiesResource:
             assert isinstance(rows[0], list) and len(rows[0]) == num_cols_exp
 
 
+@pytest.mark.usefixtures("db_session")
 class TestExportScreeningsResource:
     @pytest.mark.parametrize(
         ["review_id", "content_type", "exp_data"],

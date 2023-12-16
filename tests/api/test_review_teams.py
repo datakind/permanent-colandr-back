@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewTeamResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -55,9 +56,7 @@ class TestReviewTeamResource:
             (1, {"action": "remove", "user_id": 3}, 200),
         ],
     )
-    def test_put(
-        self, id_, params, status_code, app, client, admin_headers, db_session
-    ):
+    def test_put(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("review_teams_review_team_resource", id=id_, **params)
         response = client.put(url, json=params, headers=admin_headers)

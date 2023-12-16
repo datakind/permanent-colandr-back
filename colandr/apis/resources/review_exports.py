@@ -70,13 +70,13 @@ class ReviewExportPrismaResource(Resource):
             ).all()
         )
 
-        # TODO: fix this query
-        n_unique_studies = (
-            db.session.query(Study)
-            .filter(Study.review_id == id)
-            .filter_by(dedupe_status="not_duplicate")
-            .count()
-        )
+        n_unique_studies = db.session.execute(
+            sa.select(sa.func.count()).select_from(
+                sa.select(Study)
+                .filter_by(review_id=id, dedupe_status="not_duplicate")
+                .subquery()
+            )
+        ).scalar_one()
 
         n_citations_by_status = dict(
             db.session.execute(
@@ -111,12 +111,13 @@ class ReviewExportPrismaResource(Resource):
             )
         )
 
-        n_data_extractions = (
-            db.session.query(Study)
-            .filter(Study.review_id == id)
-            .filter_by(data_extraction_status="finished")
-            .count()
-        )
+        n_data_extractions = db.session.execute(
+            sa.select(sa.func.count()).select_from(
+                sa.select(Study)
+                .filter_by(review_id=id, data_extraction_status="finished")
+                .subquery()
+            )
+        ).scalar_one()
 
         current_app.logger.debug("prisma counts exported for %s", review)
 

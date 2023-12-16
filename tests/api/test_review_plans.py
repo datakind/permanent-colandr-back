@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewPlanResource:
     @pytest.mark.parametrize(
         ["id", "params", "status_code"],
@@ -50,7 +51,7 @@ class TestReviewPlanResource:
             (999, {"objective": "NEW_OBJECTIVE999"}, 404),
         ],
     )
-    def test_put(self, id, data, status_code, app, client, admin_headers, db_session):
+    def test_put(self, id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("review_plans_review_plan_resource", id=id)
         response = client.put(url, json=data, headers=admin_headers)
@@ -61,7 +62,7 @@ class TestReviewPlanResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id", [1])
-    def test_delete(self, id, app, client, admin_headers, db_session):
+    def test_delete(self, id, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("review_plans_review_plan_resource", id=id)
         response = client.delete(url, headers=admin_headers)

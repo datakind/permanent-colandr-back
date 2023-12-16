@@ -145,7 +145,7 @@ class ReviewProgressResource(Resource):
                     WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
-                progress = dict(row for row in db.engine.execute(sa.text(query)))
+                progress = dict(row for row in db.session.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES
@@ -188,7 +188,7 @@ class ReviewProgressResource(Resource):
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
-                progress = dict(row for row in db.engine.execute(sa.text(query)))
+                progress = dict(row for row in db.session.execute(sa.text(query)))
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES

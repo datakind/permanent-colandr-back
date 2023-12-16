@@ -12,11 +12,11 @@ from ... import tasks
 from ...extensions import db
 from ...lib import constants
 from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
+from ...utils import assign_status
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
-from ..utils import assign_status
 
 
 ns = Namespace(

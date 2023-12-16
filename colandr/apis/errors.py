@@ -1,65 +1,59 @@
+from typing import Optional
+
 import webargs.core
 import webargs.flaskparser
-from flask import current_app, jsonify
-from flask_restx import Namespace
+from flask import current_app
 from werkzeug import exceptions
+from werkzeug.http import HTTP_STATUS_CODES
+
+from .api_v1 import api_v1
 
 
-ns = Namespace("errors")
-
-
-@ns.errorhandler
-def default_error(error):
-    message = f"an unhandled exception occurred: {error}"
+@api_v1.errorhandler(exceptions.HTTPException)
+def http_error(error):
+    message = error.description
     current_app.logger.exception(message)
-    response = jsonify({"message": message})
-    response.status_code = getattr(error, "code", 500)
-    return response
+    return _make_error_response(error.code, message)
 
 
-@ns.errorhandler(exceptions.BadRequest)
+@api_v1.errorhandler(exceptions.BadRequest)
 def bad_request_error(error):
     message = str(error)
     current_app.logger.error(message)
-    response = jsonify({"message": message})
-    response.status_code = 400
-    return response
+    return _make_error_response(400, message)
 
 
-@ns.errorhandler(exceptions.Unauthorized)
+@api_v1.errorhandler(exceptions.Unauthorized)
 def unauthorized_error(error):
     message = str(error)
     current_app.logger.error(message)
-    response = jsonify({"message": message})
-    response.status_code = 401
-    return response
+    return _make_error_response(401, message)
 
 
-@ns.errorhandler(exceptions.Forbidden)
+@api_v1.errorhandler(exceptions.Forbidden)
 def forbidden_error(error):
     message = str(error)
     current_app.logger.error(message)
-    response = jsonify({"message": message})
-    response.status_code = 403
-    return response
+    return _make_error_response(403, message)
 
 
-@ns.errorhandler(exceptions.NotFound)
+@api_v1.errorhandler(exceptions.NotFound)
 def not_found_error(error):
     message = str(error)
     current_app.logger.error(message)
-    response = jsonify({"message": message})
-    response.status_code = 404
-    return response
+    return _make_error_response(404, message)
 
 
-@ns.errorhandler(exceptions.InternalServerError)
+@api_v1.errorhandler(exceptions.InternalServerError)
 def internal_server_error(error):
     message = str(error)
+    current_app.logger.exception(message)
+    return _make_error_response(500, message)
+
+
+def db_integrity_error(message):
     current_app.logger.error(message)
-    response = jsonify({"message": message})
-    response.status_code = 500
-    return response
+    return _make_error_response(422, message)
 
 
 @webargs.flaskparser.parser.error_handler
@@ -72,14 +66,23 @@ def validation_error(error, req, schema, *, error_status_code, error_headers):
     See: webargs/issues/181
     """
     status_code = error_status_code or webargs.core.DEFAULT_VALIDATION_STATUS
-    webargs.flaskparser.abort(
-        status_code,
-        exc=error,
-        messages=error.messages,
-    )
+    webargs.flaskparser.abort(status_code, exc=error, messages=error.messages)
 
 
-def db_integrity_error(message):
-    response = jsonify({"message": message})
-    response.status_code = 422
-    return response
+def _make_error_response(
+    status_code: int, message: Optional[str] = None
+) -> tuple[dict[str, str], int]:
+    data = {"error": HTTP_STATUS_CODES.get(status_code, "Unknown error")}
+    if message:
+        data["message"] = message
+    return (data, status_code)
+
+
+# TODO: do we need this?
+# @api_v1.errorhandler
+# def default_error(error):
+#     message = f"an unhandled exception occurred: {error}"
+#     current_app.logger.exception(message)
+#     response = jsonify({"message": message})
+#     response.status_code = getattr(error, "code", 500)
+#     return response

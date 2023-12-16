@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestCitationResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -41,9 +42,7 @@ class TestCitationResource:
             (999, {"title": "NEW_TITLE999"}, 404),
         ],
     )
-    def test_put(
-        self, id_, params, status_code, app, client, admin_headers, db_session
-    ):
+    def test_put(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("citations_citation_resource", id=id_)
         response = client.put(url, json=params, headers=admin_headers)
@@ -54,7 +53,7 @@ class TestCitationResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers, db_session):
+    def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("citations_citation_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
@@ -64,6 +63,7 @@ class TestCitationResource:
 
 
 @pytest.mark.skip(reason="doesn't play nicely with other resource tests")
+@pytest.mark.usefixtures("db_session")
 class TestCitationsResource:
     @pytest.mark.parametrize(
         ["params", "data"],
@@ -79,7 +79,7 @@ class TestCitationsResource:
             ),
         ],
     )
-    def test_post(self, params, data, app, client, admin_headers, db_session):
+    def test_post(self, params, data, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("citations_citations_resource", **params)
         response = client.post(url, json=data, headers=admin_headers)

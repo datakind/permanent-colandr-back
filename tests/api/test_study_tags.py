@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestStudyTagsResource:
     @pytest.mark.parametrize(
         ["params", "status_code", "exp_result"],

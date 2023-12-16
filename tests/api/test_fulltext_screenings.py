@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestFulltextScreeningsResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code", "num_exp"],
@@ -50,7 +51,7 @@ class TestFulltextScreeningsResource:
             (999, {"status": "included"}, 422),
         ],
     )
-    def test_put(self, id_, data, status_code, app, client, admin_headers, db_session):
+    def test_put(self, id_, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "fulltext_screenings_fulltext_screenings_resource", id=id_
@@ -63,7 +64,7 @@ class TestFulltextScreeningsResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers, db_session):
+    def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "fulltext_screenings_fulltext_screenings_resource", id=id_
@@ -81,9 +82,7 @@ class TestFulltextScreeningsResource:
             (999, {"status": "included"}, 404),
         ],
     )
-    def test_post(
-        self, fulltext_id, data, status_code, app, client, admin_headers, db_session
-    ):
+    def test_post(self, fulltext_id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "fulltext_screenings_fulltext_screenings_resource", id=fulltext_id
@@ -96,6 +95,7 @@ class TestFulltextScreeningsResource:
                 assert data.get(key) == val
 
 
+@pytest.mark.usefixtures("db_session")
 class TestFulltextsScreeningsResource:
     @pytest.mark.parametrize(
         ["params", "num_exp"],

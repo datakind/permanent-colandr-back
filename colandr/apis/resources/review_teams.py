@@ -11,7 +11,7 @@ from webargs.flaskparser import use_kwargs
 from ... import tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, ReviewUserAssoc, User
+from ...models import Review, User
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema

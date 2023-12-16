@@ -6,6 +6,7 @@ from typing import Any
 import flask
 import flask_sqlalchemy
 import pytest
+import sqlalchemy.orm as sa_orm
 
 from colandr import cli, extensions, models
 from colandr.apis import auth
@@ -37,6 +38,12 @@ def app(tmp_path_factory):
     # TODO: don't use a globally applied app context as here, only scope minimally
     with app.app_context():
         yield app
+
+
+@pytest.fixture
+def app_ctx(app):
+    with app.app_context():
+        yield
 
 
 @pytest.fixture(scope="session")
@@ -88,14 +95,30 @@ def cli_runner(app: flask.Flask):
 @pytest.fixture
 def db_session(db: flask_sqlalchemy.SQLAlchemy):
     """
-    Allow very fast tests by using rollbacks and nested sessions. This does
-    require that your database supports SQL savepoints, and Postgres does.
+    Automatically roll back database changes occurring within tests,
+    so side-effects of one test don't affect another.
     """
-    db.session.begin_nested()
+    # this no longer works in sqlalchemy v2.0 :/
+    # db.session.begin_nested()
+    # yield db.session
+    # db.session.rollback()
+    # but this more complex setup apparently works in v2.0
+    # which is a recurring theme ... sqlalchemy v2.0 is harder to use somehow
+    conn = db.engine.connect()
+    transaction = conn.begin()
+    orig_session = db.session
+    session_factory = sa_orm.sessionmaker(
+        bind=conn, join_transaction_mode="create_savepoint"
+    )
+    session = sa_orm.scoped_session(session_factory)
+    db.session = session
 
     yield db.session
 
-    db.session.rollback()
+    session.close()
+    transaction.rollback()
+    conn.close()
+    db.session = orig_session
 
 
 @pytest.fixture(scope="session")

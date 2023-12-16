@@ -11,10 +11,10 @@ from webargs.flaskparser import use_args, use_kwargs
 from ...extensions import db
 from ...lib import constants
 from ...models import DataExtraction, Fulltext, FulltextScreening, Review, Study, User
+from ...utils import assign_status
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ScreeningSchema
 from ..swagger import screening_model
-from ..utils import assign_status
 
 
 ns = Namespace(
@@ -63,7 +63,7 @@ class FulltextScreeningsResource(Resource):
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
@@ -72,9 +72,7 @@ class FulltextScreeningsResource(Resource):
             is None
         ):
             return forbidden_error(
-                "{} forbidden to get fulltext screenings for this review".format(
-                    current_user
-                )
+                f"{current_user} forbidden to get fulltext screenings for this review"
             )
         return ScreeningSchema(many=True, only=fields).dump(fulltext.screenings)
 
@@ -100,7 +98,7 @@ class FulltextScreeningsResource(Resource):
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.review_user_assoc.filter_by(
                 review_id=fulltext.review_id
@@ -108,16 +106,12 @@ class FulltextScreeningsResource(Resource):
             is None
         ):
             return forbidden_error(
-                "{} forbidden to delete fulltext screening for this review".format(
-                    current_user
-                )
+                f"{current_user} forbidden to delete fulltext screening for this review"
             )
         screening = fulltext.screenings.filter_by(user_id=current_user.id).one_or_none()
         if not screening:
             return forbidden_error(
-                "{} has not screened {}, so nothing to delete".format(
-                    current_user, fulltext
-                )
+                f"{current_user} has not screened {fulltext}, so nothing to delete"
             )
         db.session.delete(screening)
         db.session.commit()
@@ -149,7 +143,7 @@ class FulltextScreeningsResource(Resource):
         # check current user authorization
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
@@ -158,13 +152,11 @@ class FulltextScreeningsResource(Resource):
             is None
         ):
             return forbidden_error(
-                "{} forbidden to screen fulltexts for this review".format(current_user)
+                f"{current_user} forbidden to screen fulltexts for this review"
             )
         if fulltext.filename is None:
             return forbidden_error(
-                "user can't screen {} without first having uploaded its content".format(
-                    fulltext
-                )
+                f"user can't screen {fulltext} without first having uploaded its content"
             )
         # validate and add screening
         if args["status"] == "excluded" and not args["exclude_reasons"]:
@@ -182,9 +174,7 @@ class FulltextScreeningsResource(Resource):
             fulltext.review_id, user_id, id, args["status"], args["exclude_reasons"]
         )
         if fulltext.screenings.filter_by(user_id=current_user.id).one_or_none():
-            return forbidden_error(
-                "{} has already screened {}".format(current_user, fulltext)
-            )
+            return forbidden_error(f"{current_user} has already screened {fulltext}")
         fulltext.screenings.append(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
@@ -220,7 +210,7 @@ class FulltextScreeningsResource(Resource):
         current_user = jwtext.get_current_user()
         fulltext = db.session.get(Fulltext, id)
         if not fulltext:
-            return not_found_error("<Fulltext(id={})> not found".format(id))
+            return not_found_error(f"<Fulltext(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
             screening = fulltext.screenings.filter_by(
                 user_id=args["user_id"]
@@ -230,9 +220,7 @@ class FulltextScreeningsResource(Resource):
                 user_id=current_user.id
             ).one_or_none()
         if not screening:
-            return not_found_error(
-                "{} has not screened this fulltext".format(current_user)
-            )
+            return not_found_error(f"{current_user} has not screened this fulltext")
         if args["status"] == "excluded" and not args["exclude_reasons"]:
             return bad_request_error("screenings that exclude must provide a reason")
         for key, value in args.items():
@@ -310,9 +298,7 @@ class FulltextsScreeningsResource(Resource):
             # check user authorization
             fulltext = db.session.get(Fulltext, fulltext_id)
             if not fulltext:
-                return not_found_error(
-                    "<Fulltext(id={})> not found".format(fulltext_id)
-                )
+                return not_found_error(f"<Fulltext(id={fulltext_id})> not found")
             if (
                 current_user.is_admin is False
                 and fulltext.review.review_user_assoc.filter_by(
@@ -321,30 +307,28 @@ class FulltextsScreeningsResource(Resource):
                 is None
             ):
                 return forbidden_error(
-                    "{} forbidden to get screenings for {}".format(
-                        current_user, fulltext
-                    )
+                    f"{current_user} forbidden to get screenings for {fulltext}"
                 )
             query = query.filter_by(fulltext_id=fulltext_id)
         if user_id is not None:
             # check user authorization
             user = db.session.get(User, user_id)
             if not user:
-                return not_found_error("<User(id={})> not found".format(user_id))
+                return not_found_error(f"<User(id={user_id})> not found")
             if current_user.is_admin is False and not any(
                 user_id == user.id
                 for review in current_user.reviews
                 for user in review.users
             ):
                 return forbidden_error(
-                    "{} forbidden to get screenings for {}".format(current_user, user)
+                    f"{current_user} forbidden to get screenings for {user}"
                 )
             query = query.filter_by(user_id=user_id)
         if review_id is not None:
             # check user authorization
             review = db.session.get(Review, review_id)
             if not review:
-                return not_found_error("<Review(id={})> not found".format(review_id))
+                return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
                 and review.review_user_assoc.filter_by(
@@ -353,7 +337,7 @@ class FulltextsScreeningsResource(Resource):
                 is None
             ):
                 return forbidden_error(
-                    "{} forbidden to get screenings for {}".format(current_user, review)
+                    f"{current_user} forbidden to get screenings for {review}"
                 )
             query = query.filter_by(review_id=review_id)
         if status_counts is True:
@@ -407,7 +391,7 @@ class FulltextsScreeningsResource(Resource):
         # check current user authorization
         review = db.session.get(Review, review_id)
         if not review:
-            return not_found_error("<Review(id={})> not found".format(review_id))
+            return not_found_error(f"<Review(id={review_id})> not found")
         # bulk insert fulltext screenings
         screener_user_id = user_id or current_user.id
         screenings_to_insert = []

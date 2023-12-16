@@ -2,6 +2,7 @@ import flask
 import pytest
 
 
+@pytest.mark.usefixtures("db_session")
 class TestFulltextResource:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
@@ -29,7 +30,7 @@ class TestFulltextResource:
                 assert sorted(data.keys()) == sorted(fields)
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers, db_session):
+    def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for("fulltexts_fulltext_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
