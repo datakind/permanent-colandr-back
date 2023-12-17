@@ -402,7 +402,7 @@ class CitationsScreeningsResource(Resource):
             screening["review_id"] = review_id
             screening["user_id"] = screener_user_id
             screenings_to_insert.append(screening)
-        db.session.bulk_insert_mappings(CitationScreening, screenings_to_insert)
+        db.session.execute(sa.insert(CitationScreening), screenings_to_insert)
         db.session.commit()
         current_app.logger.info(
             "inserted %s citation screenings", len(screenings_to_insert)
@@ -430,7 +430,7 @@ class CitationsScreeningsResource(Resource):
             for row in results
         ]
 
-        db.session.bulk_update_mappings(Study, studies_to_update)
+        db.session.execute(sa.update(Study), studies_to_update)
         db.session.commit()
         current_app.logger.info(
             "updated citation_status for %s studies", len(studies_to_update)
@@ -447,7 +447,7 @@ class CitationsScreeningsResource(Resource):
         fulltexts_to_insert = [
             {"id": result, "review_id": review_id} for result in results
         ]
-        db.session.bulk_insert_mappings(Fulltext, fulltexts_to_insert)
+        db.session.execute(sa.insert(Fulltext), fulltexts_to_insert)
         db.session.commit()
         current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
         # now update include/exclude counts on review

@@ -236,7 +236,7 @@ class CitationsImportsResource(Resource):
         # this method is required because not all citations have all fields
         for study_id, citation in zip(study_ids, citations_to_insert):
             citation["id"] = study_id
-        db.session.bulk_insert_mappings(Citation, citations_to_insert)
+        db.session.execute(sa.insert(Citation), citations_to_insert)
 
         # if citations' status is "included", we have to bulk insert
         # the corresponding fulltexts, since bulk operations won't trigger

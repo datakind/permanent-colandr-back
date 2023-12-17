@@ -399,7 +399,7 @@ class FulltextsScreeningsResource(Resource):
             screening["review_id"] = review_id
             screening["user_id"] = screener_user_id
             screenings_to_insert.append(screening)
-        db.session.bulk_insert_mappings(FulltextScreening, screenings_to_insert)
+        db.session.execute(sa.insert(FulltextScreening), screenings_to_insert)
         db.session.commit()
         current_app.logger.info(
             "inserted %s fulltext screenings", len(screenings_to_insert)
@@ -427,7 +427,7 @@ class FulltextsScreeningsResource(Resource):
             for row in results
         ]
 
-        db.session.bulk_update_mappings(Study, studies_to_update)
+        db.session.execute(sa.update(Study), studies_to_update)
         db.session.commit()
         current_app.logger.info(
             "updated fulltext_status for %s studies", len(studies_to_update)
@@ -444,7 +444,7 @@ class FulltextsScreeningsResource(Resource):
         data_extractions_to_insert = [
             {"id": result, "review_id": review_id} for result in results
         ]
-        db.session.bulk_insert_mappings(DataExtraction, data_extractions_to_insert)
+        db.session.execute(sa.insert(DataExtraction), data_extractions_to_insert)
         db.session.commit()
         current_app.logger.info(
             "inserted %s data extractions", len(data_extractions_to_insert)
