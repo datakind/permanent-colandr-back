@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import logging
 from typing import Optional
@@ -8,6 +9,7 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import mapped_column as mapcol, Mapped as M
 
 from . import tasks, utils
 from .extensions import db
@@ -20,23 +22,21 @@ class User(db.Model):
     __tablename__ = "users"
 
     # columns
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=False),
-        nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=False),
-        nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    name = sa.Column(sa.String(length=200), nullable=False)
-    email = sa.Column(sa.String(length=200), unique=True, nullable=False, index=True)
-    _password = sa.Column("password", sa.String(length=256), nullable=False)
-    is_confirmed = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
-    is_admin = sa.Column(sa.Boolean, nullable=False, server_default=sa.false())
+    name: M[str] = mapcol(sa.String(length=200))
+    email: M[str] = mapcol(sa.String(length=200), unique=True, index=True)
+    _password: M[str] = mapcol("password", sa.String(length=256))
+    is_confirmed: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
+    is_admin: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
 
     # relationships
     review_user_assoc = db.relationship(
