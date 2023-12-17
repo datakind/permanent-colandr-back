@@ -10,7 +10,7 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapped_column as mapcol, Mapped as M
+from sqlalchemy.orm import mapped_column as mapcol, Mapped as M, DynamicMapped as DM
 
 from . import tasks, utils
 from .extensions import db
@@ -42,7 +42,7 @@ class User(db.Model):
     is_admin: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
 
     # relationships
-    review_user_assoc = sa_orm.relationship(
+    review_user_assoc: DM["ReviewUserAssoc"] = sa_orm.relationship(
         "ReviewUserAssoc",
         back_populates="user",
         cascade="all, delete",
@@ -50,16 +50,16 @@ class User(db.Model):
     )
     reviews = association_proxy("review_user_assoc", "review")
 
-    imports = sa_orm.relationship(
+    imports: DM["Import"] = sa_orm.relationship(
         "Import", back_populates="user", lazy="dynamic", passive_deletes=True
     )
-    studies = sa_orm.relationship(
+    studies: DM["Study"] = sa_orm.relationship(
         "Study", back_populates="user", lazy="dynamic", passive_deletes=True
     )
-    citation_screenings = sa_orm.relationship(
+    citation_screenings: DM["CitationScreening"] = sa_orm.relationship(
         "CitationScreening", back_populates="user", lazy="dynamic"
     )
-    fulltext_screenings = sa_orm.relationship(
+    fulltext_screenings: DM["FulltextScreening"] = sa_orm.relationship(
         "FulltextScreening", back_populates="user", lazy="dynamic"
     )
 
@@ -133,34 +133,34 @@ class Review(db.Model):
     review_plan: M["ReviewPlan"] = sa_orm.relationship(
         "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
     )
-    imports = sa_orm.relationship(
+    imports: DM["Import"] = sa_orm.relationship(
         "Import", back_populates="review", lazy="dynamic", passive_deletes=True
     )
-    studies = sa_orm.relationship(
+    studies: DM["Study"] = sa_orm.relationship(
         "Study", back_populates="review", lazy="dynamic", passive_deletes=True
     )
-    dedupes = sa_orm.relationship(
+    dedupes: DM["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="review", lazy="dynamic", passive_deletes=True
     )
-    citations = sa_orm.relationship(
+    citations: DM["Citation"] = sa_orm.relationship(
         "Citation", back_populates="review", lazy="dynamic", passive_deletes=True
     )
-    citation_screenings = sa_orm.relationship(
+    citation_screenings: DM["CitationScreening"] = sa_orm.relationship(
         "CitationScreening",
         back_populates="review",
         lazy="dynamic",
         passive_deletes=True,
     )
-    fulltexts = sa_orm.relationship(
+    fulltexts: DM["Fulltext"] = sa_orm.relationship(
         "Fulltext", back_populates="review", lazy="dynamic", passive_deletes=True
     )
-    fulltext_screenings = sa_orm.relationship(
+    fulltext_screenings: DM["FulltextScreening"] = sa_orm.relationship(
         "FulltextScreening",
         back_populates="review",
         lazy="dynamic",
         passive_deletes=True,
     )
-    data_extractions = sa_orm.relationship(
+    data_extractions: DM["DataExtraction"] = sa_orm.relationship(
         "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
     )
 
@@ -312,10 +312,10 @@ class DataSource(db.Model):
             return self.source_type
 
     # relationships
-    imports = sa_orm.relationship(
+    imports: DM["Import"] = sa_orm.relationship(
         "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
     )
-    studies = sa_orm.relationship(
+    studies: DM["Study"] = sa_orm.relationship(
         "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
     )
 
@@ -561,7 +561,7 @@ class Citation(db.Model):
     review: M["Review"] = sa_orm.relationship(
         "Review", foreign_keys=[review_id], back_populates="citations", lazy="select"
     )
-    screenings = sa_orm.relationship(
+    screenings: DM["CitationScreening"] = sa_orm.relationship(
         "CitationScreening",
         back_populates="citation",
         lazy="dynamic",
@@ -655,7 +655,7 @@ class Fulltext(db.Model):
     review: M["Review"] = sa_orm.relationship(
         "Review", foreign_keys=[review_id], back_populates="fulltexts", lazy="select"
     )
-    screenings = sa_orm.relationship(
+    screenings: DM["FulltextScreening"] = sa_orm.relationship(
         "FulltextScreening",
         back_populates="fulltext",
         lazy="dynamic",
