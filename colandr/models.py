@@ -94,31 +94,31 @@ class Review(db.Model):
     __tablename__ = "reviews"
 
     # columns
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    name = sa.Column(sa.String(length=500), nullable=False)
-    description = sa.Column(sa.Text)
-    status = sa.Column(sa.String(length=25), server_default="active", nullable=False)
-    num_citation_screening_reviewers = sa.Column(
+    name = mapcol(sa.String(length=500), nullable=False)
+    description = mapcol(sa.Text)
+    status = mapcol(sa.String(length=25), server_default="active", nullable=False)
+    num_citation_screening_reviewers = mapcol(
         sa.SmallInteger, server_default="1", nullable=False
     )
-    num_fulltext_screening_reviewers = sa.Column(
+    num_fulltext_screening_reviewers = mapcol(
         sa.SmallInteger, server_default="1", nullable=False
     )
-    num_citations_included = sa.Column(sa.Integer, server_default="0", nullable=False)
-    num_citations_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
-    num_fulltexts_included = sa.Column(sa.Integer, server_default="0", nullable=False)
-    num_fulltexts_excluded = sa.Column(sa.Integer, server_default="0", nullable=False)
+    num_citations_included = mapcol(sa.Integer, server_default="0", nullable=False)
+    num_citations_excluded = mapcol(sa.Integer, server_default="0", nullable=False)
+    num_fulltexts_included = mapcol(sa.Integer, server_default="0", nullable=False)
+    num_fulltexts_excluded = mapcol(sa.Integer, server_default="0", nullable=False)
 
     # relationships
     review_user_assoc = db.relationship(
@@ -189,19 +189,19 @@ class Review(db.Model):
 class ReviewUserAssoc(db.Model):
     __tablename__ = "review_user_assoc"
 
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
     )
-    user_id = sa.Column(
+    user_id = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    user_role = sa.Column(sa.Text, nullable=False, server_default=sa.text("'member'"))
-    created_at = sa.Column(
+    user_role = mapcol(sa.Text, nullable=False, server_default=sa.text("'member'"))
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    updated_at = sa.Column(
+    updated_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
@@ -224,33 +224,33 @@ class ReviewPlan(db.Model):
     __tablename__ = "review_plans"
 
     # columns
-    id = sa.Column(
+    id = mapcol(
         sa.BigInteger, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = sa.Column(
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    objective = sa.Column(sa.Text)
-    research_questions = sa.Column(
+    objective = mapcol(sa.Text)
+    research_questions = mapcol(
         postgresql.ARRAY(sa.String(length=300)), server_default="{}"
     )
-    pico = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    keyterms = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    selection_criteria = sa.Column(
+    pico = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
+    keyterms = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
+    selection_criteria = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    data_extraction_form = sa.Column(
+    data_extraction_form = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    suggested_keyterms = sa.Column(
+    suggested_keyterms = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -297,15 +297,15 @@ class DataSource(db.Model):
     )
 
     # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    source_type = sa.Column(sa.String(length=20), nullable=False, index=True)
-    source_name = sa.Column(sa.String(length=100), index=True)
-    source_url = sa.Column(sa.String(length=500))
+    source_type = mapcol(sa.String(length=20), nullable=False, index=True)
+    source_name = mapcol(sa.String(length=100), index=True)
+    source_url = mapcol(sa.String(length=500))
 
     @hybrid_property
     def source_type_and_name(self):
@@ -335,32 +335,32 @@ class Import(db.Model):
     __tablename__ = "imports"
 
     # columns
-    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = sa.Column(
+    user_id = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    data_source_id = sa.Column(
+    data_source_id = mapcol(
         sa.BigInteger,
         sa.ForeignKey("data_sources.id", ondelete="SET NULL"),
         nullable=True,
     )
-    record_type = sa.Column(sa.String(length=10), nullable=False)
-    num_records = sa.Column(sa.Integer, nullable=False)
-    status = sa.Column(sa.String(length=20), server_default="not_screened")
+    record_type = mapcol(sa.String(length=10), nullable=False)
+    num_records = mapcol(sa.Integer, nullable=False)
+    status = mapcol(sa.String(length=20), server_default="not_screened")
 
     # relationships
     review = db.relationship(
@@ -394,49 +394,49 @@ class Study(db.Model):
     __tablename__ = "studies"
 
     # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    user_id = sa.Column(
+    user_id = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    tags = sa.Column(
+    tags = mapcol(
         postgresql.ARRAY(sa.String(length=64)), server_default="{}", index=False
     )
-    data_source_id = sa.Column(
+    data_source_id = mapcol(
         sa.Integer,
         sa.ForeignKey("data_sources.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    dedupe_status = sa.Column(
+    dedupe_status = mapcol(
         sa.String(length=20), server_default="not_duplicate", nullable=True, index=True
     )
-    citation_status = sa.Column(
+    citation_status = mapcol(
         sa.String(length=20), server_default="not_screened", nullable=False, index=True
     )
-    fulltext_status = sa.Column(
+    fulltext_status = mapcol(
         sa.String(length=20), server_default="not_screened", nullable=False, index=True
     )
-    data_extraction_status = sa.Column(
+    data_extraction_status = mapcol(
         sa.String(length=20), server_default="not_started", nullable=False, index=True
     )
 
@@ -490,25 +490,25 @@ class Dedupe(db.Model):
     __tablename__ = "dedupes"
 
     # columns
-    id = sa.Column(
+    id = mapcol(
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = sa.Column(
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    duplicate_of = sa.Column(
+    duplicate_of = mapcol(
         sa.BigInteger,
         nullable=True,  # sa.ForeignKey('studies.id', ondelete='SET NULL'),
     )
-    duplicate_score = sa.Column(sa.Float, nullable=True)
+    duplicate_score = mapcol(sa.Float, nullable=True)
 
     # relationships
     study = db.relationship(
@@ -540,44 +540,44 @@ class Citation(db.Model):
     #     )
 
     # columns
-    id = sa.Column(
+    id = mapcol(
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = sa.Column(
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    type_of_work = sa.Column(sa.String(length=25))
-    title = sa.Column(sa.String(length=300), server_default="untitled", nullable=False)
-    secondary_title = sa.Column(sa.String(length=300))
-    abstract = sa.Column(sa.Text)
-    pub_year = sa.Column(sa.SmallInteger)
-    pub_month = sa.Column(sa.SmallInteger)
-    authors = sa.Column(postgresql.ARRAY(sa.String(length=100)))
-    keywords = sa.Column(postgresql.ARRAY(sa.String(length=100)))
-    type_of_reference = sa.Column(sa.String(length=50))
-    journal_name = sa.Column(sa.String(length=100))
-    volume = sa.Column(sa.String(length=20))
-    issue_number = sa.Column(sa.String(length=20))
-    doi = sa.Column(sa.String(length=100))
-    issn = sa.Column(sa.String(length=20))
-    publisher = sa.Column(sa.String(length=100))
-    language = sa.Column(sa.String(length=50))
-    other_fields = sa.Column(postgresql.JSONB(none_as_null=True), server_default="{}")
-    text_content_vector_rep = sa.Column(postgresql.ARRAY(sa.Float), server_default="{}")
+    type_of_work = mapcol(sa.String(length=25))
+    title = mapcol(sa.String(length=300), server_default="untitled", nullable=False)
+    secondary_title = mapcol(sa.String(length=300))
+    abstract = mapcol(sa.Text)
+    pub_year = mapcol(sa.SmallInteger)
+    pub_month = mapcol(sa.SmallInteger)
+    authors = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    keywords = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    type_of_reference = mapcol(sa.String(length=50))
+    journal_name = mapcol(sa.String(length=100))
+    volume = mapcol(sa.String(length=20))
+    issue_number = mapcol(sa.String(length=20))
+    doi = mapcol(sa.String(length=100))
+    issn = mapcol(sa.String(length=20))
+    publisher = mapcol(sa.String(length=100))
+    language = mapcol(sa.String(length=50))
+    other_fields = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
+    text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
 
     @hybrid_property
     def text_content(self):
@@ -665,30 +665,30 @@ class Fulltext(db.Model):
     __tablename__ = "fulltexts"
 
     # columns
-    id = sa.Column(
+    id = mapcol(
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = sa.Column(
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    filename = sa.Column(sa.String(length=30), unique=True, nullable=True)
-    original_filename = sa.Column(sa.String, unique=False, nullable=True)
-    text_content = sa.Column(sa.Text, nullable=True)
-    text_content_vector_rep = sa.Column(postgresql.ARRAY(sa.Float), server_default="{}")
+    filename = mapcol(sa.String(length=30), unique=True, nullable=True)
+    original_filename = mapcol(sa.String, unique=False, nullable=True)
+    text_content = mapcol(sa.Text, nullable=True)
+    text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
 
     @hybrid_property
     def exclude_reasons(self):
@@ -733,38 +733,38 @@ class CitationScreening(db.Model):
     )
 
     # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = sa.Column(
+    user_id = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    citation_id = sa.Column(
+    citation_id = mapcol(
         sa.BigInteger,
         sa.ForeignKey("citations.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    status = sa.Column(sa.String(length=20), nullable=False, index=True)
-    exclude_reasons = sa.Column(postgresql.ARRAY(sa.String(length=64)), nullable=True)
+    status = mapcol(sa.String(length=20), nullable=False, index=True)
+    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(
@@ -806,38 +806,38 @@ class FulltextScreening(db.Model):
     )
 
     # columns
-    id = sa.Column(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at = sa.Column(
+    id = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    user_id = sa.Column(
+    user_id = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
-    fulltext_id = sa.Column(
+    fulltext_id = mapcol(
         sa.BigInteger,
         sa.ForeignKey("fulltexts.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    status = sa.Column(sa.String(length=20), nullable=False, index=True)
-    exclude_reasons = sa.Column(postgresql.ARRAY(sa.String(length=64)), nullable=True)
+    status = mapcol(sa.String(length=20), nullable=False, index=True)
+    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
 
     # relationships
     user = db.relationship(
@@ -874,29 +874,27 @@ class DataExtraction(db.Model):
     __tablename__ = "data_extractions"
 
     # columns
-    id = sa.Column(
+    id = mapcol(
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
-    created_at = sa.Column(
+    created_at = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    last_updated = sa.Column(
+    last_updated = mapcol(
         sa.DateTime(timezone=False),
         nullable=False,
         server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
         server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
     )
-    review_id = sa.Column(
+    review_id = mapcol(
         sa.Integer,
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
-    extracted_items = sa.Column(
-        postgresql.JSONB(none_as_null=True), server_default="{}"
-    )
+    extracted_items = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
 
     # relationships
     study = db.relationship(
