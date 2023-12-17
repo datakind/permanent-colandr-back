@@ -1,13 +1,22 @@
+# import typing
+
 import celery
 import flask_caching
 import flask_jwt_extended
 import flask_mail
 import flask_migrate
 import flask_sqlalchemy
+import sqlalchemy.orm
+# from sqlalchemy.dialects import postgresql
+
+
+class _BaseModel(sqlalchemy.orm.DeclarativeBase):
+    # type_annotation_map = {dict[str, typing.Any]: postgresql.JSON}
+    pass
 
 
 cache = flask_caching.Cache()
-db = flask_sqlalchemy.SQLAlchemy()
+db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
