@@ -69,8 +69,8 @@ addopts = "--verbose"
 testpaths = ["tests"]
 
 [tool.ruff]
-# ignore line-length violations, None comparisons
-ignore = ["E501", "E711"]
+# ignore line-length violations, None comparisons, unused imports
+ignore = ["E501", "E711", "F401"]
 line-length = 88
 indent-width = 4
 target-version = "py310"
