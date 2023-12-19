@@ -49,6 +49,7 @@ class TestReviewExportPrismaResource:
         assert data == exp_data
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewExportStudiesResource:
     @pytest.mark.parametrize(
         ["review_id", "num_rows_exp", "num_cols_exp"],
