@@ -450,24 +450,16 @@ class FulltextsScreeningsResource(Resource):
             "inserted %s data extractions", len(data_extractions_to_insert)
         )
         # now update include/exclude counts on review
-        status_counts = db.session.execute(
+        status_counts_stmt = (
             sa.select(Study.fulltext_status, db.func.count(1))
             .filter_by(review_id=review_id)
             .filter(Study.fulltext_status.in_(["included", "excluded"]))
             .group_by(Study.fulltext_status)
-        ).all()
-        status_counts = dict(status_counts)
-        review.num_fulltexts_included = status_counts.get("included", 0)
-        review.num_fulltexts_excluded = status_counts.get("excluded", 0)
-        db.session.commit()
-        # now update include/exclude counts on review
-        status_counts = db.session.execute(
-            sa.select(Study.fulltext_status, db.func.count(1))
-            .filter_by(review_id=review_id)
-            .filter(Study.fulltext_status.in_(["included", "excluded"]))
-            .group_by(Study.fulltext_status)
-        ).all()
-        status_counts = dict(status_counts)
+        )
+        status_counts: dict[str, int] = {
+            row.fulltext_status: row.count
+            for row in db.sessionexecute(status_counts_stmt)
+        }
         review.num_fulltexts_included = status_counts.get("included", 0)
         review.num_fulltexts_excluded = status_counts.get("excluded", 0)
         db.session.commit()

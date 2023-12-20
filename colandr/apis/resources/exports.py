@@ -98,6 +98,8 @@ class ExportStudiesResource(Resource):
             export_data = fileio.tabular.write_stream(
                 fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
             )
+        else:
+            raise NotImplementedError("only 'text/csv' content type is available")
 
         response = make_response(export_data, 200)
         response.headers["Content-type"] = content_type
@@ -234,6 +236,8 @@ class ExportScreeningsResource(Resource):
             export_data = fileio.tabular.write_stream(
                 fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
             )
+        else:
+            raise NotImplementedError("only 'text/csv' content type is available")
 
         response = make_response(export_data, 200)
         response.headers["Content-type"] = content_type

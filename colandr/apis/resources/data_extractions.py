@@ -176,7 +176,7 @@ class DataExtractionResource(Resource):
                 f"<ReviewPlan({review_id})> does not have a data extraction form"
             )
         labels_map = {
-            item["label"]: (item["field_type"], set(item.get("allowed_values", [])))
+            item["label"]: (item["field_type"], set(item.get("allowed_values", [])))  # type: ignore
             for item in data_extraction_form[0]
         }
         # manually validate inputs, given data extraction form specification
