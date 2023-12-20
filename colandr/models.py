@@ -30,7 +30,7 @@ class User(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -103,7 +103,7 @@ class Review(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -233,7 +233,7 @@ class ReviewPlan(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -393,7 +393,7 @@ class Study(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -510,7 +510,7 @@ class Citation(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -631,7 +631,7 @@ class Fulltext(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -693,7 +693,7 @@ class CitationScreening(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -762,7 +762,7 @@ class FulltextScreening(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -828,7 +828,7 @@ class DataExtraction(db.Model):
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
+    updated_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
@@ -869,10 +869,7 @@ class DataExtraction(db.Model):
 # def update_updated_at(mapper, connection, target):
 #     updated_at = connection.execute(sa.select(sa.func.now())).scalar()
 #     LOGGER.warning("%s.updated_at = %s", target, updated_at)
-#     # HACK
-#     if hasattr(target, "last_updated"):
-#         target.last_updated = updated_at
-#     elif hasattr(target, "updated_at"):
+#     if hasattr(target, "updated_at"):
 #         target.updated_at = updated_at
 
 
