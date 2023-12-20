@@ -268,6 +268,7 @@ class CitationsResource(Resource):
         citation = args
         citation["review_id"] = review_id
         citation = CitationSchema().load(citation)  # this sanitizes the data
+        assert isinstance(citation, dict)  # type guard
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()

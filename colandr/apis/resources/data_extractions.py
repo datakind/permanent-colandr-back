@@ -122,6 +122,7 @@ class DataExtractionResource(Resource):
         # in case of "full" deletion, update study's data_extraction_status
         if not extracted_data.extracted_items:
             study = db.session.get(Study, id)
+            assert study is not None  # type guard
             study.data_extraction_status = "not_started"
         db.session.commit()
         current_app.logger.info("deleted contents of %s", extracted_data)
@@ -150,6 +151,7 @@ class DataExtractionResource(Resource):
         current_user = jwtext.get_current_user()
         # check current user authorization
         extracted_data = db.session.get(DataExtraction, id)
+        assert extracted_data is not None  # type guard
         review_id = extracted_data.review_id
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
@@ -161,6 +163,7 @@ class DataExtractionResource(Resource):
                 f"{current_user} forbidden to modify extracted data for this study"
             )
         study = db.session.get(Study, id)
+        assert study is not None  # type guard
         if study.data_extraction_status == "finished":
             return forbidden_error(
                 f'{extracted_data} already "finished", so can\'t be modified'

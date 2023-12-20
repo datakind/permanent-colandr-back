@@ -66,6 +66,7 @@ class FulltextUploadResource(Resource):
     def get(self, id, review_id):
         """get fulltext content file for a single fulltext by id"""
         current_user = jwtext.get_current_user()
+        upload_dir = None
         filename = None
         if review_id is None:
             for dirname, _, filenames in os.walk(
@@ -104,6 +105,8 @@ class FulltextUploadResource(Resource):
                     break
         if not filename:
             return not_found_error(f"no uploaded file for <Fulltext(id={id})> found")
+
+        assert upload_dir is not None  # type guard
         return send_from_directory(upload_dir, filename)
 
     @ns.doc(

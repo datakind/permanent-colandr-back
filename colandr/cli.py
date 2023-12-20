@@ -81,6 +81,8 @@ def db_seed(file_path: pathlib.Path):
     for record in data["review_user_associations"]:
         review = db.session.get(models.Review, record["review_id"])
         user = db.session.get(models.User, record["user_id"])
+        assert review is not None  # type guard
+        assert user is not None  # type guards
         rua = models.ReviewUserAssoc(review, user, record.get("user_role"))
         db.session.add(rua)
     db.session.commit()
