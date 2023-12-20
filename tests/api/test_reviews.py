@@ -62,6 +62,7 @@ class TestReviewResource:
         assert get_response.status_code == 404  # not found!
 
 
+@pytest.mark.usefixtures("db_session")
 class TestReviewsResource:
     @pytest.mark.parametrize(
         ["_review_ids", "num_exp"],

@@ -27,13 +27,14 @@ class User(db.Model):
     # columns
     id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     name: M[str] = mapcol(sa.String(length=200))
     email: M[str] = mapcol(sa.String(length=200), unique=True, index=True)
@@ -99,13 +100,14 @@ class Review(db.Model):
     # columns
     id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     name: M[str] = mapcol(sa.String(length=500))
     description: M[Optional[str]] = mapcol(sa.Text)
@@ -196,13 +198,14 @@ class ReviewUserAssoc(db.Model):
         sa.Text, nullable=False, server_default=sa.text("'member'")
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
     updated_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
 
     review: M["Review"] = sa_orm.relationship(
@@ -227,13 +230,14 @@ class ReviewPlan(db.Model):
         sa.BigInteger, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     objective: M[Optional[str]] = mapcol(sa.Text)
     research_questions = mapcol(
@@ -297,8 +301,8 @@ class DataSource(db.Model):
     # columns
     id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
     source_type: M[str] = mapcol(sa.String(length=20), index=True)
     source_name: M[Optional[str]] = mapcol(sa.String(length=100), index=True)
@@ -334,8 +338,8 @@ class Import(db.Model):
     # columns
     id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
@@ -386,13 +390,14 @@ class Study(db.Model):
     # columns
     id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     user_id: M[Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
@@ -457,8 +462,8 @@ class Dedupe(db.Model):
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
@@ -502,13 +507,14 @@ class Citation(db.Model):
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
@@ -622,13 +628,14 @@ class Fulltext(db.Model):
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
@@ -683,13 +690,14 @@ class CitationScreening(db.Model):
     # columns
     id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     review_id: M[int] = mapcol(
         sa.Integer,
@@ -751,13 +759,14 @@ class FulltextScreening(db.Model):
     # columns
     id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     review_id: M[int] = mapcol(
         sa.Integer,
@@ -816,13 +825,14 @@ class DataExtraction(db.Model):
         sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
     )
     created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
     )
-    last_updated: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=False),
-        server_default=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=sa.text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
     )
     review_id: M[int] = mapcol(
         sa.Integer,
@@ -852,6 +862,15 @@ class DataExtraction(db.Model):
 
 
 # EVENTS
+
+
+# NOTE: apparently this does not work in sqlalchemy v2 :/
+# @sa_event.listens_for(db.Model, "after_update")
+# def update_updated_at(mapper, connection, target):
+#     updated_at = connection.execute(sa.select(sa.func.now())).scalar()
+#     LOGGER.warning("%s.updated_at = %s", target, updated_at)
+#     if hasattr(target, "updated_at"):
+#         target.updated_at = updated_at
 
 
 @sa_event.listens_for(CitationScreening, "after_insert")

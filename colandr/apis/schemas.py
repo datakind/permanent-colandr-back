@@ -7,7 +7,7 @@ from ..lib import constants
 class UserSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     name = fields.Str(required=True, validate=Length(min=1, max=200))
     email = fields.Str(required=True, validate=[Email(), Length(max=200)])
     password = fields.Str(load_only=True, required=True, validate=Length(min=6, max=60))
@@ -31,7 +31,7 @@ class DataSourceSchema(Schema):
 class ReviewSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     name = fields.Str(required=True, validate=Length(max=500))
     description = fields.Str(load_default=None)
     status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
@@ -87,7 +87,7 @@ class ReviewPlanSuggestedKeyterms(Schema):
 class ReviewPlanSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     objective = fields.Str()
     research_questions = fields.List(fields.Str(validate=Length(max=300)))
     pico = fields.Nested(ReviewPlanPICO)
@@ -130,7 +130,7 @@ class DedupeSchema(Schema):
 class ScreeningSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     citation_id = fields.Int(
@@ -148,7 +148,7 @@ class ScreeningSchema(Schema):
 class CitationSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     type_of_work = fields.Str(load_default=None, validate=Length(max=25))
     title = fields.Str(validate=Length(max=300))
@@ -177,7 +177,7 @@ class CitationSchema(Schema):
 class FulltextSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     filename = fields.Str(validate=Length(max=30))
     original_filename = fields.Str(dump_only=True)
@@ -193,7 +193,7 @@ class ExtractedItem(Schema):
 class DataExtractionSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     extracted_items = fields.Nested(ExtractedItem, many=True)
 
@@ -201,7 +201,7 @@ class DataExtractionSchema(Schema):
 class StudySchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
-    last_updated = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     data_source_id = fields.Int(
