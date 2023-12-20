@@ -143,15 +143,10 @@ class UserResource(Resource):
                         value,
                     )
                 setattr(user, key, value)
-        try:
-            db.session.commit()
-            current_app.logger.info(
-                "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
-            )
-        except (IntegrityError, InvalidRequestError) as e:
-            current_app.logger.exception("%s: unexpected db error", "UserResource.put")
-            db.session.rollback()
-            return db_integrity_error(str(e.orig))
+        db.session.commit()
+        current_app.logger.info(
+            "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
+        )
         return UserSchema().dump(user)
 
 
@@ -232,13 +227,6 @@ class UsersResource(Resource):
         user = User(**args)
         user.is_confirmed = True
         db.session.add(user)
-        try:
-            db.session.commit()
-            current_app.logger.info("inserted %s", user)
-        except (IntegrityError, InvalidRequestError) as e:
-            current_app.logger.exception(
-                "%s: unexpected db error", "UsersResource.post"
-            )
-            db.session.rollback()
-            return db_integrity_error(str(e.orig))
+        db.session.commit()
+        current_app.logger.info("inserted %s", user)
         return UserSchema().dump(user)
