@@ -46,6 +46,7 @@ def not_found_error(error):
 
 @api_v1.errorhandler(exceptions.InternalServerError)
 def internal_server_error(error):
+    """See also: :func:`colandr.errors.handle_error()"""
     message = str(error)
     current_app.logger.exception(message)
     return _make_error_response(500, message)
