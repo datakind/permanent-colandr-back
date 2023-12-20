@@ -1,7 +1,7 @@
 import datetime
 import itertools
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
@@ -244,15 +244,19 @@ class ReviewPlan(db.Model):
         postgresql.ARRAY(sa.String(length=300)),
         server_default="{}",
     )
-    pico = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
-    keyterms = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
-    selection_criteria = mapcol(
+    pico: M[dict[str, Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    data_extraction_form = mapcol(
+    keyterms: M[list[dict[str, Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    suggested_keyterms = mapcol(
+    selection_criteria: M[list[dict[str, Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    data_extraction_form: M[list[dict[str, Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    suggested_keyterms: M[dict[str, Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -839,7 +843,9 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    extracted_items = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
+    extracted_items: M[list[dict[str, Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
 
     # relationships
     study: M["Study"] = sa_orm.relationship(
