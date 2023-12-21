@@ -61,14 +61,17 @@ class ReviewExportPrismaResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
         # get counts by step, i.e. prisma
-        n_studies_by_source = dict(
-            db.session.execute(
-                sa.select(DataSource.source_type, db.func.sum(Import.num_records))
-                .filter(Import.data_source_id == DataSource.id)
-                .filter(Import.review_id == id)
-                .group_by(DataSource.source_type)
-            ).all()
+        n_studies_by_source_stmt = (
+            sa.select(DataSource.source_type, db.func.sum(Import.num_records))
+            .filter(Import.data_source_id == DataSource.id)
+            .filter(Import.review_id == id)
+            .group_by(DataSource.source_type)
         )
+
+        n_studies_by_source = {
+            row.source_type: row.sum
+            for row in db.session.execute(n_studies_by_source_stmt)
+        }
 
         n_unique_studies = db.session.execute(
             sa.select(sa.func.count()).select_from(
@@ -78,26 +81,30 @@ class ReviewExportPrismaResource(Resource):
             )
         ).scalar_one()
 
-        n_citations_by_status = dict(
-            db.session.execute(
-                sa.select(Study.citation_status, db.func.count(1))
-                .filter(Study.review_id == id)
-                .filter(Study.citation_status.in_(["included", "excluded"]))
-                .group_by(Study.citation_status)
-            ).all()
+        n_citations_by_status_stmt = (
+            sa.select(Study.citation_status, db.func.count(1))
+            .filter(Study.review_id == id)
+            .filter(Study.citation_status.in_(["included", "excluded"]))
+            .group_by(Study.citation_status)
         )
-        n_citations_screened = sum(n_citations_by_status.values())
+        n_citations_by_status = {
+            row.citation_status: row.count
+            for row in db.session.execute(n_citations_by_status_stmt)
+        }
+        n_citations_screened = sum(n_citations_by_status.values())  # type: ignore
         n_citations_excluded = n_citations_by_status.get("excluded", 0)
 
-        n_fulltexts_by_status = dict(
-            db.session.execute(
-                sa.select(Study.fulltext_status, db.func.count(1))
-                .filter(Study.review_id == id)
-                .filter(Study.fulltext_status.in_(["included", "excluded"]))
-                .group_by(Study.fulltext_status)
-            ).all()
+        n_fulltexts_by_status_stmt = (
+            sa.select(Study.fulltext_status, db.func.count(1))
+            .filter(Study.review_id == id)
+            .filter(Study.fulltext_status.in_(["included", "excluded"]))
+            .group_by(Study.fulltext_status)
         )
-        n_fulltexts_screened = sum(n_fulltexts_by_status.values())
+        n_fulltexts_by_status = {
+            row.fulltext_status: row.count
+            for row in db.session.execute(n_fulltexts_by_status_stmt)
+        }
+        n_fulltexts_screened = sum(n_fulltexts_by_status.values())  # type: ignore
         n_fulltexts_excluded = n_fulltexts_by_status.get("excluded", 0)
 
         results = db.session.execute(
