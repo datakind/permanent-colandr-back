@@ -458,8 +458,8 @@ class FulltextsScreeningsResource(Resource):
         )
         status_counts: dict[str, int] = {
             row.fulltext_status: row.count
-            for row in db.sessionexecute(status_counts_stmt)
-        }
+            for row in db.session.execute(status_counts_stmt)
+        }  # type: ignore
         review.num_fulltexts_included = status_counts.get("included", 0)
         review.num_fulltexts_excluded = status_counts.get("excluded", 0)
         db.session.commit()
