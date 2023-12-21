@@ -459,8 +459,8 @@ class CitationsScreeningsResource(Resource):
         )
         status_counts: dict[str, int] = {
             row.citation_status: row.count
-            for row in db.sessionexecute(status_counts_stmt)
-        }
+            for row in db.session.execute(status_counts_stmt)
+        }  # type: ignore
         n_included = status_counts.get("included", 0)
         n_excluded = status_counts.get("excluded", 0)
         review.num_citations_included = n_included
