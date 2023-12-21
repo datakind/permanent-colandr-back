@@ -52,11 +52,6 @@ def internal_server_error(error):
     return _make_error_response(500, message)
 
 
-def db_integrity_error(message):
-    current_app.logger.error(message)
-    return _make_error_response(422, message)
-
-
 @webargs.flaskparser.parser.error_handler
 def validation_error(error, req, schema, *, error_status_code, error_headers):
     """

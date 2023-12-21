@@ -23,6 +23,16 @@ def handle_sqlalchemy_error(error):
     return (jsonify({"error": "Internal Server Error", "message": str(error)}), 500)
 
 
+@bp.app_errorhandler(sa_exc.IntegrityError)
+def handle_sqlalchemy_integrity_error(error):
+    current_app.logger.exception(
+        "database integrity error: %s\nrolling back ...", error
+    )
+    db.session.rollback()
+    db.session.remove()
+    return (jsonify({"error": "Unprocessable Entity", "message": str(error)}), 422)
+
+
 # TODO: revisit this when we finally get round to dealing with marshmallow+webargs
 @bp.app_errorhandler(422)
 def handle_validation_error(error):
