@@ -788,7 +788,9 @@ class FulltextScreening(db.Model):
         index=True,
     )
     status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
+    exclude_reasons: M[list[str]] = mapcol(
+        postgresql.ARRAY(sa.String(length=64)), nullable=True
+    )
 
     # relationships
     user: M["User"] = sa_orm.relationship(

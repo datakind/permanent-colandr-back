@@ -180,6 +180,9 @@ class FulltextUploadResource(Resource):
             #     stderr=subprocess.STDOUT,
             # )
             text_content = fileio.pdf.read(filepath).encode("utf-8")
+        else:
+            raise ValueError(f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf")
+
         fulltext.text_content = ftfy.fix_text(text_content.decode(errors="ignore"))
         db.session.commit()
         current_app.logger.info(

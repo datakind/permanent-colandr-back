@@ -333,6 +333,7 @@ def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
     """
     identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
     user = db.session.get(User, identity)
+    assert user is not None  # type guard
     return user
 
 
