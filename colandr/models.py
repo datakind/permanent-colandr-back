@@ -788,7 +788,7 @@ class FulltextScreening(db.Model):
         index=True,
     )
     status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons: M[list[str]] = mapcol(
+    exclude_reasons: M[Optional[list[str]]] = mapcol(
         postgresql.ARRAY(sa.String(length=64)), nullable=True
     )
 
@@ -845,7 +845,7 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    extracted_items: M[list[dict[str, Any]]] = mapcol(
+    extracted_items: M[Optional[list[dict[str, Any]]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
