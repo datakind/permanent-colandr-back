@@ -81,6 +81,8 @@ def db_seed(file_path: pathlib.Path):
     for record in data["review_user_associations"]:
         review = db.session.get(models.Review, record["review_id"])
         user = db.session.get(models.User, record["user_id"])
+        assert review is not None  # type guard
+        assert user is not None  # type guards
         rua = models.ReviewUserAssoc(review, user, record.get("user_role"))
         db.session.add(rua)
     db.session.commit()
@@ -118,7 +120,7 @@ def add_admin(name, email, password):
     Add an admin account to the database, with both `is_admin` and `is_confirmed`
     values already set to True.
     """
-    user = User(name=name, email=email, password=password)
+    user = User(**{"name": name, "email": email, "password": password})
     user.is_confirmed = True
     user.is_admin = True
     db.session.add(user)

@@ -461,6 +461,7 @@ class StudiesResource(Resource):
 
             # last option: just reviewer terms
             if not scores:
+                review_plan = review.review_plan
                 keyterms = review_plan.keyterms
                 if keyterms:
                     keyterms_regex = reviewer_terms.get_keyterms_regex(keyterms)

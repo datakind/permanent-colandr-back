@@ -1,7 +1,7 @@
 import datetime
 import itertools
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
@@ -244,15 +244,19 @@ class ReviewPlan(db.Model):
         postgresql.ARRAY(sa.String(length=300)),
         server_default="{}",
     )
-    pico = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
-    keyterms = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
-    selection_criteria = mapcol(
+    pico: M[dict[str, Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    data_extraction_form = mapcol(
+    keyterms: M[list[dict[str, Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    suggested_keyterms = mapcol(
+    selection_criteria: M[list[dict[str, Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    data_extraction_form: M[list[dict[str, Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    suggested_keyterms: M[dict[str, Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -525,8 +529,8 @@ class Citation(db.Model):
     abstract: M[Optional[str]] = mapcol(sa.Text)
     pub_year: M[Optional[int]] = mapcol(sa.SmallInteger)
     pub_month: M[Optional[int]] = mapcol(sa.SmallInteger)
-    authors = mapcol(postgresql.ARRAY(sa.String(length=100)))
-    keywords = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    authors: M[Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    keywords: M[Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
     type_of_reference: M[Optional[str]] = mapcol(sa.String(length=50))
     journal_name: M[Optional[str]] = mapcol(sa.String(length=100))
     volume: M[Optional[str]] = mapcol(sa.String(length=20))
@@ -784,7 +788,9 @@ class FulltextScreening(db.Model):
         index=True,
     )
     status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
+    exclude_reasons: M[Optional[list[str]]] = mapcol(
+        postgresql.ARRAY(sa.String(length=64)), nullable=True
+    )
 
     # relationships
     user: M["User"] = sa_orm.relationship(
@@ -839,7 +845,9 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    extracted_items = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
+    extracted_items: M[Optional[list[dict[str, Any]]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
 
     # relationships
     study: M["Study"] = sa_orm.relationship(

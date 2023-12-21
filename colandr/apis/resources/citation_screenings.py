@@ -348,7 +348,7 @@ class CitationsScreeningsResource(Resource):
 
         if status_counts is True:
             stmt = stmt.group_by(CitationScreening.status)
-            return dict(db.session.execute(stmt).all())
+            return {row.status: row.count for row in db.session.execute(stmt)}
         else:
             results = db.session.execute(stmt)
             return ScreeningSchema(partial=True, many=True).dump(results)
@@ -451,13 +451,16 @@ class CitationsScreeningsResource(Resource):
         db.session.commit()
         current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
         # now update include/exclude counts on review
-        status_counts = db.session.execute(
+        status_counts_stmt = (
             sa.select(Study.citation_status, db.func.count(1))
             .filter_by(review_id=review_id, dedupe_status="not_duplicate")
             .filter(Study.citation_status.in_(["included", "excluded"]))
             .group_by(Study.citation_status)
-        ).all()
-        status_counts = dict(status_counts)
+        )
+        status_counts: dict[str, int] = {
+            row.citation_status: row.count
+            for row in db.session.execute(status_counts_stmt)
+        }  # type: ignore
         n_included = status_counts.get("included", 0)
         n_excluded = status_counts.get("excluded", 0)
         review.num_citations_included = n_included

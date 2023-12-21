@@ -4,7 +4,6 @@ from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
-from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
@@ -13,7 +12,7 @@ from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
 from .. import auth
-from ..errors import db_integrity_error, forbidden_error, not_found_error
+from ..errors import forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
 
@@ -143,15 +142,10 @@ class UserResource(Resource):
                         value,
                     )
                 setattr(user, key, value)
-        try:
-            db.session.commit()
-            current_app.logger.info(
-                "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
-            )
-        except (IntegrityError, InvalidRequestError) as e:
-            current_app.logger.exception("%s: unexpected db error", "UserResource.put")
-            db.session.rollback()
-            return db_integrity_error(str(e.orig))
+        db.session.commit()
+        current_app.logger.info(
+            "%s modified %s, attributes=%s", current_user, user, sorted(args.keys())
+        )
         return UserSchema().dump(user)
 
 
@@ -232,13 +226,6 @@ class UsersResource(Resource):
         user = User(**args)
         user.is_confirmed = True
         db.session.add(user)
-        try:
-            db.session.commit()
-            current_app.logger.info("inserted %s", user)
-        except (IntegrityError, InvalidRequestError) as e:
-            current_app.logger.exception(
-                "%s: unexpected db error", "UsersResource.post"
-            )
-            db.session.rollback()
-            return db_integrity_error(str(e.orig))
+        db.session.commit()
+        current_app.logger.info("inserted %s", user)
         return UserSchema().dump(user)

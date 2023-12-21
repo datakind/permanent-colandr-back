@@ -28,7 +28,7 @@ def _get_redis_lock(lock_id: str, timeout: int = 120) -> redis.lock.Lock:
 
 
 def _get_redis_conn() -> redis.client.Redis:
-    redis_conn = current_celery_app.backend.client
+    redis_conn = current_celery_app.backend.client  # type: ignore
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
 
@@ -121,7 +121,7 @@ def deduplicate_citations(review_id: int):
         LOGGER.info(
             "<Review(id=%s)>: found %s duplicate clusters",
             review_id,
-            len(clustered_dupes),
+            len(clustered_dupes),  # type: ignore
         )
     # TODO: figure out if this is ever a generator instead
     except TypeError:
@@ -155,19 +155,19 @@ def deduplicate_citations(review_id: int):
                 sa.select(
                     Citation.id,
                     (
-                        sa.case([(Citation.title == None, 1)])
-                        + sa.case([(Citation.abstract == None, 1)])
-                        + sa.case([(Citation.pub_year == None, 1)])
-                        + sa.case([(Citation.pub_month == None, 1)])
-                        + sa.case([(Citation.authors == {}, 1)])
-                        + sa.case([(Citation.keywords == {}, 1)])
-                        + sa.case([(Citation.type_of_reference == None, 1)])
-                        + sa.case([(Citation.journal_name == None, 1)])
-                        + sa.case([(Citation.issue_number == None, 1)])
-                        + sa.case([(Citation.doi == None, 1)])
-                        + sa.case([(Citation.issn == None, 1)])
-                        + sa.case([(Citation.publisher == None, 1)])
-                        + sa.case([(Citation.language == None, 1)])
+                        sa.case((Citation.title == None, 1))
+                        + sa.case((Citation.abstract == None, 1))
+                        + sa.case((Citation.pub_year == None, 1))
+                        + sa.case((Citation.pub_month == None, 1))
+                        + sa.case((Citation.authors == {}, 1))
+                        + sa.case((Citation.keywords == {}, 1))
+                        + sa.case((Citation.type_of_reference == None, 1))
+                        + sa.case((Citation.journal_name == None, 1))
+                        + sa.case((Citation.issue_number == None, 1))
+                        + sa.case((Citation.doi == None, 1))
+                        + sa.case((Citation.issn == None, 1))
+                        + sa.case((Citation.publisher == None, 1))
+                        + sa.case((Citation.language == None, 1))
                     ).label("n_null_cols"),
                 )
                 .where(Citation.review_id == review_id)
@@ -176,6 +176,7 @@ def deduplicate_citations(review_id: int):
                 .limit(1)
             )
             result = db.session.execute(stmt).first()
+            assert result is not None
             canonical_citation_id = result.id
 
         for cid, score in cid_scores.items():
@@ -270,7 +271,7 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         fallback_lang=None,
         exclude=("parser", "ner"),
     )
-    doc = next(docs)
+    doc = next(iter(docs))
     text_content_vector_rep = doc.vector.tolist() if doc is not None else None
     if text_content_vector_rep is None:
         LOGGER.warning(

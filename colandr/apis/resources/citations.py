@@ -257,7 +257,11 @@ class CitationsResource(Resource):
 
         # add the study
         study = Study(
-            user_id=current_user.id, review_id=review_id, data_source_id=data_source.id
+            **{
+                "user_id": current_user.id,
+                "review_id": review_id,
+                "data_source_id": data_source.id,
+            }
         )
         if status is not None:
             study.citation_status = status
@@ -268,6 +272,7 @@ class CitationsResource(Resource):
         citation = args
         citation["review_id"] = review_id
         citation = CitationSchema().load(citation)  # this sanitizes the data
+        assert isinstance(citation, dict)  # type guard
         citation = Citation(study.id, **citation)
         db.session.add(citation)
         db.session.commit()

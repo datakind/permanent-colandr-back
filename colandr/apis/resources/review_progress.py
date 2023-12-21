@@ -110,16 +110,18 @@ class ReviewProgressResource(Resource):
             ] = progress  # {key: val for key, val in progress.items()}
         if step in ("citation_screening", "all"):
             if user_view is False:
-                progress = db.session.execute(
+                progress = {status: 0 for status in constants.SCREENING_STATUSES}
+                progress_stmt = (
                     sa.select(Study.citation_status, db.func.count(1))
                     .filter_by(review_id=id)
                     .group_by(Study.citation_status)
-                ).all()
-                progress = dict(progress)
-                progress = {
-                    status: progress.get(status, 0)
-                    for status in constants.SCREENING_STATUSES
-                }
+                )
+                progress.update(
+                    {
+                        row.citation_status: row.count
+                        for row in db.session.execute(progress_stmt)
+                    }
+                )
             else:
                 query = """
                     SELECT
@@ -145,7 +147,10 @@ class ReviewProgressResource(Resource):
                     WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
-                progress = dict(row for row in db.session.execute(sa.text(query)))
+                progress = {
+                    row.user_status: row.count
+                    for row in db.session.execute(sa.text(query))
+                }
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES
@@ -153,16 +158,19 @@ class ReviewProgressResource(Resource):
             response["citation_screening"] = progress
         if step in ("fulltext_screening", "all"):
             if user_view is False:
-                progress = db.session.execute(
+                progress = {status: 0 for status in constants.SCREENING_STATUSES}
+                progress_stmt = (
                     sa.select(Study.fulltext_status, db.func.count(1))
                     .filter_by(review_id=id, citation_status="included")
                     .group_by(Study.fulltext_status)
-                ).all()
-                progress = dict(progress)
-                progress = {
-                    status: progress.get(status, 0)
-                    for status in constants.SCREENING_STATUSES
-                }
+                )
+                progress.update(
+                    {
+                        row.fulltext_status: row.count
+                        for row in db.session.execute(progress_stmt)
+                    }
+                )
+
             else:
                 query = """
                     SELECT
@@ -188,23 +196,29 @@ class ReviewProgressResource(Resource):
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
-                progress = dict(row for row in db.session.execute(sa.text(query)))
+                progress = {
+                    row.user_status: row.count
+                    for row in db.session.execute(sa.text(query))
+                }
                 progress = {
                     status: progress.get(status, 0)
                     for status in constants.USER_SCREENING_STATUSES
                 }
             response["fulltext_screening"] = progress
         if step in ("data_extraction", "all"):
-            progress = db.session.execute(
+            progress = {status: 0 for status in constants.EXTRACTION_STATUSES}
+            progress_stmt = (
                 sa.select(Study.data_extraction_status, db.func.count(1))
                 .filter_by(review_id=id, fulltext_status="included")
                 .group_by(Study.data_extraction_status)
-            ).all()
-            progress = dict(progress)
-            progress = {
-                status: progress.get(status, 0)
-                for status in constants.EXTRACTION_STATUSES
-            }
+            )
+            progress.update(
+                {
+                    row.data_extraction_status: row.count
+                    for row in db.session.execute(progress_stmt)
+                }
+            )
+
             response["data_extraction"] = progress
 
         current_app.logger.debug("got progress for %s", review)
