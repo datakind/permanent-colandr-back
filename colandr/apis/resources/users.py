@@ -4,7 +4,6 @@ from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Email, Range
-from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
@@ -13,7 +12,7 @@ from ...extensions import db
 from ...lib import constants
 from ...models import Review, User
 from .. import auth
-from ..errors import db_integrity_error, forbidden_error, not_found_error
+from ..errors import forbidden_error, not_found_error
 from ..schemas import UserSchema
 from ..swagger import user_model
 

@@ -3,6 +3,7 @@ from typing import Optional
 
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
+import sqlalchemy.exc as sa_exc
 from flask import current_app, render_template, url_for
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -12,7 +13,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from .. import tasks
 from ..extensions import db, jwt
 from ..models import User
-from .errors import db_integrity_error, forbidden_error, not_found_error
+from .errors import forbidden_error, not_found_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
 
@@ -151,14 +152,6 @@ class RegisterResource(Resource):
                 "password":"PASSWORD" \
             }'
         """
-        existing_user = db.session.execute(
-            sa.select(User).filter_by(email=args["email"])
-        ).scalar_one_or_none()
-        if existing_user is not None:
-            return db_integrity_error(
-                f"email={args['email']} already assigned to user in database"
-            )
-
         user = User(**args)
         db.session.add(user)
         db.session.commit()
