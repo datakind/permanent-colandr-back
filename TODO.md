@@ -1,6 +1,6 @@
 - [ ] Confirm that all email interactions (e.g. password reset) actually work
 - [ ] Better handle uploaded fulltext files (really, all data artifacts saved on disk, not in the db)
-- [ ] Allow for multiple review owners
+- [x] Allow for multiple review owners
 - [ ] Allow for assigning studies to reviewers for screening
 - [ ] Integrate caching and rate limiting into API
 - [ ] Add extra fields in users table, e.g. affiliation
