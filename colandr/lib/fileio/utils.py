@@ -3,8 +3,8 @@ import io
 import logging
 import pathlib
 import tempfile
-from collections.abc import Sequence
-from typing import Any, BinaryIO, Iterable, Optional
+import typing as t
+from collections.abc import Iterable, Sequence
 
 from dateutil.parser import ParserError
 from dateutil.parser import parse as parse_dttm
@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def load_from_path_or_stream(
-    path_or_stream: BinaryIO | pathlib.Path,
+    path_or_stream: t.BinaryIO | pathlib.Path,
     encodings: Sequence[str] = ("utf-8", "ISO-8859-1"),
 ) -> str:
     """
@@ -58,7 +58,7 @@ def load_from_path_or_stream(
     return data
 
 
-def try_to_dttm(value: float | int | str) -> Optional[datetime.datetime]:
+def try_to_dttm(value: float | int | str) -> t.Optional[datetime.datetime]:
     """Cast ``value`` into a dttm, as needed."""
     if isinstance(value, int):
         try:
@@ -75,7 +75,7 @@ def try_to_dttm(value: float | int | str) -> Optional[datetime.datetime]:
     return None
 
 
-def try_to_int(value: float | int | str) -> Optional[int]:
+def try_to_int(value: float | int | str) -> t.Optional[int]:
     """Cast ``value`` into an int, as needed."""
     if isinstance(value, int):
         return value
@@ -87,7 +87,7 @@ def try_to_int(value: float | int | str) -> Optional[int]:
             return None
 
 
-def to_list(value: Any) -> list:
+def to_list(value: t.Any) -> list:
     """Cast ``value`` into a list, as needed."""
     if isinstance(value, list):
         return value

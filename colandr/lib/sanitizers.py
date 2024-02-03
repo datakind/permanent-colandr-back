@@ -1,9 +1,9 @@
-from typing import Any
+import typing as t
 
 from . import constants
 
 
-def sanitize_citation(record: dict[str, Any]) -> dict[str, Any]:
+def sanitize_citation(record: dict[str, t.Any]) -> dict[str, t.Any]:
     """
     Sanitize keys/values of a 'raw' citation record into something suitable
     for insertion into the corresponding database table.

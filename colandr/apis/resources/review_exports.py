@@ -1,7 +1,7 @@
 import collections
 import csv
 import itertools
-from typing import Optional
+import typing as t
 
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
@@ -204,7 +204,7 @@ class ReviewExportStudiesResource(Resource):
             "fulltext_filename",
             "fulltext_exclude_reasons",
         ]
-        extraction_label_types: Optional[list[tuple[str, str]]]
+        extraction_label_types: t.Optional[list[tuple[str, str]]]
         if data_extraction_form:
             extraction_label_types = [
                 (item["label"], item["field_type"]) for item in data_extraction_form[0]
@@ -278,7 +278,7 @@ class ReviewExportStudiesResource(Resource):
 
 
 def _study_to_row(
-    study: Study, extraction_label_types: Optional[list[tuple[str, str]]]
+    study: Study, extraction_label_types: t.Optional[list[tuple[str, str]]]
 ) -> dict:
     row = {
         "study_id": study.id,

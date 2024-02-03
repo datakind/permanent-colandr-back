@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Optional
+import typing as t
 
 import flask
 import flask.logging
@@ -9,7 +9,7 @@ from colandr import cli, config, errors, extensions
 from colandr.apis import api_v1
 
 
-def create_app(config_overrides: Optional[dict[str, Any]] = None) -> flask.Flask:
+def create_app(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
     app = flask.Flask("colandr")
     app.config.from_object(config)
     if config_overrides:

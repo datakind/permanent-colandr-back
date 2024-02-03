@@ -1,13 +1,12 @@
 import json
 import pathlib
 import shutil
-from typing import Any
+import typing as t
 
 import flask
 import flask_sqlalchemy
 import pytest
 import sqlalchemy.orm as sa_orm
-
 from colandr import cli, extensions, models
 from colandr.apis import auth
 from colandr.app import create_app
@@ -53,7 +52,7 @@ def seed_data_fpath() -> pathlib.Path:
 
 
 @pytest.fixture(scope="session")
-def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, Any]:
+def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, t.Any]:
     with seed_data_fpath.open(mode="r") as f:
         seed_data = json.load(f)
     return seed_data
@@ -61,7 +60,10 @@ def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, Any]:
 
 @pytest.fixture(scope="session")
 def db(
-    app: flask.Flask, seed_data_fpath: pathlib.Path, seed_data: dict[str, Any], request
+    app: flask.Flask,
+    seed_data_fpath: pathlib.Path,
+    seed_data: dict[str, t.Any],
+    request,
 ):
     extensions.db.drop_all()
     extensions.db.create_all()
@@ -70,7 +72,7 @@ def db(
     return extensions.db
 
 
-def _store_upload_files(app: flask.Flask, seed_data: dict[str, Any], request):
+def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
     for record in seed_data["fulltext_uploads"]:
         src_file_path = (
             request.config.rootpath / "tests" / "fixtures" / record["original_filename"]

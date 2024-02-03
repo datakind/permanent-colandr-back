@@ -1,8 +1,8 @@
 import functools
 import logging
 import pathlib
+import typing as t
 from collections.abc import Iterable, Sequence
-from typing import Optional
 
 import joblib
 import numpy as np
@@ -19,7 +19,7 @@ _MODEL_FNAME = "citation_ranking_model_review_{review_id}.pkl"
 
 class Ranker:
     def __init__(
-        self, *, review_id: int, model_fpath: Optional[str | pathlib.Path] = None
+        self, *, review_id: int, model_fpath: t.Optional[str | pathlib.Path] = None
     ):
         self.review_id = review_id
         self.model_fpath = model_fpath

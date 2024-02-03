@@ -1,7 +1,7 @@
 import datetime
 import itertools
 import logging
-from typing import Any, Optional
+import typing as t
 
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
@@ -10,10 +10,13 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapped_column as mapcol, Mapped as M, DynamicMapped as DM
+from sqlalchemy.orm import DynamicMapped as DM
+from sqlalchemy.orm import Mapped as M
+from sqlalchemy.orm import mapped_column as mapcol
 
 from . import tasks, utils
 from .extensions import db
+
 
 # TODO: update relationship.lazy strategies
 # https://docs.sqlalchemy.org/en/20/changelog/whatsnew_20.html#new-write-only-relationship-strategy-supersedes-dynamic
@@ -110,7 +113,7 @@ class Review(db.Model):
         server_onupdate=sa.FetchedValue(),
     )
     name: M[str] = mapcol(sa.String(length=500))
-    description: M[Optional[str]] = mapcol(sa.Text)
+    description: M[t.Optional[str]] = mapcol(sa.Text)
     status: M[str] = mapcol(sa.String(length=25), server_default="active")
     num_citation_screening_reviewers: M[int] = mapcol(
         sa.SmallInteger, server_default="1"
@@ -194,7 +197,7 @@ class ReviewUserAssoc(db.Model):
     user_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    user_role: M[Optional[str]] = mapcol(
+    user_role: M[t.Optional[str]] = mapcol(
         sa.Text, nullable=False, server_default=sa.text("'member'")
     )
     created_at: M[datetime.datetime] = mapcol(
@@ -213,7 +216,7 @@ class ReviewUserAssoc(db.Model):
     )
     user: M["User"] = sa_orm.relationship("User", back_populates="review_user_assoc")
 
-    def __init__(self, review: Review, user: User, user_role: Optional[str] = None):
+    def __init__(self, review: Review, user: User, user_role: t.Optional[str] = None):
         self.review = review
         self.user = user
         self.user_role = user_role
@@ -239,24 +242,24 @@ class ReviewPlan(db.Model):
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
     )
-    objective: M[Optional[str]] = mapcol(sa.Text)
+    objective: M[t.Optional[str]] = mapcol(sa.Text)
     research_questions = mapcol(
         postgresql.ARRAY(sa.String(length=300)),
         server_default="{}",
     )
-    pico: M[dict[str, Any]] = mapcol(
+    pico: M[dict[str, t.Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    keyterms: M[list[dict[str, Any]]] = mapcol(
+    keyterms: M[list[dict[str, t.Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    selection_criteria: M[list[dict[str, Any]]] = mapcol(
+    selection_criteria: M[list[dict[str, t.Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    data_extraction_form: M[list[dict[str, Any]]] = mapcol(
+    data_extraction_form: M[list[dict[str, t.Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    suggested_keyterms: M[dict[str, Any]] = mapcol(
+    suggested_keyterms: M[dict[str, t.Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
@@ -309,8 +312,8 @@ class DataSource(db.Model):
         server_default=sa.func.now(),
     )
     source_type: M[str] = mapcol(sa.String(length=20), index=True)
-    source_name: M[Optional[str]] = mapcol(sa.String(length=100), index=True)
-    source_url: M[Optional[str]] = mapcol(sa.String(length=500))
+    source_name: M[t.Optional[str]] = mapcol(sa.String(length=100), index=True)
+    source_url: M[t.Optional[str]] = mapcol(sa.String(length=500))
 
     @hybrid_property
     def source_type_and_name(self):
@@ -348,15 +351,15 @@ class Import(db.Model):
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
     )
-    user_id: M[Optional[int]] = mapcol(
+    user_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
-    data_source_id: M[Optional[int]] = mapcol(
+    data_source_id: M[t.Optional[int]] = mapcol(
         sa.BigInteger, sa.ForeignKey("data_sources.id", ondelete="SET NULL")
     )
     record_type: M[str] = mapcol(sa.String(length=10))
     num_records: M[int] = mapcol(sa.Integer)
-    status: M[Optional[str]] = mapcol(
+    status: M[t.Optional[str]] = mapcol(
         sa.String(length=20), server_default="not_screened"
     )
 
@@ -403,7 +406,7 @@ class Study(db.Model):
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
     )
-    user_id: M[Optional[int]] = mapcol(
+    user_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
     review_id: M[int] = mapcol(
@@ -412,10 +415,10 @@ class Study(db.Model):
     tags = mapcol(
         postgresql.ARRAY(sa.String(length=64)), server_default="{}", index=False
     )
-    data_source_id: M[Optional[int]] = mapcol(
+    data_source_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("data_sources.id", ondelete="SET NULL"), index=True
     )
-    dedupe_status: M[Optional[str]] = mapcol(
+    dedupe_status: M[t.Optional[str]] = mapcol(
         sa.String(length=20), server_default="not_duplicate", index=True
     )
     citation_status: M[str] = mapcol(
@@ -472,10 +475,10 @@ class Dedupe(db.Model):
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
     )
-    duplicate_of: M[Optional[int]] = mapcol(
+    duplicate_of: M[t.Optional[int]] = mapcol(
         sa.BigInteger,  # sa.ForeignKey('studies.id', ondelete='SET NULL'),
     )
-    duplicate_score: M[Optional[float]] = mapcol(sa.Float)
+    duplicate_score: M[t.Optional[float]] = mapcol(sa.Float)
 
     # relationships
     study: M["Study"] = sa_orm.relationship(
@@ -523,22 +526,22 @@ class Citation(db.Model):
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
     )
-    type_of_work: M[Optional[str]] = mapcol(sa.String(length=25))
+    type_of_work: M[t.Optional[str]] = mapcol(sa.String(length=25))
     title: M[str] = mapcol(sa.String(length=300), server_default="untitled")
-    secondary_title: M[Optional[str]] = mapcol(sa.String(length=300))
-    abstract: M[Optional[str]] = mapcol(sa.Text)
-    pub_year: M[Optional[int]] = mapcol(sa.SmallInteger)
-    pub_month: M[Optional[int]] = mapcol(sa.SmallInteger)
-    authors: M[Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
-    keywords: M[Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
-    type_of_reference: M[Optional[str]] = mapcol(sa.String(length=50))
-    journal_name: M[Optional[str]] = mapcol(sa.String(length=100))
-    volume: M[Optional[str]] = mapcol(sa.String(length=20))
-    issue_number: M[Optional[str]] = mapcol(sa.String(length=20))
-    doi: M[Optional[str]] = mapcol(sa.String(length=100))
-    issn: M[Optional[str]] = mapcol(sa.String(length=20))
-    publisher: M[Optional[str]] = mapcol(sa.String(length=100))
-    language: M[Optional[str]] = mapcol(sa.String(length=50))
+    secondary_title: M[t.Optional[str]] = mapcol(sa.String(length=300))
+    abstract: M[t.Optional[str]] = mapcol(sa.Text)
+    pub_year: M[t.Optional[int]] = mapcol(sa.SmallInteger)
+    pub_month: M[t.Optional[int]] = mapcol(sa.SmallInteger)
+    authors: M[t.Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    keywords: M[t.Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
+    type_of_reference: M[t.Optional[str]] = mapcol(sa.String(length=50))
+    journal_name: M[t.Optional[str]] = mapcol(sa.String(length=100))
+    volume: M[t.Optional[str]] = mapcol(sa.String(length=20))
+    issue_number: M[t.Optional[str]] = mapcol(sa.String(length=20))
+    doi: M[t.Optional[str]] = mapcol(sa.String(length=100))
+    issn: M[t.Optional[str]] = mapcol(sa.String(length=20))
+    publisher: M[t.Optional[str]] = mapcol(sa.String(length=100))
+    language: M[t.Optional[str]] = mapcol(sa.String(length=50))
     other_fields = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
     text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
 
@@ -644,9 +647,9 @@ class Fulltext(db.Model):
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
     )
-    filename: M[Optional[str]] = mapcol(sa.String(length=30), unique=True)
-    original_filename: M[Optional[str]] = mapcol(sa.String, unique=False)
-    text_content: M[Optional[str]] = mapcol(sa.Text)
+    filename: M[t.Optional[str]] = mapcol(sa.String(length=30), unique=True)
+    original_filename: M[t.Optional[str]] = mapcol(sa.String, unique=False)
+    text_content: M[t.Optional[str]] = mapcol(sa.Text)
     text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
 
     @hybrid_property
@@ -708,7 +711,7 @@ class CitationScreening(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    user_id: M[Optional[int]] = mapcol(
+    user_id: M[t.Optional[int]] = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
@@ -777,7 +780,7 @@ class FulltextScreening(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    user_id: M[Optional[int]] = mapcol(
+    user_id: M[t.Optional[int]] = mapcol(
         sa.Integer,
         sa.ForeignKey("users.id", ondelete="SET NULL"),
         index=True,
@@ -788,7 +791,7 @@ class FulltextScreening(db.Model):
         index=True,
     )
     status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons: M[Optional[list[str]]] = mapcol(
+    exclude_reasons: M[t.Optional[list[str]]] = mapcol(
         postgresql.ARRAY(sa.String(length=64)), nullable=True
     )
 
@@ -845,7 +848,7 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    extracted_items: M[Optional[list[dict[str, Any]]]] = mapcol(
+    extracted_items: M[t.Optional[list[dict[str, t.Any]]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
 
