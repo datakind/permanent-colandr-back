@@ -71,6 +71,7 @@ testpaths = ["tests"]
 [tool.ruff]
 # ignore line-length violations, None comparisons, unused imports
 ignore = ["E501", "E711", "F401"]
+ignore-init-module-imports = true
 line-length = 88
 indent-width = 4
 target-version = "py310"
@@ -84,6 +85,4 @@ line-ending = "auto"
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["E402", "F401"] # imports not at top of cell and unused imports
+known-first-party = ["colandr"]
