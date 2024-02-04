@@ -3,7 +3,7 @@ import json
 import logging
 import pathlib
 import sys
-from typing import Any
+import typing as t
 
 from colandr.lib.models import Deduper
 
@@ -35,7 +35,7 @@ def add_and_parse_args() -> argparse.Namespace:
 
 def prep_training_data(
     data_fpath: pathlib.Path, data_id_key: str, deduper: Deduper
-) -> dict[Any, dict[str, Any]]:
+) -> dict[t.Any, dict[str, t.Any]]:
     with data_fpath.open(mode="r") as f:
         data = json.load(f)
     return deduper.preprocess_data(data, data_id_key)

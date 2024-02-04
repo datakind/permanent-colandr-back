@@ -6,7 +6,7 @@ References:
 import logging
 import pathlib
 import re
-from typing import BinaryIO, Optional, Tuple
+import typing as t
 
 import bibtexparser
 
@@ -52,7 +52,7 @@ DEFAULT_TO_SANITIZED_KEYS = {
 }
 
 
-def read(path_or_stream: BinaryIO | pathlib.Path) -> list[dict]:
+def read(path_or_stream: t.BinaryIO | pathlib.Path) -> list[dict]:
     data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
@@ -132,7 +132,7 @@ def _split_names(record: dict, field_name: str) -> dict:
     return record
 
 
-def _sanitize_month(value: str) -> Optional[int]:
+def _sanitize_month(value: str) -> t.Optional[int]:
     try:
         return int(value)
     except ValueError:
@@ -143,7 +143,7 @@ def _sanitize_month(value: str) -> Optional[int]:
             return None
 
 
-def _split_pages(value: str) -> Optional[Tuple[Optional[int], Optional[int]]]:
+def _split_pages(value: str) -> t.Optional[tuple[t.Optional[int], t.Optional[int]]]:
     if "--" in value:
         pages = value.split("--")
         if len(pages) == 2:

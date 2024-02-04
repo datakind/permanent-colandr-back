@@ -1,6 +1,6 @@
 import logging
 import pathlib
-from typing import BinaryIO
+import typing as t
 
 from ..apis import schemas
 from . import fileio, sanitizers
@@ -10,7 +10,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def preprocess_citations(
-    path_or_stream: BinaryIO | pathlib.Path, fname: str, review_id: int
+    path_or_stream: t.BinaryIO | pathlib.Path, fname: str, review_id: int
 ) -> list[dict]:
     if fname.endswith(".bib"):
         try:

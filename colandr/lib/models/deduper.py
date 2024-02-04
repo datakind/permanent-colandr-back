@@ -1,9 +1,9 @@
 import functools
 import logging
 import pathlib
+import typing as t
 import urllib.parse
 from collections.abc import Iterable
-from typing import Any, Optional
 
 import dedupe
 
@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
-VARIABLES: list[dict[str, Any]] = [
+VARIABLES: list[dict[str, t.Any]] = [
     {"field": "type_of_reference", "type": "ShortString"},
     {"field": "title", "type": "String", "variable name": "title"},
     {"field": "pub_year", "type": "Exact", "variable name": "pub_year"},
@@ -30,7 +30,7 @@ class Deduper:
     def __init__(
         self,
         *,
-        settings_fpath: Optional[str | pathlib.Path] = None,
+        settings_fpath: t.Optional[str | pathlib.Path] = None,
         num_cores: int = 1,
         in_memory: bool = False,
     ):
@@ -64,14 +64,14 @@ class Deduper:
 
     def preprocess_data(
         self,
-        data: Iterable[dict[str, Any]],
+        data: Iterable[dict[str, t.Any]],
         id_key: str,
-    ) -> dict[Any, dict[str, Any]]:
+    ) -> dict[t.Any, dict[str, t.Any]]:
         fields = [pv.field for pv in self.model.data_model.primary_variables]
         LOGGER.info("preprocessing data with fields %s ...", fields)
         return {record.pop(id_key): self._preprocess_record(record) for record in data}
 
-    def _preprocess_record(self, record: dict[str, Any]) -> dict[str, Any]:
+    def _preprocess_record(self, record: dict[str, t.Any]) -> dict[str, t.Any]:
         # base fields
         record = {
             "type_of_reference": (
@@ -105,8 +105,8 @@ class Deduper:
 
     def fit(
         self,
-        data: dict[Any, dict[str, Any]],
-        training_fpath: Optional[str | pathlib.Path] = None,
+        data: dict[t.Any, dict[str, t.Any]],
+        training_fpath: t.Optional[str | pathlib.Path] = None,
         recall: float = 1.0,
         index_predicates: bool = True,
     ) -> "Deduper":
@@ -126,7 +126,7 @@ class Deduper:
         return self
 
     def predict(
-        self, data: dict[Any, dict[str, Any]], threshold: float = 0.5
+        self, data: dict[t.Any, dict[str, t.Any]], threshold: float = 0.5
     ) -> list[tuple[tuple, tuple[float, ...]]]:
         return self.model.partition(data, threshold=threshold)  # type: ignore
 

@@ -5,7 +5,7 @@ References:
 """
 import logging
 import pathlib
-from typing import BinaryIO, List
+import typing as t
 
 import markupsafe
 import rispy
@@ -77,7 +77,7 @@ DEFAULT_TO_ALT_KEYS = {
 }
 
 
-def read(path_or_stream: BinaryIO | pathlib.Path) -> list[dict]:
+def read(path_or_stream: t.BinaryIO | pathlib.Path) -> list[dict]:
     data = utils.load_from_path_or_stream(path_or_stream)
     records = parse(data)
     records = sanitize(records)
@@ -154,6 +154,6 @@ def _sanitize_reference(reference: dict) -> dict:
     return reference
 
 
-def _strip_tags_from_notes(notes: List[str]) -> List[str]:
+def _strip_tags_from_notes(notes: list[str]) -> list[str]:
     notes = [markupsafe.Markup(note).striptags() for note in notes]
     return [note for note in notes if note]

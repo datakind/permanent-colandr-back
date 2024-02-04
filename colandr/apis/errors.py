@@ -1,4 +1,4 @@
-from typing import Optional
+import typing as t
 
 import webargs.core
 import webargs.flaskparser
@@ -66,7 +66,7 @@ def validation_error(error, req, schema, *, error_status_code, error_headers):
 
 
 def _make_error_response(
-    status_code: int, message: Optional[str] = None
+    status_code: int, message: t.Optional[str] = None
 ) -> tuple[dict[str, str], int]:
     data = {"error": HTTP_STATUS_CODES.get(status_code, "Unknown error")}
     if message:

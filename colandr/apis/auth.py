@@ -1,9 +1,8 @@
 import functools
-from typing import Optional
+import typing as t
 
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
-import sqlalchemy.exc as sa_exc
 from flask import current_app, render_template, url_for
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -374,7 +373,7 @@ def authenticate_user(email: str, password: str) -> User:
     return user
 
 
-def get_user_from_token(token: str) -> Optional[User]:
+def get_user_from_token(token: str) -> t.Optional[User]:
     """
     Get a ``User`` from the identity stored in an encoded, unexpired JWT token,
     if it exists in the database; otherwise, return None.

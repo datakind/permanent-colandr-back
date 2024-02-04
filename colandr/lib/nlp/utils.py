@@ -1,9 +1,9 @@
 import collections
 import itertools
 import logging
+import typing as t
 from collections.abc import Iterable
 from operator import itemgetter
-from typing import Optional
 
 import spacy
 import textacy
@@ -30,11 +30,11 @@ def get_lang_to_models() -> dict[str, list[str]]:
 def process_texts_into_docs(
     texts: Iterable[str],
     *,
-    max_len: Optional[int] = 1000,
-    min_prob: Optional[float] = 0.5,
-    fallback_lang: Optional[str] = "en",
+    max_len: t.Optional[int] = 1000,
+    min_prob: t.Optional[float] = 0.5,
+    fallback_lang: t.Optional[str] = "en",
     **kwargs,
-) -> Iterable[Optional[Doc]]:
+) -> Iterable[t.Optional[Doc]]:
     """
     Args:
         texts

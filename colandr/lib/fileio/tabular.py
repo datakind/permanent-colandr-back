@@ -1,8 +1,8 @@
 import csv
 import io
 import itertools
+import typing as t
 from collections.abc import Iterable, Sequence
-from typing import Any
 
 
 def read(data: str, *, dialect: str = "excel", **kwargs) -> Iterable[list[str]]:
@@ -24,7 +24,7 @@ def write(
 
 def write_stream(
     cols: Sequence[str],
-    rows: Iterable[dict[str, Any]] | Iterable[list],
+    rows: Iterable[dict[str, t.Any]] | Iterable[list],
     *,
     dialect="excel",
     **kwargs,
