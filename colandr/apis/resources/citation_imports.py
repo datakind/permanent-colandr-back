@@ -227,10 +227,11 @@ class CitationsImportsResource(Resource):
             ]
 
         # insert studies, and get their primary keys _back_
-        stmt = sa.insert(Study).values(studies_to_insert).returning(Study.id)
-        with db.engine.connect() as conn:
-            study_ids = [result[0] for result in conn.execute(stmt)]
-
+        study_ids = list(
+            db.session.execute(
+                sa.insert(Study).returning(Study.id), studies_to_insert
+            ).scalars()
+        )
         # add study ids to citations as their primary keys
         # then bulk insert as mappings
         # this method is required because not all citations have all fields
@@ -242,14 +243,10 @@ class CitationsImportsResource(Resource):
         # the corresponding fulltexts, since bulk operations won't trigger
         # the fancy events defined in models.py
         if status == "included":
-            with db.engine.connect() as conn:
-                conn.execute(
-                    Fulltext.__table__.insert(),
-                    [
-                        {"id": study_id, "review_id": review_id}
-                        for study_id in study_ids
-                    ],
-                )
+            db.session.execute(
+                sa.insert(Fulltext),
+                [{"id": study_id, "review_id": review_id} for study_id in study_ids],
+            )
 
         # don't forget about a record of the import
         citations_import = Import(
