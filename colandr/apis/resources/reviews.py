@@ -196,7 +196,7 @@ class ReviewsResource(Resource):
                 f'non-admin {current_user} passed admin-only "_review_ids" param'
             )
         else:
-            reviews = current_user.reviews.order_by(Review.id).all()
+            reviews = current_user.reviews
         if fields and "id" not in fields:
             fields.append("id")
         return ReviewSchema(only=fields, many=True).dump(reviews)
