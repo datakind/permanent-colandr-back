@@ -51,6 +51,7 @@ class User(db.Model):
         back_populates="user",
         cascade="all, delete",
         lazy="dynamic",
+        order_by="ReviewUserAssoc.review_id",
     )
     reviews = association_proxy("review_user_assoc", "review")
 
@@ -132,6 +133,7 @@ class Review(db.Model):
         back_populates="review",
         cascade="all, delete",
         lazy="dynamic",
+        order_by="ReviewUserAssoc.user_id",
     )
     users = association_proxy("review_user_assoc", "user")
 
