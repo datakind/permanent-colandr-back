@@ -68,7 +68,7 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=citation.review_id
             ).one_or_none()
             is None
@@ -104,7 +104,7 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=citation.review_id
             ).one_or_none()
             is None
@@ -150,7 +150,7 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=citation.review_id
             ).one_or_none()
             is None
