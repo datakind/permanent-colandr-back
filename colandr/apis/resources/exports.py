@@ -24,6 +24,16 @@ ns = Namespace("exports", path="/export", description="export data")
 class ExportStudiesResource(Resource):
     @ns.doc(
         description="export studies data",
+        params={
+            "review_id": {
+                "in": "query",
+                "type": "integer",
+            },
+            "content_type": {
+                "in": "query",
+                "type": "string",
+            },
+        },
         responses={
             200: "successfully got studies data for specified review",
             403: "current app user forbidden to export studies data for specified review",
@@ -179,6 +189,12 @@ def _study_to_row(
 class ExportScreeningsResource(Resource):
     @ns.doc(
         description="export screenings data",
+        params={
+            "review_id": {
+                "in": "query",
+                "type": "integer",
+            },
+        },
         responses={
             200: "successfully got screenings data for specified review",
             403: "current app user forbidden to export screenings data for specified review",
