@@ -47,7 +47,7 @@ class DeduplicateStudiesResource(Resource):
     )
     @jwtext.jwt_required()
     def post(self, review_id):
-        """get all distinct tags assigned to studies"""
+        """manually trigger deduplication of studies for a given review"""
         current_user = jwtext.get_current_user()
         review = db.session.get(models.Review, review_id)
         if not review:
