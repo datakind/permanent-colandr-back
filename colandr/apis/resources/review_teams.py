@@ -173,26 +173,30 @@ class ReviewTeamResource(Resource):
                 review_users.append(user)
         # user is being *invited*, so send an invitation email
         elif action == "invite":
-            if user is None:
-                return not_found_error("no user found with given id or email")
+            if user is not None:
+                identity = user
+                user_email = user.email
+                template_name = "emails/invite_user_to_review.html"
             else:
-                token = jwtext.create_access_token(identity=user)
-                confirm_url = flask.url_for(
-                    "review_teams_confirm_review_team_invite_resource",
-                    id=id,
-                    token=token,
-                    _external=True,
+                identity = user_email
+                template_name = "emails/invite_new_user_to_review.html"
+            token = jwtext.create_access_token(identity=identity)
+            confirm_url = flask.url_for(
+                "review_teams_confirm_review_team_invite_resource",
+                id=id,
+                token=token,
+                _external=True,
+            )
+            html = render_template(
+                template_name,
+                url=confirm_url,
+                inviter_email=current_user.email,
+                review_name=review.name,
+            )
+            if current_app.config["MAIL_SERVER"]:
+                tasks.send_email.apply_async(
+                    args=[[user_email], "Let's collaborate!", "", html]
                 )
-                html = render_template(
-                    "emails/invite_user_to_review.html",
-                    url=confirm_url,
-                    inviter_email=current_user.email,
-                    review_name=review.name,
-                )
-                if current_app.config["MAIL_SERVER"]:
-                    tasks.send_email.apply_async(
-                        args=[[user.email], "Let's collaborate!", "", html]
-                    )
         elif action in ("make_owner", "set_role"):
             if user is None:
                 return not_found_error("no user found with given id or email")
