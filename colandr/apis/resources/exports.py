@@ -66,13 +66,6 @@ class ExportStudiesResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
-        studies = db.session.execute(
-            sa.select(Study).filter_by(review_id=review_id).order_by(Study.id)
-        ).scalars()
-        data_extraction_form = db.session.execute(
-            sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
-        ).one_or_none()
-
         fieldnames = [
             "study_id",
             "study_tags",
@@ -95,6 +88,9 @@ class ExportStudiesResource(Resource):
             "fulltext_exclude_reasons",
         ]
         extraction_label_types: t.Optional[list[tuple[str, str]]]
+        data_extraction_form = db.session.execute(
+            sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
+        ).one_or_none()
         if data_extraction_form:
             extraction_label_types = [
                 (item["label"], item["field_type"]) for item in data_extraction_form[0]
@@ -103,7 +99,15 @@ class ExportStudiesResource(Resource):
         else:
             extraction_label_types = None
 
-        rows = (_study_to_row(study, extraction_label_types) for study in studies)
+        # TODO: make this query performant and fully streamable, even with lazy-loading
+        # see: https://docs.sqlalchemy.org/en/14/errors.html#parent-instance-x-is-not-bound-to-a-session-lazy-load-deferred-load-refresh-etc-operation-cannot-proceed
+        # see: https://docs.sqlalchemy.org/en/14/errors.html#object-cannot-be-converted-to-persistent-state-as-this-identity-map-is-no-longer-valid
+        studies = db.session.execute(
+            sa.select(Study).filter_by(review_id=review_id).order_by(Study.id),
+            execution_options={"prebuffer_rows": True},
+        ).scalars()
+        # rows = (_study_to_row(study, extraction_label_types) for study in studies)
+        rows = [_study_to_row(study, extraction_label_types) for study in studies]
         if content_type == "text/csv":
             export_data = fileio.tabular.write_stream(
                 fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
@@ -112,9 +116,13 @@ class ExportStudiesResource(Resource):
             raise NotImplementedError("only 'text/csv' content type is available")
 
         response = make_response(export_data, 200)
-        response.headers["Content-type"] = content_type
+        response.headers.update(
+            {
+                "Content-Type": content_type,
+                "Content-Disposition": "attachment; filename=colandr-review-studies.csv",
+            }
+        )
         current_app.logger.info("studies data exported for %s", review)
-
         return response
 
 
