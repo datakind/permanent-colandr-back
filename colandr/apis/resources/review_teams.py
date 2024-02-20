@@ -11,7 +11,7 @@ from webargs.flaskparser import use_kwargs
 from ... import tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, User
+from ...models import Review, ReviewUserAssoc, User
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
@@ -259,14 +259,13 @@ class ConfirmReviewTeamInviteResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        review_users = review.users
 
         user = auth.get_user_from_token(token)
         if user is None:
             return not_found_error(f"no user found for token='{token}'")
 
-        if user not in review_users:
-            review_users.append(user)
+        if user not in review.users:
+            db.session.add(ReviewUserAssoc(review, user))
         else:
             return forbidden_error(f"{user} is already on this review")
 

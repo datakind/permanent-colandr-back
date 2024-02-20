@@ -394,8 +394,16 @@ def get_user_from_token(token: str) -> t.Optional[User]:
     if it exists in the database; otherwise, return None.
     """
     jwt_data = jwtext.decode_token(token, allow_expired=False)
-    user_id = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    user = db.session.get(User, user_id)
+    identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
+    if isinstance(identity, int):
+        user = db.session.get(User, identity)
+    elif isinstance(identity, str):
+        Email()(identity)  # validate as email
+        user = db.session.execute(
+            sa.select(User).filter_by(email=identity)
+        ).scalar_one_or_none()
+    else:
+        raise TypeError()
     return user
 
 
