@@ -45,7 +45,7 @@ def write_stream(
     else:
         writer = csv.writer(DummyWriter(), dialect, **kwargs)
         yield writer.writerow(cols)
-        for row in rows:
+        for row in rows_:
             yield writer.writerow(row)
 
 
