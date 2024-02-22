@@ -35,8 +35,9 @@ def write_stream(
     Reference:
         https://stackoverflow.com/questions/32608265/streaming-a-generated-csv-with-flask
     """
-    first_row = next(iter(rows))
-    rows_ = itertools.chain([first_row], rows)
+    iter_rows = iter(rows)
+    first_row = next(iter_rows)
+    rows_ = itertools.chain((first_row,), iter_rows)
     if isinstance(first_row, dict):
         writer = csv.DictWriter(DummyWriter(), cols, dialect=dialect, **kwargs)
         yield writer.writeheader()
@@ -45,7 +46,7 @@ def write_stream(
     else:
         writer = csv.writer(DummyWriter(), dialect, **kwargs)
         yield writer.writerow(cols)
-        for row in rows:
+        for row in rows_:
             yield writer.writerow(row)
 
 

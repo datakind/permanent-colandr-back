@@ -143,7 +143,7 @@ class FulltextUploadResource(Resource):
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=fulltext.review_id
             ).one_or_none()
             is None
@@ -221,7 +221,7 @@ class FulltextUploadResource(Resource):
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=fulltext.review_id
             ).one_or_none()
             is None

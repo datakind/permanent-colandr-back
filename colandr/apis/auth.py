@@ -308,13 +308,17 @@ class ConfirmResetPasswordResource(Resource):
 
 
 @jwt.user_identity_loader
-def user_identity_loader(user: User):
+def user_identity_loader(user: t.Union[User, str]):
     """
     Callback function that takes the ``User`` passed in as the "identity"
     when creating JWTs and returns it in JSON serializable format,
     i.e. as the corresponding unique integer ``User.id`` .
     """
-    return user.id
+    if isinstance(user, User):
+        return user.id
+    elif isinstance(user, str):
+        Email()(user)  # validate as email
+        return user
 
 
 @jwt.user_lookup_loader
@@ -324,14 +328,25 @@ def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
     whenever a protected API route is accessed.
     """
     identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    user = db.session.get(User, identity)
+    if isinstance(identity, int):  # id
+        user = db.session.get(User, identity)
+    elif isinstance(identity, str):  # email
+        Email()(identity)  # validate as email
+        user = db.session.execute(
+            sa.select(User).filter_by(email=identity)
+        ).scalar_one_or_none()
+    else:
+        raise TypeError()
     assert user is not None  # type guard
     return user
 
 
 @jwt.additional_claims_loader
-def additional_claims_loader(user: User) -> dict:
-    return {"is_admin": user.is_admin}
+def additional_claims_loader(user: t.Union[User, str]) -> dict:
+    if isinstance(user, User):
+        return {"is_admin": user.is_admin}
+    else:
+        return {}
 
 
 @jwt.token_in_blocklist_loader
@@ -379,8 +394,16 @@ def get_user_from_token(token: str) -> t.Optional[User]:
     if it exists in the database; otherwise, return None.
     """
     jwt_data = jwtext.decode_token(token, allow_expired=False)
-    user_id = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    user = db.session.get(User, user_id)
+    identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
+    if isinstance(identity, int):
+        user = db.session.get(User, identity)
+    elif isinstance(identity, str):
+        Email()(identity)  # validate as email
+        user = db.session.execute(
+            sa.select(User).filter_by(email=identity)
+        ).scalar_one_or_none()
+    else:
+        raise TypeError()
     return user
 
 

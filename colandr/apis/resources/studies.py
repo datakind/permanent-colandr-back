@@ -297,7 +297,7 @@ class StudiesResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.user_review_assoc.filter_by(
+            and current_user.review_user_assoc.filter_by(
                 review_id=review_id
             ).one_or_none()
             is None
@@ -431,18 +431,15 @@ class StudiesResource(Resource):
             scores = None
 
             # best option: we have a trained citation ranking model
-            try:
-                ranker = Ranker.load(
-                    os.path.join(
-                        current_app.config["RANKING_MODELS_DIR"], str(review_id)
-                    ),
-                    review_id,
-                )
+            ranker = Ranker.load(
+                os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review_id)),
+                review_id,
+            )
+            if os.path.exists(str(ranker.model_fpath)):
+                # ranker model available :)
                 scores = ranker.predict(
                     result.citation.text_content_vector_rep for result in results
                 )
-            except FileNotFoundError:
-                pass  # no ranker model available :/
 
             # next best option: both positive and negative keyterms
             if not scores:

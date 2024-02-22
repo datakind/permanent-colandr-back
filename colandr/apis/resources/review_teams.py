@@ -11,7 +11,7 @@ from webargs.flaskparser import use_kwargs
 from ... import tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, User
+from ...models import Review, ReviewUserAssoc, User
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
@@ -170,29 +170,33 @@ class ReviewTeamResource(Resource):
             elif user in review_users:
                 return forbidden_error(f"{user} is already on this review")
             else:
-                review_users.append(user)
+                review.review_user_assoc.append(ReviewUserAssoc(review, user))
         # user is being *invited*, so send an invitation email
         elif action == "invite":
-            if user is None:
-                return not_found_error("no user found with given id or email")
+            if user is not None:
+                identity = user
+                user_email = user.email
+                template_name = "emails/invite_user_to_review.html"
             else:
-                token = jwtext.create_access_token(identity=user)
-                confirm_url = flask.url_for(
-                    "review_teams_confirm_review_team_invite_resource",
-                    id=id,
-                    token=token,
-                    _external=True,
+                identity = user_email
+                template_name = "emails/invite_new_user_to_review.html"
+            token = jwtext.create_access_token(identity=identity)
+            confirm_url = flask.url_for(
+                "review_teams_confirm_review_team_invite_resource",
+                id=id,
+                token=token,
+                _external=True,
+            )
+            html = render_template(
+                template_name,
+                url=confirm_url,
+                inviter_email=current_user.email,
+                review_name=review.name,
+            )
+            if current_app.config["MAIL_SERVER"]:
+                tasks.send_email.apply_async(
+                    args=[[user_email], "Let's collaborate!", "", html]
                 )
-                html = render_template(
-                    "emails/invite_user_to_review.html",
-                    url=confirm_url,
-                    inviter_email=current_user.email,
-                    review_name=review.name,
-                )
-                if current_app.config["MAIL_SERVER"]:
-                    tasks.send_email.apply_async(
-                        args=[[user.email], "Let's collaborate!", "", html]
-                    )
         elif action in ("make_owner", "set_role"):
             if user is None:
                 return not_found_error("no user found with given id or email")
@@ -255,14 +259,13 @@ class ConfirmReviewTeamInviteResource(Resource):
         review = db.session.get(Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        review_users = review.users
 
         user = auth.get_user_from_token(token)
         if user is None:
             return not_found_error(f"no user found for token='{token}'")
 
-        if user not in review_users:
-            review_users.append(user)
+        if user not in review.users:
+            db.session.add(ReviewUserAssoc(review, user))
         else:
             return forbidden_error(f"{user} is already on this review")
 

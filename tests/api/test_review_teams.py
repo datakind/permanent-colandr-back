@@ -54,6 +54,7 @@ class TestReviewTeamResource:
             (1, {"action": "set_role", "user_id": 3, "user_role": "member"}, 200),
             (1, {"action": "set_role", "user_id": 4, "user_role": "member"}, 404),
             (1, {"action": "remove", "user_id": 3}, 200),
+            (1, {"action": "add", "user_id": 4}, 200),
         ],
     )
     def test_put(self, id_, params, status_code, app, client, admin_headers):
