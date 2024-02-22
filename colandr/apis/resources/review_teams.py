@@ -170,7 +170,7 @@ class ReviewTeamResource(Resource):
             elif user in review_users:
                 return forbidden_error(f"{user} is already on this review")
             else:
-                review_users.append(user)
+                review.review_user_assoc.append(ReviewUserAssoc(review, user))
         # user is being *invited*, so send an invitation email
         elif action == "invite":
             if user is not None:
