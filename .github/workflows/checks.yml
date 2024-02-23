@@ -13,7 +13,7 @@ env:
   COLANDR_DB_USER: "colandr_app"
   COLANDR_DB_PASSWORD: "password"
   COLANDR_DB_NAME: "colandr"
-  COLANDR_DATABASE_URI: "postgresql://colandr_app:password@localhost:5432/colandr"
+  COLANDR_DATABASE_URI: "postgresql+psycopg://colandr_app:password@localhost:5432/colandr"
   COLANDR_SECRET_KEY: "colandr_secret_key"
   COLANDR_APP_DIR: "/tmp"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
