@@ -453,7 +453,8 @@ class FulltextsScreeningsResource(Resource):
         status_counts_stmt = (
             sa.select(Study.fulltext_status, db.func.count(1))
             .filter_by(review_id=review_id)
-            .filter(Study.fulltext_status.in_(["included", "excluded"]))
+            # .filter(Study.fulltext_status.in_(["included", "excluded"]))
+            .filter(Study.fulltext_status == sa.any_(["included", "excluded"]))
             .group_by(Study.fulltext_status)
         )
         status_counts: dict[str, int] = {

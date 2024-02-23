@@ -133,7 +133,8 @@ def deduplicate_citations(review_id: int):
     stmt = (
         sa.select(Study.id)
         .where(Study.review_id == review_id)
-        .where(Study.citation_status.in_(["included", "excluded"]))
+        # .where(Study.citation_status.in_(["included", "excluded"]))
+        .where(Study.citation_status == sa.any_(["included", "excluded"]))
     )
     incl_excl_cids = set(db.session.execute(stmt).scalars().all())
 
@@ -171,7 +172,8 @@ def deduplicate_citations(review_id: int):
                     ).label("n_null_cols"),
                 )
                 .where(Citation.review_id == review_id)
-                .where(Citation.id.in_(int_cids))
+                # .where(Citation.id.in_(int_cids))
+                .where(Citation.id == sa.any_(int_cids))
                 .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
@@ -395,7 +397,8 @@ def train_citation_ranking_model(review_id: int):
         .where(Study.id == Citation.id)
         .where(Study.review_id == review_id)
         .where(Study.dedupe_status == "not_duplicate")
-        .where(Study.citation_status.in_(["included", "excluded"]))
+        # .where(Study.citation_status.in_(["included", "excluded"]))
+        .where(Study.citation_status == sa.any_(["included", "excluded"]))
         .where(Citation.text_content_vector_rep != [])
     )
     results = db.session.execute(stmt)

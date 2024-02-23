@@ -454,7 +454,8 @@ class CitationsScreeningsResource(Resource):
         status_counts_stmt = (
             sa.select(Study.citation_status, db.func.count(1))
             .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-            .filter(Study.citation_status.in_(["included", "excluded"]))
+            # .filter(Study.citation_status.in_(["included", "excluded"]))
+            .filter(Study.citation_status == sa.any_(["included", "excluded"]))
             .group_by(Study.citation_status)
         )
         status_counts: dict[str, int] = {

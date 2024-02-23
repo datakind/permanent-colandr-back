@@ -187,7 +187,9 @@ class ReviewsResource(Resource):
         current_user = jwtext.get_current_user()
         if current_user.is_admin is True and _review_ids is not None:
             reviews = (
-                db.session.execute(sa.select(Review).filter(Review.id.in_(_review_ids)))
+                db.session.execute(
+                    sa.select(Review).filter(Review.id == sa.any_(_review_ids))
+                )
                 .scalars()
                 .all()
             )
