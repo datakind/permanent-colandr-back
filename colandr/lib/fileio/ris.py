@@ -135,6 +135,9 @@ def _sanitize_reference(reference: dict) -> dict:
                 if alt_key in reference:
                     reference[default_key] = reference.pop(alt_key)
                     break
+    # handle authors specified all together on one line
+    if "authors" in reference:
+        reference["authors"] = _split_up_authors(reference["authors"])
     # clean notes text, which may contain html tags and markup
     if "notes" in reference:
         reference["notes"] = _strip_tags_from_notes(reference["notes"])
@@ -152,6 +155,17 @@ def _sanitize_reference(reference: dict) -> dict:
         }
     )
     return reference
+
+
+def _split_up_authors(authors: list[str]) -> list[str]:
+    if len(authors) == 1:
+        if authors[0].count(",") >= 2:
+            authors = [author.strip() for author in authors[0].split(",")]
+        elif authors[0].count(" ") >= 5:
+            # TODO: this is probably bad data (all authors in one field w/o delimiters)
+            # but how to reliably fix?
+            pass
+    return authors
 
 
 def _strip_tags_from_notes(notes: list[str]) -> list[str]:
