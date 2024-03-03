@@ -1,28 +1,76 @@
 import functools
 import logging
 import pathlib
+import re
 import typing as t
 import urllib.parse
 from collections.abc import Iterable
 
 import dedupe
+from textacy import preprocessing
 
 from .. import utils
 
 
 LOGGER = logging.getLogger(__name__)
 
+RE_DOI_HTTP = re.compile(r"^https?(://)?", flags=re.IGNORECASE)
+
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
 VARIABLES: list[dict[str, t.Any]] = [
-    {"field": "type_of_reference", "type": "ShortString"},
+    {"field": "type_of_reference", "type": "Exact"},
+    {"field": "doi", "type": "String", "has missing": True},
     {"field": "title", "type": "String", "variable name": "title"},
-    {"field": "pub_year", "type": "Exact", "variable name": "pub_year"},
-    {"field": "authors", "type": "Set", "has missing": True},
-    {"field": "authors_joined", "type": "String", "has missing": True},
+    {
+        "field": "authors_joined",
+        "type": "String",
+        "has missing": True,
+        "variable name": "authors_joined",
+    },
+    {
+        "field": "authors_initials",
+        "type": "Set",
+        "has missing": True,
+        "variable name": "authors_initials",
+    },
+    {
+        "field": "pub_year",
+        "type": "Exact",
+        "has missing": True,
+        "variable name": "pub_year",
+    },
+    {
+        "field": "journal_name",
+        "type": "String",
+        "has missing": True,
+        "variable name": "journal_name",
+    },
+    {
+        "field": "journal_volume",
+        "type": "Exact",
+        "has missing": True,
+        "variable name": "journal_volume",
+    },
+    {
+        "field": "journal_issue_number",
+        "type": "Exact",
+        "has missing": True,
+        "variable name": "journal_issue_number",
+    },
+    {"field": "issn", "type": "String", "has missing": True, "variable name": "issn"},
     {"field": "abstract", "type": "Text", "has missing": True},
-    {"field": "doi", "type": "ShortString", "has missing": True},
-    {"type": "Interaction", "interaction variables": ["title", "pub_year"]},
+    {"type": "Interaction", "interaction variables": ["journal_name", "pub_year"]},
+    {
+        "type": "Interaction",
+        "interaction variables": [
+            "journal_name",
+            "journal_volume",
+            "journal_issue_number",
+        ],
+    },
+    {"type": "Interaction", "interaction variables": ["issn", "pub_year"]},
+    {"type": "Interaction", "interaction variables": ["title", "authors_joined"]},
 ]
 
 
@@ -79,28 +127,47 @@ class Deduper:
                 if record.get("type_of_reference")
                 else None
             ),
+            "doi": (_sanitize_doi(record["doi"]) if record.get("doi") else None),
             "title": (
-                record["title"].strip().strip(".").lower()
-                if record.get("title")
-                else None
+                _standardize_str(record["title"]) if record.get("title") else None
             ),
-            "pub_year": record.get("pub_year", None),
             "authors": (
-                tuple(sorted(author.strip().lower() for author in record["authors"]))
+                tuple(
+                    sorted(
+                        _standardize_str(author.replace("-", " "))
+                        for author in record["authors"]
+                    )
+                )
                 if record.get("authors")
                 else None
             ),
+            "pub_year": record.get("pub_year"),
+            "journal_name": (
+                preprocessing.remove.brackets(
+                    _standardize_str(record["journal_name"]), only="round"
+                )
+                if record.get("journal_name")
+                else None
+            ),
+            "journal_volume": record.get("volume"),
+            "journal_issue_number": record.get("issue_number"),
+            "issn": record["issn"].strip().lower() if record.get("issn") else None,
             "abstract": (
-                record["abstract"].strip().lower()[:500]  # truncated for performance
+                _standardize_str(record["abstract"][:500])  # truncated for performance
                 if record.get("abstract")
                 else None
             ),
-            "doi": (_sanitize_doi(record["doi"]) if record.get("doi") else None),
         }
         # derivative fields
-        record["authors_joined"] = (
-            "; ".join(record["authors"]) if record.get("authors") else None
-        )
+        if record.get("authors"):
+            record["authors_initials"] = tuple(
+                "".join(name[0] for name in author.split())
+                for author in record["authors"]
+            )
+            record["authors_joined"] = " ".join(record["authors"])
+        else:
+            record["authors_initials"] = None
+            record["authors_joined"] = None
         return record
 
     def fit(
@@ -146,4 +213,15 @@ def _sanitize_doi(value: str) -> str:
     value = value.strip().lower()
     if value.startswith("http://") or value.startswith("https://"):
         value = urllib.parse.unquote(value)
+        value = RE_DOI_HTTP.sub("", value)
     return value
+
+
+_standardize_str = preprocessing.make_pipeline(
+    functools.partial(
+        preprocessing.remove.punctuation, only=[".", "?", "!", ",", ";", "—"]
+    ),
+    preprocessing.normalize.quotation_marks,
+    preprocessing.normalize.whitespace,
+    str.lower,
+)
