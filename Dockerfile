@@ -5,7 +5,7 @@ RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
 
 RUN apt update \
-    && apt install -y gcc \
+    && apt install -y gcc git \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 

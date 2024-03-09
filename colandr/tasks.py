@@ -85,10 +85,9 @@ def deduplicate_citations(review_id: int):
         lock.release()
         return
 
-    dir_path = os.path.join(
-        current_app.config["COLANDR_APP_DIR"], "colandr_data", "dedupe-v2", "model"
+    deduper = Deduper.load(
+        current_app.config["DEDUPE_MODELS_DIR"], num_cores=1, in_memory=False
     )
-    deduper = Deduper.load(dir_path, num_cores=1, in_memory=False)
 
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included

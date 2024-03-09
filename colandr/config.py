@@ -82,7 +82,9 @@ MAIL_ADMINS = ["burtdewilde@gmail.com"]
 
 # files-on-disk config
 COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
-DEDUPE_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "dedupe")
+DEDUPE_MODELS_DIR = os.path.join(
+    COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202403"
+)
 RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
 CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
 FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
