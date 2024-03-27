@@ -1,8 +1,13 @@
-Citation deduplication training dataset source:
+## citation deduplication
 
-McKeown S, Mir ZM. Considerations for conducting systematic reviews: evaluating the performance of different methods for de-duplicating references. Syst Rev. 2021 Jan 23;10(1):38. doi: 10.1186/s13643-021-01583-y. [link](https://pubmed.ncbi.nlm.nih.gov/33485394/)
+### references
 
-Borealis (2021). Evaluating the performance of different methods for de-duplicating references [Dataset]. http://doi.org/10.5683/SP2/5TNOZ4 [link](https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP2/5TNOZ4)
+- Hammer, Barbara et al. “Evidence-based literature review: De-duplication a cornerstone for quality.” World journal of methodology vol. 13,5 390-398. 20 Dec. 2023, doi:10.5662/wjm.v13.i5.390
+- Borissov, N., Haas, Q., Minder, B. et al. Reducing systematic review burden using Deduklick: a novel, automated, reliable, and explainable deduplication algorithm to foster medical research. Syst Rev 11, 172 (2022). https://doi.org/10.1186/s13643-022-02045-9
+- Hair, Kaitlyn et al. “The Automated Systematic Search Deduplicator (ASySD): a rapid, open-source, interoperable tool to remove duplicate citations in biomedical systematic reviews.” BMC biology vol. 21,1 189. 7 Sep. 2023, doi:10.1186/s12915-023-01686-z
+- McKeown S, Mir ZM. Considerations for conducting systematic reviews: evaluating the performance of different methods for de-duplicating references. Syst Rev. 2021 Jan 23;10(1):38. doi: 10.1186/s13643-021-01583-y. [link](https://pubmed.ncbi.nlm.nih.gov/33485394/)
+- Borealis (2021). Evaluating the performance of different methods for de-duplicating references [Dataset]. http://doi.org/10.5683/SP2/5TNOZ4 [link](https://borealisdata.ca/dataset.xhtml?persistentId=doi:10.5683/SP2/5TNOZ4)
+- https://github.com/J535D165/data-matching-software
 
 Prepared for input to deduper training script with the following code (stored here, for now):
 
