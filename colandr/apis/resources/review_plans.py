@@ -120,8 +120,16 @@ class ReviewPlanResource(Resource):
             for field in fields:
                 if field == "objective":
                     review_plan.objective = ""
-                elif field == "pico":
-                    review_plan.pico = {}
+                elif field.startswith("pico"):
+                    if field == "pico":
+                        review_plan.pico = {}
+                    else:
+                        _, subfield = field.split(".")
+                        review_plan.pico = {
+                            key: val
+                            for key, val in review_plan.pico.items()
+                            if key != subfield
+                        }
                 else:
                     setattr(review_plan, field, [])
         else:
