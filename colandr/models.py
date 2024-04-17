@@ -408,6 +408,16 @@ class Study(db.Model):
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
     )
+    citation: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True),
+        nullable=True,  # TODO: False?
+    )
+    citation_text_content_vector_rep = mapcol(
+        postgresql.ARRAY(sa.Float), server_default="{}"
+    )
+    fulltext: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True), nullable=True
+    )
     user_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
@@ -449,18 +459,56 @@ class Study(db.Model):
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="joined", passive_deletes=True
     )
-    citation: M["Citation"] = sa_orm.relationship(
-        "Citation", back_populates="study", lazy="joined", passive_deletes=True
-    )
-    fulltext: M["Fulltext"] = sa_orm.relationship(
-        "Fulltext", back_populates="study", lazy="joined", passive_deletes=True
-    )
     data_extraction: M["DataExtraction"] = sa_orm.relationship(
         "DataExtraction", back_populates="study", lazy="joined", passive_deletes=True
+    )
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="study",
+        lazy="dynamic",
+        passive_deletes=True,
     )
 
     def __repr__(self):
         return f"<Study(id={self.id})>"
+
+    @hybrid_property
+    def citation_text_content(self):
+        return "\n\n".join(
+            (
+                self.citation.get("title", ""),
+                self.citation.get("abstract", ""),
+                ", ".join(self.citation.get("keywords", [])),
+            )
+        ).strip()
+
+    @citation_text_content.expression
+    def citation_text_content(cls):
+        return db.func.concat_ws(
+            "\n\n",
+            cls.citation["title"],
+            cls.citation["abstract"],
+            db.func.array_to_string(cls.citation["keywords"], ", "),
+        )
+
+    @hybrid_property
+    def citation_exclude_reasons(self):
+        return self._exclude_reasons("citation")
+
+    @hybrid_property
+    def fulltext_exclude_reasons(self):
+        return self._exclude_reasons("fulltext")
+
+    def _exclude_reasons(self, stage: str):
+        return sorted(
+            set(
+                itertools.chain.from_iterable(
+                    screening.exclude_reasons or []
+                    for screening in self.screenings
+                    if screening.stage == stage
+                )
+            )
+        )
 
 
 class Dedupe(db.Model):
@@ -686,6 +734,83 @@ class Fulltext(db.Model):
 
     def __repr__(self):
         return f"<Fulltext(study_id={self.id})>"
+
+
+class Screening(db.Model):
+    __tablename__ = "screenings"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id",
+            "review_id",
+            "study_id",
+            "stage",
+            name="uq_screenings_user_review_study_stage",
+        ),
+        db.Index("ix_screenings_study_id_stage", "study_id", "stage"),
+    )
+
+    # columns
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    user_id: M[t.Optional[int]] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
+        index=True,
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+    )
+    stage: M[str] = mapcol(sa.String(length=16))
+    status: M[str] = mapcol(sa.String(length=20), index=True)
+    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
+
+    # relationships
+    user: M["User"] = sa_orm.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="citation_screenings",
+        lazy="select",
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review",
+        foreign_keys=[review_id],
+        back_populates="citation_screenings",
+        lazy="select",
+    )
+    study: M["Study"] = sa_orm.relationship(
+        "Study",
+        foreign_keys=[study_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+
+    def __init__(
+        self, user_id, review_id, study_id, stage, status, exclude_reasons=None
+    ):
+        self.user_id = user_id
+        self.review_id = review_id
+        self.study_id = study_id
+        self.stage = stage
+        self.status = status
+        self.exclude_reasons = exclude_reasons
+
+    def __repr__(self):
+        return f"<Screening(study_id={self.study_id}, stage={self.stage})>"
 
 
 class CitationScreening(db.Model):
