@@ -408,16 +408,6 @@ class Study(db.Model):
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
     )
-    citation: M[dict[str, t.Any]] = mapcol(
-        postgresql.JSONB(none_as_null=True),
-        nullable=True,  # TODO: False?
-    )
-    citation_text_content_vector_rep = mapcol(
-        postgresql.ARRAY(sa.Float), server_default="{}"
-    )
-    fulltext: M[dict[str, t.Any]] = mapcol(
-        postgresql.JSONB(none_as_null=True), nullable=True
-    )
     user_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
@@ -459,56 +449,18 @@ class Study(db.Model):
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="joined", passive_deletes=True
     )
+    citation: M["Citation"] = sa_orm.relationship(
+        "Citation", back_populates="study", lazy="joined", passive_deletes=True
+    )
+    fulltext: M["Fulltext"] = sa_orm.relationship(
+        "Fulltext", back_populates="study", lazy="joined", passive_deletes=True
+    )
     data_extraction: M["DataExtraction"] = sa_orm.relationship(
         "DataExtraction", back_populates="study", lazy="joined", passive_deletes=True
-    )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening",
-        back_populates="study",
-        lazy="dynamic",
-        passive_deletes=True,
     )
 
     def __repr__(self):
         return f"<Study(id={self.id})>"
-
-    @hybrid_property
-    def citation_text_content(self):
-        return "\n\n".join(
-            (
-                self.citation.get("title", ""),
-                self.citation.get("abstract", ""),
-                ", ".join(self.citation.get("keywords", [])),
-            )
-        ).strip()
-
-    @citation_text_content.expression
-    def citation_text_content(cls):
-        return db.func.concat_ws(
-            "\n\n",
-            cls.citation["title"],
-            cls.citation["abstract"],
-            db.func.array_to_string(cls.citation["keywords"], ", "),
-        )
-
-    @hybrid_property
-    def citation_exclude_reasons(self):
-        return self._exclude_reasons("citation")
-
-    @hybrid_property
-    def fulltext_exclude_reasons(self):
-        return self._exclude_reasons("fulltext")
-
-    def _exclude_reasons(self, stage: str):
-        return sorted(
-            set(
-                itertools.chain.from_iterable(
-                    screening.exclude_reasons or []
-                    for screening in self.screenings
-                    if screening.stage == stage
-                )
-            )
-        )
 
 
 class Dedupe(db.Model):
@@ -624,11 +576,8 @@ class Citation(db.Model):
     review: M["Review"] = sa_orm.relationship(
         "Review", foreign_keys=[review_id], back_populates="citations", lazy="select"
     )
-    screenings: DM["CitationScreening"] = sa_orm.relationship(
-        "CitationScreening",
-        back_populates="citation",
-        lazy="dynamic",
-        passive_deletes=True,
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="citation", lazy="dynamic", passive_deletes=True
     )
 
     def __init__(
@@ -719,11 +668,8 @@ class Fulltext(db.Model):
     review: M["Review"] = sa_orm.relationship(
         "Review", foreign_keys=[review_id], back_populates="fulltexts", lazy="select"
     )
-    screenings: DM["FulltextScreening"] = sa_orm.relationship(
-        "FulltextScreening",
-        back_populates="fulltext",
-        lazy="dynamic",
-        passive_deletes=True,
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="fulltext", lazy="dynamic", passive_deletes=True
     )
 
     def __init__(self, id_, review_id, filename=None, original_filename=None):
@@ -792,8 +738,14 @@ class Screening(db.Model):
         back_populates="citation_screenings",
         lazy="select",
     )
-    study: M["Study"] = sa_orm.relationship(
-        "Study",
+    citation: M["Citation"] = sa_orm.relationship(
+        "Citation",
+        foreign_keys=[study_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+    fulltext: M["Fulltext"] = sa_orm.relationship(
+        "Fulltext",
         foreign_keys=[study_id],
         back_populates="screenings",
         lazy="select",
