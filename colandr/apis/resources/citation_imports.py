@@ -6,12 +6,12 @@ from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
-# from werkzeug.utils import secure_filename
 
+# from werkzeug.utils import secure_filename
 from ... import tasks
 from ...extensions import db
 from ...lib import constants, preprocessors
-from ...models import Citation, DataSource, Fulltext, Import, Review, Study
+from ...models import DataSource, Import, Review, Study  # Citation, Fulltext
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import DataSourceSchema, ImportSchema
 

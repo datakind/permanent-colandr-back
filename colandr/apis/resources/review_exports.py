@@ -13,7 +13,7 @@ from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import DataSource, FulltextScreening, Import, Review, ReviewPlan, Study
+from ...models import DataSource, Import, Review, ReviewPlan, Study  # FulltextScreening
 from ..errors import forbidden_error, not_found_error
 
 

@@ -11,7 +11,7 @@ from webargs.flaskparser import use_args, use_kwargs
 
 from ...extensions import db
 from ...lib import constants
-from ...models import Citation, DataSource, Review, Study
+from ...models import DataSource, Review, Study  # Citation
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model

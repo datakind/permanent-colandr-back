@@ -12,7 +12,12 @@ from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import CitationScreening, FulltextScreening, Review, ReviewPlan, Study
+from ...models import (  # CitationScreening, FulltextScreening
+    Review,
+    ReviewPlan,
+    Screening,
+    Study,
+)
 from ..errors import forbidden_error, not_found_error
 
 
@@ -270,7 +275,7 @@ class ExportScreeningsResource(Resource):
         return response
 
 
-def _screening_to_row(screening: CitationScreening | FulltextScreening) -> dict:
+def _screening_to_row(screening: Screening) -> dict:
     if isinstance(screening, CitationScreening):
         row = {"study_id": screening.citation_id, "screening_stage": "citation"}
     elif isinstance(screening, FulltextScreening):

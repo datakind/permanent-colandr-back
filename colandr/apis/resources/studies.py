@@ -16,7 +16,7 @@ from ...extensions import db
 from ...lib import constants
 from ...lib.models import Ranker
 from ...lib.nlp import reviewer_terms
-from ...models import Citation, Review, Study
+from ...models import Review, Study  # Citation
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model

@@ -8,7 +8,8 @@ from webargs.flaskparser import use_kwargs
 
 from ...extensions import db
 from ...lib import constants
-from ...models import Fulltext
+
+# from ...models import Fulltext
 from ..errors import forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 

@@ -16,7 +16,7 @@ from .extensions import db, mail
 from .lib.models import Deduper, Ranker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
-from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
+from .models import Dedupe, ReviewPlan, Study, User  # Citation, Fulltext
 
 
 LOGGER = get_task_logger(__name__)

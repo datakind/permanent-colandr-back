@@ -13,7 +13,8 @@ from werkzeug.utils import secure_filename
 from ... import tasks
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Fulltext
+
+# from ...models import Fulltext
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 
