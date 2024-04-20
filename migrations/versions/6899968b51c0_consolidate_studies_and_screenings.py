@@ -293,8 +293,8 @@ def downgrade():
         ),
         sa.Column(
             "text_content_vector_rep",
-            postgresql.ARRAY(sa.DOUBLE_PRECISION(precision=53)),
-            server_default=sa.text("'{}'::double precision[]"),
+            postgresql.ARRAY(sa.Float),
+            server_default=sa.text("'{}'::float[]"),
             autoincrement=False,
             nullable=True,
         ),
@@ -340,8 +340,8 @@ def downgrade():
         sa.Column("text_content", sa.TEXT(), autoincrement=False, nullable=True),
         sa.Column(
             "text_content_vector_rep",
-            postgresql.ARRAY(sa.DOUBLE_PRECISION(precision=53)),
-            server_default=sa.text("'{}'::double precision[]"),
+            postgresql.ARRAY(sa.Float),
+            server_default=sa.text("'{}'::float[]"),
             autoincrement=False,
             nullable=True,
         ),
@@ -395,10 +395,10 @@ def downgrade():
             citation ->> 'title' AS title,
             citation ->> 'secondary_title' AS secondary_title,
             citation ->> 'abstract' AS abstract,
-            citation ->> 'pub_year' AS pub_year,
-            citation ->> 'pub_month' AS pub_month,
-            citation ->> 'authors' AS authors,
-            citation ->> 'keywords' AS keywords,
+            (citation ->> 'pub_year')::int AS pub_year,
+            (citation ->> 'pub_month')::int AS pub_month,
+            ARRAY(SELECT jsonb_array_elements_text(citation -> 'authors')) AS authors,
+            ARRAY(SELECT jsonb_array_elements_text(citation -> 'keywords')) AS keywords,
             citation ->> 'type_of_reference' AS type_of_reference,
             citation ->> 'journal_name' AS journal_name,
             citation ->> 'volume' AS volume,
@@ -407,8 +407,8 @@ def downgrade():
             citation ->> 'issn' AS issn,
             citation ->> 'publisher' AS publisher,
             citation ->> 'language' AS language,
-            citation ->> 'other_fields' AS other_fields,
-            text_content_vector_rep
+            citation -> 'other_fields' AS other_fields,
+            citation_text_content_vector_rep AS text_content_vector_rep
         FROM studies
         ORDER BY created_at ASC
         """
@@ -434,8 +434,11 @@ def downgrade():
             fulltext ->> 'filename' AS filename,
             fulltext ->> 'original_filename' AS original_filename,
             fulltext ->> 'text_content' AS text_content,
-            fulltext ->> 'text_content_vector_rep' AS text_content_vector_rep
+            (
+                ARRAY(SELECT jsonb_array_elements(fulltext -> 'text_content_vector_rep'))::float[]
+            ) AS text_content_vector_rep
         FROM studies
+        WHERE fulltext -> 'filename' IS NOT NULL
         ORDER BY created_at ASC
         """
     )
