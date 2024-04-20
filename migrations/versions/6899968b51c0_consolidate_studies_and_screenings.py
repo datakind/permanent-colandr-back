@@ -189,20 +189,12 @@ def upgrade():
     )
 
     # drop unnecessary tables
-    with op.batch_alter_table("fulltexts", schema=None) as batch_op:
-        batch_op.drop_index("ix_fulltexts_review_id")
-    op.drop_table("fulltexts")
-
     with op.batch_alter_table("citation_screenings", schema=None) as batch_op:
         batch_op.drop_index("ix_citation_screenings_citation_id")
         batch_op.drop_index("ix_citation_screenings_review_id")
         batch_op.drop_index("ix_citation_screenings_status")
         batch_op.drop_index("ix_citation_screenings_user_id")
     op.drop_table("citation_screenings")
-
-    with op.batch_alter_table("citations", schema=None) as batch_op:
-        batch_op.drop_index("ix_citations_review_id")
-    op.drop_table("citations")
 
     with op.batch_alter_table("fulltext_screenings", schema=None) as batch_op:
         batch_op.drop_index("ix_fulltext_screenings_fulltext_id")
@@ -211,182 +203,16 @@ def upgrade():
         batch_op.drop_index("ix_fulltext_screenings_user_id")
     op.drop_table("fulltext_screenings")
 
+    with op.batch_alter_table("citations", schema=None) as batch_op:
+        batch_op.drop_index("ix_citations_review_id")
+    op.drop_table("citations")
+
+    with op.batch_alter_table("fulltexts", schema=None) as batch_op:
+        batch_op.drop_index("ix_fulltexts_review_id")
+    op.drop_table("fulltexts")
+
 
 def downgrade():
-    # screenings => citation+fulltext screenings
-    op.create_table(
-        "citation_screenings",
-        sa.Column("id", sa.BIGINT(), autoincrement=True, nullable=False),
-        sa.Column(
-            "created_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column("review_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("user_id", sa.INTEGER(), autoincrement=False, nullable=True),
-        sa.Column("citation_id", sa.BIGINT(), autoincrement=False, nullable=False),
-        sa.Column("status", sa.VARCHAR(length=20), autoincrement=False, nullable=False),
-        sa.Column(
-            "exclude_reasons",
-            postgresql.ARRAY(sa.VARCHAR(length=64)),
-            autoincrement=False,
-            nullable=True,
-        ),
-        sa.ForeignKeyConstraint(
-            ["citation_id"],
-            ["citations.id"],
-            name="citation_screenings_citation_id_fkey",
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["review_id"],
-            ["reviews.id"],
-            name="citation_screenings_review_id_fkey",
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-            name="citation_screenings_user_id_fkey",
-            ondelete="SET NULL",
-        ),
-        sa.PrimaryKeyConstraint("id", name="citation_screenings_pkey"),
-        sa.UniqueConstraint(
-            "review_id", "user_id", "citation_id", name="review_user_citation_uc"
-        ),
-    )
-    with op.batch_alter_table("citation_screenings", schema=None) as batch_op:
-        batch_op.create_index(
-            "ix_citation_screenings_user_id", ["user_id"], unique=False
-        )
-        batch_op.create_index("ix_citation_screenings_status", ["status"], unique=False)
-        batch_op.create_index(
-            "ix_citation_screenings_review_id", ["review_id"], unique=False
-        )
-        batch_op.create_index(
-            "ix_citation_screenings_citation_id", ["citation_id"], unique=False
-        )
-
-    op.create_table(
-        "fulltext_screenings",
-        sa.Column("id", sa.BIGINT(), autoincrement=True, nullable=False),
-        sa.Column(
-            "created_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column(
-            "updated_at",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column("review_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.Column("user_id", sa.INTEGER(), autoincrement=False, nullable=True),
-        sa.Column("fulltext_id", sa.BIGINT(), autoincrement=False, nullable=False),
-        sa.Column("status", sa.VARCHAR(length=20), autoincrement=False, nullable=False),
-        sa.Column(
-            "exclude_reasons",
-            postgresql.ARRAY(sa.VARCHAR(length=64)),
-            autoincrement=False,
-            nullable=True,
-        ),
-        sa.ForeignKeyConstraint(
-            ["fulltext_id"],
-            ["fulltexts.id"],
-            name="fulltext_screenings_fulltext_id_fkey",
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["review_id"],
-            ["reviews.id"],
-            name="fulltext_screenings_review_id_fkey",
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-            name="fulltext_screenings_user_id_fkey",
-            ondelete="SET NULL",
-        ),
-        sa.PrimaryKeyConstraint("id", name="fulltext_screenings_pkey"),
-        sa.UniqueConstraint(
-            "review_id", "user_id", "fulltext_id", name="review_user_fulltext_uc"
-        ),
-    )
-    with op.batch_alter_table("fulltext_screenings", schema=None) as batch_op:
-        batch_op.create_index(
-            "ix_fulltext_screenings_user_id", ["user_id"], unique=False
-        )
-        batch_op.create_index("ix_fulltext_screenings_status", ["status"], unique=False)
-        batch_op.create_index(
-            "ix_fulltext_screenings_review_id", ["review_id"], unique=False
-        )
-        batch_op.create_index(
-            "ix_fulltext_screenings_fulltext_id", ["fulltext_id"], unique=False
-        )
-
-    op.execute(
-        """
-        INSERT INTO citation_screenings (
-            created_at,
-            updated_at,
-            user_id,
-            review_id,
-            citation_id,
-            status,
-            exclude_reasons
-        )
-        SELECT
-            created_at,
-            updated_at,
-            user_id,
-            review_id,
-            study_id AS citation_id,
-            status,
-            exclude_reasons
-        FROM screenings
-        WHERE stage ='citation'
-        ORDER BY created_at ASC
-        """
-    )
-    op.execute(
-        """
-        INSERT INTO fulltext_screenings (
-            created_at,
-            updated_at,
-            user_id,
-            review_id,
-            fulltext_id,
-            status,
-            exclude_reasons
-        )
-        SELECT
-            created_at,
-            updated_at,
-            user_id,
-            review_id,
-            study_id AS fulltext_id,
-            status,
-            exclude_reasons
-        FROM screenings
-        WHERE stage ='fulltext'
-        ORDER BY created_at ASC
-        """
-    )
-
     # studies => citations+fulltexts
     op.create_table(
         "citations",
@@ -610,6 +436,180 @@ def downgrade():
             fulltext ->> 'text_content' AS text_content,
             fulltext ->> 'text_content_vector_rep' AS text_content_vector_rep
         FROM studies
+        ORDER BY created_at ASC
+        """
+    )
+
+    # screenings => citation+fulltext screenings
+    op.create_table(
+        "citation_screenings",
+        sa.Column("id", sa.BIGINT(), autoincrement=True, nullable=False),
+        sa.Column(
+            "created_at",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
+            nullable=False,
+        ),
+        sa.Column("review_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.Column("user_id", sa.INTEGER(), autoincrement=False, nullable=True),
+        sa.Column("citation_id", sa.BIGINT(), autoincrement=False, nullable=False),
+        sa.Column("status", sa.VARCHAR(length=20), autoincrement=False, nullable=False),
+        sa.Column(
+            "exclude_reasons",
+            postgresql.ARRAY(sa.VARCHAR(length=64)),
+            autoincrement=False,
+            nullable=True,
+        ),
+        sa.ForeignKeyConstraint(
+            ["citation_id"],
+            ["citations.id"],
+            name="citation_screenings_citation_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["review_id"],
+            ["reviews.id"],
+            name="citation_screenings_review_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name="citation_screenings_user_id_fkey",
+            ondelete="SET NULL",
+        ),
+        sa.PrimaryKeyConstraint("id", name="citation_screenings_pkey"),
+        sa.UniqueConstraint(
+            "review_id", "user_id", "citation_id", name="review_user_citation_uc"
+        ),
+    )
+    with op.batch_alter_table("citation_screenings", schema=None) as batch_op:
+        batch_op.create_index(
+            "ix_citation_screenings_user_id", ["user_id"], unique=False
+        )
+        batch_op.create_index("ix_citation_screenings_status", ["status"], unique=False)
+        batch_op.create_index(
+            "ix_citation_screenings_review_id", ["review_id"], unique=False
+        )
+        batch_op.create_index(
+            "ix_citation_screenings_citation_id", ["citation_id"], unique=False
+        )
+
+    op.create_table(
+        "fulltext_screenings",
+        sa.Column("id", sa.BIGINT(), autoincrement=True, nullable=False),
+        sa.Column(
+            "created_at",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
+            nullable=False,
+        ),
+        sa.Column("review_id", sa.INTEGER(), autoincrement=False, nullable=False),
+        sa.Column("user_id", sa.INTEGER(), autoincrement=False, nullable=True),
+        sa.Column("fulltext_id", sa.BIGINT(), autoincrement=False, nullable=False),
+        sa.Column("status", sa.VARCHAR(length=20), autoincrement=False, nullable=False),
+        sa.Column(
+            "exclude_reasons",
+            postgresql.ARRAY(sa.VARCHAR(length=64)),
+            autoincrement=False,
+            nullable=True,
+        ),
+        sa.ForeignKeyConstraint(
+            ["fulltext_id"],
+            ["fulltexts.id"],
+            name="fulltext_screenings_fulltext_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["review_id"],
+            ["reviews.id"],
+            name="fulltext_screenings_review_id_fkey",
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["user_id"],
+            ["users.id"],
+            name="fulltext_screenings_user_id_fkey",
+            ondelete="SET NULL",
+        ),
+        sa.PrimaryKeyConstraint("id", name="fulltext_screenings_pkey"),
+        sa.UniqueConstraint(
+            "review_id", "user_id", "fulltext_id", name="review_user_fulltext_uc"
+        ),
+    )
+    with op.batch_alter_table("fulltext_screenings", schema=None) as batch_op:
+        batch_op.create_index(
+            "ix_fulltext_screenings_user_id", ["user_id"], unique=False
+        )
+        batch_op.create_index("ix_fulltext_screenings_status", ["status"], unique=False)
+        batch_op.create_index(
+            "ix_fulltext_screenings_review_id", ["review_id"], unique=False
+        )
+        batch_op.create_index(
+            "ix_fulltext_screenings_fulltext_id", ["fulltext_id"], unique=False
+        )
+
+    op.execute(
+        """
+        INSERT INTO citation_screenings (
+            created_at,
+            updated_at,
+            user_id,
+            review_id,
+            citation_id,
+            status,
+            exclude_reasons
+        )
+        SELECT
+            created_at,
+            updated_at,
+            user_id,
+            review_id,
+            study_id AS citation_id,
+            status,
+            exclude_reasons
+        FROM screenings
+        WHERE stage ='citation'
+        ORDER BY created_at ASC
+        """
+    )
+    op.execute(
+        """
+        INSERT INTO fulltext_screenings (
+            created_at,
+            updated_at,
+            user_id,
+            review_id,
+            fulltext_id,
+            status,
+            exclude_reasons
+        )
+        SELECT
+            created_at,
+            updated_at,
+            user_id,
+            review_id,
+            study_id AS fulltext_id,
+            status,
+            exclude_reasons
+        FROM screenings
+        WHERE stage ='fulltext'
         ORDER BY created_at ASC
         """
     )
