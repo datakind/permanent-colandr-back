@@ -8,9 +8,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, User
 from .. import auth
 from ..errors import forbidden_error, not_found_error
 from ..schemas import UserSchema
@@ -66,7 +66,7 @@ class UserResource(Resource):
             is False
         ):
             return forbidden_error(f"{current_user} forbidden to get this user")
-        user = db.session.get(User, id)
+        user = db.session.get(models.User, id)
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         if fields and "id" not in fields:
@@ -95,7 +95,7 @@ class UserResource(Resource):
         current_user = jwtext.get_current_user()
         if id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to delete this user")
-        user = db.session.get(User, id)
+        user = db.session.get(models.User, id)
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         db.session.delete(user)
@@ -126,7 +126,7 @@ class UserResource(Resource):
         current_user = jwtext.get_current_user()
         if current_user.is_admin is False and id != current_user.id:
             return forbidden_error(f"{current_user} forbidden to update this user")
-        user = db.session.get(User, id)
+        user = db.session.get(models.User, id)
         if not user:
             return not_found_error(f"<User(id={id})> not found")
         for key, value in args.items():
@@ -189,7 +189,7 @@ class UsersResource(Resource):
         current_user = jwtext.get_current_user()
         if email:
             user = db.session.execute(
-                sa.select(User).filter_by(email=email)
+                sa.select(models.User).filter_by(email=email)
             ).scalar_one_or_none()
             if not user:
                 return not_found_error(f'no user found with email "{email}"')
@@ -197,7 +197,7 @@ class UsersResource(Resource):
                 current_app.logger.debug("got %s", user)
                 return UserSchema().dump(user)
         elif review_id:
-            review = db.session.get(Review, review_id)
+            review = db.session.get(models.Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -223,7 +223,7 @@ class UsersResource(Resource):
     @auth.jwt_admin_required()
     def post(self, args):
         """create new user (ADMIN ONLY)"""
-        user = User(**args)
+        user = models.User(**args)
         user.is_confirmed = True
         db.session.add(user)
         db.session.commit()

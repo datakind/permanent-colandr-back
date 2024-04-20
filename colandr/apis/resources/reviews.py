@@ -11,9 +11,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, ReviewUserAssoc
 from ..errors import forbidden_error, not_found_error
 from ..schemas import ReviewSchema
 from ..swagger import review_model
@@ -60,7 +60,7 @@ class ReviewResource(Resource):
     def get(self, id, fields):
         """get record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -95,7 +95,7 @@ class ReviewResource(Resource):
     def delete(self, id):
         """delete record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and current_user not in review.owners:
@@ -133,7 +133,7 @@ class ReviewResource(Resource):
     def put(self, args, id):
         """modify record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if not current_user.is_admin and current_user not in review.owners:
@@ -188,7 +188,9 @@ class ReviewsResource(Resource):
         if current_user.is_admin is True and _review_ids is not None:
             reviews = (
                 db.session.execute(
-                    sa.select(Review).filter(Review.id == sa.any_(_review_ids))
+                    sa.select(models.Review).filter(
+                        models.Review.id == sa.any_(_review_ids)
+                    )
                 )
                 .scalars()
                 .all()
@@ -213,9 +215,11 @@ class ReviewsResource(Resource):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
-        review = Review(name, **args)
+        review = models.Review(name, **args)
         # TODO: do we want to allow admins to set other users as owners?
-        review.review_user_assoc.append(ReviewUserAssoc(review, current_user, "owner"))
+        review.review_user_assoc.append(
+            models.ReviewUserAssoc(review, current_user, "owner")
+        )
         db.session.add(review)
         db.session.commit()
         current_app.logger.info("inserted %s", review)

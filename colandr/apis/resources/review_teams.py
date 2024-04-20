@@ -8,10 +8,9 @@ from marshmallow.validate import OneOf, Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_kwargs
 
-from ... import tasks
+from ... import models, tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, ReviewUserAssoc, User
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import UserSchema
@@ -58,7 +57,7 @@ class ReviewTeamResource(Resource):
     def get(self, id, fields):
         """get members of a single review's team"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -143,7 +142,7 @@ class ReviewTeamResource(Resource):
     def put(self, id, action, user_id, user_email, user_role):
         """add, invite, remove, or set the role for a particular user"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and current_user not in review.owners:
@@ -151,10 +150,10 @@ class ReviewTeamResource(Resource):
                 f"{current_user} forbidden to modify this review team"
             )
         if user_id is not None:
-            user = db.session.get(User, user_id)
+            user = db.session.get(models.User, user_id)
         elif user_email is not None:
             user = db.session.execute(
-                sa.select(User).filter_by(email=user_email)
+                sa.select(models.User).filter_by(email=user_email)
             ).scalar_one_or_none()
             if user is not None:
                 user_id = user.id
@@ -170,7 +169,7 @@ class ReviewTeamResource(Resource):
             elif user in review_users:
                 return forbidden_error(f"{user} is already on this review")
             else:
-                review.review_user_assoc.append(ReviewUserAssoc(review, user))
+                review.review_user_assoc.append(models.ReviewUserAssoc(review, user))
         # user is being *invited*, so send an invitation email
         elif action == "invite":
             if user is not None:
@@ -256,7 +255,7 @@ class ConfirmReviewTeamInviteResource(Resource):
     @use_kwargs({"token": ma_fields.String(required=True)}, location="query")
     def get(self, id, token):
         """confirm review team invitation via emailed token"""
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
 
@@ -265,7 +264,7 @@ class ConfirmReviewTeamInviteResource(Resource):
             return not_found_error(f"no user found for token='{token}'")
 
         if user not in review.users:
-            db.session.add(ReviewUserAssoc(review, user))
+            db.session.add(models.ReviewUserAssoc(review, user))
         else:
             return forbidden_error(f"{user} is already on this review")
 
