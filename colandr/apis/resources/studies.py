@@ -3,6 +3,7 @@ import random
 from operator import itemgetter
 
 import flask_jwt_extended as jwtext
+import sqlalchemy as sa
 from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
@@ -12,11 +13,11 @@ from sqlalchemy.sql import operators
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
 from ...lib.models import Ranker
 from ...lib.nlp import reviewer_terms
-from ...models import Review, Study  # Citation
 from ..errors import forbidden_error, not_found_error
 from ..schemas import StudySchema
 from ..swagger import study_model
@@ -61,7 +62,7 @@ class StudyResource(Resource):
     def get(self, id, fields):
         """get record for a single study by id"""
         current_user = jwtext.get_current_user()
-        study = db.session.get(Study, id)
+        study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -96,7 +97,7 @@ class StudyResource(Resource):
     def delete(self, id):
         """delete record for a single study by id"""
         current_user = jwtext.get_current_user()
-        study = db.session.get(Study, id)
+        study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -133,7 +134,7 @@ class StudyResource(Resource):
     def put(self, args, id):
         """modify record for a single study by id"""
         current_user = jwtext.get_current_user()
-        study = db.session.get(Study, id)
+        study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
@@ -292,7 +293,7 @@ class StudiesResource(Resource):
     ):
         """get study record(s) for one or more matching studies"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -307,127 +308,162 @@ class StudiesResource(Resource):
             )
         if fields and "id" not in fields:
             fields.append("id")
-        # build the query by components
-        query = review.studies
+
+        stmt = sa.select(models.Study).where(models.Study.review_id == review_id)
 
         if dedupe_status is not None:
-            query = query.filter(Study.dedupe_status == dedupe_status)
+            stmt = stmt.where(models.Study.dedupe_status == dedupe_status)
 
         if citation_status is not None:
             if citation_status in {"conflict", "excluded", "included"}:
-                query = query.filter(Study.citation_status == citation_status)
+                stmt = stmt.where(models.Study.citation_status == citation_status)
             elif citation_status == "pending":
-                stmt = """
+                substmt = """
                     SELECT t.id
-                    FROM (SELECT
-                              studies.id,
-                              studies.dedupe_status,
-                              studies.citation_status,
-                              screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM citation_screenings
-                                     GROUP BY citation_id
-                                     ) AS screenings
-                          ON studies.id = screenings.citation_id
-                          ) AS t
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.dedupe_status,
+                            studies.citation_status,
+                            screenings.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                            FROM screenings
+                            -- WHERE stage = 'citation'
+                            GROUP BY study_id
+                        ) AS screenings ON (
+                            studies.id = screenings.study_id
+                            AND screenings.stage = 'citation'
+                        )
+                    ) AS t
                     WHERE
                         t.dedupe_status = 'not_duplicate' -- this is necessary!
                         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=current_user.id)
-                query = query.filter(Study.id.in_(text(stmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif citation_status == "awaiting_coscreener":
-                stmt = """
+                substmt = """
                     SELECT t.id
-                    FROM (SELECT studies.id, studies.citation_status, screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM citation_screenings
-                                     GROUP BY citation_id
-                                     ) AS screenings
-                          ON studies.id = screenings.citation_id
-                          ) AS t
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.citation_status,
+                            screenings.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                            FROM screenings
+                            -- WHERE stage = 'citation'
+                            GROUP BY study_id
+                        ) AS screenings ON (
+                            studies.id = screenings.study_id
+                            AND screenings.stage = 'citation'
+                        )
+                    ) AS t
                     WHERE
                         t.citation_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=current_user.id)
-                query = query.filter(Study.id.in_(text(stmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if fulltext_status is not None:
             if fulltext_status in {"conflict", "excluded", "included"}:
-                query = query.filter(Study.fulltext_status == fulltext_status)
+                stmt = stmt.where(models.Study.fulltext_status == fulltext_status)
             elif fulltext_status == "pending":
-                stmt = """
+                substmt = """
                     SELECT t.id
-                    FROM (SELECT
-                              studies.id,
-                              studies.citation_status,
-                              studies.fulltext_status,
-                              screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM fulltext_screenings
-                                     GROUP BY fulltext_id
-                                     ) AS screenings
-                          ON studies.id = screenings.fulltext_id
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.citation_status,
+                            studies.fulltext_status,
+                            screenings.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                                FROM screenings
+                                GROUP BY study_id
+                            ) AS screenings ON (
+                                studies.id = screenings.study_id
+                                AND screenings.stage = 'fulltext'
                           ) AS t
                     WHERE
                         t.citation_status = 'included' -- this is necessary!
                         AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
                         AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
                     """.format(user_id=current_user.id)
-                query = query.filter(Study.id.in_(text(stmt)))
+                stmt = stmt.where(models.Study.id.in_(text(substmt)))
             elif fulltext_status == "awaiting_coscreener":
-                stmt = """
+                substmt = """
                     SELECT t.id
-                    FROM (SELECT studies.id, studies.fulltext_status, screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM fulltext_screenings
-                                     GROUP BY fulltext_id
-                                     ) AS screenings
-                          ON studies.id = screenings.fulltext_id
-                          ) AS t
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.fulltext_status,
+                            screenings.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                            FROM screenings
+                            GROUP BY study_id
+                        ) AS screenings ON (
+                            studies.id = screenings.study_id
+                            AND screenings.stage = 'fulltext'
+                    ) AS t
                     WHERE
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=current_user.id)
-                query = query.filter(Study.id.in_(text(stmt)))
+                stmt = stmt.where(models.Study.id.in_(text(substmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
-                query = query.filter(
-                    Study.data_extraction_status == data_extraction_status
-                ).filter(Study.fulltext_status == "included")  # this is necessary!
+                stmt = stmt.where(
+                    models.Study.data_extraction_status == data_extraction_status
+                ).where(
+                    models.Study.fulltext_status == "included"
+                )  # this is necessary!
             else:
-                query = query.filter(
-                    Study.data_extraction_status == data_extraction_status
+                stmt = stmt.where(
+                    models.Study.data_extraction_status == data_extraction_status
                 )
 
         if tag:
-            query = query.filter(Study.tags.any(tag, operator=operators.eq))
+            stmt = stmt.where(models.Study.tags.any(tag, operator=operators.eq))
 
-        if tsquery:
-            if order_by != "relevance":  # HACK...
-                query = query.join(Citation, Citation.id == Study.id).filter(
-                    Citation.text_content.match(tsquery)
-                )
+        if tsquery and order_by != "relevance":  # HACK...
+            stmt = stmt.where(models.Study.citation_text_content.match(tsquery))
 
         # order, offset, and limit
         if order_by == "recency":
-            order_by = desc(Study.id) if order_dir == "DESC" else asc(Study.id)
-            query = query.order_by(order_by)
-            query = query.offset(page * per_page).limit(per_page)
-            return StudySchema(many=True, only=fields).dump(query.all())
+            order_by = (
+                sa.desc(models.Study.id)
+                if order_dir == "DESC"
+                else sa.asc(models.Study.id)
+            )
+            stmt = stmt.order_by(order_by)
+            stmt = stmt.offset(page * per_page).limit(per_page)
+            return StudySchema(many=True, only=fields).dump(
+                db.session.execute(stmt).scalars().all()
+            )
 
         elif order_by == "relevance":
-            query = query.join(Citation, Citation.id == Study.id)
             if tsquery:
-                query = query.filter(Citation.text_content.match(tsquery))
+                stmt = stmt.where(models.Study.citation_text_content.match(tsquery))
 
             # get results and corresponding relevance scores
-            results = query.order_by(db.func.random()).limit(1000).all()
+            stmt = stmt.order_by(db.func.random()).limit(1000)
+            results = db.session.execute(stmt).scalars().all()
             scores = None
 
             # best option: we have a trained citation ranking model
@@ -438,7 +474,7 @@ class StudiesResource(Resource):
             if os.path.exists(str(ranker.model_fpath)):
                 # ranker model available :)
                 scores = ranker.predict(
-                    result.citation.text_content_vector_rep for result in results
+                    result.citation_text_content_vector_rep for result in results
                 )
 
             # next best option: both positive and negative keyterms
@@ -451,7 +487,7 @@ class StudiesResource(Resource):
                     )
                     scores = [
                         reviewer_terms.get_incl_excl_terms_score(
-                            incl_regex, excl_regex, result.citation.text_content
+                            incl_regex, excl_regex, result.citation_text_content
                         )
                         for result in results
                     ]
@@ -464,7 +500,7 @@ class StudiesResource(Resource):
                     keyterms_regex = reviewer_terms.get_keyterms_regex(keyterms)
                     scores = [
                         reviewer_terms.get_keyterms_score(
-                            keyterms_regex, result.citation.text_content
+                            keyterms_regex, result.citation_text_content
                         )
                         for result in results
                     ]

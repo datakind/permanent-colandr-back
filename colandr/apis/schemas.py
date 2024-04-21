@@ -203,10 +203,42 @@ class DataExtractionSchema(Schema):
     extracted_items = fields.Nested(ExtractedItem, many=True)
 
 
+class StudyCitationSchema(Schema):
+    type_of_work = fields.Str(load_default=None, validate=Length(max=25))
+    title = fields.Str(validate=Length(max=300))
+    secondary_title = fields.Str(load_default=None, validate=Length(max=300))
+    abstract = fields.Str(load_default=None)
+    pub_year = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_SMALLINT)
+    )
+    pub_month = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_SMALLINT)
+    )
+    authors = fields.List(fields.Str(validate=Length(max=100)))
+    keywords = fields.List(fields.Str(validate=Length(max=100)))
+    type_of_reference = fields.Str(load_default=None, validate=Length(max=50))
+    journal_name = fields.Str(load_default=None, validate=Length(max=100))
+    volume = fields.Str(load_default=None, validate=Length(max=20))
+    issue_number = fields.Str(load_default=None, validate=Length(max=20))
+    doi = fields.Str(load_default=None, validate=Length(max=100))
+    issn = fields.Str(load_default=None, validate=Length(max=20))
+    publisher = fields.Str(load_default=None, validate=Length(max=100))
+    language = fields.Str(load_default=None, validate=Length(max=50))
+    other_fields = fields.Dict()
+
+
+class StudyFulltextSchema(Schema):
+    filename = fields.Str(validate=Length(max=30))
+    original_filename = fields.Str(dump_only=True)
+    text_content = fields.Str(dump_only=True)
+
+
 class StudySchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
     updated_at = fields.DateTime(dump_only=True, format="iso")
+    citation = fields.Nested(StudyCitationSchema, dump_only=True)
+    fulltext = fields.Nested(StudyFulltextSchema, dump_only=True)
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     data_source_id = fields.Int(
