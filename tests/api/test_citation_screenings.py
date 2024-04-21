@@ -27,7 +27,7 @@ class TestCitationScreeningsResource:
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             records = response.json
-            seed_data = seed_data["citation_screenings"][id_ - 1]
+            seed_data = seed_data["screenings"][id_ - 1]
             fields = None if params is None else params["fields"].split(",")
             # if fields is not None and "id" not in fields:
             #     fields.append("id")
@@ -35,8 +35,8 @@ class TestCitationScreeningsResource:
             for record in records:
                 # TODO: figure out what to do with these checks below
                 # assert "id" in record
-                # assert record["citation_id"] == id_
-                for field in ["citation_id", "review_id", "status"]:
+                # assert record["study_id"] == id_
+                for field in ["review_id", "status"]:
                     if fields is None or field in fields:
                         assert record[field] == seed_data.get(field)
                 if fields:

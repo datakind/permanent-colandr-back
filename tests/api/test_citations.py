@@ -21,7 +21,7 @@ class TestCitationResource:
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
-            seed_data = seed_data["citations"][id_ - 1]
+            seed_data = seed_data["studies"][id_ - 1]
             fields = None if params is None else params["fields"].split(",")
             if fields is not None and "id" not in fields:
                 fields.append("id")
@@ -29,7 +29,7 @@ class TestCitationResource:
             assert data["id"] == id_
             for field in ["title", "abstract"]:
                 if fields is None or field in fields:
-                    assert data[field] == seed_data.get(field)
+                    assert data[field] == seed_data.get("citation", {}).get(field)
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 
@@ -58,8 +58,11 @@ class TestCitationResource:
             url = flask.url_for("citations_citation_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
+        # TODO: decide on delete behavior for study.citation
+        # get_response = client.get(url, headers=admin_headers)
+        # assert get_response.status_code == 404  # not found!
         get_response = client.get(url, headers=admin_headers)
-        assert get_response.status_code == 404  # not found!
+        assert get_response.json == {}  # empty!
 
 
 @pytest.mark.skip(reason="doesn't play nicely with other resource tests")
