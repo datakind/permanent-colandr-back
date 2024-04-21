@@ -294,6 +294,7 @@ def _make_pseudo_citation_record(study: models.Study) -> dict:
     if citation:
         citation |= {
             "id": study.id,
+            "review_id": study.review_id,
             "created_at": study.created_at,
             "updated_at": study.updated_at,
         }
