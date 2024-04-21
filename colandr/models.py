@@ -11,6 +11,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DynamicMapped as DM
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import mapped_column as mapcol
 
@@ -658,8 +659,6 @@ class DataExtraction(db.Model):
 
 # EVENTS
 
-# TODO TODO TODO
-
 # NOTE: apparently this does not work in sqlalchemy v2 :/
 # @sa_event.listens_for(db.Model, "after_update")
 # def update_updated_at(mapper, connection, target):
@@ -669,192 +668,168 @@ class DataExtraction(db.Model):
 #         target.updated_at = updated_at
 
 
-# @sa_event.listens_for(CitationScreening, "after_insert")
-# @sa_event.listens_for(CitationScreening, "after_delete")
-# @sa_event.listens_for(CitationScreening, "after_update")
-# def update_citation_status(mapper, connection, target):
-#     citation_id = target.citation_id
-#     review_id = target.review_id
-#     citation = target.citation
-#     # TODO(burton): you added this so that conftest populate_db func would work
-#     # for reasons unknown, the target here didn't have a loaded citation object
-#     # but this is _probably_ a bad thing, and you should find a way to fix it
-#     if citation is None:
-#         citation = db.session.execute(
-#             sa.select(Citation).filter_by(id=citation_id)
-#         ).scalar_one_or_none()
-#     # get the current (soon to be *old*) citation_status of the study
-#     old_status = connection.execute(
-#         sa.select(Study.citation_status).where(Study.id == citation_id)
-#     ).fetchone()[0]
-#     # now compute the new status, and update the study accordingly
-#     status = utils.assign_status(
-#         [
-#             cs.status
-#             for cs in db.session.execute(
-#                 sa.select(CitationScreening).filter_by(citation_id=citation_id)
-#             ).scalars()
-#         ],
-#         citation.review.num_citation_screening_reviewers,
-#     )
-#     connection.execute(
-#         sa.update(Study).where(Study.id == citation_id).values(citation_status=status)
-#     )
-#     LOGGER.info("%s => %s with status = %s", target, citation, status)
-#     # we may have to insert or delete a corresponding fulltext record
-#     fulltext = connection.execute(
-#         sa.select(Fulltext).where(Fulltext.id == citation_id)
-#     ).first()
-#     fulltext_inserted_or_deleted = False
-#     if status == "included" and fulltext is None:
-#         connection.execute(
-#             sa.insert(Fulltext).values(id=citation_id, review_id=review_id)
-#         )
-#         LOGGER.info("inserted <Fulltext(study_id=%s)>", citation_id)
-#         fulltext_inserted_or_deleted = True
-#     elif status != "included" and fulltext is not None:
-#         connection.execute(sa.delete(Fulltext).where(Fulltext.id == citation_id))
-#         LOGGER.info("deleted <Fulltext(study_id=%s)>", citation_id)
-#         fulltext_inserted_or_deleted = True
-#     # we may have to update our counts for review num_citations_included / excluded
-#     if old_status != status:
-#         if old_status == "included":  # decrement num_citations_included
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_citations_included=Review.num_citations_included - 1)
-#             )
-#         elif status == "included":  # increment num_citations_included
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_citations_included=Review.num_citations_included + 1)
-#             )
-#         elif old_status == "excluded":  # decrement num_citations_excluded
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_citations_included=Review.num_citations_excluded - 1)
-#             )
-#         elif status == "excluded":  # increment num_citations_excluded
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_citations_included=Review.num_citations_excluded + 1)
-#             )
-#     if fulltext_inserted_or_deleted is True:
-#         status_counts = connection.execute(
-#             sa.select(
-#                 Review.num_citations_included, Review.num_citations_excluded
-#             ).where(Review.id == review_id)
-#         ).fetchone()
-#         LOGGER.info(
-#             "<Review(id=%s)> citation_status counts = %s", review_id, status_counts
-#         )
-#         n_included, n_excluded = status_counts
-#         # if at least 25 citations have been included AND excluded
-#         # and only once every 25 included citations
-#         # (re-)compute the suggested keyterms
-#         if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
-#             sample_size = min(n_included, n_excluded)
-#             tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
-#         # if at least 100 citations have been included AND excluded
-#         # and only once every 50 included citations
-#         # (re-)train a citation ranking model
-#         if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
-#             tasks.train_citation_ranking_model.apply_async(args=[review_id])
-
-
-# @sa_event.listens_for(FulltextScreening, "after_insert")
-# @sa_event.listens_for(FulltextScreening, "after_delete")
-# @sa_event.listens_for(FulltextScreening, "after_update")
-# def update_fulltext_status(mapper, connection, target):
-#     fulltext_id = target.fulltext_id
-#     review_id = target.review_id
-#     fulltext = target.fulltext
-#     # TODO(burton): you added this so that conftest populate_db func would work
-#     # for reasons unknown, the target here didn't have a loaded fulltext object
-#     # but this is _probably_ a bad thing, and you should find a way to fix it
-#     if fulltext is None:
-#         fulltext = db.session.execute(
-#             sa.select(Fulltext).filter_by(id=fulltext_id)
-#         ).scalar_one_or_none()
-#     # get the current (soon to be *old*) citation_status of the study
-#     old_status = connection.execute(
-#         sa.select(Study.fulltext_status).where(Study.id == fulltext_id)
-#     ).fetchone()[0]
-#     # now compute the new status, and update the study accordingly
-#     status = utils.assign_status(
-#         [
-#             fs.status
-#             for fs in db.session.execute(
-#                 sa.select(FulltextScreening).filter_by(fulltext_id=fulltext_id)
-#             ).scalars()
-#         ],
-#         fulltext.review.num_fulltext_screening_reviewers,
-#     )
-#     connection.execute(
-#         sa.update(Study).where(Study.id == fulltext_id).values(fulltext_status=status)
-#     )
-#     LOGGER.info("%s => %s with status = %s", target, fulltext, status)
-#     # we may have to insert or delete a corresponding data extraction record
-#     data_extraction = connection.execute(
-#         sa.select(DataExtraction).where(DataExtraction.id == fulltext_id)
-#     ).first()
-#     # data_extraction_inserted_or_deleted = False
-#     if status == "included" and data_extraction is None:
-#         connection.execute(
-#             sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
-#         )
-#         LOGGER.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
-#         # data_extraction_inserted_or_deleted = True
-#     elif status != "included" and data_extraction is None:
-#         connection.execute(
-#             sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
-#         )
-#         LOGGER.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
-#         # data_extraction_inserted_or_deleted = True
-#     # we may have to update our counts for review num_fulltexts_included / excluded
-#     if old_status != status:
-#         if old_status == "included":  # decrement num_fulltexts_included
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
-#             )
-#         elif status == "included":  # increment num_fulltexts_included
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
-#             )
-#         elif old_status == "excluded":  # decrement num_fulltexts_excluded
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
-#             )
-#         elif status == "excluded":  # increment num_fulltexts_excluded
-#             connection.execute(
-#                 sa.update(Review)
-#                 .where(Review.id == review_id)
-#                 .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
-#             )
-#     # TODO: should we do something now?
-#     # if data_extraction_inserted_or_deleted is True:
-#     #     with connection.begin():
-#     #         status_counts = connection.execute(
-#     #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
-#     #             .where(Review.id == review_id)
-#     #             ).fetchone()
-#     #         LOGGER.info(
-#     #             '<Review(id=%s)> fulltext_status counts = %s',
-#     #             review_id, status_counts)
-#     #         n_included, n_excluded = status_counts
-
-
 @sa_event.listens_for(Review, "after_insert")
 def insert_review_plan(mapper, connection, target):
     review_plan = ReviewPlan(target.id)
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
+
+
+@sa_event.listens_for(Screening, "after_insert")
+@sa_event.listens_for(Screening, "after_delete")
+@sa_event.listens_for(Screening, "after_update")
+def update_study_status(mapper, connection, target):
+    review_id = target.review_id
+    study_id = target.study_id
+    study = target.study
+    # TODO(burton): you added this so that conftest populate_db func would work
+    # for reasons unknown, the target here didn't have a loaded citation object
+    # but this is _probably_ a bad thing, and you should find a way to fix it
+    if study is None:
+        study = db.session.execute(
+            sa.select(Study).filter_by(id=study_id)
+        ).scalar_one_or_none()
+    assert isinstance(study, Study)  # type guard
+    # prep stage-specific variables
+    stage = target.stage
+    if stage == "citation":
+        num_reviewers = study.review.num_citation_screening_reviewers
+        study_status_col = Study.citation_status
+        study_status_col_str = "citation_status"
+        review_num_included_col = Review.num_citations_included
+        review_num_included_col_str = "num_citations_included"
+    else:
+        num_reviewers = study.review.num_fulltext_screening_reviewers
+        study_status_col = Study.fulltext_status
+        study_status_col_str = "fulltext_status"
+        review_num_included_col = Review.num_fulltexts_included
+        review_num_included_col_str = "num_fulltexts_included"
+    # get the current (soon to be *old*) status of the study
+    old_status = connection.execute(
+        sa.select(study_status_col).where(Study.id == study_id)
+    ).fetchone()[0]
+    # compute the new status, and update the study accordingly
+    status = utils.assign_status(
+        [
+            screening.status
+            for screening in db.session.execute(
+                sa.select(Screening).filter_by(study_id=study_id, stage=stage)
+            ).scalars()
+        ],
+        num_reviewers,
+    )
+    connection.execute(
+        sa.update(Study)
+        .where(Study.id == study_id)
+        .values({study_status_col_str: status})
+    )
+    LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
+
+    # we may have to update our counts for review num_*_included / num_*_excluded
+    _update_review_num_counts(
+        old_status=old_status,
+        status=status,
+        review_id=review_id,
+        review_num_included_col=review_num_included_col,
+        review_num_included_col_str=review_num_included_col_str,
+        connection=connection,
+    )
+
+    if stage == "citation":
+        # get rid of any contrary fulltext screenings
+        if status != "included":
+            connection.execute(
+                sa.delete(Screening)
+                .where(Screening.study_id == study_id)
+                .where(Screening.stage == "fulltext")
+            )
+            LOGGER.info(
+                "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
+            )
+            # TODO: do we also need to update review.num_fulltexts_included/excluded?
+        # update review models, as needed
+        status_counts = connection.execute(
+            sa.select(
+                Review.num_citations_included, Review.num_citations_excluded
+            ).where(Review.id == review_id)
+        ).fetchone()
+        LOGGER.info(
+            "<Review(id=%s)> citation_status counts = %s", review_id, status_counts
+        )
+        n_included, n_excluded = status_counts
+        # if at least 25 citations have been included AND excluded
+        # and only once every 25 included citations
+        # (re-)compute the suggested keyterms
+        if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
+            sample_size = min(n_included, n_excluded)
+            tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
+        # if at least 100 citations have been included AND excluded
+        # and only once every 50 included citations
+        # (re-)train a citation ranking model
+        if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
+            tasks.train_citation_ranking_model.apply_async(args=[review_id])
+    elif stage == "fulltext":
+        # we may have to insert or delete a corresponding data extraction record
+        data_extraction = connection.execute(
+            sa.select(DataExtraction).where(DataExtraction.id == study_id)
+        ).first()
+        # data_extraction_inserted_or_deleted = False
+        if status == "included" and data_extraction is None:
+            connection.execute(
+                sa.insert(DataExtraction).values(id=study_id, review_id=review_id)
+            )
+            LOGGER.info("inserted <DataExtraction(study_id=%s)>", study_id)
+            # data_extraction_inserted_or_deleted = True
+        elif status != "included" and data_extraction is not None:
+            connection.execute(
+                sa.delete(DataExtraction).where(DataExtraction.id == study_id)
+            )
+            LOGGER.info("deleted <DataExtraction(study_id=%s)>", study_id)
+            # data_extraction_inserted_or_deleted = True
+        # TODO: should we do something now?
+        # if data_extraction_inserted_or_deleted is True:
+        #     with connection.begin():
+        #         status_counts = connection.execute(
+        #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
+        #             .where(Review.id == review_id)
+        #             ).fetchone()
+        #         LOGGER.info(
+        #             '<Review(id=%s)> fulltext_status counts = %s',
+        #             review_id, status_counts)
+        #         n_included, n_excluded = status_counts
+
+
+def _update_review_num_counts(
+    *,
+    old_status: str,
+    status: str,
+    review_id: int,
+    review_num_included_col: InstrumentedAttribute[int],
+    review_num_included_col_str: str,
+    connection,
+):
+    if old_status != status:
+        if old_status == "included":  # decrement
+            connection.execute(
+                sa.update(Review)
+                .where(Review.id == review_id)
+                .values({review_num_included_col_str: review_num_included_col - 1})
+            )
+        elif status == "included":  # increment
+            connection.execute(
+                sa.update(Review)
+                .where(Review.id == review_id)
+                .values({review_num_included_col_str: review_num_included_col + 1})
+            )
+        elif old_status == "excluded":  # decrement
+            connection.execute(
+                sa.update(Review)
+                .where(Review.id == review_id)
+                .values({review_num_included_col_str: review_num_included_col - 1})
+            )
+        elif status == "excluded":  # increment
+            connection.execute(
+                sa.update(Review)
+                .where(Review.id == review_id)
+                .values({review_num_included_col_str: review_num_included_col + 1})
+            )
