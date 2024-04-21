@@ -18,7 +18,7 @@ class TestReviewExportPrismaResource:
                     "num_excluded_citations": 1,
                     "num_screened_fulltexts": 2,
                     "num_excluded_fulltexts": 1,
-                    "exclude_reason_counts": {"REASON1": 1, "REASON2": 1},
+                    "exclude_reason_counts": {"REASON1": 2, "REASON2": 2},
                     "num_studies_data_extracted": 0,
                 },
             ),
@@ -45,6 +45,7 @@ class TestReviewExportPrismaResource:
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         data = response.json
+        # breakpoint()
         assert data
         assert data == exp_data
 

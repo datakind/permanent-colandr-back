@@ -11,9 +11,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import DataSource, Import, Review, ReviewPlan, Study  # FulltextScreening
 from ..errors import forbidden_error, not_found_error
 
 
@@ -49,7 +49,7 @@ class ReviewExportPrismaResource(Resource):
     def get(self, id):
         """export numbers needed to make a review PRISMA diagram"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -62,10 +62,12 @@ class ReviewExportPrismaResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this review")
         # get counts by step, i.e. prisma
         n_studies_by_source_stmt = (
-            sa.select(DataSource.source_type, db.func.sum(Import.num_records))
-            .filter(Import.data_source_id == DataSource.id)
-            .filter(Import.review_id == id)
-            .group_by(DataSource.source_type)
+            sa.select(
+                models.DataSource.source_type, db.func.sum(models.Import.num_records)
+            )
+            .filter(models.Import.data_source_id == models.DataSource.id)
+            .filter(models.Import.review_id == id)
+            .group_by(models.DataSource.source_type)
         )
 
         n_studies_by_source = {
@@ -75,17 +77,17 @@ class ReviewExportPrismaResource(Resource):
 
         n_unique_studies = db.session.execute(
             sa.select(sa.func.count()).select_from(
-                sa.select(Study)
+                sa.select(models.Study)
                 .filter_by(review_id=id, dedupe_status="not_duplicate")
                 .subquery()
             )
         ).scalar_one()
 
         n_citations_by_status_stmt = (
-            sa.select(Study.citation_status, db.func.count(1))
-            .filter(Study.review_id == id)
-            .filter(Study.citation_status.in_(["included", "excluded"]))
-            .group_by(Study.citation_status)
+            sa.select(models.Study.citation_status, db.func.count(1))
+            .filter(models.Study.review_id == id)
+            .filter(models.Study.citation_status.in_(["included", "excluded"]))
+            .group_by(models.Study.citation_status)
         )
         n_citations_by_status = {
             row.citation_status: row.count
@@ -95,10 +97,10 @@ class ReviewExportPrismaResource(Resource):
         n_citations_excluded = n_citations_by_status.get("excluded", 0)
 
         n_fulltexts_by_status_stmt = (
-            sa.select(Study.fulltext_status, db.func.count(1))
-            .filter(Study.review_id == id)
-            .filter(Study.fulltext_status.in_(["included", "excluded"]))
-            .group_by(Study.fulltext_status)
+            sa.select(models.Study.fulltext_status, db.func.count(1))
+            .filter(models.Study.review_id == id)
+            .filter(models.Study.fulltext_status.in_(["included", "excluded"]))
+            .group_by(models.Study.fulltext_status)
         )
         n_fulltexts_by_status = {
             row.fulltext_status: row.count
@@ -108,7 +110,7 @@ class ReviewExportPrismaResource(Resource):
         n_fulltexts_excluded = n_fulltexts_by_status.get("excluded", 0)
 
         results = db.session.execute(
-            sa.select(FulltextScreening.exclude_reasons).filter_by(review_id=id)
+            sa.select(models.Screening.exclude_reasons).filter_by(review_id=id)
         ).all()
         exclude_reason_counts = dict(
             collections.Counter(
@@ -120,7 +122,7 @@ class ReviewExportPrismaResource(Resource):
 
         n_data_extractions = db.session.execute(
             sa.select(sa.func.count()).select_from(
-                sa.select(Study)
+                sa.select(models.Study)
                 .filter_by(review_id=id, data_extraction_status="finished")
                 .subquery()
             )
@@ -166,7 +168,7 @@ class ReviewExportStudiesResource(Resource):
     def get(self, id):
         """export a CSV of studies metadata and extracted data"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -179,10 +181,10 @@ class ReviewExportStudiesResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
         studies = db.session.execute(
-            sa.select(Study).filter_by(review_id=id).order_by(Study.id)
+            sa.select(models.Study).filter_by(review_id=id).order_by(models.Study.id)
         ).scalars()
         data_extraction_form = db.session.execute(
-            sa.select(ReviewPlan.data_extraction_form).filter_by(id=id)
+            sa.select(models.ReviewPlan.data_extraction_form).filter_by(id=id)
         ).one_or_none()
 
         fieldnames = [
@@ -278,8 +280,10 @@ class ReviewExportStudiesResource(Resource):
 
 
 def _study_to_row(
-    study: Study, extraction_label_types: t.Optional[list[tuple[str, str]]]
+    study: models.Study, extraction_label_types: t.Optional[list[tuple[str, str]]]
 ) -> dict:
+    citation = study.citation
+    fulltext = study.fulltext
     row = {
         "study_id": study.id,
         "deduplication_status": study.dedupe_status,
@@ -289,25 +293,25 @@ def _study_to_row(
         "data_source_type": study.data_source.source_type,
         "data_source_name": study.data_source.source_name,
         "data_source_url": study.data_source.source_url,
-        "citation_title": study.citation.title,
-        "citation_abstract": study.citation.abstract,
+        "citation_title": citation.get("title"),
+        "citation_abstract": citation.get("abstract"),
         "citation_authors": (
-            "; ".join(study.citation.authors) if study.citation.authors else None
+            "; ".join(citation["authors"]) if citation.get("authors") else None
         ),
-        "citation_journal_name": study.citation.journal_name,
-        "citation_journal_volume": study.citation.volume,
-        "citation_pub_year": study.citation.pub_year,
+        "citation_journal_name": citation.get("journal_name"),
+        "citation_journal_volume": citation.get("volume"),
+        "citation_pub_year": citation.get("pub_year"),
         "citation_keywords": (
-            "; ".join(study.citation.keywords) if study.citation.keywords else None
+            "; ".join(citation["keywords"]) if citation.get("keywords") else None
         ),
     }
     if study.fulltext:
         row.update(
             {
-                "fulltext_filename": study.fulltext.original_filename,
+                "fulltext_filename": fulltext.get("original_filename"),
                 "fulltext_exclude_reasons": (
-                    "; ".join(study.fulltext.exclude_reasons)
-                    if study.fulltext.exclude_reasons
+                    "; ".join(study.fulltext_exclude_reasons)
+                    if study.fulltext_exclude_reasons
                     else None
                 ),
             }

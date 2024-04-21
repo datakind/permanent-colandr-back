@@ -325,19 +325,16 @@ class StudiesResource(Resource):
                             studies.id,
                             studies.dedupe_status,
                             studies.citation_status,
-                            screenings.user_ids
+                            screenings_.user_ids
                         FROM studies
                         LEFT JOIN (
                             SELECT
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
                             FROM screenings
-                            -- WHERE stage = 'citation'
+                            WHERE stage = 'citation'
                             GROUP BY study_id
-                        ) AS screenings ON (
-                            studies.id = screenings.study_id
-                            AND screenings.stage = 'citation'
-                        )
+                        ) AS screenings_ ON studies.id = screenings_.study_id
                     ) AS t
                     WHERE
                         t.dedupe_status = 'not_duplicate' -- this is necessary!
@@ -359,12 +356,9 @@ class StudiesResource(Resource):
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
                             FROM screenings
-                            -- WHERE stage = 'citation'
+                            WHERE stage = 'citation'
                             GROUP BY study_id
-                        ) AS screenings ON (
-                            studies.id = screenings.study_id
-                            AND screenings.stage = 'citation'
-                        )
+                        ) AS screenings_ ON studies.id = screenings_.study_id
                     ) AS t
                     WHERE
                         t.citation_status = 'screened_once'

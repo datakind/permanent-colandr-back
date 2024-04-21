@@ -11,8 +11,6 @@ from webargs.flaskparser import use_args, use_kwargs
 from ... import models, tasks
 from ...extensions import db
 from ...lib import constants
-
-# from ...models import Citation, CitationScreening, Fulltext
 from ...utils import assign_status
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
