@@ -10,7 +10,7 @@ class TestFulltextScreeningsResource:
             (1, None, 200, 2),
             (2, None, 200, 1),
             (1, {"fields": "id,review_id"}, 200, 2),
-            (1, {"fields": "study_id,status"}, 200, 2),
+            (1, {"fields": "fulltext_id,status"}, 200, 2),
             (999, None, 404, 0),
         ],
     )
@@ -30,8 +30,8 @@ class TestFulltextScreeningsResource:
             fields = None if params is None else params["fields"].split(",")
             assert isinstance(records, list) and len(records) == num_exp
             for record in records:
-                if "study_id" in record:
-                    assert record["study_id"] == id_
+                if "fulltext_id" in record:
+                    assert record["fulltext_id"] == id_
                 if fields:
                     assert sorted(record.keys()) == sorted(fields)
 

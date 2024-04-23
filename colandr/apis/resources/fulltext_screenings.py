@@ -13,7 +13,7 @@ from ...extensions import db
 from ...lib import constants
 from ...utils import assign_status
 from ..errors import bad_request_error, forbidden_error, not_found_error
-from ..schemas import ScreeningSchema
+from ..schemas import ScreeningSchema, ScreeningV2Schema
 from ..swagger import screening_model
 
 
@@ -75,7 +75,15 @@ class FulltextScreeningsResource(Resource):
                 f"{current_user} forbidden to get fulltext screenings for this review"
             )
         screenings = study.screenings.filter_by(stage="fulltext")
-        return ScreeningSchema(many=True, only=fields).dump(screenings)
+        # HACK: hide the consolidated (v2) screening schema from this api
+        if fields and "fulltext_id" in fields:
+            fields.append("study_id")
+            fields.remove("fulltext_id")
+        screenings_dumped = [
+            _convert_screening_v2_into_v1(record)
+            for record in ScreeningV2Schema(many=True, only=fields).dump(screenings)
+        ]
+        return screenings_dumped
 
     @ns.doc(
         responses={
@@ -188,7 +196,7 @@ class FulltextScreeningsResource(Resource):
         study.screenings.append(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
     @ns.doc(
         expect=(screening_model, "fulltext screening data to be modified"),
@@ -240,7 +248,7 @@ class FulltextScreeningsResource(Resource):
                 setattr(screening, key, value)
         db.session.commit()
         current_app.logger.info("modified %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
 
 @ns.route("/screenings")
@@ -361,8 +369,11 @@ class FulltextsScreeningsResource(Resource):
             stmt = stmt.group_by(models.Screening.status)
             return {row.status: row.count for row in db.session.execute(stmt)}
         else:
-            results = db.session.execute(stmt)
-            return ScreeningSchema(partial=True, many=True).dump(results)
+            results = db.session.execute(stmt).scalars()
+            return [
+                _convert_screening_v2_into_v1(record)
+                for record in ScreeningV2Schema(partial=True, many=True).dump(results)
+            ]
 
     @ns.doc(
         params={
@@ -482,3 +493,14 @@ class FulltextsScreeningsResource(Resource):
         review.num_fulltexts_included = status_counts.get("included", 0)
         review.num_fulltexts_excluded = status_counts.get("excluded", 0)
         db.session.commit()
+
+
+def _convert_screening_v2_into_v1(record) -> dict:
+    # remove stage field, if present
+    record.pop("stage", None)
+    # rename study_id field to citation_id
+    try:
+        record["fulltext_id"] = record.pop("study_id")
+    except KeyError:
+        pass
+    return record

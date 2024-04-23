@@ -133,15 +133,27 @@ class ScreeningSchema(Schema):
     updated_at = fields.DateTime(dump_only=True, format="iso")
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
+    citation_id = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+    )
+    fulltext_id = fields.Int(
+        load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
+    )
+    status = fields.Str(required=True, validate=OneOf(["included", "excluded"]))
+    exclude_reasons = fields.List(
+        fields.Str(validate=Length(max=64)), load_default=None
+    )
+
+
+class ScreeningV2Schema(Schema):
+    id = fields.Int(dump_only=True)
+    created_at = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
+    review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
+    user_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     study_id = fields.Int(
         load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
     )
-    # citation_id = fields.Int(
-    #     load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
-    # )
-    # fulltext_id = fields.Int(
-    #     load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
-    # )
     stage = fields.Str(validate=OneOf(["citation", "fulltext"]))  # TODO: required=True
     status = fields.Str(required=True, validate=OneOf(["included", "excluded"]))
     exclude_reasons = fields.List(

@@ -14,7 +14,7 @@ from ...lib import constants
 from ...utils import assign_status
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
-from ..schemas import ScreeningSchema
+from ..schemas import ScreeningSchema, ScreeningV2Schema
 from ..swagger import screening_model
 
 
@@ -77,7 +77,15 @@ class CitationScreeningsResource(Resource):
             )
         current_app.logger.debug("got %s", study)
         screenings = study.screenings.filter_by(stage="citation")
-        return ScreeningSchema(many=True, only=fields).dump(screenings)
+        # HACK: hide the consolidated (v2) screening schema from this api
+        if fields and "citation_id" in fields:
+            fields.append("study_id")
+            fields.remove("citation_id")
+        screenings_dumped = [
+            _convert_screening_v2_into_v1(record)
+            for record in ScreeningV2Schema(many=True, only=fields).dump(screenings)
+        ]
+        return screenings_dumped
 
     @ns.doc(
         responses={
@@ -188,7 +196,7 @@ class CitationScreeningsResource(Resource):
         study.screenings.append(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
     @ns.doc(
         expect=(screening_model, "citation screening data to be modified"),
@@ -240,7 +248,7 @@ class CitationScreeningsResource(Resource):
                 setattr(screening, key, value)
         db.session.commit()
         current_app.logger.debug("modified %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
 
 @ns.route("/screenings")
@@ -361,8 +369,11 @@ class CitationsScreeningsResource(Resource):
             stmt = stmt.group_by(models.Screening.status)
             return {row.status: row.count for row in db.session.execute(stmt)}
         else:
-            results = db.session.execute(stmt)
-            return ScreeningSchema(partial=True, many=True).dump(results)
+            results = db.session.execute(stmt).scalars()
+            return [
+                _convert_screening_v2_into_v1(record)
+                for record in ScreeningV2Schema(partial=True, many=True).dump(results)
+            ]
 
     @ns.doc(
         params={
@@ -476,3 +487,14 @@ class CitationsScreeningsResource(Resource):
             tasks.train_citation_ranking_model.apply_async(
                 args=[review_id], countdown=3
             )
+
+
+def _convert_screening_v2_into_v1(record) -> dict:
+    # remove stage field, if present
+    record.pop("stage", None)
+    # rename study_id field to citation_id
+    try:
+        record["citation_id"] = record.pop("study_id")
+    except KeyError:
+        pass
+    return record
