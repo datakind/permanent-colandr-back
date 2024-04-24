@@ -8,14 +8,13 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
-from ... import tasks
+from ... import models, tasks
 from ...extensions import db
 from ...lib import constants
-from ...models import Citation, CitationScreening, Fulltext, Review, Study, User
 from ...utils import assign_status
 from .. import auth
 from ..errors import bad_request_error, forbidden_error, not_found_error
-from ..schemas import ScreeningSchema
+from ..schemas import ScreeningSchema, ScreeningV2Schema
 from ..swagger import screening_model
 
 
@@ -63,21 +62,30 @@ class CitationScreeningsResource(Resource):
         """get screenings for a single citation by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        citation = db.session.get(Citation, id)
-        if not citation:
-            return not_found_error(f"<Citation(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
-                review_id=citation.review_id
+                review_id=study.review_id
             ).one_or_none()
             is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to get citation screenings for this review"
             )
-        current_app.logger.debug("got %s", citation)
-        return ScreeningSchema(many=True, only=fields).dump(citation.screenings)
+        current_app.logger.debug("got %s", study)
+        screenings = study.screenings.filter_by(stage="citation")
+        # HACK: hide the consolidated (v2) screening schema from this api
+        if fields and "citation_id" in fields:
+            fields.append("study_id")
+            fields.remove("citation_id")
+        screenings_dumped = [
+            _convert_screening_v2_into_v1(record)
+            for record in ScreeningV2Schema(many=True, only=fields).dump(screenings)
+        ]
+        return screenings_dumped
 
     @ns.doc(
         responses={
@@ -99,23 +107,25 @@ class CitationScreeningsResource(Resource):
         """delete current app user's screening for a single citation by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        citation = db.session.get(Citation, id)
-        if not citation:
-            return not_found_error(f"<Citation(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
-                review_id=citation.review_id
+                review_id=study.review_id
             ).one_or_none()
             is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to delete citation screening for this review"
             )
-        screening = citation.screenings.filter_by(user_id=current_user.id).one_or_none()
+        screening = study.screenings.filter_by(
+            stage="citation", user_id=current_user.id
+        ).one_or_none()
         if not screening:
             return forbidden_error(
-                f"{current_user} has not screened {citation}, so nothing to delete"
+                f"{current_user} has not screened {study}, so nothing to delete"
             )
         db.session.delete(screening)
         db.session.commit()
@@ -145,13 +155,13 @@ class CitationScreeningsResource(Resource):
         """create a screening for a single citation by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        citation = db.session.get(Citation, id)
-        if not citation:
+        study = db.session.get(models.Study, id)
+        if not study:
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
-                review_id=citation.review_id
+                review_id=study.review_id
             ).one_or_none()
             is None
         ):
@@ -170,15 +180,23 @@ class CitationScreeningsResource(Resource):
                 user_id = args["user_id"]
         else:
             user_id = current_user.id
-        screening = CitationScreening(
-            citation.review_id, user_id, id, args["status"], args["exclude_reasons"]
+        if study.screenings.filter_by(
+            stage="citation", user_id=current_user.id
+        ).one_or_none():
+            return forbidden_error(f"{current_user} has already screened {study}")
+
+        screening = models.Screening(
+            user_id,
+            study.review_id,
+            id,
+            "citation",
+            args["status"],
+            args["exclude_reasons"],
         )
-        if citation.screenings.filter_by(user_id=current_user.id).one_or_none():
-            return forbidden_error(f"{current_user} has already screened {citation}")
-        citation.screenings.append(screening)
+        study.screenings.append(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
     @ns.doc(
         expect=(screening_model, "citation screening data to be modified"),
@@ -208,16 +226,16 @@ class CitationScreeningsResource(Resource):
     def put(self, args, id):
         """modify current app user's screening of a single citation by id"""
         current_user = jwtext.get_current_user()
-        citation = db.session.get(Citation, id)
-        if not citation:
+        study = db.session.get(models.Study, id)
+        if not study:
             return not_found_error(f"<Citation(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
-            screening = citation.screenings.filter_by(
-                user_id=args["user_id"]
+            screening = study.screenings.filter_by(
+                stage="citation", user_id=args["user_id"]
             ).one_or_none()
         else:
-            screening = citation.screenings.filter_by(
-                user_id=current_user.id
+            screening = study.screenings.filter_by(
+                stage="citation", user_id=current_user.id
             ).one_or_none()
         if not screening:
             return not_found_error(f"{current_user} has not screened this citation")
@@ -230,7 +248,7 @@ class CitationScreeningsResource(Resource):
                 setattr(screening, key, value)
         db.session.commit()
         current_app.logger.debug("modified %s", screening)
-        return ScreeningSchema().dump(screening)
+        return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
 
 
 @ns.route("/screenings")
@@ -295,29 +313,30 @@ class CitationsScreeningsResource(Resource):
             )
 
         stmt = (
-            sa.select(CitationScreening)
+            sa.select(models.Screening)
             if status_counts is False
-            else sa.select(CitationScreening.status, db.func.count(1))
+            else sa.select(models.Screening.status, db.func.count(1))
         )
+        stmt = stmt.where(models.Screening.stage == "citation")
         if citation_id is not None:
             # check user authorization
-            citation = db.session.get(Citation, citation_id)
-            if not citation:
-                return not_found_error(f"<Citation(id={citation_id})> not found")
+            study = db.session.get(models.Study, citation_id)
+            if not study:
+                return not_found_error(f"<Study(id={citation_id})> not found")
             if (
                 current_user.is_admin is False
-                and citation.review.review_user_assoc.filter_by(
+                and study.review.review_user_assoc.filter_by(
                     user_id=current_user.id
                 ).one_or_none()
                 is None
             ):
                 return forbidden_error(
-                    f"{current_user} forbidden to get screenings for {citation}"
+                    f"{current_user} forbidden to get screenings for {study}"
                 )
-            stmt = stmt.where(CitationScreening.citation_id == citation_id)
+            stmt = stmt.where(models.Screening.study_id == citation_id)
         if user_id is not None:
             # check user authorization
-            user = db.session.get(User, user_id)
+            user = db.session.get(models.User, user_id)
             if not user:
                 return not_found_error(f"<User(id={user_id})> not found")
             if current_user.is_admin is False and not any(
@@ -328,10 +347,10 @@ class CitationsScreeningsResource(Resource):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {user}"
                 )
-            stmt = stmt.where(CitationScreening.user_id == user_id)
+            stmt = stmt.where(models.Screening.user_id == user_id)
         if review_id is not None:
             # check user authorization
-            review = db.session.get(Review, review_id)
+            review = db.session.get(models.Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -344,14 +363,17 @@ class CitationsScreeningsResource(Resource):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {review}"
                 )
-            stmt = stmt.where(CitationScreening.review_id == review_id)
+            stmt = stmt.where(models.Screening.review_id == review_id)
 
         if status_counts is True:
-            stmt = stmt.group_by(CitationScreening.status)
+            stmt = stmt.group_by(models.Screening.status)
             return {row.status: row.count for row in db.session.execute(stmt)}
         else:
-            results = db.session.execute(stmt)
-            return ScreeningSchema(partial=True, many=True).dump(results)
+            results = db.session.execute(stmt).scalars()
+            return [
+                _convert_screening_v2_into_v1(record)
+                for record in ScreeningV2Schema(partial=True, many=True).dump(results)
+            ]
 
     @ns.doc(
         params={
@@ -392,71 +414,60 @@ class CitationsScreeningsResource(Resource):
     def post(self, args, review_id, user_id):
         """create one or more citation screenings (ADMIN ONLY)"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         # bulk insert citation screenings
         screener_user_id = user_id or current_user.id
         screenings_to_insert = []
         for screening in args:
-            screening["review_id"] = review_id
             screening["user_id"] = screener_user_id
+            screening["review_id"] = review_id
+            screening["stage"] = "citation"
+            # HACK to account for citation+fulltext screening consolidation
+            if "citation_id" in screening:
+                screening["study_id"] = screening.pop("citation_id")
             screenings_to_insert.append(screening)
-        db.session.execute(sa.insert(CitationScreening), screenings_to_insert)
+        db.session.execute(sa.insert(models.Screening), screenings_to_insert)
         db.session.commit()
         current_app.logger.info(
             "inserted %s citation screenings", len(screenings_to_insert)
         )
         # bulk update citation statuses
         num_screeners = review.num_citation_screening_reviewers
-        citation_ids = sorted(s["citation_id"] for s in screenings_to_insert)
-        # results = db.session.query(CitationScreening)\
-        #     .filter(CitationScreening.citation_id.in_(citation_ids))
+        study_ids = sorted(s["study_id"] for s in screenings_to_insert)
+        # results = db.session.query(models.Screening)\
+        #     .filter(models.Screening.study_id.in_(study_ids))
         # studies_to_update = [
         #     {'id': cid, 'citation_status': assign_status(list(scrns), num_screeners)}
         #     for cid, scrns in itertools.groupby(results, attrgetter('citation_id'))
         #     ]
         with db.engine.connect() as connection:
             query = """
-                SELECT citation_id, ARRAY_AGG(status)
-                FROM citation_screenings
-                WHERE citation_id IN ({citation_ids})
-                GROUP BY citation_id
-                ORDER BY citation_id
-                """.format(citation_ids=",".join(str(cid) for cid in citation_ids))
+                SELECT study_id, ARRAY_AGG(status)
+                FROM screenings
+                WHERE study_id IN ({study_ids})
+                GROUP BY study_id
+                ORDER BY study_id
+                """.format(study_ids=",".join(str(cid) for cid in study_ids))
             results = connection.execute(sa.text(query))
         studies_to_update = [
             {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}
             for row in results
         ]
 
-        db.session.execute(sa.update(Study), studies_to_update)
+        db.session.execute(sa.update(models.Study), studies_to_update)
         db.session.commit()
         current_app.logger.info(
             "updated citation_status for %s studies", len(studies_to_update)
         )
-        # now add fulltexts for included citations
-        # normally this is done automatically, but not when we're hacking
-        # and doing bulk changes to the database
-        results = db.session.execute(
-            sa.select(Study.id)
-            .filter_by(review_id=review_id, citation_status="included")
-            .filter(~Study.fulltext.has())
-            .order_by(Study.id)
-        ).scalars()
-        fulltexts_to_insert = [
-            {"id": result, "review_id": review_id} for result in results
-        ]
-        db.session.execute(sa.insert(Fulltext), fulltexts_to_insert)
-        db.session.commit()
-        current_app.logger.info("inserted %s fulltexts", len(fulltexts_to_insert))
         # now update include/exclude counts on review
         status_counts_stmt = (
-            sa.select(Study.citation_status, db.func.count(1))
+            sa.select(models.Study.citation_status, db.func.count(1))
             .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-            # .filter(Study.citation_status.in_(["included", "excluded"]))
-            .filter(Study.citation_status == sa.any_(["included", "excluded"]))
-            .group_by(Study.citation_status)
+            # .filter(models.Study.citation_status.in_(["included", "excluded"]))
+            .filter(models.Study.citation_status == sa.any_(["included", "excluded"]))
+            .group_by(models.Study.citation_status)
         )
         status_counts: dict[str, int] = {
             row.citation_status: row.count
@@ -476,3 +487,14 @@ class CitationsScreeningsResource(Resource):
             tasks.train_citation_ranking_model.apply_async(
                 args=[review_id], countdown=3
             )
+
+
+def _convert_screening_v2_into_v1(record) -> dict:
+    # remove stage field, if present
+    record.pop("stage", None)
+    # rename study_id field to citation_id
+    try:
+        record["citation_id"] = record.pop("study_id")
+    except KeyError:
+        pass
+    return record

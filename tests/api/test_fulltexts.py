@@ -35,5 +35,8 @@ class TestFulltextResource:
             url = flask.url_for("fulltexts_fulltext_resource", id=id_)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
+        # TODO: decide on delete behavior for study.fulltext
+        # get_response = client.get(url, headers=admin_headers)
+        # assert get_response.status_code == 404  # not found!
         get_response = client.get(url, headers=admin_headers)
-        assert get_response.status_code == 404  # not found!
+        assert get_response.json == {}  # empty!

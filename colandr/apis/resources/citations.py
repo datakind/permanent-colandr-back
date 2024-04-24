@@ -9,9 +9,9 @@ from webargs import missing
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Citation, DataSource, Review, Study
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema
 from ..swagger import citation_model
@@ -58,12 +58,12 @@ class CitationResource(Resource):
     def get(self, id, fields):
         """get record for a single citation by id"""
         current_user = jwtext.get_current_user()
-        citation = db.session.get(Citation, id)
-        if not citation:
-            return not_found_error(f"<Citation(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and citation.review.review_user_assoc.filter_by(
+            and study.review.review_user_assoc.filter_by(
                 user_id=current_user.id
             ).one_or_none()
             is None
@@ -71,7 +71,8 @@ class CitationResource(Resource):
             return forbidden_error(f"{current_user} forbidden to get this citation")
         if fields and "id" not in fields:
             fields.append("id")
-        current_app.logger.debug("got %s", citation)
+        current_app.logger.debug("got %s", study)
+        citation = _make_pseudo_citation_record(study)
         return CitationSchema(only=fields).dump(citation)
 
     @ns.doc(
@@ -93,20 +94,29 @@ class CitationResource(Resource):
     def delete(self, id):
         """delete record for a single citation by id"""
         current_user = jwtext.get_current_user()
-        citation = db.session.get(Citation, id)
-        if not citation:
-            return not_found_error(f"<Citation(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and citation.review.review_user_assoc.filter_by(
+            and study.review.review_user_assoc.filter_by(
                 user_id=current_user.id
             ).one_or_none()
             is None
         ):
-            return forbidden_error(f"{current_user} forbidden to delete this citation")
-        db.session.delete(citation)
+            return forbidden_error(
+                f"{current_user} forbidden to delete this study.citation"
+            )
+        study.citation = {}
+        # to preserve previous behavior, we now have to manually delete associated screenings
+        stmt = (
+            sa.delete(models.Screening)
+            .where(models.Screening.study_id == id)
+            .where(models.Screening.stage == "citation")
+        )
+        db.session.execute(stmt)
         db.session.commit()
-        current_app.logger.info("deleted %s", citation)
+        current_app.logger.info("deleted %s citation", study)
         return "", 204
 
     @ns.doc(
@@ -130,24 +140,22 @@ class CitationResource(Resource):
     def put(self, args, id):
         """modify record for a single citation by id"""
         current_user = jwtext.get_current_user()
-        citation = db.session.get(Citation, id)
-        if not citation:
-            return not_found_error(f"<Citation(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and citation.review.review_user_assoc.filter_by(
+            and study.review.review_user_assoc.filter_by(
                 user_id=current_user.id
             ).one_or_none()
             is None
         ):
-            return forbidden_error(f"{current_user} forbidden to modify this citation")
-        for key, value in args.items():
-            if key is missing or key == "other_fields":
-                continue
-            else:
-                setattr(citation, key, value)
+            return forbidden_error(f"{current_user} forbidden to modify this study")
+        citation = study.citation | {k: v for k, v in args.items() if k is not missing}
+        study.citation = citation
         db.session.commit()
-        current_app.logger.info("modified %s", citation)
+        current_app.logger.info("modified %s", study)
+        citation = _make_pseudo_citation_record(study)
         return CitationSchema().dump(citation)
 
 
@@ -220,7 +228,7 @@ class CitationsResource(Resource):
     def post(self, args, review_id, source_type, source_name, source_url, status):
         """create a single citation"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -245,40 +253,49 @@ class CitationsResource(Resource):
         except ValidationError as e:
             return bad_request_error(e.messages)
         data_source = db.session.execute(
-            sa.select(DataSource).filter_by(
+            sa.select(models.DataSource).filter_by(
                 source_type=source_type, source_name=source_name
             )
         ).scalar_one_or_none()
         if data_source is None:
-            data_source = DataSource(source_type, source_name, source_url=source_url)
+            data_source = models.DataSource(
+                source_type, source_name, source_url=source_url
+            )
             db.session.add(data_source)
         db.session.commit()
         current_app.logger.info("inserted %s", data_source)
 
-        # add the study
-        study = Study(
+        # add the study w/ citation
+        citation = CitationSchema().load(args)
+        study = models.Study(
             **{
                 "user_id": current_user.id,
                 "review_id": review_id,
                 "data_source_id": data_source.id,
+                "citation": citation,
             }
         )
         if status is not None:
             study.citation_status = status
         db.session.add(study)
         db.session.commit()
-
-        # *now* add the citation
-        citation = args
-        citation["review_id"] = review_id
-        citation = CitationSchema().load(citation)  # this sanitizes the data
-        assert isinstance(citation, dict)  # type guard
-        citation = Citation(study.id, **citation)
-        db.session.add(citation)
-        db.session.commit()
-        current_app.logger.info("inserted %s", citation)
+        current_app.logger.info("inserted %s", study)
 
         # TODO: what about deduplication?!
         # TODO: what about adding *multiple* citations via this endpoint?
 
+        citation = _make_pseudo_citation_record(study)
         return CitationSchema().dump(citation)
+
+
+def _make_pseudo_citation_record(study: models.Study) -> dict:
+    # pretend that citations are still separate records for api consistency
+    citation = study.citation
+    if citation:
+        citation |= {
+            "id": study.id,
+            "review_id": study.review_id,
+            "created_at": study.created_at,
+            "updated_at": study.updated_at,
+        }
+    return citation

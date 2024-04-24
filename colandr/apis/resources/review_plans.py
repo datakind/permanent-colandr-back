@@ -8,9 +8,9 @@ from marshmallow.validate import Range
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Review
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import ReviewPlanSchema
 from ..swagger import review_plan_model
@@ -59,7 +59,7 @@ class ReviewPlanResource(Resource):
     def get(self, id, fields):
         """get review plan record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -108,7 +108,7 @@ class ReviewPlanResource(Resource):
     def delete(self, id, fields):
         """delete review plan record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and current_user not in review.owners:
@@ -177,7 +177,7 @@ class ReviewPlanResource(Resource):
     def put(self, args, id, fields):
         """modify review plan record for a single review by id"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if current_user.is_admin is False and current_user not in review.owners:

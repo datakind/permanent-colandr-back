@@ -60,8 +60,8 @@ def db_seed(file_path: pathlib.Path):
         db.session.add(models.Import(**record))
     for record in data["studies"]:
         db.session.add(models.Study(**record))
-    for record in data["citations"]:
-        db.session.add(models.Citation(**record))
+    for record in data["screenings"]:
+        db.session.add(models.Screening(**record))
     db.session.commit()
     # empty review plans already created w/ review
     for record in data["review_plans"]:
@@ -69,15 +69,6 @@ def db_seed(file_path: pathlib.Path):
         for key, val in record.items():
             if key != "id_":
                 setattr(plan, key, val)
-    for record in data["citation_screenings"]:
-        db.session.add(models.CitationScreening(**record))
-    for record in data["fulltext_uploads"]:
-        fulltext = db.session.get(models.Fulltext, record["id"])
-        for key, val in record.items():
-            if key != "id":
-                setattr(fulltext, key, val)
-    for record in data["fulltext_screenings"]:
-        db.session.add(models.FulltextScreening(**record))
     for record in data["review_user_associations"]:
         review = db.session.get(models.Review, record["review_id"])
         user = db.session.get(models.User, record["user_id"])

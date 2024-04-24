@@ -10,9 +10,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import CitationScreening, FulltextScreening, Review, ReviewPlan, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -54,7 +54,7 @@ class ExportStudiesResource(Resource):
     @jwtext.jwt_required()
     def get(self, review_id, content_type):
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -89,7 +89,7 @@ class ExportStudiesResource(Resource):
         ]
         extraction_label_types: t.Optional[list[tuple[str, str]]]
         data_extraction_form = db.session.execute(
-            sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
+            sa.select(models.ReviewPlan.data_extraction_form).filter_by(id=review_id)
         ).one_or_none()
         if data_extraction_form:
             extraction_label_types = [
@@ -103,7 +103,9 @@ class ExportStudiesResource(Resource):
         # see: https://docs.sqlalchemy.org/en/14/errors.html#parent-instance-x-is-not-bound-to-a-session-lazy-load-deferred-load-refresh-etc-operation-cannot-proceed
         # see: https://docs.sqlalchemy.org/en/14/errors.html#object-cannot-be-converted-to-persistent-state-as-this-identity-map-is-no-longer-valid
         studies = db.session.execute(
-            sa.select(Study).filter_by(review_id=review_id).order_by(Study.id),
+            sa.select(models.Study)
+            .filter_by(review_id=review_id)
+            .order_by(models.Study.id),
             execution_options={"prebuffer_rows": True},
         ).scalars()
         # rows = (_study_to_row(study, extraction_label_types) for study in studies)
@@ -127,7 +129,7 @@ class ExportStudiesResource(Resource):
 
 
 def _study_to_row(
-    study: Study, extraction_label_types: t.Optional[list[tuple[str, str]]]
+    study: models.Study, extraction_label_types: t.Optional[list[tuple[str, str]]]
 ) -> dict:
     row = {
         "study_id": study.id,
@@ -144,20 +146,22 @@ def _study_to_row(
         citation = study.citation
         row.update(
             {
-                "citation_title": citation.title,
-                "citation_abstract": citation.abstract,
+                "citation_title": citation.get("title"),
+                "citation_abstract": citation.get("abstract"),
                 "citation_authors": (
-                    "; ".join(citation.authors) if citation.authors else None
+                    "; ".join(citation["authors"]) if citation.get("authors") else None
                 ),
-                "citation_journal_name": citation.journal_name,
-                "citation_journal_volume": citation.volume,
-                "citation_pub_year": citation.pub_year,
+                "citation_journal_name": citation.get("journal_name"),
+                "citation_journal_volume": citation.get("volume"),
+                "citation_pub_year": citation.get("pub_year"),
                 "citation_keywords": (
-                    "; ".join(citation.keywords) if citation.keywords else None
+                    "; ".join(citation["keywords"])
+                    if citation.get("keywords")
+                    else None
                 ),
                 "citation_exclude_reasons": (
-                    "; ".join(citation.exclude_reasons)
-                    if citation.exclude_reasons
+                    "; ".join(study.citation_exclude_reasons)
+                    if study.citation_exclude_reasons
                     else None
                 ),
             }
@@ -166,10 +170,10 @@ def _study_to_row(
         fulltext = study.fulltext
         row.update(
             {
-                "fulltext_filename": fulltext.original_filename,
+                "fulltext_filename": fulltext.get("original_filename"),
                 "fulltext_exclude_reasons": (
-                    "; ".join(fulltext.exclude_reasons)
-                    if fulltext.exclude_reasons
+                    "; ".join(study.fulltext_exclude_reasons)
+                    if study.fulltext_exclude_reasons
                     else None
                 ),
             }
@@ -223,7 +227,7 @@ class ExportScreeningsResource(Resource):
     @jwtext.jwt_required()
     def get(self, review_id, content_type):
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -235,18 +239,11 @@ class ExportScreeningsResource(Resource):
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
 
-        citation_screenings = db.session.execute(
-            sa.select(CitationScreening)
+        screenings = db.session.execute(
+            sa.select(models.Screening)
             .filter_by(review_id=review_id)
-            .order_by(CitationScreening.id)
+            .order_by(models.Screening.id)
         ).scalars()
-        fulltext_screenings = db.session.execute(
-            sa.select(FulltextScreening)
-            .filter_by(review_id=review_id)
-            .order_by(FulltextScreening.id)
-        ).scalars()
-        screenings = itertools.chain(citation_screenings, fulltext_screenings)
-
         fieldnames = [
             "study_id",
             "screening_stage",
@@ -270,17 +267,13 @@ class ExportScreeningsResource(Resource):
         return response
 
 
-def _screening_to_row(screening: CitationScreening | FulltextScreening) -> dict:
-    if isinstance(screening, CitationScreening):
-        row = {"study_id": screening.citation_id, "screening_stage": "citation"}
-    elif isinstance(screening, FulltextScreening):
-        row = {"study_id": screening.fulltext_id, "screening_stage": "fulltext"}
-    row.update(
-        {
-            "screening_status": screening.status,
-            "screening_exclude_reasons": screening.exclude_reasons,
-        }
-    )
+def _screening_to_row(screening: models.Screening) -> dict:
+    row = {
+        "study_id": screening.study_id,
+        "screening_stage": screening.stage,
+        "screening_status": screening.status,
+        "screening_exclude_reasons": screening.exclude_reasons,
+    }
     user = screening.user
     if user:
         row.update({"user_email": user.email, "user_name": user.name})

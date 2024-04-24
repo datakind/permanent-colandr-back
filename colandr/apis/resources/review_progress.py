@@ -6,9 +6,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import OneOf, Range
 from webargs.flaskparser import use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -84,7 +84,7 @@ class ReviewProgressResource(Resource):
         """get review progress on one or all steps for a single review by id"""
         current_user = jwtext.get_current_user()
         response = {}
-        review = db.session.get(Review, id)
+        review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
         if (
@@ -105,16 +105,16 @@ class ReviewProgressResource(Resource):
                 "selection_criteria": bool(review_plan.selection_criteria),
                 "data_extraction_form": bool(review_plan.data_extraction_form),
             }
-            response[
-                "planning"
-            ] = progress  # {key: val for key, val in progress.items()}
+            response["planning"] = (
+                progress  # {key: val for key, val in progress.items()}
+            )
         if step in ("citation_screening", "all"):
             if user_view is False:
                 progress = {status: 0 for status in constants.SCREENING_STATUSES}
                 progress_stmt = (
-                    sa.select(Study.citation_status, db.func.count(1))
+                    sa.select(models.Study.citation_status, db.func.count(1))
                     .filter_by(review_id=id)
-                    .group_by(Study.citation_status)
+                    .group_by(models.Study.citation_status)
                 )
                 progress.update(
                     {
@@ -131,19 +131,23 @@ class ReviewProgressResource(Resource):
                              WHEN citation_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
                          END) AS user_status,
                          COUNT(*)
-                    FROM (SELECT
-                              studies.id,
-                              studies.dedupe_status,
-                              studies.citation_status,
-                              screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT citation_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM citation_screenings
-                                     GROUP BY citation_id
-                                     ) AS screenings
-                          ON studies.id = screenings.citation_id
-                          WHERE review_id = {review_id}
-                          ) AS t
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.dedupe_status,
+                            studies.citation_status,
+                            screenings_.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                            FROM screenings
+                            WHERE stage = 'citation'
+                            GROUP BY study_id
+                        ) AS screenings_ ON studies.id = screenings_.study_id
+                        WHERE review_id = {review_id}
+                    ) AS t
                     WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
@@ -160,9 +164,9 @@ class ReviewProgressResource(Resource):
             if user_view is False:
                 progress = {status: 0 for status in constants.SCREENING_STATUSES}
                 progress_stmt = (
-                    sa.select(Study.fulltext_status, db.func.count(1))
+                    sa.select(models.Study.fulltext_status, db.func.count(1))
                     .filter_by(review_id=id, citation_status="included")
-                    .group_by(Study.fulltext_status)
+                    .group_by(models.Study.fulltext_status)
                 )
                 progress.update(
                     {
@@ -180,19 +184,23 @@ class ReviewProgressResource(Resource):
                              WHEN fulltext_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
                          END) AS user_status,
                          COUNT(*)
-                    FROM (SELECT
-                              studies.id,
-                              studies.citation_status,
-                              studies.fulltext_status,
-                              screenings.user_ids
-                          FROM studies
-                          LEFT JOIN (SELECT fulltext_id, ARRAY_AGG(user_id) AS user_ids
-                                     FROM fulltext_screenings
-                                     GROUP BY fulltext_id
-                                     ) AS screenings
-                          ON studies.id = screenings.fulltext_id
-                          WHERE review_id = {review_id}
-                          ) AS t
+                    FROM (
+                        SELECT
+                            studies.id,
+                            studies.citation_status,
+                            studies.fulltext_status,
+                            screenings_.user_ids
+                        FROM studies
+                        LEFT JOIN (
+                            SELECT
+                                study_id,
+                                ARRAY_AGG(user_id) AS user_ids
+                            FROM screenings
+                            WHERE stage = 'fulltext'
+                            GROUP BY study_id
+                        ) AS screenings_ ON studies.id = screenings_.study_id
+                        WHERE review_id = {review_id}
+                    ) AS t
                     WHERE citation_status = 'included'  -- this is necessary!
                     GROUP BY user_status;
                     """.format(user_id=current_user.id, review_id=id)
@@ -208,9 +216,9 @@ class ReviewProgressResource(Resource):
         if step in ("data_extraction", "all"):
             progress = {status: 0 for status in constants.EXTRACTION_STATUSES}
             progress_stmt = (
-                sa.select(Study.data_extraction_status, db.func.count(1))
+                sa.select(models.Study.data_extraction_status, db.func.count(1))
                 .filter_by(review_id=id, fulltext_status="included")
-                .group_by(Study.data_extraction_status)
+                .group_by(models.Study.data_extraction_status)
             )
             progress.update(
                 {

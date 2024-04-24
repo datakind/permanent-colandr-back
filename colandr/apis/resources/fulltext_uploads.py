@@ -10,10 +10,9 @@ from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 from werkzeug.utils import secure_filename
 
-from ... import tasks
+from ... import models, tasks
 from ...extensions import db
 from ...lib import constants, fileio
-from ...models import Fulltext
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import FulltextSchema
 
@@ -80,9 +79,7 @@ class FulltextUploadResource(Resource):
                         break
         else:
             # authenticate current user
-            from colandr.models import Review
-
-            review = db.session.get(Review, review_id)
+            review = db.session.get(models.Review, review_id)
             if not review:
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
@@ -104,7 +101,7 @@ class FulltextUploadResource(Resource):
                     filename = fname
                     break
         if not filename:
-            return not_found_error(f"no uploaded file for <Fulltext(id={id})> found")
+            return not_found_error(f"no uploaded file for <Study(id={id})> found")
 
         assert upload_dir is not None  # type guard
         return send_from_directory(upload_dir, filename)
@@ -138,13 +135,13 @@ class FulltextUploadResource(Resource):
     def post(self, id, uploaded_file):
         """upload fulltext content file for a single fulltext by id"""
         current_user = jwtext.get_current_user()
-        fulltext = db.session.get(Fulltext, id)
-        if not fulltext:
-            return not_found_error(f"<Fulltext(id={id})> not found")
+        study = db.session.get(models.Study, id)
+        if not study:
+            return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
-                review_id=fulltext.review_id
+                review_id=study.review_id
             ).one_or_none()
             is None
         ):
@@ -156,11 +153,9 @@ class FulltextUploadResource(Resource):
             return bad_request_error(f'invalid fulltext upload file type: "{ext}"')
         # assign filename based an id, and full path
         filename = f"{id}{ext}"
-        fulltext.filename = filename
-        fulltext.original_filename = secure_filename(uploaded_file.filename)
         filepath = os.path.join(
             current_app.config["FULLTEXT_UPLOADS_DIR"],
-            str(fulltext.review_id),
+            str(study.review_id),
             filename,
         )
         # HACK: make review directory if doesn't already exist
@@ -172,28 +167,27 @@ class FulltextUploadResource(Resource):
             with io.open(filepath, mode="rb") as f:
                 text_content = f.read()
         elif ext == ".pdf":
-            # extract_text_script = os.path.join(
-            #     current_app.config['COLANDR_APP_DIR'], 'scripts/extractText.sh'
-            # )
-            # text_content = subprocess.check_output(
-            #     [extract_text_script, '--filename', filepath],
-            #     stderr=subprocess.STDOUT,
-            # )
             text_content = fileio.pdf.read(filepath).encode("utf-8")
         else:
             raise ValueError(f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf")
 
-        fulltext.text_content = ftfy.fix_text(text_content.decode(errors="ignore"))
+        fulltext = {
+            "filename": filename,
+            "original_filename": secure_filename(uploaded_file.filename),
+            "text_content": ftfy.fix_text(text_content.decode(errors="ignore")),
+        }
+        study.fulltext = fulltext
         db.session.commit()
+
         current_app.logger.info(
-            'uploaded "%s" for %s', fulltext.original_filename, fulltext
+            'uploaded "%s" for %s', fulltext["original_filename"], study
         )
 
         # parse the fulltext text content and get its word2vec vector
-        tasks.get_fulltext_text_content_vector.apply_async(
-            args=[id], queue="fast", countdown=3
-        )
+        # TODO: figure out why queue="fast" doesn't work here
+        tasks.get_fulltext_text_content_vector.apply_async(args=[id], countdown=3)
 
+        fulltext = _make_pseudo_fulltext_record(study)
         return FulltextSchema().dump(fulltext)
 
     @ns.doc(
@@ -216,28 +210,28 @@ class FulltextUploadResource(Resource):
     def delete(self, id):
         """delete fulltext content file for a single fulltext by id"""
         current_user = jwtext.get_current_user()
-        fulltext = db.session.get(Fulltext, id)
-        if not fulltext:
+        study = db.session.get(models.Study, id)
+        if not study:
             return not_found_error(f"<Fulltext(id={id})> not found")
         if (
             current_user.is_admin is False
             and current_user.review_user_assoc.filter_by(
-                review_id=fulltext.review_id
+                review_id=study.review_id
             ).one_or_none()
             is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to upload fulltext files to this review"
             )
-        filename = fulltext.filename
-        if filename is None:
+        fulltext = study.fulltext
+        if not fulltext:
             return bad_request_error(
                 "user can't delete a fulltext upload that doesn't exist"
             )
         filepath = os.path.join(
             current_app.config["FULLTEXT_UPLOADS_DIR"],
-            str(fulltext.review_id),
-            filename,
+            str(study.review_id),
+            fulltext["filename"],
         )
         try:
             os.remove(filepath)
@@ -245,7 +239,23 @@ class FulltextUploadResource(Resource):
             msg = "error removing uploaded full-text file from disk"
             current_app.logger.exception(msg + "\n")
             return not_found_error(msg)
-        fulltext.filename = None
+        study.fulltext = {}
         db.session.commit()
-        current_app.logger.info('deleted uploaded file "%s "for %s', filename, fulltext)
+        current_app.logger.info(
+            'deleted uploaded file "%s "for %s', fulltext["filename"], study
+        )
         return "", 204
+
+
+def _make_pseudo_fulltext_record(study: models.Study) -> dict:
+    # NOTE: this is an exact duplicate of function in fulltexts.py
+    # pretend that fulltexts are still separate records for api consistency
+    fulltext = study.fulltext
+    if fulltext:
+        fulltext |= {
+            "id": study.id,
+            "review_id": study.review_id,
+            "created_at": study.created_at,
+            "updated_at": study.updated_at,
+        }
+    return fulltext

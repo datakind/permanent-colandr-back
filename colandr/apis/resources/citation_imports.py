@@ -6,12 +6,11 @@ from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
-# from werkzeug.utils import secure_filename
 
-from ... import tasks
+# from werkzeug.utils import secure_filename
+from ... import models, tasks
 from ...extensions import db
 from ...lib import constants, preprocessors
-from ...models import Citation, DataSource, Fulltext, Import, Review, Study
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import DataSourceSchema, ImportSchema
 
@@ -56,7 +55,7 @@ class CitationsImportsResource(Resource):
     def get(self, review_id):
         """get citation import history for a review"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -156,7 +155,7 @@ class CitationsImportsResource(Resource):
     ):
         """import citations in bulk for a review"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -182,12 +181,14 @@ class CitationsImportsResource(Resource):
         except ValidationError as e:
             return bad_request_error(e.messages)
         data_source = db.session.execute(
-            sa.select(DataSource).filter_by(
+            sa.select(models.DataSource).filter_by(
                 source_type=source_type, source_name=source_name
             )
         ).scalar_one_or_none()
         if data_source is None:
-            data_source = DataSource(source_type, source_name, source_url=source_url)
+            data_source = models.DataSource(
+                source_type, source_name, source_url=source_url
+            )
             db.session.add(data_source)
         db.session.commit()
         current_app.logger.info("inserted %s", data_source)
@@ -212,8 +213,9 @@ class CitationsImportsResource(Resource):
                     "user_id": user_id,
                     "review_id": review_id,
                     "data_source_id": data_source_id,
+                    "citation": citation,
                 }
-                for i in range(n_citations)
+                for citation in citations_to_insert
             ]
         else:
             studies_to_insert = [
@@ -221,35 +223,16 @@ class CitationsImportsResource(Resource):
                     "user_id": user_id,
                     "review_id": review_id,
                     "data_source_id": data_source_id,
+                    "citation": citation,
                     "citation_status": status,
                 }
-                for i in range(n_citations)
+                for citation in citations_to_insert
             ]
 
-        # insert studies, and get their primary keys _back_
-        study_ids = list(
-            db.session.execute(
-                sa.insert(Study).returning(Study.id), studies_to_insert
-            ).scalars()
-        )
-        # add study ids to citations as their primary keys
-        # then bulk insert as mappings
-        # this method is required because not all citations have all fields
-        for study_id, citation in zip(study_ids, citations_to_insert):
-            citation["id"] = study_id
-        db.session.execute(sa.insert(Citation), citations_to_insert)
-
-        # if citations' status is "included", we have to bulk insert
-        # the corresponding fulltexts, since bulk operations won't trigger
-        # the fancy events defined in models.py
-        if status == "included":
-            db.session.execute(
-                sa.insert(Fulltext),
-                [{"id": study_id, "review_id": review_id} for study_id in study_ids],
-            )
-
-        # don't forget about a record of the import
-        citations_import = Import(
+        # insert studies
+        db.session.execute(sa.insert(models.Study), studies_to_insert)
+        # as well as a record of the import
+        citations_import = models.Import(
             review_id, user_id, data_source_id, "citation", n_citations, status=status
         )
         db.session.add(citations_import)
@@ -257,7 +240,6 @@ class CitationsImportsResource(Resource):
         current_app.logger.info(
             'imported %s citations from file "%s" into %s', n_citations, fname, review
         )
-
         # lastly, don't forget to deduplicate the citations and get their word2vecs
         tasks.get_citations_text_content_vectors.apply_async(
             args=[review_id], countdown=3

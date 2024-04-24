@@ -11,6 +11,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DynamicMapped as DM
+from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import mapped_column as mapcol
 
@@ -61,11 +62,8 @@ class User(db.Model):
     studies: DM["Study"] = sa_orm.relationship(
         "Study", back_populates="user", lazy="dynamic", passive_deletes=True
     )
-    citation_screenings: DM["CitationScreening"] = sa_orm.relationship(
-        "CitationScreening", back_populates="user", lazy="dynamic"
-    )
-    fulltext_screenings: DM["FulltextScreening"] = sa_orm.relationship(
-        "FulltextScreening", back_populates="user", lazy="dynamic"
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="user", lazy="dynamic"
     )
 
     def __repr__(self):
@@ -146,26 +144,14 @@ class Review(db.Model):
     studies: DM["Study"] = sa_orm.relationship(
         "Study", back_populates="review", lazy="dynamic", passive_deletes=True
     )
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="review",
+        lazy="dynamic",
+        passive_deletes=True,
+    )
     dedupes: DM["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="review", lazy="dynamic", passive_deletes=True
-    )
-    citations: DM["Citation"] = sa_orm.relationship(
-        "Citation", back_populates="review", lazy="dynamic", passive_deletes=True
-    )
-    citation_screenings: DM["CitationScreening"] = sa_orm.relationship(
-        "CitationScreening",
-        back_populates="review",
-        lazy="dynamic",
-        passive_deletes=True,
-    )
-    fulltexts: DM["Fulltext"] = sa_orm.relationship(
-        "Fulltext", back_populates="review", lazy="dynamic", passive_deletes=True
-    )
-    fulltext_screenings: DM["FulltextScreening"] = sa_orm.relationship(
-        "FulltextScreening",
-        back_populates="review",
-        lazy="dynamic",
-        passive_deletes=True,
     )
     data_extractions: DM["DataExtraction"] = sa_orm.relationship(
         "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
@@ -408,6 +394,16 @@ class Study(db.Model):
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
     )
+    citation: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True),
+        nullable=True,  # TODO: False?
+    )
+    citation_text_content_vector_rep = mapcol(
+        postgresql.ARRAY(sa.Float), server_default="{}"
+    )
+    fulltext: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True), nullable=True
+    )
     user_id: M[t.Optional[int]] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
     )
@@ -446,14 +442,14 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
+    screenings: DM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="study",
+        lazy="dynamic",
+        passive_deletes=True,
+    )
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="joined", passive_deletes=True
-    )
-    citation: M["Citation"] = sa_orm.relationship(
-        "Citation", back_populates="study", lazy="joined", passive_deletes=True
-    )
-    fulltext: M["Fulltext"] = sa_orm.relationship(
-        "Fulltext", back_populates="study", lazy="joined", passive_deletes=True
     )
     data_extraction: M["DataExtraction"] = sa_orm.relationship(
         "DataExtraction", back_populates="study", lazy="joined", passive_deletes=True
@@ -461,6 +457,123 @@ class Study(db.Model):
 
     def __repr__(self):
         return f"<Study(id={self.id})>"
+
+    @hybrid_property
+    def citation_text_content(self):
+        return "\n\n".join(
+            (
+                self.citation.get("title", ""),
+                self.citation.get("abstract", ""),
+                ", ".join(self.citation.get("keywords", [])),
+            )
+        ).strip()
+
+    @citation_text_content.expression
+    def citation_text_content(cls):
+        return db.func.concat_ws(
+            "\n\n",
+            cls.citation["title"],
+            cls.citation["abstract"],
+            db.func.array_to_string(cls.citation["keywords"], ", "),
+        )
+
+    @hybrid_property
+    def citation_exclude_reasons(self):
+        return self._exclude_reasons("citation")
+
+    @hybrid_property
+    def fulltext_exclude_reasons(self):
+        return self._exclude_reasons("fulltext")
+
+    def _exclude_reasons(self, stage: str):
+        return sorted(
+            set(
+                itertools.chain.from_iterable(
+                    screening.exclude_reasons or []
+                    for screening in self.screenings
+                    if screening.stage == stage
+                )
+            )
+        )
+
+
+class Screening(db.Model):
+    __tablename__ = "screenings"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id",
+            "review_id",
+            "study_id",
+            "stage",
+            name="uq_screenings_user_review_study_stage",
+        ),
+        db.Index("ix_screenings_study_id_stage", "study_id", "stage"),
+    )
+
+    # columns
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    user_id: M[t.Optional[int]] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
+        index=True,
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+    )
+    stage: M[str] = mapcol(sa.String(length=16))
+    status: M[str] = mapcol(sa.String(length=20), index=True)
+    exclude_reasons: M[list[str]] = mapcol(
+        postgresql.ARRAY(sa.String(length=64)), nullable=True
+    )
+
+    # relationships
+    user: M["User"] = sa_orm.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review",
+        foreign_keys=[review_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+    study: M["Study"] = sa_orm.relationship(
+        "Study",
+        foreign_keys=[study_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+
+    def __init__(
+        self, user_id, review_id, study_id, stage, status, exclude_reasons=None
+    ):
+        self.user_id = user_id
+        self.review_id = review_id
+        self.study_id = study_id
+        self.stage = stage
+        self.status = status
+        self.exclude_reasons = exclude_reasons
+
+    def __repr__(self):
+        return f"<Screening(study_id={self.study_id}, stage={self.stage})>"
 
 
 class Dedupe(db.Model):
@@ -498,334 +611,6 @@ class Dedupe(db.Model):
 
     def __repr__(self):
         return f"<Dedupe(study_id={self.id})>"
-
-
-class Citation(db.Model):
-    __tablename__ = "citations"
-    # indexing doesn't work here — we'd need to specify the config e.g. 'english'
-    # but we can't guarantee that is correct in all cases -- oh well!
-    # __table_args__ = (
-    #     db.Index('citations_title_fulltext_idx',
-    #              db.func.to_tsvector('title'), postgresql_using='gin'),
-    #     db.Index('citations_abstract_fulltext_idx',
-    #              db.func.to_tsvector('abstract'), postgresql_using='gin'),
-    #     )
-
-    # columns
-    id: M[int] = mapcol(
-        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
-    )
-    created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-    )
-    updated_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        onupdate=sa.func.now(),
-        server_default=sa.func.now(),
-        server_onupdate=sa.FetchedValue(),
-    )
-    review_id: M[int] = mapcol(
-        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
-    )
-    type_of_work: M[t.Optional[str]] = mapcol(sa.String(length=25))
-    title: M[str] = mapcol(sa.String(length=300), server_default="untitled")
-    secondary_title: M[t.Optional[str]] = mapcol(sa.String(length=300))
-    abstract: M[t.Optional[str]] = mapcol(sa.Text)
-    pub_year: M[t.Optional[int]] = mapcol(sa.SmallInteger)
-    pub_month: M[t.Optional[int]] = mapcol(sa.SmallInteger)
-    authors: M[t.Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
-    keywords: M[t.Optional[list[str]]] = mapcol(postgresql.ARRAY(sa.String(length=100)))
-    type_of_reference: M[t.Optional[str]] = mapcol(sa.String(length=50))
-    journal_name: M[t.Optional[str]] = mapcol(sa.String(length=100))
-    volume: M[t.Optional[str]] = mapcol(sa.String(length=20))
-    issue_number: M[t.Optional[str]] = mapcol(sa.String(length=20))
-    doi: M[t.Optional[str]] = mapcol(sa.String(length=100))
-    issn: M[t.Optional[str]] = mapcol(sa.String(length=20))
-    publisher: M[t.Optional[str]] = mapcol(sa.String(length=100))
-    language: M[t.Optional[str]] = mapcol(sa.String(length=50))
-    other_fields = mapcol(postgresql.JSONB(none_as_null=True), server_default="{}")
-    text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
-
-    @hybrid_property
-    def text_content(self):
-        return "\n\n".join(
-            (self.title or "", self.abstract or "", ", ".join(self.keywords or []))
-        ).strip()
-
-    @text_content.expression
-    def text_content(cls):
-        return db.func.concat_ws(
-            "\n\n", cls.title, cls.abstract, db.func.array_to_string(cls.keywords, ", ")
-        )
-
-    @hybrid_property
-    def exclude_reasons(self):
-        return sorted(
-            set(
-                itertools.chain.from_iterable(
-                    scrn.exclude_reasons or [] for scrn in self.screenings
-                )
-            )
-        )
-
-    # relationships
-    study: M["Study"] = sa_orm.relationship(
-        "Study", foreign_keys=[id], back_populates="citation", lazy="select"
-    )
-    review: M["Review"] = sa_orm.relationship(
-        "Review", foreign_keys=[review_id], back_populates="citations", lazy="select"
-    )
-    screenings: DM["CitationScreening"] = sa_orm.relationship(
-        "CitationScreening",
-        back_populates="citation",
-        lazy="dynamic",
-        passive_deletes=True,
-    )
-
-    def __init__(
-        self,
-        id_,
-        review_id,
-        type_of_work=None,
-        title=None,
-        secondary_title=None,
-        abstract=None,
-        pub_year=None,
-        pub_month=None,
-        authors=None,
-        keywords=None,
-        type_of_reference=None,
-        journal_name=None,
-        volume=None,
-        issue_number=None,
-        doi=None,
-        issn=None,
-        publisher=None,
-        language=None,
-        other_fields=None,
-    ):
-        self.id = id_
-        self.review_id = review_id
-        self.type_of_work = type_of_work
-        self.title = title
-        self.secondary_title = secondary_title
-        self.abstract = abstract
-        self.pub_year = pub_year
-        self.pub_month = pub_month
-        self.authors = authors
-        self.keywords = keywords
-        self.type_of_reference = type_of_reference
-        self.journal_name = journal_name
-        self.volume = volume
-        self.issue_number = issue_number
-        self.doi = doi
-        self.issn = issn
-        self.publisher = publisher
-        self.language = language
-        self.other_fields = other_fields
-
-    def __repr__(self):
-        return f"<Citation(study_id={self.id})>"
-
-
-class Fulltext(db.Model):
-    __tablename__ = "fulltexts"
-
-    # columns
-    id: M[int] = mapcol(
-        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
-    )
-    created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-    )
-    updated_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        onupdate=sa.func.now(),
-        server_default=sa.func.now(),
-        server_onupdate=sa.FetchedValue(),
-    )
-    review_id: M[int] = mapcol(
-        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
-    )
-    filename: M[t.Optional[str]] = mapcol(sa.String(length=30), unique=True)
-    original_filename: M[t.Optional[str]] = mapcol(sa.String, unique=False)
-    text_content: M[t.Optional[str]] = mapcol(sa.Text)
-    text_content_vector_rep = mapcol(postgresql.ARRAY(sa.Float), server_default="{}")
-
-    @hybrid_property
-    def exclude_reasons(self):
-        return sorted(
-            set(
-                itertools.chain.from_iterable(
-                    scrn.exclude_reasons or [] for scrn in self.screenings
-                )
-            )
-        )
-
-    # relationships
-    study: M["Study"] = sa_orm.relationship(
-        "Study", foreign_keys=[id], back_populates="fulltext", lazy="select"
-    )
-    review: M["Review"] = sa_orm.relationship(
-        "Review", foreign_keys=[review_id], back_populates="fulltexts", lazy="select"
-    )
-    screenings: DM["FulltextScreening"] = sa_orm.relationship(
-        "FulltextScreening",
-        back_populates="fulltext",
-        lazy="dynamic",
-        passive_deletes=True,
-    )
-
-    def __init__(self, id_, review_id, filename=None, original_filename=None):
-        self.id = id_
-        self.review_id = review_id
-        self.filename = filename
-        self.original_filename = original_filename
-
-    def __repr__(self):
-        return f"<Fulltext(study_id={self.id})>"
-
-
-class CitationScreening(db.Model):
-    __tablename__ = "citation_screenings"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "review_id", "user_id", "citation_id", name="review_user_citation_uc"
-        ),
-    )
-
-    # columns
-    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-    )
-    updated_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        onupdate=sa.func.now(),
-        server_default=sa.func.now(),
-        server_onupdate=sa.FetchedValue(),
-    )
-    review_id: M[int] = mapcol(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        index=True,
-    )
-    user_id: M[t.Optional[int]] = mapcol(
-        sa.Integer,
-        sa.ForeignKey("users.id", ondelete="SET NULL"),
-        index=True,
-    )
-    citation_id: M[int] = mapcol(
-        sa.BigInteger,
-        sa.ForeignKey("citations.id", ondelete="CASCADE"),
-        index=True,
-    )
-    status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons = mapcol(postgresql.ARRAY(sa.String(length=64)), nullable=True)
-
-    # relationships
-    user: M["User"] = sa_orm.relationship(
-        "User",
-        foreign_keys=[user_id],
-        back_populates="citation_screenings",
-        lazy="select",
-    )
-    review: M["Review"] = sa_orm.relationship(
-        "Review",
-        foreign_keys=[review_id],
-        back_populates="citation_screenings",
-        lazy="select",
-    )
-    citation: M["Citation"] = sa_orm.relationship(
-        "Citation",
-        foreign_keys=[citation_id],
-        back_populates="screenings",
-        lazy="select",
-    )
-
-    def __init__(self, review_id, user_id, citation_id, status, exclude_reasons=None):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.citation_id = citation_id
-        self.status = status
-        self.exclude_reasons = exclude_reasons
-
-    def __repr__(self):
-        return f"<CitationScreening(citation_id={self.citation_id})>"
-
-
-class FulltextScreening(db.Model):
-    __tablename__ = "fulltext_screenings"
-    __table_args__ = (
-        db.UniqueConstraint(
-            "review_id", "user_id", "fulltext_id", name="review_user_fulltext_uc"
-        ),
-    )
-
-    # columns
-    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
-    created_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        server_default=sa.func.now(),
-    )
-    updated_at: M[datetime.datetime] = mapcol(
-        sa.DateTime(timezone=True),
-        onupdate=sa.func.now(),
-        server_default=sa.func.now(),
-        server_onupdate=sa.FetchedValue(),
-    )
-    review_id: M[int] = mapcol(
-        sa.Integer,
-        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
-        index=True,
-    )
-    user_id: M[t.Optional[int]] = mapcol(
-        sa.Integer,
-        sa.ForeignKey("users.id", ondelete="SET NULL"),
-        index=True,
-    )
-    fulltext_id: M[int] = mapcol(
-        sa.BigInteger,
-        sa.ForeignKey("fulltexts.id", ondelete="CASCADE"),
-        index=True,
-    )
-    status: M[str] = mapcol(sa.String(length=20), index=True)
-    exclude_reasons: M[t.Optional[list[str]]] = mapcol(
-        postgresql.ARRAY(sa.String(length=64)), nullable=True
-    )
-
-    # relationships
-    user: M["User"] = sa_orm.relationship(
-        "User",
-        foreign_keys=[user_id],
-        back_populates="fulltext_screenings",
-        lazy="select",
-    )
-    review: M["Review"] = sa_orm.relationship(
-        "Review",
-        foreign_keys=[review_id],
-        back_populates="fulltext_screenings",
-        lazy="select",
-    )
-    fulltext: M["Fulltext"] = sa_orm.relationship(
-        "Fulltext",
-        foreign_keys=[fulltext_id],
-        back_populates="screenings",
-        lazy="select",
-    )
-
-    def __init__(self, review_id, user_id, fulltext_id, status, exclude_reasons=None):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.fulltext_id = fulltext_id
-        self.status = status
-        self.exclude_reasons = exclude_reasons
-
-    def __repr__(self):
-        return f"<FulltextScreening(fulltext_id={self.fulltext_id})>"
 
 
 class DataExtraction(db.Model):
@@ -876,7 +661,6 @@ class DataExtraction(db.Model):
 
 # EVENTS
 
-
 # NOTE: apparently this does not work in sqlalchemy v2 :/
 # @sa_event.listens_for(db.Model, "after_update")
 # def update_updated_at(mapper, connection, target):
@@ -886,80 +670,86 @@ class DataExtraction(db.Model):
 #         target.updated_at = updated_at
 
 
-@sa_event.listens_for(CitationScreening, "after_insert")
-@sa_event.listens_for(CitationScreening, "after_delete")
-@sa_event.listens_for(CitationScreening, "after_update")
-def update_citation_status(mapper, connection, target):
-    citation_id = target.citation_id
+@sa_event.listens_for(Review, "after_insert")
+def insert_review_plan(mapper, connection, target):
+    review_plan = ReviewPlan(target.id)
+    connection.execute(sa.insert(ReviewPlan).values(id=target.id))
+    LOGGER.info("inserted %s and %s", target, review_plan)
+
+
+@sa_event.listens_for(Screening, "after_insert")
+@sa_event.listens_for(Screening, "after_delete")
+@sa_event.listens_for(Screening, "after_update")
+def update_study_status(mapper, connection, target):
     review_id = target.review_id
-    citation = target.citation
+    study_id = target.study_id
+    study = target.study
     # TODO(burton): you added this so that conftest populate_db func would work
     # for reasons unknown, the target here didn't have a loaded citation object
     # but this is _probably_ a bad thing, and you should find a way to fix it
-    if citation is None:
-        citation = db.session.execute(
-            sa.select(Citation).filter_by(id=citation_id)
+    if study is None:
+        study = db.session.execute(
+            sa.select(Study).filter_by(id=study_id)
         ).scalar_one_or_none()
-    # get the current (soon to be *old*) citation_status of the study
+    assert isinstance(study, Study)  # type guard
+    # prep stage-specific variables
+    stage = target.stage
+    if stage == "citation":
+        num_reviewers = study.review.num_citation_screening_reviewers
+        study_status_col = Study.citation_status
+        study_status_col_str = "citation_status"
+        review_num_included_col = Review.num_citations_included
+        review_num_included_col_str = "num_citations_included"
+    else:
+        num_reviewers = study.review.num_fulltext_screening_reviewers
+        study_status_col = Study.fulltext_status
+        study_status_col_str = "fulltext_status"
+        review_num_included_col = Review.num_fulltexts_included
+        review_num_included_col_str = "num_fulltexts_included"
+    # get the current (soon to be *old*) status of the study
     old_status = connection.execute(
-        sa.select(Study.citation_status).where(Study.id == citation_id)
+        sa.select(study_status_col).where(Study.id == study_id)
     ).fetchone()[0]
-    # now compute the new status, and update the study accordingly
+    # compute the new status, and update the study accordingly
     status = utils.assign_status(
         [
-            cs.status
-            for cs in db.session.execute(
-                sa.select(CitationScreening).filter_by(citation_id=citation_id)
+            screening.status
+            for screening in db.session.execute(
+                sa.select(Screening).filter_by(study_id=study_id, stage=stage)
             ).scalars()
         ],
-        citation.review.num_citation_screening_reviewers,
+        num_reviewers,
     )
     connection.execute(
-        sa.update(Study).where(Study.id == citation_id).values(citation_status=status)
+        sa.update(Study)
+        .where(Study.id == study_id)
+        .values({study_status_col_str: status})
     )
-    LOGGER.info("%s => %s with status = %s", target, citation, status)
-    # we may have to insert or delete a corresponding fulltext record
-    fulltext = connection.execute(
-        sa.select(Fulltext).where(Fulltext.id == citation_id)
-    ).first()
-    fulltext_inserted_or_deleted = False
-    if status == "included" and fulltext is None:
-        connection.execute(
-            sa.insert(Fulltext).values(id=citation_id, review_id=review_id)
-        )
-        LOGGER.info("inserted <Fulltext(study_id=%s)>", citation_id)
-        fulltext_inserted_or_deleted = True
-    elif status != "included" and fulltext is not None:
-        connection.execute(sa.delete(Fulltext).where(Fulltext.id == citation_id))
-        LOGGER.info("deleted <Fulltext(study_id=%s)>", citation_id)
-        fulltext_inserted_or_deleted = True
-    # we may have to update our counts for review num_citations_included / excluded
-    if old_status != status:
-        if old_status == "included":  # decrement num_citations_included
+    LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
+
+    # we may have to update our counts for review num_*_included / num_*_excluded
+    _update_review_num_counts(
+        old_status=old_status,
+        status=status,
+        review_id=review_id,
+        review_num_included_col=review_num_included_col,
+        review_num_included_col_str=review_num_included_col_str,
+        connection=connection,
+    )
+
+    if stage == "citation":
+        # get rid of any contrary fulltext screenings
+        if status != "included":
             connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values(num_citations_included=Review.num_citations_included - 1)
+                sa.delete(Screening)
+                .where(Screening.study_id == study_id)
+                .where(Screening.stage == "fulltext")
             )
-        elif status == "included":  # increment num_citations_included
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values(num_citations_included=Review.num_citations_included + 1)
+            LOGGER.info(
+                "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
             )
-        elif old_status == "excluded":  # decrement num_citations_excluded
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values(num_citations_included=Review.num_citations_excluded - 1)
-            )
-        elif status == "excluded":  # increment num_citations_excluded
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values(num_citations_included=Review.num_citations_excluded + 1)
-            )
-    if fulltext_inserted_or_deleted is True:
+            # TODO: do we also need to update review.num_fulltexts_included/excluded?
+        # update review models, as needed
         status_counts = connection.execute(
             sa.select(
                 Review.num_citations_included, Review.num_citations_excluded
@@ -980,98 +770,68 @@ def update_citation_status(mapper, connection, target):
         # (re-)train a citation ranking model
         if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
             tasks.train_citation_ranking_model.apply_async(args=[review_id])
+    elif stage == "fulltext":
+        # we may have to insert or delete a corresponding data extraction record
+        data_extraction = connection.execute(
+            sa.select(DataExtraction).where(DataExtraction.id == study_id)
+        ).first()
+        # data_extraction_inserted_or_deleted = False
+        if status == "included" and data_extraction is None:
+            connection.execute(
+                sa.insert(DataExtraction).values(id=study_id, review_id=review_id)
+            )
+            LOGGER.info("inserted <DataExtraction(study_id=%s)>", study_id)
+            # data_extraction_inserted_or_deleted = True
+        elif status != "included" and data_extraction is not None:
+            connection.execute(
+                sa.delete(DataExtraction).where(DataExtraction.id == study_id)
+            )
+            LOGGER.info("deleted <DataExtraction(study_id=%s)>", study_id)
+            # data_extraction_inserted_or_deleted = True
+        # TODO: should we do something now?
+        # if data_extraction_inserted_or_deleted is True:
+        #     with connection.begin():
+        #         status_counts = connection.execute(
+        #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
+        #             .where(Review.id == review_id)
+        #             ).fetchone()
+        #         LOGGER.info(
+        #             '<Review(id=%s)> fulltext_status counts = %s',
+        #             review_id, status_counts)
+        #         n_included, n_excluded = status_counts
 
 
-@sa_event.listens_for(FulltextScreening, "after_insert")
-@sa_event.listens_for(FulltextScreening, "after_delete")
-@sa_event.listens_for(FulltextScreening, "after_update")
-def update_fulltext_status(mapper, connection, target):
-    fulltext_id = target.fulltext_id
-    review_id = target.review_id
-    fulltext = target.fulltext
-    # TODO(burton): you added this so that conftest populate_db func would work
-    # for reasons unknown, the target here didn't have a loaded fulltext object
-    # but this is _probably_ a bad thing, and you should find a way to fix it
-    if fulltext is None:
-        fulltext = db.session.execute(
-            sa.select(Fulltext).filter_by(id=fulltext_id)
-        ).scalar_one_or_none()
-    # get the current (soon to be *old*) citation_status of the study
-    old_status = connection.execute(
-        sa.select(Study.fulltext_status).where(Study.id == fulltext_id)
-    ).fetchone()[0]
-    # now compute the new status, and update the study accordingly
-    status = utils.assign_status(
-        [
-            fs.status
-            for fs in db.session.execute(
-                sa.select(FulltextScreening).filter_by(fulltext_id=fulltext_id)
-            ).scalars()
-        ],
-        fulltext.review.num_fulltext_screening_reviewers,
-    )
-    connection.execute(
-        sa.update(Study).where(Study.id == fulltext_id).values(fulltext_status=status)
-    )
-    LOGGER.info("%s => %s with status = %s", target, fulltext, status)
-    # we may have to insert or delete a corresponding data extraction record
-    data_extraction = connection.execute(
-        sa.select(DataExtraction).where(DataExtraction.id == fulltext_id)
-    ).first()
-    # data_extraction_inserted_or_deleted = False
-    if status == "included" and data_extraction is None:
-        connection.execute(
-            sa.insert(DataExtraction).values(id=fulltext_id, review_id=review_id)
-        )
-        LOGGER.info("inserted <DataExtraction(study_id=%s)>", fulltext_id)
-        # data_extraction_inserted_or_deleted = True
-    elif status != "included" and data_extraction is None:
-        connection.execute(
-            sa.delete(DataExtraction).where(DataExtraction.id == fulltext_id)
-        )
-        LOGGER.info("deleted <DataExtraction(study_id=%s)>", fulltext_id)
-        # data_extraction_inserted_or_deleted = True
-    # we may have to update our counts for review num_fulltexts_included / excluded
+def _update_review_num_counts(
+    *,
+    old_status: str,
+    status: str,
+    review_id: int,
+    review_num_included_col: InstrumentedAttribute[int],
+    review_num_included_col_str: str,
+    connection,
+):
     if old_status != status:
-        if old_status == "included":  # decrement num_fulltexts_included
+        if old_status == "included":  # decrement
             connection.execute(
                 sa.update(Review)
                 .where(Review.id == review_id)
-                .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
+                .values({review_num_included_col_str: review_num_included_col - 1})
             )
-        elif status == "included":  # increment num_fulltexts_included
+        elif status == "included":  # increment
             connection.execute(
                 sa.update(Review)
                 .where(Review.id == review_id)
-                .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
+                .values({review_num_included_col_str: review_num_included_col + 1})
             )
-        elif old_status == "excluded":  # decrement num_fulltexts_excluded
+        elif old_status == "excluded":  # decrement
             connection.execute(
                 sa.update(Review)
                 .where(Review.id == review_id)
-                .values(num_fulltexts_included=Review.num_fulltexts_included - 1)
+                .values({review_num_included_col_str: review_num_included_col - 1})
             )
-        elif status == "excluded":  # increment num_fulltexts_excluded
+        elif status == "excluded":  # increment
             connection.execute(
                 sa.update(Review)
                 .where(Review.id == review_id)
-                .values(num_fulltexts_included=Review.num_fulltexts_included + 1)
+                .values({review_num_included_col_str: review_num_included_col + 1})
             )
-    # TODO: should we do something now?
-    # if data_extraction_inserted_or_deleted is True:
-    #     with connection.begin():
-    #         status_counts = connection.execute(
-    #             sa.select(Review.num_fulltexts_included, Review.num_fulltexts_excluded)\
-    #             .where(Review.id == review_id)
-    #             ).fetchone()
-    #         LOGGER.info(
-    #             '<Review(id=%s)> fulltext_status counts = %s',
-    #             review_id, status_counts)
-    #         n_included, n_excluded = status_counts
-
-
-@sa_event.listens_for(Review, "after_insert")
-def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(target.id)
-    connection.execute(sa.insert(ReviewPlan).values(id=target.id))
-    LOGGER.info("inserted %s and %s", target, review_plan)

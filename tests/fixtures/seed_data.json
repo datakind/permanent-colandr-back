@@ -174,7 +174,52 @@
             "data_source_id": 1,
             "tags": [
                 "TAG1"
-            ]
+            ],
+            "citation": {
+                "id_": 1,
+                "review_id": 1,
+                "type_of_reference": "journal",
+                "title": "TITLE1",
+                "abstract": "ABSTRACT1",
+                "pub_year": 2001,
+                "pub_month": 1,
+                "authors": [
+                    "LAST_NAME1_1, FIRST_NAME1_1",
+                    "LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2."
+                ],
+                "keywords": [
+                    "KEYWORD1_1",
+                    "KEYWORD1_2"
+                ],
+                "journal_name": "JOURNAL1",
+                "volume": "1",
+                "issue_number": "1",
+                "doi": "10.5555/111111111",
+                "issn": "5555-111X",
+                "publisher": "PUBLISHER1",
+                "language": "English",
+                "other_fields": {
+                    "date": "2001-01-11",
+                    "end_page": 11,
+                    "file_attachments1": "https://example.com/title1.pdf",
+                    "file_attachments2": "https://example.com/title1/content.html",
+                    "notes": [
+                        "NOTE1_1",
+                        "NOTE1_2"
+                    ],
+                    "place_published": "PLACE1",
+                    "secondary_authors": [
+                        "LAST_NAME1_3, FIRST_NAME1_3"
+                    ],
+                    "start_page": 1,
+                    "url": "https://example.com/title1"
+                }
+            },
+            "fulltext": {
+                "filename": "1.pdf",
+                "original_filename": "example-journal-short.pdf",
+                "text_content": "This is an example text in English."
+            }
         },
         {
             "user_id": 2,
@@ -184,12 +229,79 @@
                 "TAG3",
                 "TAG2",
                 "TAG1"
-            ]
+            ],
+            "citation": {
+                "id_": 2,
+                "review_id": 1,
+                "type_of_reference": "journal",
+                "title": "TITLE2",
+                "abstract": "ABSTRACT2",
+                "pub_year": 2002,
+                "pub_month": 2,
+                "authors": [
+                    "LAST_NAME2_1, FIRST_NAME2_1"
+                ],
+                "keywords": [
+                    "KEYWORD2"
+                ],
+                "journal_name": "JOURNAL2",
+                "publisher": "PUBLISHER2",
+                "language": "Spanish",
+                "other_fields": {
+                    "date": "2002-02-22",
+                    "url": "https://example.com/title2"
+                }
+            },
+            "fulltext": {
+                "filename": "2.pdf",
+                "original_filename": "example-journal.pdf",
+                "text_content": "This is another example text in English."
+            }
         },
         {
             "user_id": 2,
             "review_id": 1,
-            "data_source_id": 2
+            "data_source_id": 2,
+            "citation": {
+                "id_": 3,
+                "review_id": 1,
+                "type_of_reference": "book",
+                "title": "TITLE3",
+                "abstract": "ABSTRACT3",
+                "pub_year": 2003,
+                "pub_month": 3,
+                "authors": [
+                    "LAST_NAME3_1, FIRST_NAME3_1"
+                ],
+                "keywords": [
+                    "KEYWORD3"
+                ],
+                "volume": "3",
+                "publisher": "PUBLISHER3",
+                "language": "English",
+                "other_fields": {
+                    "access_date": "2013-03-03",
+                    "date": "2003-03-03",
+                    "edition": "3",
+                    "editors": [
+                        "LAST_NAME3_2, FIRST_NAME3_2"
+                    ],
+                    "isbn": "555-3-33-333333-0",
+                    "notes": [
+                        "NOTE3"
+                    ],
+                    "number_of_pages": 333,
+                    "number_of_volumes": 33,
+                    "place_published": "PLACE3",
+                    "series_title": "SERIES_TITLE3",
+                    "series_volume": "3",
+                    "short_title": "SHORT_TITLE3",
+                    "translators": [
+                        "LAST_NAME3_3, FIRST_NAME3_3"
+                    ],
+                    "url": "https://example.com/title3"
+                }
+            }
         },
         {
             "user_id": 3,
@@ -197,164 +309,63 @@
             "data_source_id": 1,
             "tags": [
                 "TAG4"
-            ]
-        }
-    ],
-    "citations": [
-        {
-            "id_": 1,
-            "review_id": 1,
-            "type_of_reference": "journal",
-            "title": "TITLE1",
-            "abstract": "ABSTRACT1",
-            "pub_year": 2001,
-            "pub_month": 1,
-            "authors": [
-                "LAST_NAME1_1, FIRST_NAME1_1",
-                "LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2."
             ],
-            "keywords": [
-                "KEYWORD1_1",
-                "KEYWORD1_2"
-            ],
-            "journal_name": "JOURNAL1",
-            "volume": "1",
-            "issue_number": "1",
-            "doi": "10.5555/111111111",
-            "issn": "5555-111X",
-            "publisher": "PUBLISHER1",
-            "language": "English",
-            "other_fields": {
-                "date": "2001-01-11",
-                "end_page": 11,
-                "file_attachments1": "https://example.com/title1.pdf",
-                "file_attachments2": "https://example.com/title1/content.html",
-                "notes": [
-                    "NOTE1_1",
-                    "NOTE1_2"
+            "citation": {
+                "id_": 4,
+                "review_id": 2,
+                "type_of_reference": "newspaper",
+                "title": "TITLE4",
+                "abstract": "ABSTRACT4",
+                "pub_year": 2004,
+                "authors": [
+                    "LAST_NAME4, FIRST_NAME4"
                 ],
-                "place_published": "PLACE1",
-                "secondary_authors": [
-                    "LAST_NAME1_3, FIRST_NAME1_3"
+                "keywords": [
+                    "KEYWORD4"
                 ],
-                "start_page": 1,
-                "url": "https://example.com/title1"
-            }
-        },
-        {
-            "id_": 2,
-            "review_id": 1,
-            "type_of_reference": "journal",
-            "title": "TITLE2",
-            "abstract": "ABSTRACT2",
-            "pub_year": 2002,
-            "pub_month": 2,
-            "authors": [
-                "LAST_NAME2_1, FIRST_NAME2_1"
-            ],
-            "keywords": [
-                "KEYWORD2"
-            ],
-            "journal_name": "JOURNAL2",
-            "publisher": "PUBLISHER2",
-            "language": "Spanish",
-            "other_fields": {
-                "date": "2002-02-22",
-                "url": "https://example.com/title2"
-            }
-        },
-        {
-            "id_": 3,
-            "review_id": 1,
-            "type_of_reference": "book",
-            "title": "TITLE3",
-            "abstract": "ABSTRACT3",
-            "pub_year": 2003,
-            "pub_month": 3,
-            "authors": [
-                "LAST_NAME3_1, FIRST_NAME3_1"
-            ],
-            "keywords": [
-                "KEYWORD3"
-            ],
-            "volume": "3",
-            "publisher": "PUBLISHER3",
-            "language": "English",
-            "other_fields": {
-                "access_date": "2013-03-03",
-                "date": "2003-03-03",
-                "edition": "3",
-                "editors": [
-                    "LAST_NAME3_2, FIRST_NAME3_2"
-                ],
-                "isbn": "555-3-33-333333-0",
-                "notes": [
-                    "NOTE3"
-                ],
-                "number_of_pages": 333,
-                "number_of_volumes": 33,
-                "place_published": "PLACE3",
-                "series_title": "SERIES_TITLE3",
-                "series_volume": "3",
-                "short_title": "SHORT_TITLE3",
-                "translators": [
-                    "LAST_NAME3_3, FIRST_NAME3_3"
-                ],
-                "url": "https://example.com/title3"
-            }
-        },
-        {
-            "id_": 4,
-            "review_id": 2,
-            "type_of_reference": "newspaper",
-            "title": "TITLE4",
-            "abstract": "ABSTRACT4",
-            "pub_year": 2004,
-            "authors": [
-                "LAST_NAME4, FIRST_NAME4"
-            ],
-            "keywords": [
-                "KEYWORD4"
-            ],
-            "issue_number": "4",
-            "issn": "5555-444X",
-            "publisher": "PUBLISHER4",
-            "language": "French",
-            "other_fields": {
-                "access_date": "2004-04-04",
-                "column": "COLUMN4",
-                "edition": "4",
-                "end_page": 44,
-                "frequency": "FREQUENCY4",
-                "newspaper": "NEWSPAPER4",
-                "notes": [
-                    "NOTE4"
-                ],
-                "place_published": "PLACE4",
-                "section": "SECTION4",
-                "short_title": "SHORT_TITLE4",
-                "start_page": 4,
-                "url": "https://example.com/title4"
+                "issue_number": "4",
+                "issn": "5555-444X",
+                "publisher": "PUBLISHER4",
+                "language": "French",
+                "other_fields": {
+                    "access_date": "2004-04-04",
+                    "column": "COLUMN4",
+                    "edition": "4",
+                    "end_page": 44,
+                    "frequency": "FREQUENCY4",
+                    "newspaper": "NEWSPAPER4",
+                    "notes": [
+                        "NOTE4"
+                    ],
+                    "place_published": "PLACE4",
+                    "section": "SECTION4",
+                    "short_title": "SHORT_TITLE4",
+                    "start_page": 4,
+                    "url": "https://example.com/title4"
+                }
             }
         }
     ],
-    "citation_screenings": [
+    "screenings": [
         {
             "user_id": 2,
             "review_id": 1,
-            "citation_id": 1,
+            "study_id": 1,
+            "stage": "citation",
             "status": "included"
         },
         {
             "user_id": 2,
             "review_id": 1,
-            "citation_id": 2,
+            "study_id": 2,
+            "stage": "citation",
             "status": "included"
         },
         {
             "user_id": 2,
             "review_id": 1,
-            "citation_id": 3,
+            "study_id": 3,
+            "stage": "citation",
             "status": "excluded",
             "exclude_reasons": [
                 "REASON1",
@@ -364,47 +375,36 @@
         {
             "user_id": 3,
             "review_id": 2,
-            "citation_id": 4,
+            "study_id": 4,
+            "stage": "citation",
             "status": "included"
         },
         {
             "user_id": 4,
             "review_id": 2,
-            "citation_id": 4,
+            "study_id": 4,
+            "stage": "citation",
             "status": "included"
-        }
-    ],
-    "fulltext_uploads": [
-        {
-            "id": 1,
-            "filename": "1.pdf",
-            "original_filename": "example-journal-short.pdf",
-            "text_content": "This is an example text in English."
         },
-        {
-            "id": 2,
-            "filename": "2.pdf",
-            "original_filename": "example-journal.pdf",
-            "text_content": "This is another example text in English."
-        }
-    ],
-    "fulltext_screenings": [
         {
             "user_id": 2,
             "review_id": 1,
-            "fulltext_id": 1,
+            "study_id": 1,
+            "stage": "fulltext",
             "status": "included"
         },
         {
             "user_id": 3,
             "review_id": 1,
-            "fulltext_id": 1,
+            "study_id": 1,
+            "stage": "fulltext",
             "status": "included"
         },
         {
             "user_id": 2,
             "review_id": 1,
-            "fulltext_id": 2,
+            "study_id": 2,
+            "stage": "fulltext",
             "status": "excluded",
             "exclude_reasons": [
                 "REASON1",

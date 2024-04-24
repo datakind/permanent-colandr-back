@@ -11,12 +11,12 @@ from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
 
+from . import models
 from .apis.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
 from .lib.models import Deduper, Ranker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
-from .models import Citation, Dedupe, Fulltext, ReviewPlan, Study, User
 
 
 LOGGER = get_task_logger(__name__)
@@ -48,7 +48,7 @@ def send_email(recipients, subject, text_body, html_body):
 @shared_task
 def remove_unconfirmed_user(email: str):
     user = db.session.execute(
-        sa.select(User).filter_by(email=email)
+        sa.select(models.User).filter_by(email=email)
     ).scalar_one_or_none()
     if user and user.is_confirmed is False:
         db.session.delete(user)
@@ -60,8 +60,8 @@ def deduplicate_citations(review_id: int):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
 
-    stmt = sa.select(sa.func.max(Citation.created_at)).where(
-        Citation.review_id == review_id
+    stmt = sa.select(sa.func.max(models.Study.created_at)).where(
+        models.Study.review_id == review_id
     )
     max_created_at = db.session.execute(stmt).scalar()
     # no citations? cancel dedupe
@@ -72,8 +72,8 @@ def deduplicate_citations(review_id: int):
         lock.release()
         return
 
-    stmt = sa.select(sa.func.max(Dedupe.created_at)).where(
-        Dedupe.review_id == review_id
+    stmt = sa.select(sa.func.max(models.Dedupe.created_at)).where(
+        models.Dedupe.review_id == review_id
     )
     most_recent_dedupe = db.session.execute(stmt).scalar()
     # no citations added since most recent dedupe? cancel dedupe
@@ -91,25 +91,25 @@ def deduplicate_citations(review_id: int):
 
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
-    stmt = sa.delete(Dedupe).where(Dedupe.review_id == review_id)
+    stmt = sa.delete(models.Dedupe).where(models.Dedupe.review_id == review_id)
     result = db.session.execute(stmt)
     rows_deleted = result.rowcount
     LOGGER.debug(
         "<Review(id=%s)>: deleted %s rows from %s",
         review_id,
         rows_deleted,
-        Dedupe.__tablename__,
+        models.Dedupe.__tablename__,
     )
 
     stmt = sa.select(
-        Citation.id,
-        Citation.type_of_reference,
-        Citation.title,
-        Citation.pub_year,
-        Citation.authors,
-        Citation.abstract,
-        Citation.doi,
-    ).where(Citation.review_id == review_id)
+        models.Study.id,
+        models.Study.citation["type_of_reference"].label("type_of_reference"),
+        models.Study.citation["title"].label("title"),
+        models.Study.citation["pub_year"].label("pub_year"),
+        models.Study.citation["authors"].label("authors"),
+        models.Study.citation["abstract"].label("abstract"),
+        models.Study.citation["doi"].label("doi"),
+    ).where(models.Study.review_id == review_id)
     # results = db.session.execute(stmt).mappings() instead ?
     results = (row._asdict() for row in db.session.execute(stmt))
     preproc_data = deduper.preprocess_data(results, id_key="id")
@@ -127,13 +127,13 @@ def deduplicate_citations(review_id: int):
         LOGGER.info("<Review(id=%s)>: found duplicate clusters", review_id)
 
     # get *all* citation ids for this review, as well as included/excluded
-    stmt = sa.select(Citation.id).where(Citation.review_id == review_id)
+    stmt = sa.select(models.Study.id).where(models.Study.review_id == review_id)
     all_cids = set(db.session.execute(stmt).scalars().all())
     stmt = (
-        sa.select(Study.id)
-        .where(Study.review_id == review_id)
-        # .where(Study.citation_status.in_(["included", "excluded"]))
-        .where(Study.citation_status == sa.any_(["included", "excluded"]))
+        sa.select(models.Study.id)
+        .where(models.Study.review_id == review_id)
+        # .where(models.Study.citation_status.in_(["included", "excluded"]))
+        .where(models.Study.citation_status == sa.any_(["included", "excluded"]))
     )
     incl_excl_cids = set(db.session.execute(stmt).scalars().all())
 
@@ -153,26 +153,28 @@ def deduplicate_citations(review_id: int):
         else:
             stmt = (
                 sa.select(
-                    Citation.id,
+                    models.Study.id,
                     (
-                        sa.case((Citation.title == None, 1))
-                        + sa.case((Citation.abstract == None, 1))
-                        + sa.case((Citation.pub_year == None, 1))
-                        + sa.case((Citation.pub_month == None, 1))
-                        + sa.case((Citation.authors == {}, 1))
-                        + sa.case((Citation.keywords == {}, 1))
-                        + sa.case((Citation.type_of_reference == None, 1))
-                        + sa.case((Citation.journal_name == None, 1))
-                        + sa.case((Citation.issue_number == None, 1))
-                        + sa.case((Citation.doi == None, 1))
-                        + sa.case((Citation.issn == None, 1))
-                        + sa.case((Citation.publisher == None, 1))
-                        + sa.case((Citation.language == None, 1))
+                        sa.case((models.Study.citation["title"] == None, 1))
+                        + sa.case((models.Study.citation["abstract"] == None, 1))
+                        + sa.case((models.Study.citation["pub_year"] == None, 1))
+                        + sa.case((models.Study.citation["pub_month"] == None, 1))
+                        + sa.case((models.Study.citation["authors"] == [], 1))
+                        + sa.case((models.Study.citation["keywords"] == [], 1))
+                        + sa.case(
+                            (models.Study.citation["type_of_reference"] == None, 1)
+                        )
+                        + sa.case((models.Study.citation["journal_name"] == None, 1))
+                        + sa.case((models.Study.citation["issue_number"] == None, 1))
+                        + sa.case((models.Study.citation["doi"] == None, 1))
+                        + sa.case((models.Study.citation["issn"] == None, 1))
+                        + sa.case((models.Study.citation["publisher"] == None, 1))
+                        + sa.case((models.Study.citation["language"] == None, 1))
                     ).label("n_null_cols"),
                 )
-                .where(Citation.review_id == review_id)
+                .where(models.Study.review_id == review_id)
                 # .where(Citation.id.in_(int_cids))
-                .where(Citation.id == sa.any_(int_cids))
+                .where(models.Study.id == sa.any_(int_cids))
                 .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
@@ -197,8 +199,8 @@ def deduplicate_citations(review_id: int):
         {"id": cid, "dedupe_status": "not_duplicate"} for cid in non_duplicate_cids
     )
 
-    db.session.execute(sa.update(Study), studies_to_update)
-    db.session.execute(sa.insert(Dedupe), dedupes_to_insert)
+    db.session.execute(sa.update(models.Study), studies_to_update)
+    db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
@@ -216,10 +218,10 @@ def get_citations_text_content_vectors(review_id: int):
     lock.acquire()
 
     stmt = (
-        sa.select(Citation.id, Citation.text_content)
-        .where(Citation.review_id == review_id)
-        .where(Citation.text_content_vector_rep == [])
-        .order_by(Citation.id)
+        sa.select(models.Study.id, models.Study.citation_text_content)
+        .where(models.Study.review_id == review_id)
+        .where(models.Study.citation_text_content_vector_rep == [])
+        .order_by(models.Study.id)
     )
     results = db.session.execute(stmt)
     ids, texts = zip(*results)
@@ -244,7 +246,7 @@ def get_citations_text_content_vectors(review_id: int):
         lock.release()
         return
 
-    db.session.execute(sa.update(Citation), citations_to_update)
+    db.session.execute(sa.update(models.Study), citations_to_update)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: %s citation text_content_vector_reps updated",
@@ -257,16 +259,16 @@ def get_citations_text_content_vectors(review_id: int):
 
 @shared_task
 def get_fulltext_text_content_vector(fulltext_id: int):
-    stmt = sa.select(Fulltext.text_content).where(Fulltext.id == fulltext_id)
-    text_content = db.session.execute(stmt).scalar_one_or_none()
-    if not text_content:
+    stmt = sa.select(models.Study.fulltext).where(models.Study.id == fulltext_id)
+    fulltext = db.session.execute(stmt).scalar_one_or_none()
+    if not fulltext or not fulltext.get("text_content"):
         LOGGER.warning(
-            "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
+            "no fulltext text content found for <Study(study_id=%s)>", fulltext_id
         )
         return
 
     docs = nlp_utils.process_texts_into_docs(
-        [text_content],
+        [fulltext["text_content"]],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
@@ -276,14 +278,15 @@ def get_fulltext_text_content_vector(fulltext_id: int):
     text_content_vector_rep = doc.vector.tolist() if doc is not None else None
     if text_content_vector_rep is None:
         LOGGER.warning(
-            "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
+            "unable to get word vectors for <Study(study_id=%s)>", fulltext_id
         )
         return
 
+    fulltext["text_content_vector_rep"] = text_content_vector_rep
     stmt = (
-        sa.update(Fulltext)
-        .where(Fulltext.id == fulltext_id)
-        .values(text_content_vector_rep=text_content_vector_rep)
+        sa.update(models.Study)
+        .where(models.Study.id == fulltext_id)
+        .values(fulltext=fulltext)
     )
     db.session.execute(stmt)
     db.session.commit()
@@ -302,20 +305,18 @@ def suggest_keyterms(review_id: int, sample_size: int):
 
     # get random sample of included citations
     stmt = (
-        sa.select(Study.citation_status, Citation.text_content)
-        .where(Study.id == Citation.id)
-        .where(Study.review_id == review_id)
-        .where(Study.citation_status == "included")
+        sa.select(models.Study.citation_status, models.Study.citation_text_content)
+        .where(models.Study.review_id == review_id)
+        .where(models.Study.citation_status == "included")
         .order_by(sa.func.random())
         .limit(sample_size)
     )
     included = db.session.execute(stmt).all()
     # get random sample of excluded citations
     stmt = (
-        sa.select(Study.citation_status, Citation.text_content)
-        .where(Study.id == Citation.id)
-        .where(Study.review_id == review_id)
-        .where(Study.citation_status == "excluded")
+        sa.select(models.Study.citation_status, models.Study.citation_text_content)
+        .where(models.Study.review_id == review_id)
+        .where(models.Study.citation_status == "excluded")
         .order_by(sa.func.random())
         .limit(sample_size)
     )
@@ -357,8 +358,8 @@ def suggest_keyterms(review_id: int, sample_size: int):
     )
     # update the review plan
     stmt = (
-        sa.update(ReviewPlan)
-        .where(ReviewPlan.id == review_id)
+        sa.update(models.ReviewPlan)
+        .where(models.ReviewPlan.id == review_id)
         .values(suggested_keyterms=suggested_keyterms)
     )
     db.session.execute(stmt)
@@ -377,8 +378,8 @@ def train_citation_ranking_model(review_id: int):
     # make sure at least some citations have had their text content vectors found
     stmt = sa.select(
         sa.exists()
-        .where(Citation.review_id == review_id)
-        .where(Citation.text_content_vector_rep != [])
+        .where(models.Study.review_id == review_id)
+        .where(models.Study.citation_text_content_vector_rep != [])
     )
     citations_ready = db.session.execute(stmt).scalar_one()
     if citations_ready is False:
@@ -392,13 +393,14 @@ def train_citation_ranking_model(review_id: int):
     # TODO: should this be a random sample? i think no, but old comment said yes
     # get included citations
     stmt = (
-        sa.select(Citation.text_content_vector_rep, Study.citation_status)
-        .where(Study.id == Citation.id)
-        .where(Study.review_id == review_id)
-        .where(Study.dedupe_status == "not_duplicate")
-        # .where(Study.citation_status.in_(["included", "excluded"]))
-        .where(Study.citation_status == sa.any_(["included", "excluded"]))
-        .where(Citation.text_content_vector_rep != [])
+        sa.select(
+            models.Study.citation_text_content_vector_rep, models.Study.citation_status
+        )
+        .where(models.Study.review_id == review_id)
+        .where(models.Study.dedupe_status == "not_duplicate")
+        # .where(models.Study.citation_status.in_(["included", "excluded"]))
+        .where(models.Study.citation_status == sa.any_(["included", "excluded"]))
+        .where(models.Study.citation_text_content_vector_rep != [])
     )
     results = db.session.execute(stmt)
     feature_vecs, labels = zip(*results)

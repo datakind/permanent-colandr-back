@@ -7,6 +7,7 @@ import flask
 import flask_sqlalchemy
 import pytest
 import sqlalchemy.orm as sa_orm
+
 from colandr import cli, extensions, models
 from colandr.apis import auth
 from colandr.app import create_app
@@ -73,13 +74,19 @@ def db(
 
 
 def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
-    for record in seed_data["fulltext_uploads"]:
+    for record in seed_data["studies"]:
+        if not record.get("fulltext"):
+            continue
+
         src_file_path = (
-            request.config.rootpath / "tests" / "fixtures" / record["original_filename"]
+            request.config.rootpath
+            / "tests"
+            / "fixtures"
+            / record["fulltext"]["original_filename"]
         )
         tgt_file_path = pathlib.Path(app.config["FULLTEXT_UPLOADS_DIR"]).joinpath(
             str(record.get("review_id", 1)),  # HACK
-            record["filename"],
+            record["fulltext"]["filename"],
         )
         tgt_file_path.parent.mkdir(exist_ok=True)
         shutil.copy(src_file_path, tgt_file_path)
