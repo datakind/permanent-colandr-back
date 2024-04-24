@@ -1,4 +1,5 @@
 import flask_jwt_extended as jwtext
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -62,4 +63,5 @@ class DeduplicateStudiesResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to dedupe studies for this review"
             )
+        current_app.logger.info("submitting deduplicate citations job for %s", review)
         tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)

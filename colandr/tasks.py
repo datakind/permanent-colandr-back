@@ -102,13 +102,13 @@ def deduplicate_citations(review_id: int):
     )
 
     stmt = sa.select(
-        Citation.id,
-        Citation.type_of_reference,
-        Citation.title,
-        Citation.pub_year,
-        Citation.authors,
-        Citation.abstract,
-        Citation.doi,
+        models.Study.id,
+        models.Study.citation["type_of_reference"].label("type_of_reference"),
+        models.Study.citation["title"].label("title"),
+        models.Study.citation["pub_year"].label("pub_year"),
+        models.Study.citation["authors"].label("authors"),
+        models.Study.citation["abstract"].label("abstract"),
+        models.Study.citation["doi"].label("doi"),
     ).where(models.Study.review_id == review_id)
     # results = db.session.execute(stmt).mappings() instead ?
     results = (row._asdict() for row in db.session.execute(stmt))
@@ -155,19 +155,21 @@ def deduplicate_citations(review_id: int):
                 sa.select(
                     models.Study.id,
                     (
-                        sa.case((Citation.title == None, 1))
-                        + sa.case((Citation.abstract == None, 1))
-                        + sa.case((Citation.pub_year == None, 1))
-                        + sa.case((Citation.pub_month == None, 1))
-                        + sa.case((Citation.authors == {}, 1))
-                        + sa.case((Citation.keywords == {}, 1))
-                        + sa.case((Citation.type_of_reference == None, 1))
-                        + sa.case((Citation.journal_name == None, 1))
-                        + sa.case((Citation.issue_number == None, 1))
-                        + sa.case((Citation.doi == None, 1))
-                        + sa.case((Citation.issn == None, 1))
-                        + sa.case((Citation.publisher == None, 1))
-                        + sa.case((Citation.language == None, 1))
+                        sa.case((models.Study.citation["title"] == None, 1))
+                        + sa.case((models.Study.citation["abstract"] == None, 1))
+                        + sa.case((models.Study.citation["pub_year"] == None, 1))
+                        + sa.case((models.Study.citation["pub_month"] == None, 1))
+                        + sa.case((models.Study.citation["authors"] == [], 1))
+                        + sa.case((models.Study.citation["keywords"] == [], 1))
+                        + sa.case(
+                            (models.Study.citation["type_of_reference"] == None, 1)
+                        )
+                        + sa.case((models.Study.citation["journal_name"] == None, 1))
+                        + sa.case((models.Study.citation["issue_number"] == None, 1))
+                        + sa.case((models.Study.citation["doi"] == None, 1))
+                        + sa.case((models.Study.citation["issn"] == None, 1))
+                        + sa.case((models.Study.citation["publisher"] == None, 1))
+                        + sa.case((models.Study.citation["language"] == None, 1))
                     ).label("n_null_cols"),
                 )
                 .where(models.Study.review_id == review_id)
@@ -257,16 +259,16 @@ def get_citations_text_content_vectors(review_id: int):
 
 @shared_task
 def get_fulltext_text_content_vector(fulltext_id: int):
-    stmt = sa.select(Fulltext.text_content).where(models.Study.id == fulltext_id)
-    text_content = db.session.execute(stmt).scalar_one_or_none()
-    if not text_content:
+    stmt = sa.select(models.Study.fulltext).where(models.Study.id == fulltext_id)
+    fulltext = db.session.execute(stmt).scalar_one_or_none()
+    if not fulltext or not fulltext.get("text_content"):
         LOGGER.warning(
-            "no fulltext text content found for <Fulltext(study_id=%s)>", fulltext_id
+            "no fulltext text content found for <Study(study_id=%s)>", fulltext_id
         )
         return
 
     docs = nlp_utils.process_texts_into_docs(
-        [text_content],
+        [fulltext["text_content"]],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
@@ -276,14 +278,15 @@ def get_fulltext_text_content_vector(fulltext_id: int):
     text_content_vector_rep = doc.vector.tolist() if doc is not None else None
     if text_content_vector_rep is None:
         LOGGER.warning(
-            "unable to get  word vectors for <Fulltext(study_id=%s)>", fulltext_id
+            "unable to get word vectors for <Study(study_id=%s)>", fulltext_id
         )
         return
 
+    fulltext["text_content_vector_rep"] = text_content_vector_rep
     stmt = (
-        sa.update(Fulltext)
+        sa.update(models.Study)
         .where(models.Study.id == fulltext_id)
-        .values(text_content_vector_rep=text_content_vector_rep)
+        .values(fulltext=fulltext)
     )
     db.session.execute(stmt)
     db.session.commit()

@@ -184,9 +184,8 @@ class FulltextUploadResource(Resource):
         )
 
         # parse the fulltext text content and get its word2vec vector
-        tasks.get_fulltext_text_content_vector.apply_async(
-            args=[id], queue="fast", countdown=3
-        )
+        # TODO: figure out why queue="fast" doesn't work here
+        tasks.get_fulltext_text_content_vector.apply_async(args=[id], countdown=3)
 
         fulltext = _make_pseudo_fulltext_record(study)
         return FulltextSchema().dump(fulltext)
