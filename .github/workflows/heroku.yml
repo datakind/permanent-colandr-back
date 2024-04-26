@@ -1,7 +1,7 @@
 # Your workflow name.
 name: Deploy to heroku staging.
 
-# Run workflow on every push to master branch.
+# Run workflow on every push to develop branch.
 on:
   push:
     branches: [develop]
