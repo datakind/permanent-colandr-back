@@ -289,7 +289,11 @@ class DataSource(db.Model):
     __tablename__ = "data_sources"
     __table_args__ = (
         db.UniqueConstraint(
-            "source_type", "source_name", name="source_type_source_name_uc"
+            "source_type",
+            "source_name",
+            "source_url",
+            name="uq_source_type_name_url",
+            postgresql_nulls_not_distinct=True,
         ),
     )
 
@@ -580,12 +584,16 @@ class Dedupe(db.Model):
     __tablename__ = "dedupes"
 
     # columns
-    id: M[int] = mapcol(
-        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
-    )
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+        index=True,
+        unique=True,
     )
     review_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
@@ -597,29 +605,27 @@ class Dedupe(db.Model):
 
     # relationships
     study: M["Study"] = sa_orm.relationship(
-        "Study", foreign_keys=[id], back_populates="dedupe", lazy="select"
+        "Study", foreign_keys=[study_id], back_populates="dedupe", lazy="select"
     )
     review: M["Review"] = sa_orm.relationship(
         "Review", foreign_keys=[review_id], back_populates="dedupes", lazy="select"
     )
 
-    def __init__(self, id_, review_id, duplicate_of, duplicate_score):
-        self.id = id_
+    def __init__(self, study_id, review_id, duplicate_of, duplicate_score):
+        self.study_id = study_id
         self.review_id = review_id
         self.duplicate_of = duplicate_of
         self.duplicate_score = duplicate_score
 
     def __repr__(self):
-        return f"<Dedupe(study_id={self.id})>"
+        return f"<Dedupe(study_id={self.study_id})>"
 
 
 class DataExtraction(db.Model):
     __tablename__ = "data_extractions"
 
     # columns
-    id: M[int] = mapcol(
-        sa.BigInteger, sa.ForeignKey("studies.id", ondelete="CASCADE"), primary_key=True
-    )
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
     created_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
         server_default=sa.func.now(),
@@ -629,6 +635,12 @@ class DataExtraction(db.Model):
         onupdate=sa.func.now(),
         server_default=sa.func.now(),
         server_onupdate=sa.FetchedValue(),
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+        index=True,
+        unique=True,
     )
     review_id: M[int] = mapcol(
         sa.Integer,
@@ -641,7 +653,10 @@ class DataExtraction(db.Model):
 
     # relationships
     study: M["Study"] = sa_orm.relationship(
-        "Study", foreign_keys=[id], back_populates="data_extraction", lazy="select"
+        "Study",
+        foreign_keys=[study_id],
+        back_populates="data_extraction",
+        lazy="select",
     )
     review: M["Review"] = sa_orm.relationship(
         "Review",
@@ -650,13 +665,13 @@ class DataExtraction(db.Model):
         lazy="select",
     )
 
-    def __init__(self, id_, review_id, extracted_items=None):
-        self.id = id_
+    def __init__(self, study_id, review_id, extracted_items=None):
+        self.study_id = study_id
         self.review_id = review_id
         self.extracted_items = extracted_items
 
     def __repr__(self):
-        return f"<DataExtraction(study_id={self.id})>"
+        return f"<DataExtraction(study_id={self.study_id})>"
 
 
 # EVENTS
@@ -773,18 +788,18 @@ def update_study_status(mapper, connection, target):
     elif stage == "fulltext":
         # we may have to insert or delete a corresponding data extraction record
         data_extraction = connection.execute(
-            sa.select(DataExtraction).where(DataExtraction.id == study_id)
+            sa.select(DataExtraction).where(DataExtraction.study_id == study_id)
         ).first()
         # data_extraction_inserted_or_deleted = False
         if status == "included" and data_extraction is None:
             connection.execute(
-                sa.insert(DataExtraction).values(id=study_id, review_id=review_id)
+                sa.insert(DataExtraction).values(study_id=study_id, review_id=review_id)
             )
             LOGGER.info("inserted <DataExtraction(study_id=%s)>", study_id)
             # data_extraction_inserted_or_deleted = True
         elif status != "included" and data_extraction is not None:
             connection.execute(
-                sa.delete(DataExtraction).where(DataExtraction.id == study_id)
+                sa.delete(DataExtraction).where(DataExtraction.study_id == study_id)
             )
             LOGGER.info("deleted <DataExtraction(study_id=%s)>", study_id)
             # data_extraction_inserted_or_deleted = True
