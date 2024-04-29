@@ -49,7 +49,9 @@ class DataExtractionResource(Resource):
         """get data extraction record for a single study by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        extracted_data = db.session.get(DataExtraction, id)
+        extracted_data = db.session.execute(
+            sa.select(DataExtraction).filter_by(study_id=id)
+        ).scalar_one_or_none()
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         # TODO: figure out if this is "better" approach
@@ -103,7 +105,9 @@ class DataExtractionResource(Resource):
         """delete data extraction record for a single study by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        extracted_data = db.session.get(DataExtraction, id)
+        extracted_data = db.session.execute(
+            sa.select(DataExtraction).filter_by(study_id=id)
+        ).scalar_one_or_none()
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
@@ -154,11 +158,12 @@ class DataExtractionResource(Resource):
         """modify data extraction record for a single study by id"""
         current_user = jwtext.get_current_user()
         # check current user authorization
-        extracted_data = db.session.get(DataExtraction, id)
-        assert extracted_data is not None  # type guard
-        review_id = extracted_data.review_id
+        extracted_data = db.session.execute(
+            sa.select(DataExtraction).filter_by(study_id=id)
+        ).scalar_one_or_none()
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
+        review_id = extracted_data.review_id
         if (
             current_user.review_user_assoc.filter_by(review_id=review_id).one_or_none()
             is None
