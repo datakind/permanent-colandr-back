@@ -118,6 +118,7 @@ class ImportSchema(Schema):
 class DedupeSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
+    study_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     duplicate_of = fields.Int(
         load_default=None, validate=Range(min=1, max=constants.MAX_BIGINT)
@@ -211,6 +212,7 @@ class DataExtractionSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
     updated_at = fields.DateTime(dump_only=True, format="iso")
+    study_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     review_id = fields.Int(required=True, validate=Range(min=1, max=constants.MAX_INT))
     extracted_items = fields.Nested(ExtractedItem, many=True)
 
