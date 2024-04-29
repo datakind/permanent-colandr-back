@@ -128,27 +128,25 @@ def deduplicate_citations(review_id: int):
 
     # get *all* citation ids for this review, as well as included/excluded
     stmt = sa.select(models.Study.id).where(models.Study.review_id == review_id)
-    all_cids = set(db.session.execute(stmt).scalars().all())
+    all_sids = set(db.session.execute(stmt).scalars().all())
     stmt = (
         sa.select(models.Study.id)
         .where(models.Study.review_id == review_id)
         # .where(models.Study.citation_status.in_(["included", "excluded"]))
         .where(models.Study.citation_status == sa.any_(["included", "excluded"]))
     )
-    incl_excl_cids = set(db.session.execute(stmt).scalars().all())
+    incl_excl_sids = set(db.session.execute(stmt).scalars().all())
 
-    duplicate_cids = set()
+    duplicate_sids = set()
     studies_to_update = []
     dedupes_to_insert = []
-    for cids, scores in clustered_dupes:
-        int_cids = [int(cid) for cid in cids]  # convert from numpy.int64
-        cid_scores = {cid: float(score) for cid, score in zip(int_cids, scores)}
+    for sids, scores in clustered_dupes:
+        int_sids = [int(sid) for sid in sids]  # convert from numpy.int64
+        sid_scores = {sid: float(score) for sid, score in zip(int_sids, scores)}
         # already an in/excluded citation in this dupe cluster?
         # take the first one to be "canonical"
-        if any(cid in incl_excl_cids for cid in int_cids):
-            canonical_citation_id = sorted(set(int_cids).intersection(incl_excl_cids))[
-                0
-            ]
+        if any(sid in incl_excl_sids for sid in int_sids):
+            canonical_study_id = sorted(set(int_sids).intersection(incl_excl_sids))[0]
         # otherwise, take the "most complete" citation in the cluster as "canonical"
         else:
             stmt = (
@@ -173,30 +171,30 @@ def deduplicate_citations(review_id: int):
                     ).label("n_null_cols"),
                 )
                 .where(models.Study.review_id == review_id)
-                # .where(Citation.id.in_(int_cids))
-                .where(models.Study.id == sa.any_(int_cids))
+                # .where(models.Study.id.in_(int_sids))
+                .where(models.Study.id == sa.any_(int_sids))
                 .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
             result = db.session.execute(stmt).first()
             assert result is not None
-            canonical_citation_id = result.id
+            canonical_study_id = result.id
 
-        for cid, score in cid_scores.items():
-            if cid != canonical_citation_id:
-                duplicate_cids.add(cid)
-                studies_to_update.append({"id": cid, "dedupe_status": "duplicate"})
+        for sid, score in sid_scores.items():
+            if sid != canonical_study_id:
+                duplicate_sids.add(sid)
+                studies_to_update.append({"id": sid, "dedupe_status": "duplicate"})
                 dedupes_to_insert.append(
                     {
-                        "id": cid,
+                        "study_id": sid,
                         "review_id": review_id,
-                        "duplicate_of": canonical_citation_id,
+                        "duplicate_of": canonical_study_id,
                         "duplicate_score": score,
                     }
                 )
-    non_duplicate_cids = all_cids - duplicate_cids
+    non_duplicate_sids = all_sids - duplicate_sids
     studies_to_update.extend(
-        {"id": cid, "dedupe_status": "not_duplicate"} for cid in non_duplicate_cids
+        {"id": sid, "dedupe_status": "not_duplicate"} for sid in non_duplicate_sids
     )
 
     db.session.execute(sa.update(models.Study), studies_to_update)
@@ -205,8 +203,8 @@ def deduplicate_citations(review_id: int):
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
         review_id,
-        len(duplicate_cids),
-        len(non_duplicate_cids),
+        len(duplicate_sids),
+        len(non_duplicate_sids),
     )
 
     lock.release()
