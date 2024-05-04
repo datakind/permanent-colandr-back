@@ -1,16 +1,6 @@
 # Dev Setup
 
-Minimal setup instructions, for devs who don't need checks or explanations:
-
-1. Install Xcode: `xcode-select --install`
-1. Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-1. Install Docker and git: `brew cask install docker && brew install git`
-1. Clone copy of colandr repo: `git clone https://github.com/datakind/permanent-colandr-back.git`
-1. Build and spin up application services: `cd permanent-colandr-back && docker compose up --build --detach`
-
-As for the rest of us... read on!
-
-These instructions generally assume that you're on a machine running macOS, though most of them should work similarly on Linux. If you've already installed a given tool, there's no need to reinstall -- but you may want to update it.
+These instructions generally assume that you're on a machine running macOS, though most if not all of this should work similarly on Linux. If you've already installed a given tool, there's no need to reinstall -- but you may want to update.
 
 
 ## Install System Tools
@@ -69,31 +59,6 @@ To build and also run the application stack in "detached" mode (i.e. in the back
 $ docker compose up --build --detach
 ```
 
-The Flask application includes a CLI with a few useful commands that may be invoked directly from inside the `colandr-api` container or via docker from outside the container (by prepending `docker exec -it colandr-api`). To create the app's database structure -- tables, etc. -- then populate it with data from scratch, run
-
-```shell
-$ docker exec -it colandr-api flask db-create
-$ docker exec -it colandr-api flask db-seed --fpath /path/to/seed_data.json
-```
-
-Technically you can "db-create" whenever you like, but it only creates tables that don't already exist in the database; in contrast, running "db-seed" on an alread-populated database may run into duplicate data violations. To manually _reset_ an existing database by dropping and then re-creating all of its tables, do
-
-```shell
-$ docker exec -it colandr-api flask db-reset
-```
-
-**Note:** You will lose all data stored in the database! So be sure to only run this command in development or testing environments.
-
-Information about all available commands and sub-commands can be had via the `--help` flag:
-
-```shell
-$ docker exec -it colandr-api flask --help
-```
-
-Unit tests are implemented and invoked using `pytest`. The testing suite may be run on the `colandr-api` container:
-
-```shell
-$ docker exec -it colandr-api python -m pytest [OPTIONS]
-```
-
 Interactive API documentation is available in a web browser at "http://localhost:5001/docs". A development email server is available at "http://localhost:8025".
+
+For application management instructions, go [here](./app-management.md)
