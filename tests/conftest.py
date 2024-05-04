@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import shutil
 import typing as t
@@ -6,24 +7,45 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
+import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
+from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
 from colandr.apis import auth
 from colandr.app import create_app
 
 
-# TODO: consider hacking on a solution that doesn't require a running psql db
-# for example, this almost but didn't quite work
-# import pytest_postgresql.factories
-# psql_proc = pytest_postgresql.factories.postgresql_proc(
-#     host="localhost",
-#     port=5432,
-#     user="colandr_app",
-#     password="PASSWORD",
-#     dbname="colandr",
-# )
-# psql_db = pytest_postgresql.factories.postgresql("psql_proc", dbname="colandr")
+TEST_DB_SCHEMA = "test"
+
+
+def _init_db(**kwargs):
+    db_url = sa.URL.create(
+        drivername="postgresql+psycopg",
+        username=kwargs["user"],
+        password=kwargs["password"],
+        host=kwargs["host"],
+        port=kwargs["port"],
+        database=kwargs["dbname"],
+    )
+    engine = sa.create_engine(db_url)
+    # create test schema if it doesn't already exist
+    with engine.begin() as conn:
+        # conn.execute(sa.text('DROP DATABASE IF EXISTS "colandr_tmpl"'))
+        conn.execute(sa.schema.CreateSchema(TEST_DB_SCHEMA, if_not_exists=True))
+
+    extensions._BaseModel.metadata.create_all(engine)
+
+
+psql_noproc = psql_factories.postgresql_noproc(
+    host="colandr-db",
+    port=5432,
+    user=os.environ["COLANDR_DB_USER"],
+    password=os.environ["COLANDR_DB_PASSWORD"],
+    dbname=os.environ["COLANDR_DB_NAME"],
+    # load=[_init_db],
+)
+psql = psql_factories.postgresql("psql_noproc")
 
 
 @pytest.fixture(scope="session")
@@ -31,6 +53,11 @@ def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
     config_overrides = {
         "TESTING": True,
+        # this overrides the app db's default schema (None => "public")
+        # so that we create a parallel schema for all unit testing data
+        "SQLALCHEMY_ENGINE_OPTIONS": {
+            "execution_options": {"schema_translate_map": {None: TEST_DB_SCHEMA}}
+        },
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
@@ -62,15 +89,50 @@ def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, t.Any]:
 @pytest.fixture(scope="session")
 def db(
     app: flask.Flask,
+    psql_noproc,
     seed_data_fpath: pathlib.Path,
     seed_data: dict[str, t.Any],
     request,
 ):
+    # db_url = sa.URL.create(
+    #     drivername="postgresql+psycopg",
+    #     username=psql_noproc.user,
+    #     password=psql_noproc.password,
+    #     host=psql_noproc.host,
+    #     port=psql_noproc.port,
+    #     database=psql_noproc.dbname,
+    # )
+    # engine = sa.create_engine(db_url, echo=True)
+    # with engine.begin() as conn:
+    #     conn.execute(sa.schema.CreateSchema("test", if_not_exists=True))
+    # # engine.update_execution_options(schema_translate_map={None: "test"})
+    # session = sa_orm.scoped_session(sa_orm.sessionmaker(bind=engine))
+    # extensions.db.session = session
+
+    # drop template database if it exists
+    # with extensions.db.engine.connect().execution_options(
+    #     isolation_level="AUTOCOMMIT"
+    # ) as conn:
+    #     conn.execute(sa.text('ALTER DATABASE "colandr_tmpl" IS_TEMPLATE FALSE'))
+    #     conn.execute(sa.text('DROP DATABASE IF EXISTS "colandr_tmpl"'))
+    # create test schema if it doesn't already exist
+    with extensions.db.engine.begin() as conn:
+        conn.execute(sa.schema.CreateSchema(TEST_DB_SCHEMA, if_not_exists=True))
+    # make sure we're starting fresh, tables-wise
     extensions.db.drop_all()
     extensions.db.create_all()
     _store_upload_files(app, seed_data, request)
     app.test_cli_runner().invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
-    return extensions.db
+
+    yield extensions.db
+
+    # extensions.db.drop_all()
+
+    # NOTE: this doesn't work :/ the command just hangs, and if you cancel it,
+    # the entire database gets borked owing to a duplicate template database
+    # so, let's leave the test schema in place, it's small and causes no harm
+    # with extensions.db.engine.begin() as conn:
+    #     conn.execute(sa.schema.DropSchema("test", cascade=True, if_exists=True))
 
 
 def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
