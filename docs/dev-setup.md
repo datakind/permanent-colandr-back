@@ -4,9 +4,9 @@ Minimal setup instructions, for devs who don't need checks or explanations:
 
 1. Install Xcode: `xcode-select --install`
 1. Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
-1. Install Docker: `brew cask install docker`
-1. Clone copy of colandr repo: `brew install git && git clone https://github.com/datakind/permanent-colandr-back.git`
-1. Build and spin up application services: `docker compose up --build --detach`
+1. Install Docker and git: `brew cask install docker && brew install git`
+1. Clone copy of colandr repo: `git clone https://github.com/datakind/permanent-colandr-back.git`
+1. Build and spin up application services: `cd permanent-colandr-back && docker compose up --build --detach`
 
 As for the rest of us... read on!
 
@@ -34,22 +34,17 @@ $ brew update
 $ brew doctor
 ```
 
-Lastly, use Homebrew to install [Docker](https://docs.docker.com), a tool for developing and running applications. This should install it in both command line and native application form:
+Lastly, use Homebrew to install [Docker](https://docs.docker.com), a tool for developing and running applications, and [git](https://git-scm.com), for version control and access to colandr's code:
 
 ```shell
 $ brew cask install docker
+$ brew install git
 ```
 
-Confirm that Docker successfully installed by running `docker --version`; for a more extensive check, try `docker run hello-world`. You may also see the Docker icon in your system bar, which may be used to open the Docker for Desktop app.
+Confirm that Docker successfully installed by running `docker --version`; for a more extensive check, try `docker run hello-world`. You may also see the Docker icon in your system bar, which can be used to open the Docker for Desktop app.
 
 
 ## Set Up Colandr
-
-Install `git`, for version control and access to the app's code:
-
-```shell
-$ brew install git
-```
 
 Get a copy of the back-end code from colandr's [GitHub repository](https://github.com/datakind/permanent-colandr-back). Make a new local directory for the repo and change your current working directory to it, as needed:
 
@@ -98,7 +93,7 @@ $ docker exec -it colandr-api flask --help
 Unit tests are implemented and invoked using `pytest`. The testing suite may be run on the `colandr-api` container:
 
 ```shell
-$ docker exec -it colandr-api python -m pytest
+$ docker exec -it colandr-api python -m pytest [OPTIONS]
 ```
 
 Interactive API documentation is available in a web browser at "http://localhost:5001/docs". A development email server is available at "http://localhost:8025".
