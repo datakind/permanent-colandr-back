@@ -19,14 +19,12 @@ from colandr.app import create_app
 
 TEST_DBNAME = "colandr_test"
 
-
 psql_noproc = psql_factories.postgresql_noproc(
     host="colandr-db",
     port=5432,
     user=os.environ["COLANDR_DB_USER"],
     password=os.environ["COLANDR_DB_PASSWORD"],
-    # dbname=os.environ["COLANDR_DB_NAME"],
-    dbname=TEST_DBNAME,
+    dbname=TEST_DBNAME,  # override os.environ["COLANDR_DB_NAME"]
 )
 psql = psql_factories.postgresql("psql_noproc")
 
@@ -36,6 +34,7 @@ def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
     config_overrides = {
         "TESTING": True,
+        # override db uri to point at test database
         "SQLALCHEMY_DATABASE_URI": (
             "postgresql+psycopg://"
             f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
@@ -82,28 +81,6 @@ def db(
     seed_data: dict[str, t.Any],
     request,
 ):
-    # db_url = sa.URL.create(
-    #     drivername="postgresql+psycopg",
-    #     username=psql_noproc.user,
-    #     password=psql_noproc.password,
-    #     host=psql_noproc.host,
-    #     port=psql_noproc.port,
-    #     database=psql_noproc.dbname,
-    # )
-    # engine = sa.create_engine(db_url, echo=True)
-    # with engine.begin() as conn:
-    #     conn.execute(sa.schema.CreateSchema("test", if_not_exists=True))
-    # # engine.update_execution_options(schema_translate_map={None: "test"})
-    # session = sa_orm.scoped_session(sa_orm.sessionmaker(bind=engine))
-    # extensions.db.session = session
-
-    # drop template database if it exists
-    # with extensions.db.engine.connect().execution_options(
-    #     isolation_level="AUTOCOMMIT"
-    # ) as conn:
-    #     conn.execute(sa.text('ALTER DATABASE "colandr_tmpl" IS_TEMPLATE FALSE'))
-    #     conn.execute(sa.text('DROP DATABASE IF EXISTS "colandr_tmpl"'))
-
     # create test database if it doesn't already exist
     if not sa_utils.database_exists(extensions.db.engine.url):
         sa_utils.create_database(extensions.db.engine.url)
@@ -115,14 +92,11 @@ def db(
 
     yield extensions.db
 
-    # sa_utils.drop_database(extensions.db.engine.url)
+    # NOTE: none of these cleanup commands work :/ it just hangs, and if you cancel it,
+    # the entire database could get borked owing to a duplicate template database
+    # so, let's leave test data in place, it's small and causes no harm
     # extensions.db.drop_all()
-
-    # NOTE: this doesn't work :/ the command just hangs, and if you cancel it,
-    # the entire database gets borked owing to a duplicate template database
-    # so, let's leave the test schema in place, it's small and causes no harm
-    # with extensions.db.engine.begin() as conn:
-    #     conn.execute(sa.schema.DropSchema("test", cascade=True, if_exists=True))
+    # sa_utils.drop_database(extensions.db.engine.url)
 
 
 def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
