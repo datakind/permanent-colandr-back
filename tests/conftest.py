@@ -20,7 +20,7 @@ from colandr.app import create_app
 TEST_DBNAME = "colandr_test"
 
 psql_noproc = psql_factories.postgresql_noproc(
-    host="colandr-db",
+    host=os.environ.get("COLANDR_DB_HOST", "colandr-db"),
     port=5432,
     user=os.environ["COLANDR_DB_USER"],
     password=os.environ["COLANDR_DB_PASSWORD"],
@@ -38,7 +38,7 @@ def app(tmp_path_factory):
         "SQLALCHEMY_DATABASE_URI": (
             "postgresql+psycopg://"
             f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
-            f"@colandr-db:5432/{TEST_DBNAME}"
+            f"@{os.environ.get('COLANDR_DB_HOST', 'colandr-db')}:5432/{TEST_DBNAME}"
         ),
         # this overrides the app db's default schema (None => "public")
         # so that we create a parallel schema for all unit testing data
