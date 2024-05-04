@@ -9,6 +9,7 @@ import flask_sqlalchemy
 import pytest
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
+import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
@@ -16,25 +17,7 @@ from colandr.apis import auth
 from colandr.app import create_app
 
 
-TEST_DB_SCHEMA = "test"
-
-
-def _init_db(**kwargs):
-    db_url = sa.URL.create(
-        drivername="postgresql+psycopg",
-        username=kwargs["user"],
-        password=kwargs["password"],
-        host=kwargs["host"],
-        port=kwargs["port"],
-        database=kwargs["dbname"],
-    )
-    engine = sa.create_engine(db_url)
-    # create test schema if it doesn't already exist
-    with engine.begin() as conn:
-        # conn.execute(sa.text('DROP DATABASE IF EXISTS "colandr_tmpl"'))
-        conn.execute(sa.schema.CreateSchema(TEST_DB_SCHEMA, if_not_exists=True))
-
-    extensions._BaseModel.metadata.create_all(engine)
+TEST_DBNAME = "colandr_test"
 
 
 psql_noproc = psql_factories.postgresql_noproc(
@@ -42,8 +25,8 @@ psql_noproc = psql_factories.postgresql_noproc(
     port=5432,
     user=os.environ["COLANDR_DB_USER"],
     password=os.environ["COLANDR_DB_PASSWORD"],
-    dbname=os.environ["COLANDR_DB_NAME"],
-    # load=[_init_db],
+    # dbname=os.environ["COLANDR_DB_NAME"],
+    dbname=TEST_DBNAME,
 )
 psql = psql_factories.postgresql("psql_noproc")
 
@@ -53,11 +36,16 @@ def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
     config_overrides = {
         "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": (
+            "postgresql+psycopg://"
+            f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
+            f"@colandr-db:5432/{TEST_DBNAME}"
+        ),
         # this overrides the app db's default schema (None => "public")
         # so that we create a parallel schema for all unit testing data
-        "SQLALCHEMY_ENGINE_OPTIONS": {
-            "execution_options": {"schema_translate_map": {None: TEST_DB_SCHEMA}}
-        },
+        # "SQLALCHEMY_ENGINE_OPTIONS": {
+        #     "execution_options": {"schema_translate_map": {None: TEST_DB_SCHEMA}}
+        # },
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
@@ -115,9 +103,10 @@ def db(
     # ) as conn:
     #     conn.execute(sa.text('ALTER DATABASE "colandr_tmpl" IS_TEMPLATE FALSE'))
     #     conn.execute(sa.text('DROP DATABASE IF EXISTS "colandr_tmpl"'))
-    # create test schema if it doesn't already exist
-    with extensions.db.engine.begin() as conn:
-        conn.execute(sa.schema.CreateSchema(TEST_DB_SCHEMA, if_not_exists=True))
+
+    # create test database if it doesn't already exist
+    if not sa_utils.database_exists(extensions.db.engine.url):
+        sa_utils.create_database(extensions.db.engine.url)
     # make sure we're starting fresh, tables-wise
     extensions.db.drop_all()
     extensions.db.create_all()
@@ -126,6 +115,7 @@ def db(
 
     yield extensions.db
 
+    # sa_utils.drop_database(extensions.db.engine.url)
     # extensions.db.drop_all()
 
     # NOTE: this doesn't work :/ the command just hangs, and if you cancel it,
