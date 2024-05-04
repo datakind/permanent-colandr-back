@@ -1,4 +1,5 @@
 import json
+import os
 import pathlib
 import shutil
 import typing as t
@@ -6,24 +7,26 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
+import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
+import sqlalchemy_utils as sa_utils
+from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
 from colandr.apis import auth
 from colandr.app import create_app
 
 
-# TODO: consider hacking on a solution that doesn't require a running psql db
-# for example, this almost but didn't quite work
-# import pytest_postgresql.factories
-# psql_proc = pytest_postgresql.factories.postgresql_proc(
-#     host="localhost",
-#     port=5432,
-#     user="colandr_app",
-#     password="PASSWORD",
-#     dbname="colandr",
-# )
-# psql_db = pytest_postgresql.factories.postgresql("psql_proc", dbname="colandr")
+TEST_DBNAME = "colandr_test"
+
+psql_noproc = psql_factories.postgresql_noproc(
+    host=os.environ.get("COLANDR_DB_HOST", "colandr-db"),
+    port=5432,
+    user=os.environ["COLANDR_DB_USER"],
+    password=os.environ["COLANDR_DB_PASSWORD"],
+    dbname=TEST_DBNAME,  # override os.environ["COLANDR_DB_NAME"]
+)
+psql = psql_factories.postgresql("psql_noproc")
 
 
 @pytest.fixture(scope="session")
@@ -31,6 +34,17 @@ def app(tmp_path_factory):
     """Create and configure a new app instance, once per test session."""
     config_overrides = {
         "TESTING": True,
+        # override db uri to point at test database
+        "SQLALCHEMY_DATABASE_URI": (
+            "postgresql+psycopg://"
+            f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
+            f"@{os.environ.get('COLANDR_DB_HOST', 'colandr-db')}:5432/{TEST_DBNAME}"
+        ),
+        # this overrides the app db's default schema (None => "public")
+        # so that we create a parallel schema for all unit testing data
+        # "SQLALCHEMY_ENGINE_OPTIONS": {
+        #     "execution_options": {"schema_translate_map": {None: TEST_DB_SCHEMA}}
+        # },
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
@@ -62,15 +76,27 @@ def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, t.Any]:
 @pytest.fixture(scope="session")
 def db(
     app: flask.Flask,
+    psql_noproc,
     seed_data_fpath: pathlib.Path,
     seed_data: dict[str, t.Any],
     request,
 ):
+    # create test database if it doesn't already exist
+    if not sa_utils.database_exists(extensions.db.engine.url):
+        sa_utils.create_database(extensions.db.engine.url)
+    # make sure we're starting fresh, tables-wise
     extensions.db.drop_all()
     extensions.db.create_all()
     _store_upload_files(app, seed_data, request)
     app.test_cli_runner().invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
-    return extensions.db
+
+    yield extensions.db
+
+    # NOTE: none of these cleanup commands work :/ it just hangs, and if you cancel it,
+    # the entire database could get borked owing to a duplicate template database
+    # so, let's leave test data in place, it's small and causes no harm
+    # extensions.db.drop_all()
+    # sa_utils.drop_database(extensions.db.engine.url)
 
 
 def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):

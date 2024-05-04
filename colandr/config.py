@@ -17,15 +17,7 @@ LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
 
 # sql database config
 SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
-# TODO: figure out how to properly set this setting in a way that works
-# from inside and outside docker
-# DB_USER = os.environ["COLANDR_DB_USER"]
-# DB_PASSWORD = os.environ["COLANDR_DB_PASSWORD"]
-# DB_HOST = os.environ["COLANDR_DB_HOST"]
-# DB_NAME = os.environ["COLANDR_DB_NAME"]
-# SQLALCHEMY_DATABASE_URI = (
-#     f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:5432/{DB_NAME}"
-# )
+SQLALCHEMY_ENGINE_OPTIONS = {}
 SQLALCHEMY_ECHO = False
 
 # celery+redis config

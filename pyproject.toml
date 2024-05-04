@@ -50,7 +50,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["httpx~=0.27.0", "mypy~=1.0", "pytest~=8.0", "ruff~=0.4.0"]
+dev = [
+  "httpx~=0.27.0",
+  "mypy~=1.0",
+  "pytest~=8.0",
+  "pytest-postgresql~=6.0",
+  "SQLAlchemy-Utils~=0.41.0",
+  "ruff~=0.4.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["colandr"]

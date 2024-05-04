@@ -1,3 +1,57 @@
+# App Management
+
+The colandr back-end Flask application includes a CLI with a few useful commands that may be invoked directly from inside the `colandr-api` container or via docker from outside the container (by prepending `docker exec -it colandr-api`).
+
+Information about all available commands and sub-commands can be had via the `--help` flag:
+
+```shell
+$ docker exec -it colandr-api flask --help
+```
+
+## Initialize and Migrate the Database
+
+To create the app's database structure -- tables, etc. -- then populate it with data from scratch, run
+
+```shell
+$ docker exec -it colandr-api flask db-create
+$ docker exec -it colandr-api flask db-seed --fpath /path/to/seed_data.json
+```
+
+Technically you can "db-create" whenever you like, but it only creates tables that don't already exist in the database; in contrast, running "db-seed" on an alread-populated database may run into duplicate data violations. To manually _reset_ an existing database by dropping and then re-creating all of its tables, do
+
+```shell
+$ docker exec -it colandr-api flask db-reset
+```
+
+**Warning:** You will lose all data stored in the database! So be sure to only run this command in development or testing environments.
+
+Database "revisions" are handled through [alembic](https://alembic.sqlalchemy.org/en/latest) using the [`flask-migrate`](https://flask-migrate.readthedocs.io) package. Any time you modify db models -- add a column, remove an index, etc. -- run the following command to generate a migration script:
+
+```shell
+$ docker exec -it colandr-api flask db migrate -m [DESCRIPTION]
+```
+
+Review and edit the auto-generated file in the `permanent-colandr-back/migrations/versions` directory, since Alembic doesn't necessarily account for every change you can make. When ready, apply the migration to the database:
+
+```shell
+$ docker exec -it colandr-api flask db upgrade
+```
+
+Lastly, be sure to add and commit the file into version control!
+
+
+## Unit Testing
+
+Unit tests are implemented and invoked using `pytest`. The test suite is run on the `colandr-api` container, like so:
+
+```shell
+$ docker exec -it colandr-api python -m pytest [OPTIONS]
+```
+
+
+---
+(old stuff)
+
 ## App and DB Management
 
 Most app+db management tasks are handled by the `manage.py` script, found at the top level of the `permanent-colandr-back` directory where the repository was cloned on disk. To get help on available commands, run the following:
