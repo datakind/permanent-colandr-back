@@ -20,9 +20,6 @@ from . import tasks, utils
 from .extensions import db
 
 
-# TODO: update relationship.lazy strategies
-# https://docs.sqlalchemy.org/en/20/changelog/whatsnew_20.html#new-write-only-relationship-strategy-supersedes-dynamic
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -316,11 +313,11 @@ class DataSource(db.Model):
             return self.source_type
 
     # relationships
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="data_source", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="data_source", lazy="write_only", passive_deletes=True
     )
 
     def __init__(self, source_type, source_name=None, source_url=None):
@@ -447,17 +444,16 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
+    # TODO: figure out how to make this into a write-only lazy relationship
+    # that works with a query used in the _exclude_reasons method
     screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening",
-        back_populates="study",
-        lazy="dynamic",
-        passive_deletes=True,
+        "Screening", back_populates="study", lazy="dynamic", passive_deletes=True
     )
     dedupe: M["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="study", lazy="joined", passive_deletes=True
+        "Dedupe", back_populates="study", lazy="select", passive_deletes=True
     )
     data_extraction: M["DataExtraction"] = sa_orm.relationship(
-        "DataExtraction", back_populates="study", lazy="joined", passive_deletes=True
+        "DataExtraction", back_populates="study", lazy="select", passive_deletes=True
     )
 
     def __repr__(self):
