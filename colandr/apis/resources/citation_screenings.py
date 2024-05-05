@@ -76,7 +76,9 @@ class CitationScreeningsResource(Resource):
                 f"{current_user} forbidden to get citation screenings for this review"
             )
         current_app.logger.debug("got %s", study)
-        screenings = study.screenings.filter_by(stage="citation")
+        screenings = db.session.execute(
+            study.screenings.select().filter_by(stage="citation")
+        ).scalars()
         # HACK: hide the consolidated (v2) screening schema from this api
         if fields and "citation_id" in fields:
             fields.append("study_id")
@@ -120,9 +122,12 @@ class CitationScreeningsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to delete citation screening for this review"
             )
-        screening = study.screenings.filter_by(
-            stage="citation", user_id=current_user.id
-        ).one_or_none()
+
+        screening = db.session.execute(
+            study.screenings.select().filter_by(
+                stage="citation", user_id=current_user.id
+            )
+        ).scalar_one_or_none()
         if not screening:
             return forbidden_error(
                 f"{current_user} has not screened {study}, so nothing to delete"
@@ -180,8 +185,11 @@ class CitationScreeningsResource(Resource):
                 user_id = args["user_id"]
         else:
             user_id = current_user.id
-        if study.screenings.filter_by(
-            stage="citation", user_id=current_user.id
+
+        if db.session.execute(
+            study.screenings.select().filter_by(
+                stage="citation", user_id=current_user.id
+            )
         ).one_or_none():
             return forbidden_error(f"{current_user} has already screened {study}")
 
@@ -193,7 +201,7 @@ class CitationScreeningsResource(Resource):
             args["status"],
             args["exclude_reasons"],
         )
-        study.screenings.append(screening)
+        study.screenings.add(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
         return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
@@ -230,13 +238,17 @@ class CitationScreeningsResource(Resource):
         if not study:
             return not_found_error(f"<Citation(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
-            screening = study.screenings.filter_by(
-                stage="citation", user_id=args["user_id"]
-            ).one_or_none()
+            screening = db.session.execute(
+                study.screenings.select().filter_by(
+                    stage="citation", user_id=args["user_id"]
+                )
+            ).scalar_one_or_none()
         else:
-            screening = study.screenings.filter_by(
-                stage="citation", user_id=current_user.id
-            ).one_or_none()
+            screening = db.session.execute(
+                study.screenings.select().filter_by(
+                    stage="citation", user_id=current_user.id
+                )
+            ).scalar_one_or_none()
         if not screening:
             return not_found_error(f"{current_user} has not screened this citation")
         if args["status"] == "excluded" and not args["exclude_reasons"]:

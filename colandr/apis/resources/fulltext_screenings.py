@@ -74,7 +74,9 @@ class FulltextScreeningsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to get fulltext screenings for this review"
             )
-        screenings = study.screenings.filter_by(stage="fulltext")
+        screenings = db.session.execute(
+            study.screenings.select().filter_by(stage="fulltext")
+        ).scalars()
         # HACK: hide the consolidated (v2) screening schema from this api
         if fields and "fulltext_id" in fields:
             fields.append("study_id")
@@ -117,9 +119,11 @@ class FulltextScreeningsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to delete fulltext screening for this review"
             )
-        screening = study.screenings.filter_by(
-            stage="fulltext", user_id=current_user.id
-        ).one_or_none()
+        screening = db.session.execute(
+            study.screenings.select().filter_by(
+                stage="fulltext", user_id=current_user.id
+            )
+        ).scalar_one_or_none()
         if not screening:
             return forbidden_error(
                 f"{current_user} has not screened {study}, so nothing to delete"
@@ -181,6 +185,14 @@ class FulltextScreeningsResource(Resource):
                 user_id = args["user_id"]
         else:
             user_id = current_user.id
+
+        if db.session.execute(
+            study.screenings.select().filter_by(
+                stage="fulltext", user_id=current_user.id
+            )
+        ).one_or_none():
+            return forbidden_error(f"{current_user} has already screened {study}")
+
         screening = models.Screening(
             user_id,
             study.review_id,
@@ -189,11 +201,7 @@ class FulltextScreeningsResource(Resource):
             args["status"],
             args["exclude_reasons"],
         )
-        if study.screenings.filter_by(
-            stage="fulltext", user_id=current_user.id
-        ).one_or_none():
-            return forbidden_error(f"{current_user} has already screened {study}")
-        study.screenings.append(screening)
+        study.screenings.add(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)
         return _convert_screening_v2_into_v1(ScreeningV2Schema().dump(screening))
@@ -230,13 +238,17 @@ class FulltextScreeningsResource(Resource):
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
-            screening = study.screenings.filter_by(
-                stage="fulltext", user_id=args["user_id"]
-            ).one_or_none()
+            screening = db.session.execute(
+                study.screenings.select().filter_by(
+                    stage="fulltext", user_id=args["user_id"]
+                )
+            ).scalar_one_or_none()
         else:
-            screening = study.screenings.filter_by(
-                stage="fulltext", user_id=current_user.id
-            ).one_or_none()
+            screening = db.session.execute(
+                study.screenings.select().filter_by(
+                    stage="fulltext", user_id=current_user.id
+                )
+            ).scalar_one_or_none()
         if not screening:
             return not_found_error(f"{current_user} has not screened this fulltext")
         if args["status"] == "excluded" and not args["exclude_reasons"]:

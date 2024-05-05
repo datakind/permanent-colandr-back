@@ -444,11 +444,10 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
-    # TODO: figure out how to make this into a write-only lazy relationship
-    # that works with a query used in the _exclude_reasons method
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="study", lazy="dynamic", passive_deletes=True
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="study", lazy="write_only", passive_deletes=True
     )
+
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="select", passive_deletes=True
     )
@@ -491,8 +490,9 @@ class Study(db.Model):
             set(
                 itertools.chain.from_iterable(
                     screening.exclude_reasons or []
-                    for screening in self.screenings
-                    if screening.stage == stage
+                    for screening in db.session.execute(
+                        self.screenings.select().filter_by(stage=stage)
+                    ).scalars()
                 )
             )
         )
