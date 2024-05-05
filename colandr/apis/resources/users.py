@@ -56,16 +56,9 @@ class UserResource(Resource):
     def get(self, id, fields):
         """get record for a single user by id"""
         current_user = jwtext.get_current_user()
-        if (
-            current_user.is_admin is False
-            and id != current_user.id
-            and any(
-                review.review_user_assoc.filter_by(user_id=id).one_or_none()
-                for review in current_user.reviews
-            )
-            is False
-        ):
+        if not _is_allowed(current_user, id, collaborators=True):
             return forbidden_error(f"{current_user} forbidden to get this user")
+
         user = db.session.get(models.User, id)
         if not user:
             return not_found_error(f"<User(id={id})> not found")
@@ -93,7 +86,7 @@ class UserResource(Resource):
     def delete(self, id):
         """delete record for a single user by id"""
         current_user = jwtext.get_current_user()
-        if id != current_user.id:
+        if not _is_allowed(current_user, id):
             return forbidden_error(f"{current_user} forbidden to delete this user")
         user = db.session.get(models.User, id)
         if not user:
@@ -124,7 +117,7 @@ class UserResource(Resource):
     def put(self, args, id):
         """modify record for a single user by id"""
         current_user = jwtext.get_current_user()
-        if current_user.is_admin is False and id != current_user.id:
+        if not _is_allowed(current_user, id):
             return forbidden_error(f"{current_user} forbidden to update this user")
         user = db.session.get(models.User, id)
         if not user:
@@ -229,3 +222,15 @@ class UsersResource(Resource):
         db.session.commit()
         current_app.logger.info("inserted %s", user)
         return UserSchema().dump(user)
+
+
+def _is_allowed(
+    current_user: models.User, user_id: int, *, collaborators: bool = False
+) -> bool:
+    is_allowed = current_user.is_admin or user_id == current_user.id
+    if collaborators:
+        is_allowed = is_allowed or any(
+            review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
+            for review in current_user.reviews
+        )
+    return is_allowed
