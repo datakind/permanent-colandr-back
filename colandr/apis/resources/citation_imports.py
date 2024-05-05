@@ -68,8 +68,10 @@ class CitationsImportsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to add citations to this review"
             )
-        results = review.imports.filter_by(record_type="citation")
-        return ImportSchema(many=True).dump(results.all())
+        results = db.session.execute(
+            review.imports.select().filter_by(record_type="citation")
+        )
+        return ImportSchema(many=True).dump(results.scalars().all())
 
     @ns.doc(
         params={

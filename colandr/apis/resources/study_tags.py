@@ -7,9 +7,9 @@ from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
 from webargs.flaskparser import use_kwargs
 
+from ... import models
 from ...extensions import db
 from ...lib import constants
-from ...models import Review, Study
 from ..errors import forbidden_error, not_found_error
 
 
@@ -53,7 +53,7 @@ class StudyTagsResource(Resource):
     def get(self, review_id):
         """get all distinct tags assigned to studies"""
         current_user = jwtext.get_current_user()
-        review = db.session.get(Review, review_id)
+        review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
@@ -66,6 +66,10 @@ class StudyTagsResource(Resource):
             return forbidden_error(
                 f"{current_user} forbidden to get study tags for this review"
             )
-        studies = review.studies.filter(Study.tags != []).with_entities(Study.tags)
+        studies = db.session.execute(
+            review.studies.select()
+            .filter(models.Study.tags != [])
+            .with_only_columns(models.Study.tags)
+        )
         current_app.logger.debug("got tags for %s", review)
         return sorted(set(itertools.chain.from_iterable(study[0] for study in studies)))
