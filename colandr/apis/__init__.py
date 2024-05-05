@@ -18,6 +18,21 @@ api_v1 = Api(
 )
 
 
+api_v2 = Api(
+    version="2.0",
+    prefix="/api/v2",
+    doc="/docs/v2",
+    default_mediatype="application/json",
+    title="colandr",
+    description="REST API (v2) powering the colandr app",
+    authorizations={
+        "api_key": {"type": "apiKey", "in": "header", "name": "Authorization"}
+        # NOTE: below style is for OpenAPI v3, which flask-restx doesn't yet support :/
+        # "access_token": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+    },
+    security="api_key",
+)
+
 from . import auth, health, swagger
 from .resources import (
     citation_imports,
