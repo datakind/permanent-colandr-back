@@ -13,6 +13,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DynamicMapped as DM
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import Mapped as M
+from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
 
 from . import tasks, utils
@@ -56,14 +57,14 @@ class User(db.Model):
     )
     reviews = association_proxy("review_user_assoc", "review")
 
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="user", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="user", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="user", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="user", lazy="write_only", passive_deletes=True
     )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="user", lazy="dynamic"
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="user", lazy="write_only", passive_deletes=True
     )
 
     def __repr__(self):
@@ -138,23 +139,23 @@ class Review(db.Model):
     review_plan: M["ReviewPlan"] = sa_orm.relationship(
         "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
     )
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="review", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="review", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="review", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="review", lazy="write_only", passive_deletes=True
     )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening",
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="review", lazy="write_only", passive_deletes=True
+    )
+    dedupes: WOM["Dedupe"] = sa_orm.relationship(
+        "Dedupe", back_populates="review", lazy="write_only", passive_deletes=True
+    )
+    data_extractions: WOM["DataExtraction"] = sa_orm.relationship(
+        "DataExtraction",
         back_populates="review",
-        lazy="dynamic",
+        lazy="write_only",
         passive_deletes=True,
-    )
-    dedupes: DM["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="review", lazy="dynamic", passive_deletes=True
-    )
-    data_extractions: DM["DataExtraction"] = sa_orm.relationship(
-        "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
     )
 
     def __init__(self, name, description=None):
@@ -360,13 +361,13 @@ class Import(db.Model):
         "Review", foreign_keys=[review_id], back_populates="imports", lazy="select"
     )
     user: M["User"] = sa_orm.relationship(
-        "User", foreign_keys=[user_id], back_populates="imports", lazy="subquery"
+        "User", foreign_keys=[user_id], back_populates="imports", lazy="select"
     )
     data_source: M["DataSource"] = sa_orm.relationship(
         "DataSource",
         foreign_keys=[data_source_id],
         back_populates="imports",
-        lazy="subquery",
+        lazy="select",
     )
 
     def __init__(
