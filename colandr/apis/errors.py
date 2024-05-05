@@ -6,7 +6,7 @@ from flask import current_app
 from werkzeug import exceptions
 from werkzeug.http import HTTP_STATUS_CODES
 
-from .api_v1 import api_v1
+from . import api_v1
 
 
 @api_v1.errorhandler(exceptions.HTTPException)
