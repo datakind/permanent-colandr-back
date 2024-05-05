@@ -103,19 +103,30 @@ class TestUserResource:
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 
-    @pytest.mark.parametrize("id_", [2, 3])
-    def test_delete(self, id_, app, client, admin_user, admin_headers, db_session):
+    @pytest.mark.parametrize(
+        ["current_user_id", "user_id"],
+        [(1, 2), (2, 3), (3, 3)],
+    )
+    def test_delete(
+        self,
+        current_user_id,
+        user_id,
+        app,
+        client,
+        admin_user,
+        db_session,
+    ):
         with app.test_request_context():
-            url = flask.url_for("users_user_resource", id=id_)
-        # only user can delete themself
-        response = client.delete(url, headers=admin_headers)
-        assert response.status_code == 403
-        # now we check it
-        user = db_session.get(models.User, id_)
-        user_headers = auth.pack_header_for_user(user)
-        flask.g.current_user = user
-        response = client.delete(url, headers=user_headers)
-        assert response.status_code == 204
+            url = flask.url_for("users_user_resource", id=user_id)
+        # set temporary current user
+        current_user = db_session.get(models.User, current_user_id)
+        current_user_headers = auth.pack_header_for_user(current_user)
+        flask.g.current_user = current_user
+        response = client.delete(url, headers=current_user_headers)
+        if current_user.is_admin or current_user.id == user_id:
+            assert response.status_code == 204
+        else:
+            assert response.status_code == 403
         # reset current user to admin
         flask.g.current_user = admin_user
 
