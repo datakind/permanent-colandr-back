@@ -60,17 +60,12 @@ class ReviewResource(Resource):
     def get(self, id, fields):
         """get record for a single review by id"""
         current_user = jwtext.get_current_user()
+        if not _is_allowed(current_user, id):
+            return forbidden_error(f"{current_user} forbidden to get this review")
         review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if (
-            not current_user.is_admin
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            return forbidden_error(f"{current_user} forbidden to get this review")
+
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
@@ -95,11 +90,12 @@ class ReviewResource(Resource):
     def delete(self, id):
         """delete record for a single review by id"""
         current_user = jwtext.get_current_user()
+        if not _is_allowed(current_user, id, members=False):
+            return forbidden_error(f"{current_user} forbidden to get this review")
         review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if not current_user.is_admin and current_user not in review.owners:
-            return forbidden_error(f"{current_user} forbidden to delete this review")
+
         db.session.delete(review)
         db.session.commit()
         current_app.logger.info("deleted %s", review)
@@ -133,11 +129,12 @@ class ReviewResource(Resource):
     def put(self, args, id):
         """modify record for a single review by id"""
         current_user = jwtext.get_current_user()
+        if not _is_allowed(current_user, id, members=False):
+            return forbidden_error(f"{current_user} forbidden to get this review")
         review = db.session.get(models.Review, id)
         if not review:
             return not_found_error(f"<Review(id={id})> not found")
-        if not current_user.is_admin and current_user not in review.owners:
-            return forbidden_error(f"{current_user} forbidden to update this review")
+
         for key, value in args.items():
             if key is missing:
                 continue
@@ -234,3 +231,23 @@ class ReviewsResource(Resource):
             except OSError:
                 pass  # TODO: fix this / the entire system for saving files to disk
         return ReviewSchema().dump(review)
+
+
+def _is_allowed(
+    current_user: models.User, review_id: int, *, members: bool = True
+) -> bool:
+    is_allowed = current_user.is_admin
+    if members:
+        is_allowed = (
+            is_allowed
+            or current_user.review_user_assoc.filter_by(
+                review_id=review_id
+            ).one_or_none()
+            is not None
+        )
+    else:
+        is_allowed = is_allowed or any(
+            review.id == review_id for review in current_user.owned_reviews
+        )
+
+    return is_allowed
