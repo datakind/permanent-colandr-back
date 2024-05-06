@@ -11,16 +11,13 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DynamicMapped as DM
-from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import Mapped as M
+from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
 
 from . import tasks, utils
 from .extensions import db
 
-
-# TODO: update relationship.lazy strategies
-# https://docs.sqlalchemy.org/en/20/changelog/whatsnew_20.html#new-write-only-relationship-strategy-supersedes-dynamic
 
 LOGGER = logging.getLogger(__name__)
 
@@ -47,23 +44,24 @@ class User(db.Model):
     is_admin: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
 
     # relationships
-    review_user_assoc: DM["ReviewUserAssoc"] = sa_orm.relationship(
+    review_user_assoc: WOM["ReviewUserAssoc"] = sa_orm.relationship(
         "ReviewUserAssoc",
         back_populates="user",
         cascade="all, delete",
-        lazy="dynamic",
+        lazy="write_only",
+        passive_deletes=True,
         order_by="ReviewUserAssoc.review_id",
     )
     reviews = association_proxy("review_user_assoc", "review")
 
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="user", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="user", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="user", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="user", lazy="write_only", passive_deletes=True
     )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="user", lazy="dynamic"
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="user", lazy="write_only", passive_deletes=True
     )
 
     def __repr__(self):
@@ -74,9 +72,40 @@ class User(db.Model):
         return [
             rua.review
             for rua in db.session.execute(
-                sa.select(ReviewUserAssoc).filter_by(user_id=self.id, user_role="owner")
+                self.review_user_assoc.select().filter_by(user_role="owner")
             ).scalars()
         ]
+
+    @property
+    def collaborators(self) -> list["User"]:
+        review_ids_cte = (
+            sa.select(ReviewUserAssoc.review_id)
+            .filter_by(user_id=self.id)
+            .cte(name="review_ids")
+        )
+        user_ids_cte = (
+            sa.select(ReviewUserAssoc.user_id)
+            .join(
+                review_ids_cte, ReviewUserAssoc.review_id == review_ids_cte.c.review_id
+            )
+            .group_by(ReviewUserAssoc.user_id)
+            .cte(name="user_ids")
+        )
+        stmt = (
+            sa.select(User)
+            .join(user_ids_cte, User.id == user_ids_cte.c.user_id)
+            .order_by(User.id)
+        )
+        return [user for user in db.session.execute(stmt).scalars() if user != self]
+        # return sorted(
+        #     set(
+        #         user
+        #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        #         for user in rua.review.users
+        #         if user != self
+        #     ),
+        #     key=lambda x: x.id,
+        # )
 
     @property
     def password(self) -> str:
@@ -138,23 +167,23 @@ class Review(db.Model):
     review_plan: M["ReviewPlan"] = sa_orm.relationship(
         "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
     )
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="review", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="review", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="review", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="review", lazy="write_only", passive_deletes=True
     )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening",
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="review", lazy="write_only", passive_deletes=True
+    )
+    dedupes: WOM["Dedupe"] = sa_orm.relationship(
+        "Dedupe", back_populates="review", lazy="write_only", passive_deletes=True
+    )
+    data_extractions: WOM["DataExtraction"] = sa_orm.relationship(
+        "DataExtraction",
         back_populates="review",
-        lazy="dynamic",
+        lazy="write_only",
         passive_deletes=True,
-    )
-    dedupes: DM["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="review", lazy="dynamic", passive_deletes=True
-    )
-    data_extractions: DM["DataExtraction"] = sa_orm.relationship(
-        "DataExtraction", back_populates="review", lazy="dynamic", passive_deletes=True
     )
 
     def __init__(self, name, description=None):
@@ -315,11 +344,11 @@ class DataSource(db.Model):
             return self.source_type
 
     # relationships
-    imports: DM["Import"] = sa_orm.relationship(
-        "Import", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="data_source", lazy="write_only", passive_deletes=True
     )
-    studies: DM["Study"] = sa_orm.relationship(
-        "Study", back_populates="data_source", lazy="dynamic", passive_deletes=True
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="data_source", lazy="write_only", passive_deletes=True
     )
 
     def __init__(self, source_type, source_name=None, source_url=None):
@@ -360,13 +389,13 @@ class Import(db.Model):
         "Review", foreign_keys=[review_id], back_populates="imports", lazy="select"
     )
     user: M["User"] = sa_orm.relationship(
-        "User", foreign_keys=[user_id], back_populates="imports", lazy="subquery"
+        "User", foreign_keys=[user_id], back_populates="imports", lazy="select"
     )
     data_source: M["DataSource"] = sa_orm.relationship(
         "DataSource",
         foreign_keys=[data_source_id],
         back_populates="imports",
-        lazy="subquery",
+        lazy="select",
     )
 
     def __init__(
@@ -446,17 +475,15 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
-    screenings: DM["Screening"] = sa_orm.relationship(
-        "Screening",
-        back_populates="study",
-        lazy="dynamic",
-        passive_deletes=True,
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening", back_populates="study", lazy="write_only", passive_deletes=True
     )
+
     dedupe: M["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="study", lazy="joined", passive_deletes=True
+        "Dedupe", back_populates="study", lazy="select", passive_deletes=True
     )
     data_extraction: M["DataExtraction"] = sa_orm.relationship(
-        "DataExtraction", back_populates="study", lazy="joined", passive_deletes=True
+        "DataExtraction", back_populates="study", lazy="select", passive_deletes=True
     )
 
     def __repr__(self):
@@ -494,8 +521,9 @@ class Study(db.Model):
             set(
                 itertools.chain.from_iterable(
                     screening.exclude_reasons or []
-                    for screening in self.screenings
-                    if screening.stage == stage
+                    for screening in db.session.execute(
+                        self.screenings.select().filter_by(stage=stage)
+                    ).scalars()
                 )
             )
         )
@@ -821,7 +849,7 @@ def _update_review_num_counts(
     old_status: str,
     status: str,
     review_id: int,
-    review_num_included_col: InstrumentedAttribute[int],
+    review_num_included_col: sa_orm.InstrumentedAttribute[int],
     review_num_included_col_str: str,
     connection,
 ):

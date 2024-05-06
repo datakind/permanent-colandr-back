@@ -60,8 +60,10 @@ class DataExtractionResource(Resource):
         # ):
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=extracted_data.review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=extracted_data.review_id
+                )
             ).one_or_none()
             is None
         ):
@@ -111,8 +113,10 @@ class DataExtractionResource(Resource):
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
-            current_user.review_user_assoc.filter_by(
-                review_id=extracted_data.review_id
+            db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=extracted_data.review_id
+                )
             ).one_or_none()
             is None
         ):
@@ -165,7 +169,9 @@ class DataExtractionResource(Resource):
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         review_id = extracted_data.review_id
         if (
-            current_user.review_user_assoc.filter_by(review_id=review_id).one_or_none()
+            db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
+            ).one_or_none()
             is None
         ):
             return forbidden_error(

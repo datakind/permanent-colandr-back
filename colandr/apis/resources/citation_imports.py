@@ -60,16 +60,18 @@ class CitationsImportsResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
         ):
             return forbidden_error(
                 f"{current_user} forbidden to add citations to this review"
             )
-        results = review.imports.filter_by(record_type="citation")
-        return ImportSchema(many=True).dump(results.all())
+        results = db.session.execute(
+            review.imports.select().filter_by(record_type="citation")
+        )
+        return ImportSchema(many=True).dump(results.scalars().all())
 
     @ns.doc(
         params={
@@ -160,8 +162,8 @@ class CitationsImportsResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
         ):

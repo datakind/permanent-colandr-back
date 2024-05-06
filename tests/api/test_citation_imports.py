@@ -1,13 +1,7 @@
 import flask
 import pytest
 
-# TODO: fix the citations imports API resource! when running test_post() here
-# within a nested db session, it raises a `sqlalchemy.orm.exc.DetachedInstanceError`
-# Instance <User> is not bound to a Session; attribute refresh operation cannot proceed
-# i think it's because of the engine created under the hood
 
-
-@pytest.mark.skip(reason="doesn't play nicely with other resource tests")
 @pytest.mark.usefixtures("db_session")
 class TestCitationsImportsResource:
     @pytest.mark.parametrize(
