@@ -11,7 +11,6 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DynamicMapped as DM
-from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
@@ -45,11 +44,12 @@ class User(db.Model):
     is_admin: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
 
     # relationships
-    review_user_assoc: DM["ReviewUserAssoc"] = sa_orm.relationship(
+    review_user_assoc: WOM["ReviewUserAssoc"] = sa_orm.relationship(
         "ReviewUserAssoc",
         back_populates="user",
         cascade="all, delete",
-        lazy="dynamic",
+        lazy="write_only",
+        passive_deletes=True,
         order_by="ReviewUserAssoc.review_id",
     )
     reviews = association_proxy("review_user_assoc", "review")
@@ -72,7 +72,7 @@ class User(db.Model):
         return [
             rua.review
             for rua in db.session.execute(
-                sa.select(ReviewUserAssoc).filter_by(user_id=self.id, user_role="owner")
+                self.review_user_assoc.select().filter_by(user_role="owner")
             ).scalars()
         ]
 
@@ -818,7 +818,7 @@ def _update_review_num_counts(
     old_status: str,
     status: str,
     review_id: int,
-    review_num_included_col: InstrumentedAttribute[int],
+    review_num_included_col: sa_orm.InstrumentedAttribute[int],
     review_num_included_col_str: str,
     connection,
 ):
