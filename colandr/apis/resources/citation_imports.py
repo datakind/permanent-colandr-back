@@ -60,8 +60,8 @@ class CitationsImportsResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
         ):
@@ -162,8 +162,8 @@ class CitationsImportsResource(Resource):
             return not_found_error(f"<Review(id={review_id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
         ):

@@ -240,8 +240,8 @@ def _is_allowed(
     if members:
         is_allowed = (
             is_allowed
-            or current_user.review_user_assoc.filter_by(
-                review_id=review_id
+            or db.session.execute(
+                current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is not None
         )

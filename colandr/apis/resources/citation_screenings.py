@@ -67,8 +67,10 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Study(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=study.review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
             ).one_or_none()
             is None
         ):
@@ -113,9 +115,10 @@ class CitationScreeningsResource(Resource):
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
         if (
-            current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=study.review_id
+            db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
             ).one_or_none()
             is None
         ):
@@ -165,8 +168,10 @@ class CitationScreeningsResource(Resource):
             return not_found_error(f"<Citation(id={id})> not found")
         if (
             current_user.is_admin is False
-            and current_user.review_user_assoc.filter_by(
-                review_id=study.review_id
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
             ).one_or_none()
             is None
         ):
@@ -337,8 +342,10 @@ class CitationsScreeningsResource(Resource):
                 return not_found_error(f"<Study(id={citation_id})> not found")
             if (
                 current_user.is_admin is False
-                and study.review.review_user_assoc.filter_by(
-                    user_id=current_user.id
+                and db.session.execute(
+                    study.review.review_user_assoc.select().filter_by(
+                        user_id=current_user.id
+                    )
                 ).one_or_none()
                 is None
             ):
@@ -367,8 +374,8 @@ class CitationsScreeningsResource(Resource):
                 return not_found_error(f"<Review(id={review_id})> not found")
             if (
                 current_user.is_admin is False
-                and review.review_user_assoc.filter_by(
-                    user_id=current_user.id
+                and db.session.execute(
+                    review.review_user_assoc.select().filter_by(user_id=current_user.id)
                 ).one_or_none()
                 is None
             ):
