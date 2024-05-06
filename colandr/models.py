@@ -77,6 +77,37 @@ class User(db.Model):
         ]
 
     @property
+    def collaborators(self) -> list["User"]:
+        review_ids_cte = (
+            sa.select(ReviewUserAssoc.review_id)
+            .filter_by(user_id=self.id)
+            .cte(name="review_ids")
+        )
+        user_ids_cte = (
+            sa.select(ReviewUserAssoc.user_id)
+            .join(
+                review_ids_cte, ReviewUserAssoc.review_id == review_ids_cte.c.review_id
+            )
+            .group_by(ReviewUserAssoc.user_id)
+            .cte(name="user_ids")
+        )
+        stmt = (
+            sa.select(User)
+            .join(user_ids_cte, User.id == user_ids_cte.c.user_id)
+            .order_by(User.id)
+        )
+        return [user for user in db.session.execute(stmt).scalars() if user != self]
+        # return sorted(
+        #     set(
+        #         user
+        #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        #         for user in rua.review.users
+        #         if user != self
+        #     ),
+        #     key=lambda x: x.id,
+        # )
+
+    @property
     def password(self) -> str:
         """User's (automatically hashed) password."""
         return self._password

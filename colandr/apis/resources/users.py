@@ -224,13 +224,30 @@ class UsersResource(Resource):
         return UserSchema().dump(user)
 
 
+# def _is_allowed(
+#     current_user: models.User, user_id: int, *, collaborators: bool = False
+# ) -> bool:
+#     is_allowed = current_user.is_admin or user_id == current_user.id
+#     if collaborators:
+#         is_allowed = is_allowed or any(
+#             review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
+#             for review in current_user.reviews
+#         )
+#     return is_allowed
+
+
 def _is_allowed(
-    current_user: models.User, user_id: int, *, collaborators: bool = False
+    current_user: models.User,
+    user_id: int,
+    *,
+    admins: bool = True,
+    collaborators: bool = False,
 ) -> bool:
-    is_allowed = current_user.is_admin or user_id == current_user.id
+    is_allowed = user_id == current_user.id
+    if admins:
+        is_allowed = is_allowed or current_user.is_admin
     if collaborators:
         is_allowed = is_allowed or any(
-            review.review_user_assoc.filter_by(user_id=user_id).one_or_none()
-            for review in current_user.reviews
+            user.id == user_id for user in current_user.collaborators
         )
     return is_allowed
