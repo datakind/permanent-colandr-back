@@ -15,7 +15,7 @@ from ... import models
 from ...extensions import db
 from ...lib import constants
 from ..errors import forbidden_error, not_found_error
-from ..schemas import ReviewSchema
+from ..schemas import ReviewSchema, ReviewV2Schema
 from ..swagger import review_model
 
 
@@ -138,11 +138,24 @@ class ReviewResource(Resource):
         for key, value in args.items():
             if key is missing:
                 continue
+            # HACK: allow setting old attributes, but convert them into new equivalents
+            elif key == "num_citation_screening_reviewers":
+                review.citation_reviewer_num_pcts = [{"num": value, "pct": 100}]
+            elif key == "num_fulltext_screening_reviewers":
+                review.fulltext_reviewer_num_pcts = [{"num": value, "pct": 100}]
             else:
                 setattr(review, key, value)
         db.session.commit()
         current_app.logger.info("modified %s", review)
-        return ReviewSchema().dump(review)
+        result = ReviewV2Schema().dump(review)
+        # HACK: hide the v2 schema (which matches the db) from the api
+        result["num_citation_screening_reviewers"] = result.pop(
+            "citation_reviewer_num_pcts"
+        )[0]["num"]
+        result["num_fulltext_screening_reviewers"] = result.pop(
+            "fulltext_reviewer_num_pcts"
+        )[0]["num"]
+        return result
 
 
 @ns.route("")
