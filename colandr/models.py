@@ -143,11 +143,11 @@ class Review(db.Model):
     name: M[str] = mapcol(sa.String(length=500))
     description: M[t.Optional[str]] = mapcol(sa.Text)
     status: M[str] = mapcol(sa.String(length=25), server_default="active")
-    num_citation_screening_reviewers: M[int] = mapcol(
-        sa.SmallInteger, server_default="1"
+    citation_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
-    num_fulltext_screening_reviewers: M[int] = mapcol(
-        sa.SmallInteger, server_default="1"
+    fulltext_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
     num_citations_included: M[int] = mapcol(sa.Integer, server_default="0")
     num_citations_excluded: M[int] = mapcol(sa.Integer, server_default="0")
@@ -461,6 +461,8 @@ class Study(db.Model):
     data_extraction_status: M[str] = mapcol(
         sa.String(length=20), server_default="not_started", index=True
     )
+    num_citation_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
+    num_fulltext_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
 
     # relationships
     user: M["User"] = sa_orm.relationship(
@@ -738,13 +740,13 @@ def update_study_status(mapper, connection, target):
     # prep stage-specific variables
     stage = target.stage
     if stage == "citation":
-        num_reviewers = study.review.num_citation_screening_reviewers
+        num_reviewers = study.num_citation_reviewers
         study_status_col = Study.citation_status
         study_status_col_str = "citation_status"
         review_num_included_col = Review.num_citations_included
         review_num_included_col_str = "num_citations_included"
     else:
-        num_reviewers = study.review.num_fulltext_screening_reviewers
+        num_reviewers = study.num_fulltext_reviewers
         study_status_col = Study.fulltext_status
         study_status_col_str = "fulltext_status"
         review_num_included_col = Review.num_fulltexts_included
