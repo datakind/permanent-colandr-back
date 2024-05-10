@@ -39,6 +39,8 @@ class TestReviewResource:
             (1, {"name": "NEW_REVIEW_NAME1"}, 200),
             (1, {"description": "NEW_DESCRIPTION1"}, 200),
             (2, {"name": "NEW_REVIEW_NAME2", "description": "NEW_DESCRIPTION2"}, 200),
+            (2, {"num_citation_screening_reviewers": 2}, 200),
+            (2, {"num_fulltext_screening_reviewers": 3}, 200),
             (999, {"name": "NEW_REVIEW_NAME999"}, 404),
         ],
     )
@@ -51,44 +53,6 @@ class TestReviewResource:
             data = response.json
             for key, val in params.items():
                 assert data.get(key) == val
-
-    @pytest.mark.parametrize(
-        ["id_", "params", "exp_key", "exp_val"],
-        [
-            (
-                1,
-                {"num_citation_screening_reviewers": 2},
-                "citation_reviewer_num_pcts",
-                [{"num": 2, "pct": 100}],
-            ),
-            (
-                1,
-                {"num_fulltext_screening_reviewers": 3},
-                "fulltext_reviewer_num_pcts",
-                [{"num": 3, "pct": 100}],
-            ),
-            (
-                1,
-                {
-                    "citation_reviewer_num_pcts": [
-                        {"num": 1, "pct": 75},
-                        {"num": 2, "pct": 25},
-                    ]
-                },
-                "citation_reviewer_num_pcts",
-                [{"num": 1, "pct": 75}, {"num": 2, "pct": 25}],
-            ),
-        ],
-    )
-    def test_put_reviewer_num_pcts(
-        self, id_, params, exp_key, exp_val, app, client, admin_headers
-    ):
-        with app.test_request_context():
-            url = flask.url_for("reviews_review_resource", id=id_)
-        response = client.put(url, json=params, headers=admin_headers)
-        assert response.status_code == 200
-        data = response.json
-        assert data.get(exp_key) == exp_val
 
     @pytest.mark.parametrize("id_", [1, 2])
     def test_delete(self, id_, app, client, admin_headers):

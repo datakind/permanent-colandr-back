@@ -148,13 +148,16 @@ class ReviewResource(Resource):
         db.session.commit()
         current_app.logger.info("modified %s", review)
         result = ReviewV2Schema().dump(review)
+        assert isinstance(result, dict)
         # HACK: hide the v2 schema (which matches the db) from the api
-        result["num_citation_screening_reviewers"] = result.pop(
-            "citation_reviewer_num_pcts"
-        )[0]["num"]
-        result["num_fulltext_screening_reviewers"] = result.pop(
-            "fulltext_reviewer_num_pcts"
-        )[0]["num"]
+        if result.get("citation_reviewer_num_pcts"):
+            result["num_citation_screening_reviewers"] = result.pop(
+                "citation_reviewer_num_pcts"
+            )[0]["num"]
+        if result.get("fulltext_reviewer_num_pcts"):
+            result["num_fulltext_screening_reviewers"] = result.pop(
+                "fulltext_reviewer_num_pcts"
+            )[0]["num"]
         return result
 
 
