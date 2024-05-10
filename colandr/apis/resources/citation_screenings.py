@@ -1,3 +1,5 @@
+import random
+
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
@@ -453,28 +455,25 @@ class CitationsScreeningsResource(Resource):
             "inserted %s citation screenings", len(screenings_to_insert)
         )
         # bulk update citation statuses
-        num_screeners = review.num_citation_screening_reviewers
-        study_ids = sorted(s["study_id"] for s in screenings_to_insert)
-        # results = db.session.query(models.Screening)\
-        #     .filter(models.Screening.study_id.in_(study_ids))
-        # studies_to_update = [
-        #     {'id': cid, 'citation_status': assign_status(list(scrns), num_screeners)}
-        #     for cid, scrns in itertools.groupby(results, attrgetter('citation_id'))
-        #     ]
-        with db.engine.connect() as connection:
-            query = """
-                SELECT study_id, ARRAY_AGG(status)
-                FROM screenings
-                WHERE study_id IN ({study_ids})
-                GROUP BY study_id
-                ORDER BY study_id
-                """.format(study_ids=",".join(str(cid) for cid in study_ids))
-            results = connection.execute(sa.text(query))
+        study_ids: list[int] = sorted(s["study_id"] for s in screenings_to_insert)
+        study_num_citation_reviewers: list[int] = random.choices(
+            [num_pct["num"] for num_pct in review.citation_reviewer_num_pcts],
+            weights=[num_pct["pct"] for num_pct in review.citation_reviewer_num_pcts],
+            k=len(study_ids),
+        )
+        results = db.session.execute(
+            sa.select(
+                models.Screening.study_id, sa.func.array_agg(models.Screening.status)
+            )
+            .where(models.Screening.stage == "citation")
+            .where(models.Screening.study_id == sa.any_(study_ids))
+            .group_by(models.Screening.study_id)
+            .order_by(models.Screening.study_id)
+        )
         studies_to_update = [
-            {"id": row[0], "citation_status": assign_status(row[1], num_screeners)}
-            for row in results
+            {"id": row[0], "citation_status": assign_status(row[1], num_reviewers)}
+            for row, num_reviewers in zip(results, study_num_citation_reviewers)
         ]
-
         db.session.execute(sa.update(models.Study), studies_to_update)
         db.session.commit()
         current_app.logger.info(
@@ -484,7 +483,6 @@ class CitationsScreeningsResource(Resource):
         status_counts_stmt = (
             sa.select(models.Study.citation_status, db.func.count(1))
             .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-            # .filter(models.Study.citation_status.in_(["included", "excluded"]))
             .filter(models.Study.citation_status == sa.any_(["included", "excluded"]))
             .group_by(models.Study.citation_status)
         )
