@@ -207,7 +207,8 @@ class ReviewsResource(Resource):
             reviews = current_user.reviews
         if fields and "id" not in fields:
             fields.append("id")
-        return ReviewSchema(only=fields, many=True).dump(reviews)
+        # return ReviewSchema(only=fields, many=True).dump(reviews)
+        return [_convert_review_v2_into_v1(review) for review in reviews]
 
     @ns.doc(
         expect=(review_model, "review data to be created"),
@@ -237,7 +238,8 @@ class ReviewsResource(Resource):
                 os.makedirs(dirname, exist_ok=True)
             except OSError:
                 pass  # TODO: fix this / the entire system for saving files to disk
-        return ReviewSchema().dump(review)
+        # return ReviewSchema().dump(review)
+        return _convert_review_v2_into_v1(review)
 
 
 def _is_allowed(
