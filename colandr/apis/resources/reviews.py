@@ -69,7 +69,8 @@ class ReviewResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
-        return ReviewSchema(only=fields).dump(review)
+        # return ReviewSchema(only=fields).dump(review)
+        return _convert_review_v2_into_v1(review, fields)
 
     @ns.doc(
         responses={
@@ -147,18 +148,8 @@ class ReviewResource(Resource):
                 setattr(review, key, value)
         db.session.commit()
         current_app.logger.info("modified %s", review)
-        result = ReviewV2Schema().dump(review)
-        assert isinstance(result, dict)
-        # HACK: hide the v2 schema (which matches the db) from the api
-        if result.get("citation_reviewer_num_pcts"):
-            result["num_citation_screening_reviewers"] = result.pop(
-                "citation_reviewer_num_pcts"
-            )[0]["num"]
-        if result.get("fulltext_reviewer_num_pcts"):
-            result["num_fulltext_screening_reviewers"] = result.pop(
-                "fulltext_reviewer_num_pcts"
-            )[0]["num"]
-        return result
+        # return ReviewSchema().dump(review)
+        return _convert_review_v2_into_v1(review)
 
 
 @ns.route("")
@@ -267,3 +258,17 @@ def _is_allowed(
         )
 
     return is_allowed
+
+
+def _convert_review_v2_into_v1(review, fields=None) -> dict:
+    record = ReviewV2Schema(only=fields).dump(review)
+    assert isinstance(record, dict)
+    if record.get("citation_reviewer_num_pcts"):
+        record["num_citation_screening_reviewers"] = record.pop(
+            "citation_reviewer_num_pcts"
+        )[0]["num"]
+    if record.get("fulltext_reviewer_num_pcts"):
+        record["num_fulltext_screening_reviewers"] = record.pop(
+            "fulltext_reviewer_num_pcts"
+        )[0]["num"]
+    return record
