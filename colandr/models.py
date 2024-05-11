@@ -11,7 +11,6 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import DynamicMapped as DM
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
@@ -374,7 +373,7 @@ class Import(db.Model):
     )
 
     def __repr__(self):
-        return f"<Import(id={self.id})>"
+        return f"<Import(id={self.id}, review_id={self.review_id})>"
 
 
 class Study(db.Model):
@@ -454,7 +453,7 @@ class Study(db.Model):
     )
 
     def __repr__(self):
-        return f"<Study(id={self.id})>"
+        return f"<Study(id={self.id}, review_id={self.review_id})>"
 
     @hybrid_property
     def citation_text_content(self):
@@ -562,7 +561,9 @@ class Screening(db.Model):
     )
 
     def __repr__(self):
-        return f"<Screening(study_id={self.study_id}, stage={self.stage})>"
+        return (
+            f"<Screening(id={self.id}, study_id={self.study_id}, stage={self.stage})>"
+        )
 
 
 class Dedupe(db.Model):
@@ -597,7 +598,7 @@ class Dedupe(db.Model):
     )
 
     def __repr__(self):
-        return f"<Dedupe(study_id={self.study_id})>"
+        return f"<Dedupe(id={self.id}, study_id={self.study_id})>"
 
 
 class DataExtraction(db.Model):
@@ -651,7 +652,7 @@ class DataExtraction(db.Model):
         self.extracted_items = extracted_items
 
     def __repr__(self):
-        return f"<DataExtraction(study_id={self.study_id})>"
+        return f"<DataExtraction(id={self.id}, study_id={self.study_id})>"
 
 
 # EVENTS
