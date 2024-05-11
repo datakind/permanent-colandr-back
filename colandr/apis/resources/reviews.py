@@ -15,7 +15,7 @@ from ... import models
 from ...extensions import db
 from ...lib import constants
 from ..errors import forbidden_error, not_found_error
-from ..schemas import ReviewSchema
+from ..schemas import ReviewSchema, ReviewV2Schema
 from ..swagger import review_model
 
 
@@ -69,7 +69,8 @@ class ReviewResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
         current_app.logger.debug("got %s", review)
-        return ReviewSchema(only=fields).dump(review)
+        # return ReviewSchema(only=fields).dump(review)
+        return _convert_review_v2_into_v1(review, fields)
 
     @ns.doc(
         responses={
@@ -138,11 +139,17 @@ class ReviewResource(Resource):
         for key, value in args.items():
             if key is missing:
                 continue
+            # HACK: allow setting old attributes, but convert them into new equivalents
+            elif key == "num_citation_screening_reviewers":
+                review.citation_reviewer_num_pcts = [{"num": value, "pct": 100}]
+            elif key == "num_fulltext_screening_reviewers":
+                review.fulltext_reviewer_num_pcts = [{"num": value, "pct": 100}]
             else:
                 setattr(review, key, value)
         db.session.commit()
         current_app.logger.info("modified %s", review)
-        return ReviewSchema().dump(review)
+        # return ReviewSchema().dump(review)
+        return _convert_review_v2_into_v1(review)
 
 
 @ns.route("")
@@ -200,7 +207,8 @@ class ReviewsResource(Resource):
             reviews = current_user.reviews
         if fields and "id" not in fields:
             fields.append("id")
-        return ReviewSchema(only=fields, many=True).dump(reviews)
+        # return ReviewSchema(only=fields, many=True).dump(reviews)
+        return [_convert_review_v2_into_v1(review) for review in reviews]
 
     @ns.doc(
         expect=(review_model, "review data to be created"),
@@ -230,7 +238,8 @@ class ReviewsResource(Resource):
                 os.makedirs(dirname, exist_ok=True)
             except OSError:
                 pass  # TODO: fix this / the entire system for saving files to disk
-        return ReviewSchema().dump(review)
+        # return ReviewSchema().dump(review)
+        return _convert_review_v2_into_v1(review)
 
 
 def _is_allowed(
@@ -251,3 +260,17 @@ def _is_allowed(
         )
 
     return is_allowed
+
+
+def _convert_review_v2_into_v1(review, fields=None) -> dict:
+    record = ReviewV2Schema(only=fields).dump(review)
+    assert isinstance(record, dict)
+    if record.get("citation_reviewer_num_pcts"):
+        record["num_citation_screening_reviewers"] = record.pop(
+            "citation_reviewer_num_pcts"
+        )[0]["num"]
+    if record.get("fulltext_reviewer_num_pcts"):
+        record["num_fulltext_screening_reviewers"] = record.pop(
+            "fulltext_reviewer_num_pcts"
+        )[0]["num"]
+    return record

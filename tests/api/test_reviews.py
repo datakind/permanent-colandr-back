@@ -39,6 +39,8 @@ class TestReviewResource:
             (1, {"name": "NEW_REVIEW_NAME1"}, 200),
             (1, {"description": "NEW_DESCRIPTION1"}, 200),
             (2, {"name": "NEW_REVIEW_NAME2", "description": "NEW_DESCRIPTION2"}, 200),
+            (2, {"num_citation_screening_reviewers": 2}, 200),
+            (2, {"num_fulltext_screening_reviewers": 3}, 200),
             (999, {"name": "NEW_REVIEW_NAME999"}, 404),
         ],
     )

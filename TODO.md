@@ -7,4 +7,5 @@
 - [ ] Improve and extend NLP functionality, just across the board
 - [ ] Enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
 - [ ] Add a "deduplicate" button to front-end interface and only run dedupe jobs upon request
-- [ ] Allow for requiring multiple screeners on a configurable percentage of studies (for "rapid review" style projects)
+- [x] Allow for requiring multiple screeners on a configurable percentage of studies (for "rapid review" style projects)
+- [ ] Add filtering studies by number of citation/fulltext reviewers

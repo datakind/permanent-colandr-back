@@ -28,6 +28,11 @@ class DataSourceSchema(Schema):
     source_type_and_name = fields.Str(dump_only=True)
 
 
+class ReviewerNumPct(Schema):
+    num = fields.Int(required=True, validate=Range(min=1, max=3))
+    pct = fields.Int(required=True, validate=Range(min=0, max=100))
+
+
 class ReviewSchema(Schema):
     id = fields.Int(dump_only=True)
     created_at = fields.DateTime(dump_only=True, format="iso")
@@ -35,8 +40,19 @@ class ReviewSchema(Schema):
     name = fields.Str(required=True, validate=Length(max=500))
     description = fields.Str(load_default=None)
     status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
-    num_citation_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
-    num_fulltext_screening_reviewers = fields.Int(validate=Range(min=1, max=2))
+    num_citation_screening_reviewers = fields.Int(validate=Range(min=1, max=3))
+    num_fulltext_screening_reviewers = fields.Int(validate=Range(min=1, max=3))
+
+
+class ReviewV2Schema(Schema):
+    id = fields.Int(dump_only=True)
+    created_at = fields.DateTime(dump_only=True, format="iso")
+    updated_at = fields.DateTime(dump_only=True, format="iso")
+    name = fields.Str(required=True, validate=Length(max=500))
+    description = fields.Str(load_default=None)
+    status = fields.Str(validate=OneOf(constants.REVIEW_STATUSES))
+    citation_reviewer_num_pcts = fields.List(fields.Nested(ReviewerNumPct))
+    fulltext_reviewer_num_pcts = fields.List(fields.Nested(ReviewerNumPct))
 
 
 class ReviewPlanPICO(Schema):

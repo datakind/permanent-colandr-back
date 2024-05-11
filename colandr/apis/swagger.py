@@ -34,11 +34,34 @@ data_source_model = ns.model(
     },
 )
 
+reviewer_num_pct_model = ns.model(
+    "ReviewerNumPct",
+    {"num": fields.Integer(min=1, max=3), "pct": fields.Integer(min=0, max=100)},
+)
+
 review_model = ns.model(
     "Review",
     {
         "name": fields.String(required=True, max_length=500),
         "description": fields.String,
+        "status": fields.String,
+        "num_citation_screening_reviewers": fields.Integer(min=1, max=3),
+        "num_fulltext_screening_reviewers": fields.Integer(min=1, max=3),
+    },
+)
+
+review_v2_model = ns.model(
+    "ReviewV2",
+    {
+        "name": fields.String(required=True, max_length=500),
+        "description": fields.String,
+        "status": fields.String,
+        "citation_reviewer_num_pcts": fields.List(
+            fields.Nested(reviewer_num_pct_model)
+        ),
+        "fulltext_reviewer_num_pcts": fields.List(
+            fields.Nested(reviewer_num_pct_model)
+        ),
     },
 )
 
@@ -113,7 +136,7 @@ review_plan_model = ns.model(
         "data_extraction_form": fields.List(
             fields.Nested(data_extraction_form_item_model)
         ),
-    }
+    },
     # 'suggested_keyterms': fields.Nested(review_plan_suggested_keyterms)}  # not user-set
 )
 

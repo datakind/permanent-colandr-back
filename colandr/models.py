@@ -1,6 +1,7 @@
 import datetime
 import itertools
 import logging
+import random
 import typing as t
 
 import sqlalchemy as sa
@@ -143,11 +144,11 @@ class Review(db.Model):
     name: M[str] = mapcol(sa.String(length=500))
     description: M[t.Optional[str]] = mapcol(sa.Text)
     status: M[str] = mapcol(sa.String(length=25), server_default="active")
-    num_citation_screening_reviewers: M[int] = mapcol(
-        sa.SmallInteger, server_default="1"
+    citation_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
-    num_fulltext_screening_reviewers: M[int] = mapcol(
-        sa.SmallInteger, server_default="1"
+    fulltext_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
     num_citations_included: M[int] = mapcol(sa.Integer, server_default="0")
     num_citations_excluded: M[int] = mapcol(sa.Integer, server_default="0")
@@ -461,6 +462,8 @@ class Study(db.Model):
     data_extraction_status: M[str] = mapcol(
         sa.String(length=20), server_default="not_started", index=True
     )
+    num_citation_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
+    num_fulltext_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
 
     # relationships
     user: M["User"] = sa_orm.relationship(
@@ -720,6 +723,70 @@ def insert_review_plan(mapper, connection, target):
     LOGGER.info("inserted %s and %s", target, review_plan)
 
 
+@sa_event.listens_for(Review, "after_update")
+def update_study_num_reviewers(mapper, connection, target):
+    review_id = target.id
+    study_id_updates: dict[int, dict[str, int]] = {}
+    # randomly assign num citation reviewers for unscreened studies
+    citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
+    study_ids: list[int] = (
+        connection.execute(
+            sa.select(Study.id).filter_by(
+                review_id=review_id, citation_status="not_screened"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if study_ids:
+        study_num_citation_reviewers: list[int] = random.choices(
+            [num_pct["num"] for num_pct in citation_reviewer_num_pcts],
+            weights=[num_pct["pct"] for num_pct in citation_reviewer_num_pcts],
+            k=len(study_ids),
+        )
+        study_id_updates |= {
+            id_: {"num_citation_reviewers": num_citation_reviewers}
+            for id_, num_citation_reviewers in zip(
+                study_ids, study_num_citation_reviewers
+            )
+        }
+    # randomly assign num fulltext reviewers for unscreened studies
+    fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
+    study_ids: list[int] = (
+        connection.execute(
+            sa.select(Study.id).filter_by(
+                review_id=review_id, fulltext_status="not_screened"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if study_ids:
+        study_num_fulltext_reviewers: list[int] = random.choices(
+            [num_pct["num"] for num_pct in fulltext_reviewer_num_pcts],
+            weights=[num_pct["pct"] for num_pct in fulltext_reviewer_num_pcts],
+            k=len(study_ids),
+        )
+        study_id_updates |= {
+            id_: {"num_fulltext_reviewers": num_fulltext_reviewers}
+            for id_, num_fulltext_reviewers in zip(
+                study_ids, study_num_fulltext_reviewers
+            )
+        }
+    # munge updates into form required for sqlalchemy bulk update, submit all together
+    if study_id_updates:
+        studies_to_update = [
+            {"id": id_} | num_reviewers_updated
+            for id_, num_reviewers_updated in study_id_updates.items()
+        ]
+        _ = db.session.execute(sa.update(Study), studies_to_update)
+        LOGGER.info(
+            "updated num reviewer counts on %s studies for %s",
+            len(studies_to_update),
+            target,
+        )
+
+
 @sa_event.listens_for(Screening, "after_insert")
 @sa_event.listens_for(Screening, "after_delete")
 @sa_event.listens_for(Screening, "after_update")
@@ -738,13 +805,13 @@ def update_study_status(mapper, connection, target):
     # prep stage-specific variables
     stage = target.stage
     if stage == "citation":
-        num_reviewers = study.review.num_citation_screening_reviewers
+        num_reviewers = study.num_citation_reviewers
         study_status_col = Study.citation_status
         study_status_col_str = "citation_status"
         review_num_included_col = Review.num_citations_included
         review_num_included_col_str = "num_citations_included"
     else:
-        num_reviewers = study.review.num_fulltext_screening_reviewers
+        num_reviewers = study.num_fulltext_reviewers
         study_status_col = Study.fulltext_status
         study_status_col_str = "fulltext_status"
         review_num_included_col = Review.num_fulltexts_included
