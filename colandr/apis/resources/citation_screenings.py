@@ -201,13 +201,13 @@ class CitationScreeningsResource(Resource):
             return forbidden_error(f"{current_user} has already screened {study}")
 
         screening = models.Screening(
-            user_id,
-            study.review_id,
-            id,
-            "citation",
-            args["status"],
-            args["exclude_reasons"],
-        )
+            user_id=user_id,
+            review_id=study.review_id,
+            study_id=id,
+            stage="citation",
+            status=args["status"],
+            exclude_reasons=args["exclude_reasons"],
+        )  # type: ignore
         study.screenings.add(screening)
         db.session.commit()
         current_app.logger.info("inserted %s", screening)

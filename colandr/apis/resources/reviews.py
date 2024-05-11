@@ -220,7 +220,7 @@ class ReviewsResource(Resource):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
-        review = models.Review(name=name, **args)
+        review = models.Review(name=name, **args)  # type: ignore
         # TODO: do we want to allow admins to set other users as owners?
         review.review_user_assoc.append(
             models.ReviewUserAssoc(review, current_user, "owner")

@@ -667,7 +667,7 @@ class DataExtraction(db.Model):
 
 @sa_event.listens_for(Review, "after_insert")
 def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(id=target.id)
+    review_plan = ReviewPlan(id=target.id)  # type: ignore
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
 
