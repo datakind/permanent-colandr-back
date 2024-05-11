@@ -17,7 +17,7 @@ class TestBibTex:
             "example-zotero.bib",
         ],
     )
-    def test_read(self, file_name, app, request):
+    def test_read(self, file_name, app_ctx, request):
         fixtures_dir: pathlib.Path = request.config.rootpath / "tests" / "fixtures"
         file_path = fixtures_dir / file_name
         citations = bibtex.read(file_path)
