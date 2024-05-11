@@ -18,7 +18,9 @@ class TestRisFile:
         ],
     )
     def test_read(self, file_name, app_ctx, request):
-        fixtures_dir: pathlib.Path = request.config.rootpath / "tests" / "fixtures"
+        fixtures_dir: pathlib.Path = (
+            request.config.rootpath / "tests" / "fixtures" / "citations"
+        )
         file_path = fixtures_dir / file_name
         citations = ris.read(file_path)
         with (fixtures_dir / "example-citations.json").open(mode="r") as f:

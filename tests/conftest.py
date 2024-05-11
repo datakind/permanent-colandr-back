@@ -114,6 +114,7 @@ def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
             request.config.rootpath
             / "tests"
             / "fixtures"
+            / "fulltexts"
             / record["fulltext"]["original_filename"]
         )
         tgt_file_path = pathlib.Path(app.config["FULLTEXT_UPLOADS_DIR"]).joinpath(

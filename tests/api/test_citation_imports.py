@@ -31,7 +31,7 @@ class TestCitationsImportsResource:
                 "citation_imports_citations_imports_resource", **(params or {})
             )
         dir_path = request.config.rootpath
-        file_path = dir_path / "tests" / "fixtures" / file_name
+        file_path = dir_path / "tests" / "fixtures" / "citations" / file_name
         files = {"uploaded_file": (open(file_path, mode="rb"), file_path)}
         response = client.post(url, data=files, headers=admin_headers)
         assert response.status_code == 200
