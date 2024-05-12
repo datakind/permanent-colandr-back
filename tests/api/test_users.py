@@ -107,15 +107,17 @@ class TestUserResource:
             (3, 3),
         ],
     )
-    def test_delete(self, current_user_id, user_id, app, client, db_session):
+    def test_delete(
+        self, current_user_id, user_id, app, client, db_session, admin_headers
+    ):
         with app.test_request_context():
             url = flask.url_for("users_user_resource", id=user_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.delete(
-                    url, headers=auth.pack_header_for_user(current_user)
-                )
-        assert response.status_code == 204
+                headers = auth.pack_header_for_user(current_user)
+                response = client.delete(url, headers=headers)
+                assert response.status_code == 204
+        assert client.get(url, headers=admin_headers).status_code == 404  # not found!
 
     @pytest.mark.parametrize(
         ["current_user_id", "user_id", "status_code"],
