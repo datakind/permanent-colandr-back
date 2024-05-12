@@ -220,6 +220,21 @@ class ReviewsResource(Resource):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
+        # HACK: convert from v1 to v2 review schema here
+        if "num_citation_screening_reviewers" in args:
+            args["citation_reviewer_num_pcts"] = [
+                {
+                    "num": args.pop("num_citation_screening_reviewers"),
+                    "pct": 100,
+                }
+            ]
+        if "num_fulltext_screening_reviewers" in args:
+            args["fulltext_reviewer_num_pcts"] = [
+                {
+                    "num": args.pop("num_fulltext_screening_reviewers"),
+                    "pct": 100,
+                }
+            ]
         review = models.Review(name=name, **args)  # type: ignore
         # TODO: do we want to allow admins to set other users as owners?
         review.review_user_assoc.append(
