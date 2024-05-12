@@ -247,7 +247,7 @@ class TestUsersResource:
         # sequence isn't made aware of it; so, we need to manually bump the start value
         # so that this created user isn't assigned id=1, which is already in use
         # and so violates a unique constraint. seems crazy, but here we are
-        db_session.execute(sa.text("ALTER SEQUENCE users_id_seq RESTART WITH 5"))
+        db_session.execute(sa.text("ALTER SEQUENCE users_id_seq RESTART WITH 6"))
         with app.test_request_context():
             url = flask.url_for("users_users_resource")
         response = client.post(url, json=data, headers=admin_headers)

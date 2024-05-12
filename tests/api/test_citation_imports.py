@@ -1,5 +1,6 @@
 import flask
 import pytest
+import sqlalchemy as sa
 
 
 @pytest.mark.usefixtures("db_session")
@@ -25,7 +26,14 @@ class TestCitationsImportsResource:
             ),
         ],
     )
-    def test_post(self, params, file_name, app, client, admin_headers, request):
+    def test_post(
+        self, params, file_name, app, client, db_session, admin_headers, request
+    ):
+        # NOTE: we specify user ids in the seed data, but apparently the auto-increment
+        # sequence isn't made aware of it; so, we need to manually bump the start value
+        # so that this created user isn't assigned id=1, which is already in use
+        # and so violates a unique constraint. seems crazy, but here we are
+        db_session.execute(sa.text("ALTER SEQUENCE studies_id_seq RESTART WITH 5"))
         with app.test_request_context():
             url = flask.url_for(
                 "citation_imports_citations_imports_resource", **(params or {})
