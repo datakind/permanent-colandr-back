@@ -65,13 +65,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to get this study")
         if fields and "id" not in fields:
             fields.append("id")
@@ -100,13 +94,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
         db.session.commit()
@@ -137,13 +125,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():
             if key == "data_extraction_status":
@@ -521,3 +503,17 @@ class StudiesResource(Resource):
             return StudySchema(many=True, only=fields).dump(
                 sorted_results[offset : offset + per_page]
             )
+
+
+def _is_allowed(current_user: models.User, review_id: int) -> bool:
+    is_allowed = current_user.is_admin
+    is_allowed = (
+        is_allowed
+        or db.session.execute(
+            sa.select(models.ReviewUserAssoc).filter_by(
+                user_id=current_user.id, review_id=review_id
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
+    return is_allowed
