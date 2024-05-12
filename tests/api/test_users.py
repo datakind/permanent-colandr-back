@@ -1,7 +1,7 @@
 import flask
 import pytest
+import sqlalchemy as sa
 
-from colandr import models
 from colandr.apis import auth
 
 from .. import helpers
@@ -184,15 +184,14 @@ class TestUserResource:
 @pytest.mark.usefixtures("db_session")
 class TestUsersResource:
     @pytest.mark.parametrize(
-        ["email", "review_id", "num_exp"],
+        ["email", "review_id", "user_ids"],
         [
             ("name1@example.com", None, 1),
-            ("name2@example.com", 1, 1),
-            # TODO: figure out the user<=>review mapping in seed data
-            # (None, 1, 2),
+            ("name2@example.com", 1, 2),
+            (None, 1, [1, 2, 3]),
         ],
     )
-    def test_get(self, email, review_id, num_exp, app, client, admin_headers):
+    def test_get(self, email, review_id, user_ids, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
                 "users_users_resource", email=email, review_id=review_id
@@ -203,18 +202,50 @@ class TestUsersResource:
         assert data
         if email is not None:
             assert isinstance(data, dict)
+            assert data["id"] == user_ids
             assert data["email"] == email
         elif review_id is not None:
             assert isinstance(data, list)
-            assert len(data) == num_exp
+            assert [user["id"] for user in data] == user_ids
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "email", "review_id", "status_code"],
+        [
+            (1, "name999@example.com", None, 404),
+            (1, None, 999, 404),
+            (4, None, 1, 403),
+        ],
+    )
+    def test_get_errors(
+        self, current_user_id, email, review_id, status_code, app, client, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for(
+                "users_users_resource", email=email, review_id=review_id
+            )
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.get(
+                    url, headers=auth.pack_header_for_user(current_user)
+                )
+        assert response.status_code == status_code
 
     @pytest.mark.parametrize(
         "data",
         [
-            {"name": "NAMEX", "email": "namex@example.net", "password": "PASSWORD"},
+            {
+                "name": "NAMEX",
+                "email": "namex@example.net",
+                "password": "PASSWORDX",
+            },
         ],
     )
-    def test_post(self, data, app, client, admin_headers):
+    def test_post(self, data, app, client, db_session, admin_headers):
+        # NOTE: we specify user ids in the seed data, but apparently the auto-increment
+        # sequence isn't made aware of it; so, we need to manually bump the start value
+        # so that this created user isn't assigned id=1, which is already in use
+        # and so violates a unique constraint. seems crazy, but here we are
+        db_session.execute(sa.text("ALTER SEQUENCE users_id_seq RESTART WITH 5"))
         with app.test_request_context():
             url = flask.url_for("users_users_resource")
         response = client.post(url, json=data, headers=admin_headers)
@@ -223,15 +254,30 @@ class TestUsersResource:
         assert data["email"] == response_data["email"]
 
     @pytest.mark.parametrize(
-        ["data", "status_code"],
+        ["current_user_id", "data", "status_code"],
         [
-            ({"name": "NAMEX", "email": "namex@example.net"}, 422),
-            ({"email": "namex@example.net", "password": "PASSWORD"}, 422),
-            ({"name": "NAMEX", "password": "PASSWORD"}, 422),
+            (1, {"name": "NAMEX", "email": "namex@example.net"}, 422),
+            (1, {"email": "namex@example.net", "password": "PASSWORDX"}, 422),
+            (1, {"name": "NAMEX", "password": "PASSWORDX"}, 422),
+            (
+                2,
+                {
+                    "name": "NAMEX",
+                    "email": "namex@example.net",
+                    "password": "PASSWORDX",
+                },
+                422,
+            ),
         ],
     )
-    def test_post_error(self, data, status_code, app, client, admin_headers):
+    def test_post_errors(
+        self, current_user_id, data, status_code, app, client, db_session
+    ):
         with app.test_request_context():
             url = flask.url_for("users_users_resource")
-        response = client.post(url, data=data, headers=admin_headers)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.post(
+                    url, data=data, headers=auth.pack_header_for_user(current_user)
+                )
         assert response.status_code == status_code

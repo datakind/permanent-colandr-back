@@ -181,6 +181,7 @@ class UsersResource(Resource):
         """get user record(s) for one or more matching users"""
         current_user = jwtext.get_current_user()
         if email:
+            # TODO: do we need access checks for this path? should *anyone* be allowed?
             user = db.session.execute(
                 sa.select(models.User).filter_by(email=email)
             ).scalar_one_or_none()
@@ -188,6 +189,7 @@ class UsersResource(Resource):
                 return not_found_error(f'no user found with email "{email}"')
             else:
                 current_app.logger.debug("got %s", user)
+                # TODO: should we not return this as a 1-item list, for consistency?
                 return UserSchema().dump(user)
         elif review_id:
             review = db.session.get(models.Review, review_id)
