@@ -8,7 +8,6 @@ from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Length, OneOf, Range
-from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
@@ -351,30 +350,29 @@ class StudiesResource(Resource):
                 stmt = stmt.where(models.Study.fulltext_status == fulltext_status)
             elif fulltext_status == "pending":
                 substmt = """
-                    SELECT t.id
+                    SELECT id
                     FROM (
                         SELECT
                             studies.id,
                             studies.citation_status,
                             studies.fulltext_status,
-                            screenings.user_ids
+                            screenings_.user_ids
                         FROM studies
                         LEFT JOIN (
                             SELECT
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
-                                FROM screenings
-                                GROUP BY study_id
-                            ) AS screenings ON (
-                                studies.id = screenings.study_id
-                                AND screenings.stage = 'fulltext'
-                          ) AS t
+                            FROM screenings
+                            WHERE stage = 'fulltext'
+                            GROUP BY study_id
+                        ) AS screenings_ ON studies.id = screenings_.study_id
+                    ) AS t
                     WHERE
-                        t.citation_status = 'included' -- this is necessary!
-                        AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
-                        AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
+                        citation_status = 'included' -- this is necessary!
+                        AND fulltext_status NOT IN ('excluded', 'included', 'conflict')
+                        AND (fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids))
                     """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(text(substmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif fulltext_status == "awaiting_coscreener":
                 substmt = """
                     SELECT t.id
@@ -382,23 +380,22 @@ class StudiesResource(Resource):
                         SELECT
                             studies.id,
                             studies.fulltext_status,
-                            screenings.user_ids
+                            screenings_.user_ids
                         FROM studies
                         LEFT JOIN (
                             SELECT
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
                             FROM screenings
+                            WHERE stage = 'fulltext'
                             GROUP BY study_id
-                        ) AS screenings ON (
-                            studies.id = screenings.study_id
-                            AND screenings.stage = 'fulltext'
+                        ) AS screenings_ ON studies.id = screenings_.study_id
                     ) AS t
                     WHERE
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(text(substmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
