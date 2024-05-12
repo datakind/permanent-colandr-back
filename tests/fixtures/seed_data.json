@@ -1,6 +1,7 @@
 {
     "users": [
         {
+            "id": 1,
             "name": "NAME1",
             "email": "name1@example.com",
             "password": "PASSWORD1",
@@ -8,6 +9,7 @@
             "is_admin": true
         },
         {
+            "id": 2,
             "name": "NAME2",
             "email": "name2@example.com",
             "password": "PASSWORD2",
@@ -15,6 +17,7 @@
             "is_admin": false
         },
         {
+            "id": 3,
             "name": "NAME3",
             "email": "name3@example.com",
             "password": "PASSWORD3",
@@ -22,6 +25,7 @@
             "is_admin": false
         },
         {
+            "id": 4,
             "name": "NAME4",
             "email": "name4@example.com",
             "password": "PASSWORD4",
