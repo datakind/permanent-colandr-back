@@ -150,21 +150,42 @@ class TestStudyResource:
 @pytest.mark.usefixtures("db_session")
 class TestStudiesResource:
     @pytest.mark.parametrize(
-        ["params", "num_exp"],
+        ["current_user_id", "params", "study_ids"],
         [
-            ({"review_id": 1}, 3),
-            ({"review_id": 2}, 1),
-            ({"review_id": 1, "dedupe_status": "not_duplicate"}, 3),
-            ({"review_id": 1, "citation_status": "included"}, 2),
+            (1, {"review_id": 1}, [1, 2, 3]),
+            (2, {"review_id": 2}, [4]),
+            (3, {"review_id": 1, "dedupe_status": "not_duplicate"}, [1, 2, 3]),
+            (1, {"review_id": 1, "citation_status": "included"}, [1, 2]),
+            (1, {"review_id": 1, "order_by": "relevance"}, [1, 2, 3]),
             # TODO: add a proper test for citation ranking model ordering
-            ({"review_id": 1, "order_by": "relevance"}, 3),
         ],
     )
-    def test_get(self, params, num_exp, app, client, admin_headers):
+    def test_get(self, current_user_id, params, study_ids, app, client, db_session):
         with app.test_request_context():
             url = flask.url_for("studies_studies_resource", **params)
-        response = client.get(url, headers=admin_headers)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.get(url, headers=headers)
         assert response.status_code == 200
-        response_data = response.json
-        assert isinstance(response_data, list)
-        assert len(response_data) == num_exp
+        obs_data = response.json
+        assert isinstance(obs_data, list)
+        assert sorted(study["id"] for study in obs_data) == study_ids
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "params", "status_code"],
+        [
+            (1, {"review_id": 999}, 404),
+            (4, {"review_id": 1}, 403),
+        ],
+    )
+    def test_get_errors(
+        self, current_user_id, params, status_code, app, client, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for("studies_studies_resource", **params)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.get(url, headers=headers)
+        assert response.status_code == status_code

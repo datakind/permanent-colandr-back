@@ -282,13 +282,7 @@ class StudiesResource(Resource):
         review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, review_id):
             return forbidden_error(
                 f"{current_user} forbidden to get studies from this review"
             )
