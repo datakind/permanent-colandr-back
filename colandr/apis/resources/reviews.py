@@ -246,19 +246,16 @@ def _is_allowed(
     current_user: models.User, review_id: int, *, members: bool = True
 ) -> bool:
     is_allowed = current_user.is_admin
-    if members:
-        is_allowed = (
-            is_allowed
-            or db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is not None
-        )
-    else:
-        is_allowed = is_allowed or any(
-            review.id == review_id for review in current_user.owned_reviews
-        )
-
+    user_roles = ["owner", "member"] if members else ["owner"]
+    is_allowed = (
+        is_allowed
+        or db.session.execute(
+            sa.select(models.ReviewUserAssoc)
+            .filter_by(user_id=current_user.id, review_id=review_id)
+            .where(models.ReviewUserAssoc.user_role == sa.any_(user_roles))
+        ).scalar_one_or_none()
+        is not None
+    )
     return is_allowed
 
 
