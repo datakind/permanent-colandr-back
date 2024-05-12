@@ -35,10 +35,12 @@
     ],
     "reviews": [
         {
+            "id": 1,
             "name": "NAME1",
             "description": "DESCRIPTION1"
         },
         {
+            "id": 2,
             "name": "NAME2",
             "description": "DESCRIPTION2",
             "citation_reviewer_num_pcts": [
@@ -59,6 +61,7 @@
             ]
         },
         {
+            "id": 3,
             "name": "NAME3",
             "description": "DESCRIPTION3",
             "status": "frozen"

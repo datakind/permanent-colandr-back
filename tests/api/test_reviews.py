@@ -1,5 +1,6 @@
 import flask
 import pytest
+import sqlalchemy as sa
 
 from colandr.apis import auth
 
@@ -26,7 +27,6 @@ class TestReviewResource:
             (3, 1, None, {"name": "NAME1", "description": "DESCRIPTION1"}),
             (1, 1, {"fields": "id,name"}, {"name": "NAME1"}),
             (1, 1, {"fields": "description"}, {"description": "DESCRIPTION1"}),
-            # (999, None, 404),
         ],
     )
     def test_get(
@@ -163,10 +163,21 @@ class TestReviewsResource:
     @pytest.mark.parametrize(
         "data",
         [
+            {"name": "NAMEX"},
             {"name": "NAMEX", "description": "DESCX"},
+            {
+                "name": "NAMEX",
+                "num_citation_screening_reviewers": 2,
+                "num_fulltext_screening_reviewers": 2,
+            },
         ],
     )
-    def test_post(self, data, app, client, admin_headers):
+    def test_post(self, data, app, client, db_session, admin_headers):
+        # NOTE: we specify ids in the seed data, but apparently the auto-increment
+        # sequence isn't made aware of it; so, we need to manually bump the start value
+        # so that the created record isn't assigned id=1, which is already in use
+        # and so violates a unique constraint
+        db_session.execute(sa.text("ALTER SEQUENCE reviews_id_seq RESTART WITH 4"))
         with app.test_request_context():
             url = flask.url_for("reviews_reviews_resource")
         response = client.post(url, json=data, headers=admin_headers)
@@ -175,13 +186,20 @@ class TestReviewsResource:
         assert data["name"] == response_data["name"]
 
     @pytest.mark.parametrize(
-        ["data", "status_code"],
+        ["current_user_id", "data", "status_code"],
         [
-            ({"name": None, "description": "DESCX"}, 422),
+            (1, {"name": None, "description": "DESCX"}, 422),
+            (1, {"name": "NAMEX", "foo": "bar"}, 422),
         ],
     )
-    def test_post_error(self, data, status_code, app, client, admin_headers):
+    def test_post_errors(
+        self, current_user_id, data, status_code, app, client, db_session
+    ):
         with app.test_request_context():
             url = flask.url_for("reviews_reviews_resource")
-        response = client.post(url, json=data, headers=admin_headers)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.post(
+                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                )
         assert response.status_code == status_code
