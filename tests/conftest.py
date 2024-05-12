@@ -7,7 +7,6 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
-import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
 import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories

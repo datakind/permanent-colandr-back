@@ -40,7 +40,28 @@
         },
         {
             "name": "NAME2",
-            "description": "DESCRIPTION2"
+            "description": "DESCRIPTION2",
+            "citation_reviewer_num_pcts": [
+                {
+                    "num": 1,
+                    "pct": 75
+                },
+                {
+                    "num": 2,
+                    "pct": 25
+                }
+            ],
+            "fulltext_reviewer_num_pcts": [
+                {
+                    "num": 2,
+                    "pct": 100
+                }
+            ]
+        },
+        {
+            "name": "NAME3",
+            "description": "DESCRIPTION3",
+            "status": "frozen"
         }
     ],
     "review_user_associations": [
@@ -68,6 +89,11 @@
             "review_id": 2,
             "user_id": 3,
             "user_role": "member"
+        },
+        {
+            "review_id": 3,
+            "user_id": 3,
+            "user_role": "owner"
         }
     ],
     "review_plans": [
@@ -132,6 +158,19 @@
                     ]
                 }
             ]
+        },
+        {
+            "id_": 2,
+            "objective": "OBJECTIVE",
+            "pico": {
+                "population": "POPULATION",
+                "intervention": "INTERVENTION",
+                "comparison": "COMPARISON",
+                "outcome": "OUTCOME"
+            }
+        },
+        {
+            "id_": 3
         }
     ],
     "data_sources": [
