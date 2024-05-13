@@ -156,8 +156,15 @@ class TestStudiesResource:
             (2, {"review_id": 2}, [4]),
             (3, {"review_id": 1, "dedupe_status": "not_duplicate"}, [1, 2, 3]),
             (1, {"review_id": 1, "citation_status": "included"}, [1, 2]),
+            (1, {"review_id": 1, "citation_status": "excluded"}, [3]),
+            (1, {"review_id": 1, "fulltext_status": "included"}, [1]),
+            (3, {"review_id": 2, "fulltext_status": "pending"}, [4]),
+            (2, {"review_id": 1, "tag": "TAG1"}, [1, 2]),
+            (2, {"review_id": 1, "tag": "TAG2"}, [2]),
+            (2, {"review_id": 1, "tsquery": "TITLE1"}, [1]),
+            (1, {"review_id": 1, "data_extraction_status": "not_started"}, [1]),
             (1, {"review_id": 1, "order_by": "relevance"}, [1, 2, 3]),
-            # TODO: add a proper test for citation ranking model ordering
+            (1, {"review_id": 1, "order_by": "recency"}, [1, 2, 3]),
         ],
     )
     def test_get(self, current_user_id, params, study_ids, app, client, db_session):

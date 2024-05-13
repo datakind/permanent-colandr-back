@@ -467,12 +467,33 @@ class Study(db.Model):
 
     @citation_text_content.expression
     def citation_text_content(cls):
+        # NOTE: i can't convince sqlalchemy to convert the keywords jsonb array
+        # into a concatenated string; i have LOOKED, this shit is BONKERS
+        # no, db.func.array_to_string(cls.citation["keywords"], ", ") does not work
         return db.func.concat_ws(
             "\n\n",
             cls.citation["title"],
             cls.citation["abstract"],
-            db.func.array_to_string(cls.citation["keywords"], ", "),
+            cls.citation["keywords"].astext,
         )
+
+    # @citation_text_content.expression
+    # def citation_text_content(cls):
+    #     return (
+    #         db.func.concat_ws(
+    #             "\n\n",
+    #             cls.citation["title"],
+    #             cls.citation["abstract"],
+    #             db.func.array_to_string(
+    #                 db.func.array_agg(
+    #                     db.func.jsonb_array_elements_text(
+    #                         cls.citation["keywords"]
+    #                     ).column_valued("kw")
+    #                 ),
+    #                 ", ",
+    #             ),
+    #         ),
+    #     )
 
     @hybrid_property
     def citation_exclude_reasons(self):
