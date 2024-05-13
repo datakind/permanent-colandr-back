@@ -255,7 +255,7 @@ class StudiesResource(Resource):
             ),
             "page": ma_fields.Int(load_default=0, validate=Range(min=0)),
             "per_page": ma_fields.Int(
-                load_default=25, validate=OneOf([10, 25, 50, 100, 5000])
+                load_default=25, validate=OneOf([1, 10, 25, 50, 100, 5000])
             ),
         },
         location="query",
