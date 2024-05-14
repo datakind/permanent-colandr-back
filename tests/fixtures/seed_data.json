@@ -431,14 +431,14 @@
             ]
         },
         {
-            "user_id": 3,
+            "user_id": 2,
             "review_id": 2,
             "study_id": 4,
             "stage": "citation",
             "status": "included"
         },
         {
-            "user_id": 4,
+            "user_id": 3,
             "review_id": 2,
             "study_id": 4,
             "stage": "citation",
