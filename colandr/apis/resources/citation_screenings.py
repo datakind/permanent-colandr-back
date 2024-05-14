@@ -67,26 +67,22 @@ class CitationScreeningsResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(
                 f"{current_user} forbidden to get citation screenings for this review"
             )
-        current_app.logger.debug("got %s", study)
         screenings = db.session.execute(
             study.screenings.select().filter_by(stage="citation")
         ).scalars()
+        if not screenings:
+            return not_found_error(f"no screenings for <Study(id={id})> found")
         # HACK: hide the consolidated (v2) screening schema from this api
-        if fields and "citation_id" in fields:
-            fields.append("study_id")
-            fields.remove("citation_id")
+        if fields:
+            if "id" not in fields:
+                fields.append("id")
+            if "citation_id" in fields:
+                fields.append("study_id")
+                fields.remove("citation_id")
         screenings_dumped = [
             _convert_screening_v2_into_v1(record)
             for record in ScreeningV2Schema(many=True, only=fields).dump(screenings)
@@ -116,14 +112,7 @@ class CitationScreeningsResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(
                 f"{current_user} forbidden to delete citation screening for this review"
             )
@@ -167,16 +156,8 @@ class CitationScreeningsResource(Resource):
         # check current user authorization
         study = db.session.get(models.Study, id)
         if not study:
-            return not_found_error(f"<Citation(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ):
+            return not_found_error(f"<Study(id={id})> not found")
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(
                 f"{current_user} forbidden to screen citations for this review"
             )
@@ -225,7 +206,7 @@ class CitationScreeningsResource(Resource):
     @use_args(
         ScreeningSchema(
             only=["user_id", "status", "exclude_reasons"],
-            partial=["status", "exclude_reasons"],
+            partial=["exclude_reasons"],
         ),
         location="json",
     )
@@ -243,7 +224,7 @@ class CitationScreeningsResource(Resource):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
         if not study:
-            return not_found_error(f"<Citation(id={id})> not found")
+            return not_found_error(f"<Study(id={id})> not found")
         if current_user.is_admin is True and "user_id" in args:
             screening = db.session.execute(
                 study.screenings.select().filter_by(
@@ -258,7 +239,7 @@ class CitationScreeningsResource(Resource):
             ).scalar_one_or_none()
         if not screening:
             return not_found_error(f"{current_user} has not screened this citation")
-        if args["status"] == "excluded" and not args["exclude_reasons"]:
+        if args["status"] == "excluded" and not args.get("exclude_reasons"):
             return bad_request_error("screenings that exclude must provide a reason")
         for key, value in args.items():
             if key is missing:
@@ -342,15 +323,7 @@ class CitationsScreeningsResource(Resource):
             study = db.session.get(models.Study, citation_id)
             if not study:
                 return not_found_error(f"<Study(id={citation_id})> not found")
-            if (
-                current_user.is_admin is False
-                and db.session.execute(
-                    study.review.review_user_assoc.select().filter_by(
-                        user_id=current_user.id
-                    )
-                ).one_or_none()
-                is None
-            ):
+            if not _is_allowed(current_user, study.review_id):
                 return forbidden_error(
                     f"{current_user} forbidden to get screenings for {study}"
                 )
@@ -515,3 +488,17 @@ def _convert_screening_v2_into_v1(record) -> dict:
     except KeyError:
         pass
     return record
+
+
+def _is_allowed(current_user: models.User, review_id: int) -> bool:
+    is_allowed = current_user.is_admin
+    is_allowed = (
+        is_allowed
+        or db.session.execute(
+            sa.select(models.ReviewUserAssoc).filter_by(
+                user_id=current_user.id, review_id=review_id
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
+    return is_allowed
