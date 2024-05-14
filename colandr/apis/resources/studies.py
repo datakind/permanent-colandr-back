@@ -139,8 +139,7 @@ class StudyResource(Resource):
         return StudySchema().dump(study)
 
 
-# TODO: add optional filter for num citation/fulltext reviewers
-# and maybe, finally, port these queries over to sqlalchemy orm
+# TODO: port these text subqueries over to sqlalchemy orm equivalents
 
 
 @ns.route("")
