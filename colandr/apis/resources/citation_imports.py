@@ -189,8 +189,8 @@ class CitationsImportsResource(Resource):
         ).scalar_one_or_none()
         if data_source is None:
             data_source = models.DataSource(
-                source_type, source_name, source_url=source_url
-            )
+                source_type=source_type, source_name=source_name, source_url=source_url
+            )  # type: ignore
             db.session.add(data_source)
         db.session.commit()
         current_app.logger.info("inserted %s", data_source)
@@ -235,8 +235,13 @@ class CitationsImportsResource(Resource):
         db.session.execute(sa.insert(models.Study), studies_to_insert)
         # as well as a record of the import
         citations_import = models.Import(
-            review_id, user_id, data_source_id, "citation", n_citations, status=status
-        )
+            review_id=review_id,
+            user_id=user_id,
+            data_source_id=data_source_id,
+            record_type="citation",
+            num_records=n_citations,
+            status=status,
+        )  # type: ignore
         db.session.add(citations_import)
         db.session.commit()
         current_app.logger.info(

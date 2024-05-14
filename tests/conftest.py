@@ -7,7 +7,6 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
-import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
 import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
@@ -40,22 +39,15 @@ def app(tmp_path_factory):
             f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
             f"@{os.environ.get('COLANDR_DB_HOST', 'colandr-db')}:5432/{TEST_DBNAME}"
         ),
-        # this overrides the app db's default schema (None => "public")
-        # so that we create a parallel schema for all unit testing data
-        # "SQLALCHEMY_ENGINE_OPTIONS": {
-        #     "execution_options": {"schema_translate_map": {None: TEST_DB_SCHEMA}}
-        # },
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
     }
     app = create_app(config_overrides)
-    # TODO: don't use a globally applied app context as here, only scope minimally
-    with app.app_context():
-        yield app
+    return app
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def app_ctx(app):
     with app.app_context():
         yield
@@ -74,21 +66,34 @@ def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, t.Any]:
 
 
 @pytest.fixture(scope="session")
+def client(app: flask.Flask):
+    return app.test_client()
+
+
+@pytest.fixture(scope="session")
+def cli_runner(app: flask.Flask):
+    return app.test_cli_runner()
+
+
+@pytest.fixture(scope="session")
 def db(
     app: flask.Flask,
-    psql_noproc,
+    cli_runner,
     seed_data_fpath: pathlib.Path,
     seed_data: dict[str, t.Any],
+    psql_noproc,
     request,
 ):
-    # create test database if it doesn't already exist
-    if not sa_utils.database_exists(extensions.db.engine.url):
-        sa_utils.create_database(extensions.db.engine.url)
-    # make sure we're starting fresh, tables-wise
-    extensions.db.drop_all()
-    extensions.db.create_all()
+    with app.app_context():
+        # create test database if it doesn't already exist
+        if not sa_utils.database_exists(extensions.db.engine.url):
+            sa_utils.create_database(extensions.db.engine.url)
+        # make sure we're starting fresh, tables-wise
+        extensions.db.drop_all()
+        extensions.db.create_all()
+
     _store_upload_files(app, seed_data, request)
-    app.test_cli_runner().invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
+    cli_runner.invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
 
     yield extensions.db
 
@@ -108,6 +113,7 @@ def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
             request.config.rootpath
             / "tests"
             / "fixtures"
+            / "fulltexts"
             / record["fulltext"]["original_filename"]
         )
         tgt_file_path = pathlib.Path(app.config["FULLTEXT_UPLOADS_DIR"]).joinpath(
@@ -119,17 +125,7 @@ def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
 
 
 @pytest.fixture
-def client(app: flask.Flask):
-    yield app.test_client()
-
-
-@pytest.fixture
-def cli_runner(app: flask.Flask):
-    yield app.test_cli_runner()
-
-
-@pytest.fixture
-def db_session(db: flask_sqlalchemy.SQLAlchemy):
+def db_session(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
     """
     Automatically roll back database changes occurring within tests,
     so side-effects of one test don't affect another.
@@ -158,11 +154,11 @@ def db_session(db: flask_sqlalchemy.SQLAlchemy):
 
 
 @pytest.fixture(scope="session")
-def admin_user(db: flask_sqlalchemy.SQLAlchemy):
+def admin_user(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
     user = db.session.get(models.User, 1)
     return user
 
 
-@pytest.fixture
-def admin_headers(admin_user: models.User):
+@pytest.fixture(scope="session")
+def admin_headers(admin_user: models.User, app_ctx):
     return auth.pack_header_for_user(admin_user)

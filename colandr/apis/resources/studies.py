@@ -8,7 +8,6 @@ from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Length, OneOf, Range
-from sqlalchemy import asc, desc, text
 from sqlalchemy.sql import operators
 from webargs.fields import DelimitedList
 from webargs.flaskparser import use_args, use_kwargs
@@ -65,13 +64,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to get this study")
         if fields and "id" not in fields:
             fields.append("id")
@@ -100,13 +93,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
         db.session.commit()
@@ -137,13 +124,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, study.review_id):
             return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():
             if key == "data_extraction_status":
@@ -274,7 +255,7 @@ class StudiesResource(Resource):
             ),
             "page": ma_fields.Int(load_default=0, validate=Range(min=0)),
             "per_page": ma_fields.Int(
-                load_default=25, validate=OneOf([10, 25, 50, 100, 5000])
+                load_default=25, validate=OneOf([1, 10, 25, 50, 100, 5000])
             ),
         },
         location="query",
@@ -300,13 +281,7 @@ class StudiesResource(Resource):
         review = db.session.get(models.Review, review_id)
         if not review:
             return not_found_error(f"<Review(id={review_id})> not found")
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ):
+        if not _is_allowed(current_user, review_id):
             return forbidden_error(
                 f"{current_user} forbidden to get studies from this review"
             )
@@ -375,30 +350,29 @@ class StudiesResource(Resource):
                 stmt = stmt.where(models.Study.fulltext_status == fulltext_status)
             elif fulltext_status == "pending":
                 substmt = """
-                    SELECT t.id
+                    SELECT id
                     FROM (
                         SELECT
                             studies.id,
                             studies.citation_status,
                             studies.fulltext_status,
-                            screenings.user_ids
+                            screenings_.user_ids
                         FROM studies
                         LEFT JOIN (
                             SELECT
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
-                                FROM screenings
-                                GROUP BY study_id
-                            ) AS screenings ON (
-                                studies.id = screenings.study_id
-                                AND screenings.stage = 'fulltext'
-                          ) AS t
+                            FROM screenings
+                            WHERE stage = 'fulltext'
+                            GROUP BY study_id
+                        ) AS screenings_ ON studies.id = screenings_.study_id
+                    ) AS t
                     WHERE
-                        t.citation_status = 'included' -- this is necessary!
-                        AND t.fulltext_status NOT IN ('excluded', 'included', 'conflict')
-                        AND (t.fulltext_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
+                        citation_status = 'included' -- this is necessary!
+                        AND fulltext_status NOT IN ('excluded', 'included', 'conflict')
+                        AND (fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids))
                     """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(text(substmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif fulltext_status == "awaiting_coscreener":
                 substmt = """
                     SELECT t.id
@@ -406,23 +380,22 @@ class StudiesResource(Resource):
                         SELECT
                             studies.id,
                             studies.fulltext_status,
-                            screenings.user_ids
+                            screenings_.user_ids
                         FROM studies
                         LEFT JOIN (
                             SELECT
                                 study_id,
                                 ARRAY_AGG(user_id) AS user_ids
                             FROM screenings
+                            WHERE stage = 'fulltext'
                             GROUP BY study_id
-                        ) AS screenings ON (
-                            studies.id = screenings.study_id
-                            AND screenings.stage = 'fulltext'
+                        ) AS screenings_ ON studies.id = screenings_.study_id
                     ) AS t
                     WHERE
                         t.fulltext_status = 'screened_once'
                         AND {user_id} = ANY(t.user_ids)
                     """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(text(substmt)))
+                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
@@ -521,3 +494,17 @@ class StudiesResource(Resource):
             return StudySchema(many=True, only=fields).dump(
                 sorted_results[offset : offset + per_page]
             )
+
+
+def _is_allowed(current_user: models.User, review_id: int) -> bool:
+    is_allowed = current_user.is_admin
+    is_allowed = (
+        is_allowed
+        or db.session.execute(
+            sa.select(models.ReviewUserAssoc).filter_by(
+                user_id=current_user.id, review_id=review_id
+            )
+        ).scalar_one_or_none()
+        is not None
+    )
+    return is_allowed

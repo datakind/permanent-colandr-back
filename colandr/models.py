@@ -11,7 +11,6 @@ from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import DynamicMapped as DM
 from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
@@ -187,10 +186,6 @@ class Review(db.Model):
         passive_deletes=True,
     )
 
-    def __init__(self, name, description=None):
-        self.name = name
-        self.description = description
-
     def __repr__(self):
         return f"<Review(id={self.id})>"
 
@@ -247,6 +242,7 @@ class ReviewPlan(db.Model):
     __tablename__ = "review_plans"
 
     # columns
+    # TODO: move this into separate review_id col, as was done for study_id elsewhere
     id: M[int] = mapcol(
         sa.BigInteger, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
     )
@@ -293,24 +289,6 @@ class ReviewPlan(db.Model):
         "Review", foreign_keys=[id], back_populates="review_plan", lazy="select"
     )
 
-    def __init__(
-        self,
-        id_,
-        objective=None,
-        research_questions=None,
-        pico=None,
-        keyterms=None,
-        selection_criteria=None,
-        data_extraction_form=None,
-    ):
-        self.id = id_
-        self.objective = objective
-        self.research_questions = research_questions
-        self.pico = pico
-        self.keyterms = keyterms
-        self.selection_criteria = selection_criteria
-        self.data_extraction_form = data_extraction_form
-
     def __repr__(self):
         return f"<ReviewPlan(review_id={self.id})>"
 
@@ -351,11 +329,6 @@ class DataSource(db.Model):
     studies: WOM["Study"] = sa_orm.relationship(
         "Study", back_populates="data_source", lazy="write_only", passive_deletes=True
     )
-
-    def __init__(self, source_type, source_name=None, source_url=None):
-        self.source_type = source_type
-        self.source_name = source_name
-        self.source_url = source_url
 
     def __repr__(self):
         return f"<DataSource(id={self.id})>"
@@ -399,18 +372,8 @@ class Import(db.Model):
         lazy="select",
     )
 
-    def __init__(
-        self, review_id, user_id, data_source_id, record_type, num_records, status=None
-    ):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.data_source_id = data_source_id
-        self.record_type = record_type
-        self.num_records = num_records
-        self.status = status
-
     def __repr__(self):
-        return f"<Import(id={self.id})>"
+        return f"<Import(id={self.id}, review_id={self.review_id})>"
 
 
 class Study(db.Model):
@@ -479,7 +442,11 @@ class Study(db.Model):
         lazy="select",
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="study", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="study",
+        lazy="write_only",
+        passive_deletes=True,
+        order_by="Screening.id",
     )
 
     dedupe: M["Dedupe"] = sa_orm.relationship(
@@ -490,7 +457,7 @@ class Study(db.Model):
     )
 
     def __repr__(self):
-        return f"<Study(id={self.id})>"
+        return f"<Study(id={self.id}, review_id={self.review_id})>"
 
     @hybrid_property
     def citation_text_content(self):
@@ -504,12 +471,33 @@ class Study(db.Model):
 
     @citation_text_content.expression
     def citation_text_content(cls):
+        # NOTE: i can't convince sqlalchemy to convert the keywords jsonb array
+        # into a concatenated string; i have LOOKED, this shit is BONKERS
+        # no, db.func.array_to_string(cls.citation["keywords"], ", ") does not work
         return db.func.concat_ws(
             "\n\n",
             cls.citation["title"],
             cls.citation["abstract"],
-            db.func.array_to_string(cls.citation["keywords"], ", "),
+            cls.citation["keywords"].astext,
         )
+
+    # @citation_text_content.expression
+    # def citation_text_content(cls):
+    #     return (
+    #         db.func.concat_ws(
+    #             "\n\n",
+    #             cls.citation["title"],
+    #             cls.citation["abstract"],
+    #             db.func.array_to_string(
+    #                 db.func.array_agg(
+    #                     db.func.jsonb_array_elements_text(
+    #                         cls.citation["keywords"]
+    #                     ).column_valued("kw")
+    #                 ),
+    #                 ", ",
+    #             ),
+    #         ),
+    #     )
 
     @hybrid_property
     def citation_exclude_reasons(self):
@@ -597,18 +585,10 @@ class Screening(db.Model):
         lazy="select",
     )
 
-    def __init__(
-        self, user_id, review_id, study_id, stage, status, exclude_reasons=None
-    ):
-        self.user_id = user_id
-        self.review_id = review_id
-        self.study_id = study_id
-        self.stage = stage
-        self.status = status
-        self.exclude_reasons = exclude_reasons
-
     def __repr__(self):
-        return f"<Screening(study_id={self.study_id}, stage={self.stage})>"
+        return (
+            f"<Screening(id={self.id}, study_id={self.study_id}, stage={self.stage})>"
+        )
 
 
 class Dedupe(db.Model):
@@ -642,14 +622,8 @@ class Dedupe(db.Model):
         "Review", foreign_keys=[review_id], back_populates="dedupes", lazy="select"
     )
 
-    def __init__(self, study_id, review_id, duplicate_of, duplicate_score):
-        self.study_id = study_id
-        self.review_id = review_id
-        self.duplicate_of = duplicate_of
-        self.duplicate_score = duplicate_score
-
     def __repr__(self):
-        return f"<Dedupe(study_id={self.study_id})>"
+        return f"<Dedupe(id={self.id}, study_id={self.study_id})>"
 
 
 class DataExtraction(db.Model):
@@ -696,13 +670,14 @@ class DataExtraction(db.Model):
         lazy="select",
     )
 
+    # TODO: remove this custom init when able to test data extraction workflows
     def __init__(self, study_id, review_id, extracted_items=None):
         self.study_id = study_id
         self.review_id = review_id
         self.extracted_items = extracted_items
 
     def __repr__(self):
-        return f"<DataExtraction(study_id={self.study_id})>"
+        return f"<DataExtraction(id={self.id}, study_id={self.study_id})>"
 
 
 # EVENTS
@@ -718,7 +693,7 @@ class DataExtraction(db.Model):
 
 @sa_event.listens_for(Review, "after_insert")
 def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(target.id)
+    review_plan = ReviewPlan(id=target.id)  # type: ignore
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
 

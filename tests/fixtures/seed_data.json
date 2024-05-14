@@ -1,6 +1,7 @@
 {
     "users": [
         {
+            "id": 1,
             "name": "NAME1",
             "email": "name1@example.com",
             "password": "PASSWORD1",
@@ -8,6 +9,7 @@
             "is_admin": true
         },
         {
+            "id": 2,
             "name": "NAME2",
             "email": "name2@example.com",
             "password": "PASSWORD2",
@@ -15,6 +17,7 @@
             "is_admin": false
         },
         {
+            "id": 3,
             "name": "NAME3",
             "email": "name3@example.com",
             "password": "PASSWORD3",
@@ -22,21 +25,54 @@
             "is_admin": false
         },
         {
+            "id": 4,
             "name": "NAME4",
             "email": "name4@example.com",
             "password": "PASSWORD4",
+            "is_confirmed": true,
+            "is_admin": false
+        },
+        {
+            "id": 5,
+            "name": "NAME5",
+            "email": "name5@example.com",
+            "password": "PASSWORD5",
             "is_confirmed": false,
             "is_admin": false
         }
     ],
     "reviews": [
         {
+            "id": 1,
             "name": "NAME1",
             "description": "DESCRIPTION1"
         },
         {
+            "id": 2,
             "name": "NAME2",
-            "description": "DESCRIPTION2"
+            "description": "DESCRIPTION2",
+            "citation_reviewer_num_pcts": [
+                {
+                    "num": 1,
+                    "pct": 75
+                },
+                {
+                    "num": 2,
+                    "pct": 25
+                }
+            ],
+            "fulltext_reviewer_num_pcts": [
+                {
+                    "num": 2,
+                    "pct": 100
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "name": "NAME3",
+            "description": "DESCRIPTION3",
+            "status": "frozen"
         }
     ],
     "review_user_associations": [
@@ -64,6 +100,11 @@
             "review_id": 2,
             "user_id": 3,
             "user_role": "member"
+        },
+        {
+            "review_id": 3,
+            "user_id": 3,
+            "user_role": "owner"
         }
     ],
     "review_plans": [
@@ -128,6 +169,19 @@
                     ]
                 }
             ]
+        },
+        {
+            "id_": 2,
+            "objective": "OBJECTIVE",
+            "pico": {
+                "population": "POPULATION",
+                "intervention": "INTERVENTION",
+                "comparison": "COMPARISON",
+                "outcome": "OUTCOME"
+            }
+        },
+        {
+            "id_": 3
         }
     ],
     "data_sources": [
@@ -169,6 +223,7 @@
     ],
     "studies": [
         {
+            "id": 1,
             "user_id": 2,
             "review_id": 1,
             "data_source_id": 1,
@@ -222,6 +277,7 @@
             }
         },
         {
+            "id": 2,
             "user_id": 2,
             "review_id": 1,
             "data_source_id": 1,
@@ -259,6 +315,7 @@
             }
         },
         {
+            "id": 3,
             "user_id": 2,
             "review_id": 1,
             "data_source_id": 2,
@@ -304,6 +361,7 @@
             }
         },
         {
+            "id": 4,
             "user_id": 3,
             "review_id": 2,
             "data_source_id": 1,
@@ -373,14 +431,14 @@
             ]
         },
         {
-            "user_id": 3,
+            "user_id": 2,
             "review_id": 2,
             "study_id": 4,
             "stage": "citation",
             "status": "included"
         },
         {
-            "user_id": 4,
+            "user_id": 3,
             "review_id": 2,
             "study_id": 4,
             "stage": "citation",

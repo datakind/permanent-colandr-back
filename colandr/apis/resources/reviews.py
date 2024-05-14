@@ -220,7 +220,22 @@ class ReviewsResource(Resource):
         """create new review"""
         current_user = jwtext.get_current_user()
         name = args.pop("name")
-        review = models.Review(name=name, **args)
+        # HACK: convert from v1 to v2 review schema here
+        if "num_citation_screening_reviewers" in args:
+            args["citation_reviewer_num_pcts"] = [
+                {
+                    "num": args.pop("num_citation_screening_reviewers"),
+                    "pct": 100,
+                }
+            ]
+        if "num_fulltext_screening_reviewers" in args:
+            args["fulltext_reviewer_num_pcts"] = [
+                {
+                    "num": args.pop("num_fulltext_screening_reviewers"),
+                    "pct": 100,
+                }
+            ]
+        review = models.Review(name=name, **args)  # type: ignore
         # TODO: do we want to allow admins to set other users as owners?
         review.review_user_assoc.append(
             models.ReviewUserAssoc(review, current_user, "owner")
@@ -246,19 +261,16 @@ def _is_allowed(
     current_user: models.User, review_id: int, *, members: bool = True
 ) -> bool:
     is_allowed = current_user.is_admin
-    if members:
-        is_allowed = (
-            is_allowed
-            or db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is not None
-        )
-    else:
-        is_allowed = is_allowed or any(
-            review.id == review_id for review in current_user.owned_reviews
-        )
-
+    user_roles = ["owner", "member"] if members else ["owner"]
+    is_allowed = (
+        is_allowed
+        or db.session.execute(
+            sa.select(models.ReviewUserAssoc)
+            .filter_by(user_id=current_user.id, review_id=review_id)
+            .where(models.ReviewUserAssoc.user_role == sa.any_(user_roles))
+        ).scalar_one_or_none()
+        is not None
+    )
     return is_allowed
 
 

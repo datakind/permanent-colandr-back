@@ -259,8 +259,8 @@ class CitationsResource(Resource):
         ).scalar_one_or_none()
         if data_source is None:
             data_source = models.DataSource(
-                source_type, source_name, source_url=source_url
-            )
+                source_type=source_type, source_name=source_name, source_url=source_url
+            )  # type: ignore
             db.session.add(data_source)
         db.session.commit()
         current_app.logger.info("inserted %s", data_source)
@@ -268,13 +268,11 @@ class CitationsResource(Resource):
         # add the study w/ citation
         citation = CitationSchema().load(args)
         study = models.Study(
-            **{
-                "user_id": current_user.id,
-                "review_id": review_id,
-                "data_source_id": data_source.id,
-                "citation": citation,
-            }
-        )
+            user_id=current_user.id,
+            review_id=review_id,
+            data_source_id=data_source.id,
+            citation=citation,
+        )  # type: ignore
         if status is not None:
             study.citation_status = status
         db.session.add(study)

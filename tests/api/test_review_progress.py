@@ -75,9 +75,9 @@ class TestReviewProgressResource:
                 2,
                 {
                     "planning": {
-                        "objective": False,
+                        "objective": True,
                         "research_questions": False,
-                        "pico": False,
+                        "pico": True,
                         "keyterms": False,
                         "selection_criteria": False,
                         "data_extraction_form": False,

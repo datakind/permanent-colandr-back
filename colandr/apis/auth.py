@@ -64,7 +64,10 @@ class LoginResource(Resource):
         $ curl http://localhost:5000/api/auth/login -X POST \
             -d '{"email":"foo@gmail.com","password":"PASSWORD"}'
         """
-        user = authenticate_user(email, password)
+        try:
+            user = authenticate_user(email, password)
+        except ValueError:
+            return not_found_error("no user found matching given email and password")
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
         current_app.logger.info("%s logged in", user)
@@ -322,7 +325,7 @@ def user_identity_loader(user: t.Union[User, str]):
 
 
 @jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
+def user_lookup_callback(_jwt_header, jwt_data: dict) -> t.Optional[User]:
     """
     Callback function that loads a user from the database by its identity (id)
     whenever a protected API route is accessed.
@@ -336,8 +339,7 @@ def user_lookup_callback(_jwt_header, jwt_data: dict) -> User:
             sa.select(User).filter_by(email=identity)
         ).scalar_one_or_none()
     else:
-        raise TypeError()
-    assert user is not None  # type guard
+        raise TypeError(f"user identity={identity} is invalid")
     return user
 
 

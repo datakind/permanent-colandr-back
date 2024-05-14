@@ -1,88 +1,200 @@
 import flask
 import pytest
 
+from colandr.apis import auth
+
+from .. import helpers
+
 
 @pytest.mark.usefixtures("db_session")
 class TestStudyResource:
     @pytest.mark.parametrize(
-        ["id_", "params", "status_code"],
+        ["current_user_id", "study_id", "params", "exp_data"],
         [
-            (1, None, 200),
-            (2, None, 200),
-            (1, {"fields": "id,review_id"}, 200),
-            (1, {"fields": "data_source_id"}, 200),
-            (999, None, 404),
+            (
+                1,
+                1,
+                None,
+                {"user_id": 2, "review_id": 1, "data_source_id": 1, "tags": ["TAG1"]},
+            ),
+            (
+                2,
+                2,
+                None,
+                {
+                    "user_id": 2,
+                    "review_id": 1,
+                    "data_source_id": 1,
+                    "tags": ["TAG3", "TAG2", "TAG1"],
+                },
+            ),
+            (
+                1,
+                1,
+                {"fields": "id,user_id,review_id"},
+                {"user_id": 2, "review_id": 1},
+            ),
+            (3, 1, {"fields": "data_source_id"}, {"data_source_id": 1}),
         ],
     )
-    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
+    def test_get(
+        self, current_user_id, study_id, params, exp_data, app, client, db_session
+    ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=id_, **(params or {}))
-        response = client.get(url, headers=admin_headers)
-        assert response.status_code == status_code
-        if 200 <= status_code < 300:
-            data = response.json
-            seed_data = seed_data["studies"][id_ - 1]
-            fields = None if params is None else params["fields"].split(",")
-            if fields is not None and "id" not in fields:
-                fields.append("id")
-            assert "id" in data
-            assert data["id"] == id_
-            for field in ["review_id", "data_source_id"]:
-                if fields is None or field in fields:
-                    assert data[field] == seed_data.get(field)
-            if fields:
-                assert sorted(data.keys()) == sorted(fields)
+            url = flask.url_for("studies_study_resource", id=study_id, **(params or {}))
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.get(url, headers=headers)
+        assert response.status_code == 200
+        data = response.json
+        assert "id" in data and data["id"] == study_id
+        assert {k: v for k, v in data.items() if k in exp_data} == exp_data
 
     @pytest.mark.parametrize(
-        ["id_", "data", "status_code"],
+        ["current_user_id", "study_id", "params", "status_code"],
         [
-            (1, {"tags": ["TAG1", "TAG2"]}, 200),
-            (1, {"tags": ["THIS-IS-A-REALLLLLLLLLLLLLLLLLLLLLLLLLLY-LONG-TAG1"]}, 200),
-            # doesn't work: can't set extraction status until fulltext has been screened
-            # (2, {"data_extraction_status": "finished", "tags": ["TAG1"]}, 200),
-            (999, {"tags": ["TAG1"]}, 404),
+            (1, 999, None, 404),
+            (4, 1, None, 403),
         ],
     )
-    def test_put(self, id_, data, status_code, app, client, admin_headers):
+    def test_get_errors(
+        self, current_user_id, study_id, params, status_code, app, client, db_session
+    ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=id_)
-        response = client.put(url, json=data, headers=admin_headers)
+            url = flask.url_for("studies_study_resource", id=study_id, **(params or {}))
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.get(
+                    url, headers=auth.pack_header_for_user(current_user)
+                )
         assert response.status_code == status_code
-        if 200 <= status_code < 300:
-            data = response.json
-            for key, val in data.items():
-                assert data.get(key) == val
 
-    # doesn't work!
-    # AssertionError: Dependency rule tried to blank-out primary key column 'citations.id' on instance '<Citation at 0x15791bb50>'
-    # @pytest.mark.parametrize("id_", [1, 2])
-    # def test_delete(self, id_, app, client, admin_headers):
-    #     with app.test_request_context():
-    #         url = flask.url_for("studies_study_resource", id=id_)
-    #     response = client.delete(url, headers=admin_headers)
-    #     assert response.status_code == 204
-    #     get_response = client.get(url, headers=admin_headers)
-    #     assert get_response.status_code == 404  # not found!
+    @pytest.mark.parametrize(
+        ["current_user_id", "study_id", "data"],
+        [
+            (1, 1, {"tags": ["TAG1", "TAG2"]}),
+            (2, 1, {"tags": ["THIS-IS-A-REALLLLLLLLLLLLLLLLLLLLLLLLLLY-LONG-TAG1"]}),
+        ],
+    )
+    def test_put(self, current_user_id, study_id, data, app, client, db_session):
+        with app.test_request_context():
+            url = flask.url_for("studies_study_resource", id=study_id)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.put(
+                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                )
+        assert response.status_code == 200
+        obs_data = response.json
+        assert "id" in obs_data and obs_data["id"] == study_id
+        assert {k: v for k, v in obs_data.items() if k in data} == data
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "study_id", "data", "status_code"],
+        [
+            (4, 1, {"tags": ["NEW_TAG1"]}, 403),
+            (2, 1, {"tags": ["X" * 65]}, 422),
+            (2, 2, {"data_extraction_status": "finished"}, 403),
+            (1, 999, {"tags": ["NEW_TAG1"]}, 404),
+        ],
+    )
+    def test_put_errors(
+        self, current_user_id, study_id, data, status_code, app, client, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for("studies_study_resource", id=study_id)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                response = client.put(
+                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                )
+        assert response.status_code == status_code
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "study_id"],
+        [
+            (1, 1),
+            (2, 2),
+        ],
+    )
+    def test_delete(self, current_user_id, study_id, app, client, db_session):
+        with app.test_request_context():
+            url = flask.url_for("studies_study_resource", id=study_id)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.delete(url, headers=headers)
+                assert response.status_code == 204
+                assert client.get(url, headers=headers).status_code == 404  # not found!
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "study_id", "status_code"],
+        [
+            (1, 999, 404),  # only existing studies can be deleted
+            (4, 1, 403),  # only admins and review members can delete reviews
+        ],
+    )
+    def test_delete_errors(
+        self, current_user_id, study_id, status_code, app, client, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for("studies_study_resource", id=study_id)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.delete(url, headers=headers)
+                assert response.status_code == status_code
 
 
 @pytest.mark.usefixtures("db_session")
 class TestStudiesResource:
     @pytest.mark.parametrize(
-        ["params", "num_exp"],
+        ["current_user_id", "params", "study_ids"],
         [
-            ({"review_id": 1}, 3),
-            ({"review_id": 2}, 1),
-            ({"review_id": 1, "dedupe_status": "not_duplicate"}, 3),
-            ({"review_id": 1, "citation_status": "included"}, 2),
-            # TODO: add a proper test for citation ranking model ordering
-            ({"review_id": 1, "order_by": "relevance"}, 3),
+            (1, {"review_id": 1}, [1, 2, 3]),
+            (2, {"review_id": 2}, [4]),
+            (3, {"review_id": 1, "dedupe_status": "not_duplicate"}, [1, 2, 3]),
+            (1, {"review_id": 1, "citation_status": "included"}, [1, 2]),
+            (1, {"review_id": 1, "citation_status": "excluded"}, [3]),
+            (1, {"review_id": 1, "fulltext_status": "included"}, [1]),
+            (3, {"review_id": 2, "fulltext_status": "pending"}, [4]),
+            (2, {"review_id": 1, "tag": "TAG1"}, [1, 2]),
+            (2, {"review_id": 1, "tag": "TAG2"}, [2]),
+            (2, {"review_id": 1, "tsquery": "TITLE1"}, [1]),
+            (1, {"review_id": 1, "data_extraction_status": "not_started"}, [1]),
+            (1, {"review_id": 1, "order_by": "relevance"}, [1, 2, 3]),
+            (1, {"review_id": 1, "order_by": "recency"}, [1, 2, 3]),
+            (1, {"review_id": 1, "order_by": "recency", "page": 0, "per_page": 1}, [3]),
+            (1, {"review_id": 1, "order_by": "recency", "page": 1, "per_page": 1}, [2]),
         ],
     )
-    def test_get(self, params, num_exp, app, client, admin_headers):
+    def test_get(self, current_user_id, params, study_ids, app, client, db_session):
         with app.test_request_context():
             url = flask.url_for("studies_studies_resource", **params)
-        response = client.get(url, headers=admin_headers)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.get(url, headers=headers)
         assert response.status_code == 200
-        response_data = response.json
-        assert isinstance(response_data, list)
-        assert len(response_data) == num_exp
+        obs_data = response.json
+        assert isinstance(obs_data, list)
+        assert sorted(study["id"] for study in obs_data) == study_ids
+
+    @pytest.mark.parametrize(
+        ["current_user_id", "params", "status_code"],
+        [
+            (1, {"review_id": 999}, 404),
+            (4, {"review_id": 1}, 403),
+        ],
+    )
+    def test_get_errors(
+        self, current_user_id, params, status_code, app, client, db_session
+    ):
+        with app.test_request_context():
+            url = flask.url_for("studies_studies_resource", **params)
+        with app.app_context():
+            with helpers.set_current_user(current_user_id, db_session) as current_user:
+                headers = auth.pack_header_for_user(current_user)
+                response = client.get(url, headers=headers)
+        assert response.status_code == status_code
