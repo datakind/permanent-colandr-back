@@ -186,6 +186,16 @@ class StudiesResource(Resource):
                 "enum": constants.EXTRACTION_STATUSES,
                 "description": "filter studies to only those with matching data extraction statuses",
             },
+            "num_citation_reviewers": {
+                "in": "query",
+                "type": "integer",
+                "description": "filter studies to only those with a matching number of citation reviewers",
+            },
+            "num_fulltext_reviewers": {
+                "in": "query",
+                "type": "integer",
+                "description": "filter studies to only those with a matching number of fulltext reviewers",
+            },
             "tag": {
                 "in": "query",
                 "type": "string",
@@ -245,6 +255,12 @@ class StudiesResource(Resource):
             "data_extraction_status": ma_fields.String(
                 load_default=None, validate=OneOf(constants.EXTRACTION_STATUSES)
             ),
+            "num_citation_reviewers": ma_fields.Int(
+                load_default=None, validate=Range(min=1, max=3)
+            ),
+            "num_fulltext_reviewers": ma_fields.Int(
+                load_default=None, validate=Range(min=1, max=3)
+            ),
             "tag": ma_fields.String(load_default=None, validate=Length(max=25)),
             "tsquery": ma_fields.String(load_default=None, validate=Length(max=50)),
             "order_by": ma_fields.String(
@@ -269,6 +285,8 @@ class StudiesResource(Resource):
         citation_status,
         fulltext_status,
         data_extraction_status,
+        num_citation_reviewers,
+        num_fulltext_reviewers,
         tag,
         tsquery,
         order_by,
@@ -408,6 +426,15 @@ class StudiesResource(Resource):
                 stmt = stmt.where(
                     models.Study.data_extraction_status == data_extraction_status
                 )
+
+        if num_citation_reviewers is not None:
+            stmt = stmt.where(
+                models.Study.num_citation_reviewers == num_citation_reviewers
+            )
+        if num_fulltext_reviewers is not None:
+            stmt = stmt.where(
+                models.Study.num_fulltext_reviewers == num_fulltext_reviewers
+            )
 
         if tag:
             stmt = stmt.where(models.Study.tags.any(tag, operator=operators.eq))
