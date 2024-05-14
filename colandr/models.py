@@ -442,7 +442,11 @@ class Study(db.Model):
         lazy="select",
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="study", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="study",
+        lazy="write_only",
+        passive_deletes=True,
+        order_by="Screening.id",
     )
 
     dedupe: M["Dedupe"] = sa_orm.relationship(
