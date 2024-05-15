@@ -521,7 +521,7 @@ class StudiesResource(Resource):
             stmt = stmt.where(Study.num_fulltext_reviewers == num_fulltext_reviewers)
 
         if tag:
-            stmt = stmt.where(Study.tags.any(tag, operator=operators.eq))
+            stmt = stmt.where(Study.tags.any_() == tag)
 
         if tsquery and order_by != "relevance":  # HACK...
             stmt = stmt.where(Study.citation_text_content.match(tsquery))
