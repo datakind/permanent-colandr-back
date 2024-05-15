@@ -310,109 +310,199 @@ class StudiesResource(Resource):
         if dedupe_status is not None:
             stmt = stmt.where(models.Study.dedupe_status == dedupe_status)
 
+        from ...models import Screening, Study
+
         if citation_status is not None:
             if citation_status in {"conflict", "excluded", "included"}:
                 stmt = stmt.where(models.Study.citation_status == citation_status)
             elif citation_status == "pending":
-                substmt = """
-                    SELECT t.id
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.dedupe_status,
-                            studies.citation_status,
-                            screenings_.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'citation'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                    ) AS t
-                    WHERE
-                        t.dedupe_status = 'not_duplicate' -- this is necessary!
-                        AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
-                        AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                    """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
+                user_screened_sq = (
+                    sa.select(Screening.study_id).where(
+                        Screening.stage == "citation",
+                        Screening.user_id == current_user.id,
+                    )
+                ).subquery("user_screened")
+                study_ids_sq = (
+                    sa.select(Study.id)
+                    .where(
+                        Study.dedupe_status == "not_duplicate",
+                        Study.citation_status.not_in(
+                            ["included", "excluded", "conflict"]
+                        ),
+                    )
+                    .join(
+                        user_screened_sq,
+                        Study.id == user_screened_sq.c.study_id,
+                        isouter=True,
+                    )
+                ).where(
+                    sa.or_(
+                        Study.citation_status == "not_screened",
+                        user_screened_sq.c.study_id == None,
+                    )
+                )
+                stmt = stmt.where(Study.id.in_(study_ids_sq))
+                # old, less performant, textual equivalent
+                # substmt = """
+                #     SELECT t.id
+                #     FROM (
+                #         SELECT
+                #             studies.id,
+                #             studies.dedupe_status,
+                #             studies.citation_status,
+                #             screenings_.user_ids
+                #         FROM studies
+                #         LEFT JOIN (
+                #             SELECT
+                #                 study_id,
+                #                 ARRAY_AGG(user_id) AS user_ids
+                #             FROM screenings
+                #             WHERE stage = 'citation'
+                #             GROUP BY study_id
+                #         ) AS screenings_ ON studies.id = screenings_.study_id
+                #     ) AS t
+                #     WHERE
+                #         t.dedupe_status = 'not_duplicate' -- this is necessary!
+                #         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
+                #         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
+                #     """.format(user_id=current_user.id)
+                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif citation_status == "awaiting_coscreener":
-                substmt = """
-                    SELECT t.id
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.citation_status,
-                            screenings.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'citation'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                    ) AS t
-                    WHERE
-                        t.citation_status = 'screened_once'
-                        AND {user_id} = ANY(t.user_ids)
-                    """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
+                user_screened_sq = (
+                    sa.select(Screening.study_id).where(
+                        Screening.stage == "citation",
+                        Screening.user_id == current_user.id,
+                    )
+                ).subquery("user_screened")
+                study_ids_sq = (
+                    sa.select(Study.id)
+                    .where(Study.citation_status == "screened_once")
+                    .join(
+                        user_screened_sq,
+                        Study.id == user_screened_sq.c.study_id,
+                        isouter=True,
+                    )
+                ).where(user_screened_sq.c.study_id != None)
+                stmt = stmt.where(Study.id.in_(study_ids_sq))
+                # old, less performant, textual equivalent
+                # substmt = """
+                #     SELECT t.id
+                #     FROM (
+                #         SELECT
+                #             studies.id,
+                #             studies.citation_status,
+                #             screenings_.user_ids
+                #         FROM studies
+                #         LEFT JOIN (
+                #             SELECT
+                #                 study_id,
+                #                 ARRAY_AGG(user_id) AS user_ids
+                #             FROM screenings
+                #             WHERE stage = 'citation'
+                #             GROUP BY study_id
+                #         ) AS screenings_ ON studies.id = screenings_.study_id
+                #     ) AS t
+                #     WHERE
+                #         t.citation_status = 'screened_once'
+                #         AND {user_id} = ANY(t.user_ids)
+                #     """.format(user_id=current_user.id)
+                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if fulltext_status is not None:
             if fulltext_status in {"conflict", "excluded", "included"}:
                 stmt = stmt.where(models.Study.fulltext_status == fulltext_status)
             elif fulltext_status == "pending":
-                substmt = """
-                    SELECT id
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.citation_status,
-                            studies.fulltext_status,
-                            screenings_.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'fulltext'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                    ) AS t
-                    WHERE
-                        citation_status = 'included' -- this is necessary!
-                        AND fulltext_status NOT IN ('excluded', 'included', 'conflict')
-                        AND (fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids))
-                    """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
+                user_screened_sq = (
+                    sa.select(Screening.study_id).where(
+                        Screening.stage == "fulltext",
+                        Screening.user_id == current_user.id,
+                    )
+                ).subquery("user_screened")
+                study_ids_sq = (
+                    sa.select(Study.id)
+                    .where(
+                        Study.citation_status == "included",
+                        Study.fulltext_status.not_in(
+                            ["included", "excluded", "conflict"]
+                        ),
+                    )
+                    .join(
+                        user_screened_sq,
+                        Study.id == user_screened_sq.c.study_id,
+                        isouter=True,
+                    )
+                ).where(
+                    sa.or_(
+                        Study.fulltext_status == "not_screened",
+                        user_screened_sq.c.study_id == None,
+                    )
+                )
+                stmt = stmt.where(Study.id.in_(study_ids_sq))
+                # old, less performant, textual equivalent
+                # substmt = """
+                #     SELECT id
+                #     FROM (
+                #         SELECT
+                #             studies.id,
+                #             studies.citation_status,
+                #             studies.fulltext_status,
+                #             screenings_.user_ids
+                #         FROM studies
+                #         LEFT JOIN (
+                #             SELECT
+                #                 study_id,
+                #                 ARRAY_AGG(user_id) AS user_ids
+                #             FROM screenings
+                #             WHERE stage = 'fulltext'
+                #             GROUP BY study_id
+                #         ) AS screenings_ ON studies.id = screenings_.study_id
+                #     ) AS t
+                #     WHERE
+                #         citation_status = 'included' -- this is necessary!
+                #         AND fulltext_status NOT IN ('excluded', 'included', 'conflict')
+                #         AND (fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids))
+                #     """.format(user_id=current_user.id)
+                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif fulltext_status == "awaiting_coscreener":
-                substmt = """
-                    SELECT t.id
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.fulltext_status,
-                            screenings_.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'fulltext'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                    ) AS t
-                    WHERE
-                        t.fulltext_status = 'screened_once'
-                        AND {user_id} = ANY(t.user_ids)
-                    """.format(user_id=current_user.id)
-                stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
+                user_screened_sq = (
+                    sa.select(Screening.study_id).where(
+                        Screening.stage == "fulltext",
+                        Screening.user_id == current_user.id,
+                    )
+                ).subquery("user_screened")
+                study_ids_sq = (
+                    sa.select(Study.id)
+                    .where(Study.fulltext_status == "screened_once")
+                    .join(
+                        user_screened_sq,
+                        Study.id == user_screened_sq.c.study_id,
+                        isouter=True,
+                    )
+                ).where(user_screened_sq.c.study_id != None)
+                stmt = stmt.where(Study.id.in_(study_ids_sq))
+                # old, less performant, textual equivalent
+                # substmt = """
+                #     SELECT t.id
+                #     FROM (
+                #         SELECT
+                #             studies.id,
+                #             studies.fulltext_status,
+                #             screenings_.user_ids
+                #         FROM studies
+                #         LEFT JOIN (
+                #             SELECT
+                #                 study_id,
+                #                 ARRAY_AGG(user_id) AS user_ids
+                #             FROM screenings
+                #             WHERE stage = 'fulltext'
+                #             GROUP BY study_id
+                #         ) AS screenings_ ON studies.id = screenings_.study_id
+                #     ) AS t
+                #     WHERE
+                #         t.fulltext_status = 'screened_once'
+                #         AND {user_id} = ANY(t.user_ids)
+                #     """.format(user_id=current_user.id)
+                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
