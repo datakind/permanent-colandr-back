@@ -139,9 +139,6 @@ class StudyResource(Resource):
         return StudySchema().dump(study)
 
 
-# TODO: port these text subqueries over to sqlalchemy orm equivalents
-
-
 @ns.route("")
 @ns.doc(
     summary="get collections of matching studies",
