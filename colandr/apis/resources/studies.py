@@ -305,16 +305,16 @@ class StudiesResource(Resource):
         if fields and "id" not in fields:
             fields.append("id")
 
-        stmt = sa.select(models.Study).where(models.Study.review_id == review_id)
+        from ...models import Screening, Study
+
+        stmt = sa.select(Study).where(Study.review_id == review_id)
 
         if dedupe_status is not None:
-            stmt = stmt.where(models.Study.dedupe_status == dedupe_status)
-
-        from ...models import Screening, Study
+            stmt = stmt.where(Study.dedupe_status == dedupe_status)
 
         if citation_status is not None:
             if citation_status in {"conflict", "excluded", "included"}:
-                stmt = stmt.where(models.Study.citation_status == citation_status)
+                stmt = stmt.where(Study.citation_status == citation_status)
             elif citation_status == "pending":
                 user_screened_sq = (
                     sa.select(Screening.study_id).where(
@@ -410,7 +410,7 @@ class StudiesResource(Resource):
 
         if fulltext_status is not None:
             if fulltext_status in {"conflict", "excluded", "included"}:
-                stmt = stmt.where(models.Study.fulltext_status == fulltext_status)
+                stmt = stmt.where(Study.fulltext_status == fulltext_status)
             elif fulltext_status == "pending":
                 user_screened_sq = (
                     sa.select(Screening.study_id).where(
@@ -507,37 +507,28 @@ class StudiesResource(Resource):
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
                 stmt = stmt.where(
-                    models.Study.data_extraction_status == data_extraction_status
-                ).where(
-                    models.Study.fulltext_status == "included"
-                )  # this is necessary!
+                    Study.fulltext_status == "included",  # this is necessary!
+                    Study.data_extraction_status == data_extraction_status,
+                )
             else:
                 stmt = stmt.where(
-                    models.Study.data_extraction_status == data_extraction_status
+                    Study.data_extraction_status == data_extraction_status
                 )
 
         if num_citation_reviewers is not None:
-            stmt = stmt.where(
-                models.Study.num_citation_reviewers == num_citation_reviewers
-            )
+            stmt = stmt.where(Study.num_citation_reviewers == num_citation_reviewers)
         if num_fulltext_reviewers is not None:
-            stmt = stmt.where(
-                models.Study.num_fulltext_reviewers == num_fulltext_reviewers
-            )
+            stmt = stmt.where(Study.num_fulltext_reviewers == num_fulltext_reviewers)
 
         if tag:
-            stmt = stmt.where(models.Study.tags.any(tag, operator=operators.eq))
+            stmt = stmt.where(Study.tags.any(tag, operator=operators.eq))
 
         if tsquery and order_by != "relevance":  # HACK...
-            stmt = stmt.where(models.Study.citation_text_content.match(tsquery))
+            stmt = stmt.where(Study.citation_text_content.match(tsquery))
 
         # order, offset, and limit
         if order_by == "recency":
-            order_by = (
-                sa.desc(models.Study.id)
-                if order_dir == "DESC"
-                else sa.asc(models.Study.id)
-            )
+            order_by = sa.desc(Study.id) if order_dir == "DESC" else sa.asc(Study.id)
             stmt = stmt.order_by(order_by)
             stmt = stmt.offset(page * per_page).limit(per_page)
             return StudySchema(many=True, only=fields).dump(
@@ -546,7 +537,7 @@ class StudiesResource(Resource):
 
         elif order_by == "relevance":
             if tsquery:
-                stmt = stmt.where(models.Study.citation_text_content.match(tsquery))
+                stmt = stmt.where(Study.citation_text_content.match(tsquery))
 
             # get results and corresponding relevance scores
             stmt = stmt.order_by(db.func.random()).limit(1000)
