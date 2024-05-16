@@ -10,17 +10,21 @@
 
 # 0. docker compose up -d, made note of image names, updated deploy_azure.py which I copied over from another repo I did
 # 1. az webapp create --resource-group DK-DS-Prototypes --plan DK-DS-Prototypes --name colandr-api --multicontainer-config-type compose --multicontainer-config-file compose.yml 
-# 2. Navigated to app in Azure portal and added the following environment variables: (note how I changed db from localhost to docker 'db')
-#      What about this one?
-#      COLANDR_APP_DIR="/path/to/permanent-colandr-back"
+# 2. Navigated to app in Azure portal and environment variables as sent to me by Larry. I changed 'localhost' to be 'db'
+#    As this would be the hostname on the docker network
 # 3. In portal went to deployment center and configured container registry
 # 4. Pasted in docker-compose.yml
-# 5. Edited to change ...
+# 5. Edited it to change ...
 #      - images in compose directives to point at registry, e.g. colandr.azurecr.io/colandr-api:db. These were set by deploy script.
 #      - Commented out any bind mounts and builds
 #      - Changed API Port to 80     
 # 7. Copied web webhook URL
-# 8. Ran deploy script
+# 8. Created web hook under resources in colandr container service
+# 9. Created docker-compose-deploy.yml to use linux/amd64 platform (on a Mac push fails)
+# 10. Modified deploy_azure.py to push images to registry and use docker-compose-deploy.yml
+# 11. Ran deploy_azure.py
+# 12. Went to web app, used Developer tools > Kudo to tail logs in LogFile
+# 13. Checked site was up using https://colandr-api.azurewebsites.net/
 
 
 # If you want local filesystem storage, you can use  ${WEBAPP_STORAGE_HOME}
@@ -39,7 +43,7 @@ container_registry = "colandr.azurecr.io"
 repo = "colandr-api"
 
 # Script is run from top directory
-docker_compose_file = "docker-compose.yml"
+docker_compose_file = "docker-compose-deploy.yml"
 azure_platform = "linux/amd64"
 
 if sys.platform == "darwin":
