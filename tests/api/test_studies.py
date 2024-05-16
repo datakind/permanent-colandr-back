@@ -158,6 +158,7 @@ class TestStudiesResource:
             (1, {"review_id": 1, "citation_status": "included"}, [1, 2]),
             (1, {"review_id": 1, "citation_status": "excluded"}, [3]),
             (1, {"review_id": 1, "fulltext_status": "included"}, [1]),
+            (2, {"review_id": 1, "citation_status": "awaiting_coscreener"}, []),
             (3, {"review_id": 2, "fulltext_status": "pending"}, [4]),
             (1, {"review_id": 1, "num_citation_reviewers": 1}, [1, 2, 3]),
             (1, {"review_id": 1, "num_citation_reviewers": 2}, []),
