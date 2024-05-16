@@ -82,8 +82,8 @@ services:
       - COLANDR_MAIL_USE_SSL=0
     volumes:
       - .:/app
-    ports:
-      - 5001:5000
+    #ports:
+    #  - 5001:5000
   worker:
     platform: linux/amd64
     container_name: colandr-worker
