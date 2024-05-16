@@ -64,7 +64,7 @@ services:
       - worker
     stop_signal: SIGINT
     healthcheck:
-      test: "curl localhost:5000/api/health"
+      test: "curl api:5000/api/health"
       interval: "10s"
       timeout: "3s"
       start_period: "5s"
