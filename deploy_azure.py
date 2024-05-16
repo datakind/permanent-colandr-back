@@ -122,7 +122,7 @@ def deploy():
     run_cmd(f"docker compose -f {docker_compose_file} up -d")
 
     print(
-        "Now go and click on https://ai-assistants-prototypes.azurewebsites.net/c/new to trigger to deploy"
+        "Now go and click on https://colandr-api.azurewebsites.net/ to trigger to deploy"
     )
 
 
