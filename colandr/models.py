@@ -801,20 +801,10 @@ def update_study_status(mapper, connection, target):
     stage = target.stage
     if stage == "citation":
         num_reviewers = study.num_citation_reviewers
-        study_status_col = Study.citation_status
         study_status_col_str = "citation_status"
-        review_num_included_col = Review.num_citations_included
-        review_num_included_col_str = "num_citations_included"
     else:
         num_reviewers = study.num_fulltext_reviewers
-        study_status_col = Study.fulltext_status
         study_status_col_str = "fulltext_status"
-        review_num_included_col = Review.num_fulltexts_included
-        review_num_included_col_str = "num_fulltexts_included"
-    # get the current (soon to be *old*) status of the study
-    old_status = connection.execute(
-        sa.select(study_status_col).where(Study.id == study_id)
-    ).fetchone()[0]
     # compute the new status, and update the study accordingly
     status = utils.assign_status(
         [
@@ -832,16 +822,6 @@ def update_study_status(mapper, connection, target):
     )
     LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
 
-    # we may have to update our counts for review num_*_included / num_*_excluded
-    _update_review_num_counts(
-        old_status=old_status,
-        status=status,
-        review_id=review_id,
-        review_num_included_col=review_num_included_col,
-        review_num_included_col_str=review_num_included_col_str,
-        connection=connection,
-    )
-
     if stage == "citation":
         # get rid of any contrary fulltext screenings
         if status != "included":
@@ -853,17 +833,14 @@ def update_study_status(mapper, connection, target):
             LOGGER.info(
                 "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
             )
-            # TODO: do we also need to update review.num_fulltexts_included/excluded?
-        # update review models, as needed
-        status_counts = connection.execute(
-            sa.select(
-                Review.num_citations_included, Review.num_citations_excluded
-            ).where(Review.id == review_id)
-        ).fetchone()
-        LOGGER.info(
-            "<Review(id=%s)> citation_status counts = %s", review_id, status_counts
+        review = (
+            db.session.execute(sa.select(Review).filter_by(id=review_id))
+            .scalars()
+            .one()
         )
-        n_included, n_excluded = status_counts
+        status_counts = review.num_citations_by_status(["included", "excluded"])
+        n_included = status_counts.get("included", 0)
+        n_excluded = status_counts.get("excluded", 0)
         # if at least 25 citations have been included AND excluded
         # and only once every 25 included citations
         # (re-)compute the suggested keyterms
@@ -904,39 +881,3 @@ def update_study_status(mapper, connection, target):
         #             '<Review(id=%s)> fulltext_status counts = %s',
         #             review_id, status_counts)
         #         n_included, n_excluded = status_counts
-
-
-def _update_review_num_counts(
-    *,
-    old_status: str,
-    status: str,
-    review_id: int,
-    review_num_included_col: sa_orm.InstrumentedAttribute[int],
-    review_num_included_col_str: str,
-    connection,
-):
-    if old_status != status:
-        if old_status == "included":  # decrement
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col - 1})
-            )
-        elif status == "included":  # increment
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col + 1})
-            )
-        elif old_status == "excluded":  # decrement
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col - 1})
-            )
-        elif status == "excluded":  # increment
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col + 1})
-            )
