@@ -1,3 +1,4 @@
+import collections
 import datetime
 import itertools
 import logging
@@ -727,7 +728,7 @@ def insert_review_plan(mapper, connection, target):
 @sa_event.listens_for(Review, "after_update")
 def update_study_num_reviewers(mapper, connection, target):
     review_id = target.id
-    study_id_updates: dict[int, dict[str, int]] = {}
+    study_id_updates = collections.defaultdict(dict)
     # randomly assign num citation reviewers for unscreened studies
     citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
     study_ids: list[int] = (
@@ -745,12 +746,8 @@ def update_study_num_reviewers(mapper, connection, target):
             weights=[num_pct["pct"] for num_pct in citation_reviewer_num_pcts],
             k=len(study_ids),
         )
-        study_id_updates |= {
-            id_: {"num_citation_reviewers": num_citation_reviewers}
-            for id_, num_citation_reviewers in zip(
-                study_ids, study_num_citation_reviewers
-            )
-        }
+        for id_, num_citation_reviewers in zip(study_ids, study_num_citation_reviewers):
+            study_id_updates[id_]["num_citation_reviewers"] = num_citation_reviewers
     # randomly assign num fulltext reviewers for unscreened studies
     fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
     study_ids: list[int] = (
@@ -768,12 +765,8 @@ def update_study_num_reviewers(mapper, connection, target):
             weights=[num_pct["pct"] for num_pct in fulltext_reviewer_num_pcts],
             k=len(study_ids),
         )
-        study_id_updates |= {
-            id_: {"num_fulltext_reviewers": num_fulltext_reviewers}
-            for id_, num_fulltext_reviewers in zip(
-                study_ids, study_num_fulltext_reviewers
-            )
-        }
+        for id_, num_fulltext_reviewers in zip(study_ids, study_num_fulltext_reviewers):
+            study_id_updates[id_]["num_fulltext_reviewers"] = num_fulltext_reviewers
     # munge updates into form required for sqlalchemy bulk update, submit all together
     if study_id_updates:
         studies_to_update = [
