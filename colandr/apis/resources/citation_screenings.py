@@ -452,7 +452,7 @@ class CitationsScreeningsResource(Resource):
         current_app.logger.info(
             "updated citation_status for %s studies", len(studies_to_update)
         )
-        # now update include/exclude counts on review
+        # get include/exclude counts on review
         status_counts = review.num_citations_by_status(["included", "excluded"])
         n_included = status_counts.get("included", 0)
         n_excluded = status_counts.get("excluded", 0)
