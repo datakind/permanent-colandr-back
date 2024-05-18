@@ -52,7 +52,6 @@ class User(db.Model):
         passive_deletes=True,
         order_by="ReviewUserAssoc.review_id",
     )
-    reviews = association_proxy("review_user_assoc", "review")
 
     imports: WOM["Import"] = sa_orm.relationship(
         "Import", back_populates="user", lazy="write_only", passive_deletes=True
@@ -66,6 +65,13 @@ class User(db.Model):
 
     def __repr__(self):
         return f"<User(id={self.id})>"
+
+    @property
+    def reviews(self) -> list["Review"]:
+        return [
+            rua.review
+            for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        ]
 
     @property
     def owned_reviews(self) -> list["Review"]:
