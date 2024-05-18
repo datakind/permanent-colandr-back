@@ -122,7 +122,9 @@ class User(db.Model):
 
     @staticmethod
     def hash_password(password: str) -> str:
-        return werkzeug.security.generate_password_hash(password, method="pbkdf2")
+        return werkzeug.security.generate_password_hash(
+            password, method="scrypt", salt_length=16
+        )
 
 
 class Review(db.Model):
