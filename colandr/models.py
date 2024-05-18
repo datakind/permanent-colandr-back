@@ -151,10 +151,6 @@ class Review(db.Model):
     fulltext_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
         postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
-    num_citations_included: M[int] = mapcol(sa.Integer, server_default="0")
-    num_citations_excluded: M[int] = mapcol(sa.Integer, server_default="0")
-    num_fulltexts_included: M[int] = mapcol(sa.Integer, server_default="0")
-    num_fulltexts_excluded: M[int] = mapcol(sa.Integer, server_default="0")
 
     # relationships
     review_user_assoc = sa_orm.relationship(
