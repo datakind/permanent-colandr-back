@@ -198,6 +198,28 @@ class Review(db.Model):
             ).scalars()
         ]
 
+    def num_citations_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.citation_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.citation_status.in_(statuses))
+            .group_by(Study.citation_status)
+        )
+        return {row.citation_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+
+    def num_fulltexts_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.fulltext_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.fulltext_status.in_(statuses))
+            .group_by(Study.fulltext_status)
+        )
+        return {row.fulltext_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+
 
 class ReviewUserAssoc(db.Model):
     __tablename__ = "review_user_assoc"
