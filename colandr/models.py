@@ -511,15 +511,16 @@ class Study(db.Model):
             )
         ).strip()
 
-    @citation_text_content.expression
-    def citation_text_content(cls):
+    @citation_text_content.inplace.expression
+    @classmethod
+    def _citation_text_content_expression(cls):
         # NOTE: i can't convince sqlalchemy to convert the keywords jsonb array
         # into a concatenated string; i have LOOKED, this shit is BONKERS
         # no, db.func.array_to_string(cls.citation["keywords"], ", ") does not work
-        return db.func.concat_ws(
+        return sa.func.concat_ws(
             "\n\n",
-            cls.citation["title"],
-            cls.citation["abstract"],
+            cls.citation["title"].astext,
+            cls.citation["abstract"].astext,
             cls.citation["keywords"].astext,
         )
 
