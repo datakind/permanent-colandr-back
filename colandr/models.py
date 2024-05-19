@@ -50,18 +50,29 @@ class User(db.Model):
         back_populates="user",
         cascade="all, delete",
         lazy="write_only",
-        passive_deletes=True,
         order_by="ReviewUserAssoc.review_id",
+        passive_deletes=True,
     )
-
     imports: WOM["Import"] = sa_orm.relationship(
-        "Import", back_populates="user", lazy="write_only", passive_deletes=True
+        "Import",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
     )
     studies: WOM["Study"] = sa_orm.relationship(
-        "Study", back_populates="user", lazy="write_only", passive_deletes=True
+        "Study",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="user", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
     )
 
     def __repr__(self):
@@ -174,21 +185,38 @@ class Review(db.Model):
         "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
     )
     imports: WOM["Import"] = sa_orm.relationship(
-        "Import", back_populates="review", lazy="write_only", passive_deletes=True
+        "Import",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
     )
     studies: WOM["Study"] = sa_orm.relationship(
-        "Study", back_populates="review", lazy="write_only", passive_deletes=True
+        "Study",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="review", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
     )
     dedupes: WOM["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="review", lazy="write_only", passive_deletes=True
+        "Dedupe",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Dedupe.id",
+        passive_deletes=True,
     )
     data_extractions: WOM["DataExtraction"] = sa_orm.relationship(
         "DataExtraction",
         back_populates="review",
         lazy="write_only",
+        order_by="DataExtraction.id",
         passive_deletes=True,
     )
 
@@ -214,9 +242,9 @@ class Review(db.Model):
         return [
             rua.user
             for rua in db.session.execute(
-                sa.select(ReviewUserAssoc).filter_by(
-                    review_id=self.id, user_role="owner"
-                )
+                sa.select(ReviewUserAssoc)
+                .filter_by(review_id=self.id, user_role="owner")
+                .order_by(ReviewUserAssoc.user_id)
             ).scalars()
         ]
 
