@@ -164,6 +164,7 @@ class Review(db.Model):
         "ReviewUserAssoc",
         back_populates="review",
         cascade="all, delete",
+        # TODO: we should make this write-only, replace assoc proxy w/ users property
         lazy="dynamic",
         order_by="ReviewUserAssoc.user_id",
     )
@@ -193,6 +194,20 @@ class Review(db.Model):
 
     def __repr__(self):
         return f"<Review(id={self.id})>"
+
+    # @property
+    # def users(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+    #     ]
+
+    # @property
+    # def owners(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in self.review_user_assoc.select().filter_by(user_role="owner").scalars()
+    #     ]
 
     @property
     def owners(self) -> list[User]:
