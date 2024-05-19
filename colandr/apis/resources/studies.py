@@ -308,6 +308,12 @@ class StudiesResource(Resource):
 
         if dedupe_status is not None:
             stmt = stmt.where(Study.dedupe_status == dedupe_status)
+        if num_citation_reviewers is not None:
+            stmt = stmt.where(Study.num_citation_reviewers == num_citation_reviewers)
+        if num_fulltext_reviewers is not None:
+            stmt = stmt.where(Study.num_fulltext_reviewers == num_fulltext_reviewers)
+        if tag:
+            stmt = stmt.where(Study.tags.any_() == tag)
 
         if citation_status is not None:
             if citation_status in {"conflict", "excluded", "included"}:
@@ -339,31 +345,6 @@ class StudiesResource(Resource):
                     )
                 )
                 stmt = stmt.where(Study.id.in_(study_ids_sq))
-                # old, less performant, textual equivalent
-                # substmt = """
-                #     SELECT t.id
-                #     FROM (
-                #         SELECT
-                #             studies.id,
-                #             studies.dedupe_status,
-                #             studies.citation_status,
-                #             screenings_.user_ids
-                #         FROM studies
-                #         LEFT JOIN (
-                #             SELECT
-                #                 study_id,
-                #                 ARRAY_AGG(user_id) AS user_ids
-                #             FROM screenings
-                #             WHERE stage = 'citation'
-                #             GROUP BY study_id
-                #         ) AS screenings_ ON studies.id = screenings_.study_id
-                #     ) AS t
-                #     WHERE
-                #         t.dedupe_status = 'not_duplicate' -- this is necessary!
-                #         AND t.citation_status NOT IN ('excluded', 'included', 'conflict')
-                #         AND (t.citation_status = 'not_screened' OR NOT {user_id} = ANY(t.user_ids))
-                #     """.format(user_id=current_user.id)
-                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif citation_status == "awaiting_coscreener":
                 user_screened_sq = (
                     sa.select(Screening.study_id).where(
@@ -381,29 +362,6 @@ class StudiesResource(Resource):
                     )
                 ).where(user_screened_sq.c.study_id != None)
                 stmt = stmt.where(Study.id.in_(study_ids_sq))
-                # old, less performant, textual equivalent
-                # substmt = """
-                #     SELECT t.id
-                #     FROM (
-                #         SELECT
-                #             studies.id,
-                #             studies.citation_status,
-                #             screenings_.user_ids
-                #         FROM studies
-                #         LEFT JOIN (
-                #             SELECT
-                #                 study_id,
-                #                 ARRAY_AGG(user_id) AS user_ids
-                #             FROM screenings
-                #             WHERE stage = 'citation'
-                #             GROUP BY study_id
-                #         ) AS screenings_ ON studies.id = screenings_.study_id
-                #     ) AS t
-                #     WHERE
-                #         t.citation_status = 'screened_once'
-                #         AND {user_id} = ANY(t.user_ids)
-                #     """.format(user_id=current_user.id)
-                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if fulltext_status is not None:
             if fulltext_status in {"conflict", "excluded", "included"}:
@@ -435,31 +393,6 @@ class StudiesResource(Resource):
                     )
                 )
                 stmt = stmt.where(Study.id.in_(study_ids_sq))
-                # old, less performant, textual equivalent
-                # substmt = """
-                #     SELECT id
-                #     FROM (
-                #         SELECT
-                #             studies.id,
-                #             studies.citation_status,
-                #             studies.fulltext_status,
-                #             screenings_.user_ids
-                #         FROM studies
-                #         LEFT JOIN (
-                #             SELECT
-                #                 study_id,
-                #                 ARRAY_AGG(user_id) AS user_ids
-                #             FROM screenings
-                #             WHERE stage = 'fulltext'
-                #             GROUP BY study_id
-                #         ) AS screenings_ ON studies.id = screenings_.study_id
-                #     ) AS t
-                #     WHERE
-                #         citation_status = 'included' -- this is necessary!
-                #         AND fulltext_status NOT IN ('excluded', 'included', 'conflict')
-                #         AND (fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids))
-                #     """.format(user_id=current_user.id)
-                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
             elif fulltext_status == "awaiting_coscreener":
                 user_screened_sq = (
                     sa.select(Screening.study_id).where(
@@ -477,29 +410,6 @@ class StudiesResource(Resource):
                     )
                 ).where(user_screened_sq.c.study_id != None)
                 stmt = stmt.where(Study.id.in_(study_ids_sq))
-                # old, less performant, textual equivalent
-                # substmt = """
-                #     SELECT t.id
-                #     FROM (
-                #         SELECT
-                #             studies.id,
-                #             studies.fulltext_status,
-                #             screenings_.user_ids
-                #         FROM studies
-                #         LEFT JOIN (
-                #             SELECT
-                #                 study_id,
-                #                 ARRAY_AGG(user_id) AS user_ids
-                #             FROM screenings
-                #             WHERE stage = 'fulltext'
-                #             GROUP BY study_id
-                #         ) AS screenings_ ON studies.id = screenings_.study_id
-                #     ) AS t
-                #     WHERE
-                #         t.fulltext_status = 'screened_once'
-                #         AND {user_id} = ANY(t.user_ids)
-                #     """.format(user_id=current_user.id)
-                # stmt = stmt.where(models.Study.id.in_(sa.text(substmt)))
 
         if data_extraction_status is not None:
             if data_extraction_status == "not_started":
@@ -511,14 +421,6 @@ class StudiesResource(Resource):
                 stmt = stmt.where(
                     Study.data_extraction_status == data_extraction_status
                 )
-
-        if num_citation_reviewers is not None:
-            stmt = stmt.where(Study.num_citation_reviewers == num_citation_reviewers)
-        if num_fulltext_reviewers is not None:
-            stmt = stmt.where(Study.num_fulltext_reviewers == num_fulltext_reviewers)
-
-        if tag:
-            stmt = stmt.where(Study.tags.any_() == tag)
 
         if tsquery and order_by != "relevance":  # HACK...
             stmt = stmt.where(Study.citation_text_content.match(tsquery))
