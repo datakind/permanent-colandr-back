@@ -257,7 +257,10 @@ class Review(db.Model):
             .where(Study.citation_status.in_(statuses))
             .group_by(Study.citation_status)
         )
-        return {row.citation_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.citation_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        return result
 
     def num_fulltexts_by_status(self, statuses: str | list[str]) -> dict[str, int]:
         if isinstance(statuses, str):
@@ -268,7 +271,10 @@ class Review(db.Model):
             .where(Study.fulltext_status.in_(statuses))
             .group_by(Study.fulltext_status)
         )
-        return {row.fulltext_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.fulltext_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        return result
 
 
 class ReviewUserAssoc(db.Model):
