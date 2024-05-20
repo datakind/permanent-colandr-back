@@ -517,6 +517,7 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
+    # TODO: maybe change lazy to "select" here? there will always be 0-3 screenings...
     screenings: WOM["Screening"] = sa_orm.relationship(
         "Screening",
         back_populates="study",
@@ -524,7 +525,6 @@ class Study(db.Model):
         passive_deletes=True,
         order_by="Screening.id",
     )
-
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="select", passive_deletes=True
     )
