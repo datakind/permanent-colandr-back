@@ -452,22 +452,10 @@ class CitationsScreeningsResource(Resource):
         current_app.logger.info(
             "updated citation_status for %s studies", len(studies_to_update)
         )
-        # now update include/exclude counts on review
-        status_counts_stmt = (
-            sa.select(models.Study.citation_status, db.func.count(1))
-            .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-            .filter(models.Study.citation_status == sa.any_(["included", "excluded"]))
-            .group_by(models.Study.citation_status)
-        )
-        status_counts: dict[str, int] = {
-            row.citation_status: row.count
-            for row in db.session.execute(status_counts_stmt)
-        }  # type: ignore
+        # get include/exclude counts on review
+        status_counts = review.num_citations_by_status(["included", "excluded"])
         n_included = status_counts.get("included", 0)
         n_excluded = status_counts.get("excluded", 0)
-        review.num_citations_included = n_included
-        review.num_citations_excluded = n_excluded
-        db.session.commit()
         # do we have to suggest keyterms?
         if n_included >= 25 and n_excluded >= 25:
             sample_size = min(n_included, n_excluded)
