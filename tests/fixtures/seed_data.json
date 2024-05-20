@@ -231,8 +231,6 @@
                 "TAG1"
             ],
             "citation": {
-                "id_": 1,
-                "review_id": 1,
                 "type_of_reference": "journal",
                 "title": "TITLE1",
                 "abstract": "ABSTRACT1",
@@ -287,8 +285,6 @@
                 "TAG1"
             ],
             "citation": {
-                "id_": 2,
-                "review_id": 1,
                 "type_of_reference": "journal",
                 "title": "TITLE2",
                 "abstract": "ABSTRACT2",
@@ -320,8 +316,6 @@
             "review_id": 1,
             "data_source_id": 2,
             "citation": {
-                "id_": 3,
-                "review_id": 1,
                 "type_of_reference": "book",
                 "title": "TITLE3",
                 "abstract": "ABSTRACT3",
@@ -369,8 +363,6 @@
                 "TAG4"
             ],
             "citation": {
-                "id_": 4,
-                "review_id": 2,
                 "type_of_reference": "newspaper",
                 "title": "TITLE4",
                 "abstract": "ABSTRACT4",
