@@ -1,0 +1,17 @@
+apiVersion: v1
+data:
+  COLANDR_APP_DIR: /path/to/permanent-colandr-back
+  COLANDR_DATABASE_URI: postgresql+psycopg://postgres:postgres@db:5432/colandr_app
+  COLANDR_DB_NAME: colandr_app
+  COLANDR_DB_PASSWORD: postgres
+  COLANDR_DB_USER: postgres
+  COLANDR_FLASK_CONFIG: default
+  COLANDR_MAIL_PASSWORD: helpme
+  COLANDR_MAIL_USERNAME: support@datakind.org
+  COLANDR_PASSWORD_SALT: pepperistasty
+  COLANDR_SECRET_KEY: q1w2e3r4t5y6
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: api-env
+  name: env

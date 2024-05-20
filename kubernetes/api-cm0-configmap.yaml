@@ -1,0 +1,1132 @@
+apiVersion: v1
+data:
+  .dockerignore: |
+    *
+    !colandr
+    !requirements
+    !pyproject.toml
+    !restart_service.sh
+    !gunicorn_config.py
+    !make_celery.py
+    !colandr_data/
+  .env: |-
+    COLANDR_FLASK_CONFIG="default"
+    COLANDR_DATABASE_URI="postgresql://colandr_app:postgres@localhost:5432/colandr"
+    COLANDR_APP_DIR="/path/to/permanent-colandr-back"
+    COLANDR_SECRET_KEY="q1w2e3r4t5y6"
+    COLANDR_PASSWORD_SALT="pepperistasty"
+    COLANDR_MAIL_USERNAME="support@datakind.org"
+    COLANDR_MAIL_PASSWORD="helpme"
+    COLANDR_DB_USER=postgres
+    COLANDR_DB_PASSWORD=postgres
+    COLANDR_DB_NAME=colandr_app
+  .env.example: |
+    COLANDR_DB_USER="<COLANDR_DB_USER>"
+    COLANDR_DB_PASSWORD="<COLANDR_DB_PASSWORD>"
+    COLANDR_DB_NAME="<COLANDR_DB_NAME>"
+    COLANDR_DATABASE_URI="postgresql://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@localhost:5432/${COLANDR_DB_NAME}"
+
+    COLANDR_SECRET_KEY="<YOUR_SECRET_KEY>"
+    COLANDR_APP_DIR="/path/to/permanent-colandr-back"
+    COLANDR_MAIL_USERNAME="<COLANDR_MAIL_USERNAME>"
+    COLANDR_MAIL_PASSWORD="<COLANDR_MAIL_PASSWORD>"
+
+    COLANDR_JWT_SECRET_KEY="<COLANDR_JWT_SECRET_KEY>"
+  .gitignore: |
+    # app config
+    .env
+    colandr.pid
+
+    # Byte-compiled / optimized / DLL files
+    __pycache__/
+    *.py[cod]
+    *$py.class
+
+    # Distribution / packaging
+    .Python
+    .DS_Store
+    build/
+    develop-eggs/
+    dist/
+    downloads/
+    eggs/
+    .eggs/
+    # lib/
+    lib64/
+    parts/
+    sdist/
+    var/
+    wheels/
+    pip-wheel-metadata/
+    share/python-wheels/
+    *.egg-info/
+    .installed.cfg
+    *.egg
+    # MANIFEST
+
+    # Unit test / coverage reports
+    htmlcov/
+    .tox/
+    .nox/
+    .coverage
+    .coverage.*
+    .cache
+    nosetests.xml
+    coverage.xml
+    *.cover
+    *.py,cover
+    .hypothesis/
+    .pytest_cache/
+
+    # C extensions
+    *.so
+
+    # Jupyter / IPython
+    .ipynb_checkpoints
+    profile_default/
+    ipython_config.py
+
+    # pyenv / IDE
+    .python-version
+    .vscode/
+    .venv/
+
+    # mypy
+    .mypy_cache/
+    .dmypy.json
+    dmypy.json
+
+    # ruff
+    .ruff_cache/
+
+    # data dirs
+    data/raw/*
+    data/processed/*
+    colandr_data/fulltexts/*
+    colandr_data/logs/*
+    colandr_data/ranking_models/*
+    dependency-reduced-pom.xml
+
+    # Icon must end with two \r
+    Icon
+
+    # Thumbnails
+    ._*
+
+    # Files that might appear in the root of a volume
+    .DocumentRevisions-V100
+    .fseventsd
+    .Spotlight-V100
+    .TemporaryItems
+    .Trashes
+    .VolumeIcon.icns
+
+    # Directories potentially created on remote AFP share
+    .AppleDB
+    .AppleDesktop
+    Network Trash Folder
+    Temporary Items
+    .apdisk
+
+    ### Vim template
+    [._]*.s[a-w][a-z]
+    [._]s[a-w][a-z]
+    *.un~
+    Session.vim
+    .netrwhist
+    *~
+
+    ### Scala template
+    *.class
+    *.log
+
+    # sbt specific
+    .cache
+    .history
+    .lib/
+    dist/*
+    target/
+    lib_managed/
+    src_managed/
+    project/boot/
+    project/plugins/project/
+
+    # Scala-IDE specific
+    .scala_dependencies
+    .worksheet
+
+    # Mobile Tools for Java (J2ME)
+    .mtj.tmp/
+
+    # Package Files #
+    *.jar
+    *.war
+    *.ear
+
+    # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+    hs_err_pid*
+
+    lexicon
+    .idea
+    *.iml
+    trainlog
+    *.sh
+
+    pdfestrian/config/glove.6B.50d.txt.gz
+    pdfestrian/src/main/resources/glove.6B.50d.txt.gz
+    pdfestrian/config/pdfestrian.conf
+    pdfestrian/config/log4j.xml
+    pdfestrian/target/
+  Dockerfile: |
+    FROM python:3.10-slim AS base
+
+    ENV COLANDR_APP_DIR /app
+    RUN mkdir -p ${COLANDR_APP_DIR}
+    WORKDIR ${COLANDR_APP_DIR}
+
+    RUN apt update \
+        && apt install -y gcc git \
+        && apt clean \
+        && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+
+    COPY requirements/ ./requirements/
+    RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
+    RUN python -m textacy download lang_identifier --version 3.0 \
+        && python -m spacy download en_core_web_md \
+        && python -m spacy download es_core_news_md \
+        && python -m spacy download fr_core_news_md
+
+    #####
+    FROM base AS dev
+
+    RUN python -m pip install -r requirements/dev.txt
+
+    COPY . .
+
+    # TODO: should we do this instead?
+    # RUN python -m pip install -e .[dev]
+
+    EXPOSE 5000
+
+    CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+    #####
+    FROM base AS prod
+
+    COPY . .
+
+    EXPOSE 5000
+
+    CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
+  LICENSE: |
+    MIT License
+
+    Copyright (c) 2023 DataKind
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+  README.md: |
+    # `colandr`
+
+    Back-end code for [colandr](https://www.colandrapp.com), an ML-assisted online application for conducting systematic reviews and syntheses of text-based evidence.
+
+    ## local dev setup
+
+    Minimal setup instructions, from the beginning, for devs who don't need checks or explanations:
+
+    1. Install Xcode: `xcode-select --install`
+    1. Install Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
+    1. Install Docker and git: `brew cask install docker && brew install git`
+    1. Clone copy of colandr repo: `git clone https://github.com/datakind/permanent-colandr-back.git`
+    1. Build and spin up application services: `cd permanent-colandr-back && docker compose up --build --detach`
+
+    For more details, see the instructions [here](docs/dev-setup.md).
+
+    ## app management
+
+    (todo: basics here)
+
+    For more details, see the instructions [here](docs/app-management.md)
+  TODO.md: |
+    - [ ] Confirm that all email interactions (e.g. password reset) actually work
+    - [ ] Better handle uploaded fulltext files (really, all data artifacts saved on disk, not in the db)
+    - [x] Allow for multiple review owners
+    - [ ] Allow for assigning studies to reviewers for screening?
+    - [ ] Integrate caching and rate limiting into API
+    - [ ] Add extra fields in users table, e.g. affiliation
+    - [ ] Improve and extend NLP functionality, just across the board
+    - [ ] Enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
+    - [ ] Only run dedupe jobs upon request (requires a "deduplicate" button to front-end interface)
+    - [x] Allow for requiring multiple screeners on a configurable percentage of studies (for "rapid review" style projects)
+    - [x] Add filtering studies by number of citation/fulltext reviewers
+  akr_script.txt: "https://learn.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster?tabs=azure-cli\n\naz aks create \\\n    --resource-group  DK-DS-Prototypes \\\n    --name dkprototypesaks \\\n    --node-count 2 \\\n    --generate-ssh-keys \\\n    --attach-acr dkdsprototypesreg01\n\n\naz aks update  --attach-acr dkdsprototypesreg01 --resource-group  DK-DS-Prototypes --name dkprototypesaks \n\n\naz aks get-credentials --resource-group DK-DS-Prototypes --name dkprototypesaks\n\naz acr list --resource-group DK-DS-Prototypes --query \"[].{acrLoginServer:loginServer}\" --output table\n\n\n#Converted docker-compose to aks manifest with Kompose https://kompose.io/\n1. Editer worker to add ports directive, othgerwise service ot created\n2. Run deploy_azure.py to push built images to Azure\n2. Had to add image: image: dkdsprototypesreg01.azurecr.io/colandr-api:api and one for worker for worker and api in compose.yml\nkompose convert -f compose.yml\n\n# Then edited db-deployment.yaml to get POSTGRES from env-configmap.yaml. This is not ideal, should create AKS secrets and get from there\n\nCreated namespace in portal colandr-api\n\ncd kubernetes\nkubectl apply -f email-deployment.yaml -n colandr-api\nkubectl apply -f email-service.yaml -n colandr-api\n\n# This is bad, should go into AKS secrts then deploy references that\nkubectl apply -f env-configmap.yaml -n colandr-api\n\nI also had to make PGDATA a sub-dir of mount because there was a 'lost and found' in there.\n\nkubectl apply -f worker-deployment.yaml -n colandr-api\nkubectl apply -f worker-service.yaml -n colandr-api\nkubectl apply -f broker-service.yaml -n colandr-api\nkubectl apply -f broker-deployment.yaml -n colandr-api\nkubectl apply -f broker-data-persistentvolumeclaim.yaml -n colandr-api\nkubectl apply -f api-service.yaml -n colandr-api\nkubectl apply -f api-deployment.yaml -n colandr-api\nkubectl apply -f api-cm0-configmap.yaml -n colandr-api\nkubectl apply -f db-deployment.yaml -n colandr-api\nkubectl apply -f db-service.yaml -n colandr-api\nkubectl apply -f db-data-persistentvolumeclaim.yaml -n colandr-api\n\n\nEnabled insights under 'Insights' on a component\n\nAdded load balancer directive to api, then ran ...\n\nkubectl apply -f api-service.yaml -n colandr-api\n\n\n"
+  aks-config.yaml: "apiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: rabbitmq\nspec:\n  serviceName: rabbitmq\n  replicas: 1\n  selector:\n    matchLabels:\n      app: rabbitmq\n  template:\n    metadata:\n      labels:\n        app: rabbitmq\n    spec:\n      nodeSelector:\n        \"kubernetes.io/os\": linux\n      containers:\n      - name: rabbitmq\n        image: mcr.microsoft.com/mirror/docker/library/rabbitmq:3.10-management-alpine\n        ports:\n        - containerPort: 5672\n          name: rabbitmq-amqp\n        - containerPort: 15672\n          name: rabbitmq-http\n        env:\n        - name: RABBITMQ_DEFAULT_USER\n          value: \"username\"\n        - name: RABBITMQ_DEFAULT_PASS\n          value: \"password\"\n        resources:\n          requests:\n            cpu: 10m\n            memory: 128Mi\n          limits:\n            cpu: 250m\n            memory: 256Mi\n        volumeMounts:\n        - name: rabbitmq-enabled-plugins\n          mountPath: /etc/rabbitmq/enabled_plugins\n          subPath: enabled_plugins\n      volumes:\n      - name: rabbitmq-enabled-plugins\n        configMap:\n          name: rabbitmq-enabled-plugins\n          items:\n          - key: rabbitmq_enabled_plugins\n            path: enabled_plugins\n---\napiVersion: v1\ndata:\n  rabbitmq_enabled_plugins: |\n    [rabbitmq_management,rabbitmq_prometheus,rabbitmq_amqp1_0].\nkind: ConfigMap\nmetadata:\n  name: rabbitmq-enabled-plugins            \n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: rabbitmq\nspec:\n  selector:\n    app: rabbitmq\n  ports:\n    - name: rabbitmq-amqp\n      port: 5672\n      targetPort: 5672\n    - name: rabbitmq-http\n      port: 15672\n      targetPort: 15672\n  type: ClusterIP\n---\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: order-service\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: order-service\n  template:\n    metadata:\n      labels:\n        app: order-service\n    spec:\n      nodeSelector:\n        \"kubernetes.io/os\": linux\n      containers:\n      - name: order-service\n        image: ghcr.io/azure-samples/aks-store-demo/order-service:latest\n        ports:\n        - containerPort: 3000\n        env:\n        - name: ORDER_QUEUE_HOSTNAME\n          value: \"rabbitmq\"\n        - name: ORDER_QUEUE_PORT\n          value: \"5672\"\n        - name: ORDER_QUEUE_USERNAME\n          value: \"username\"\n        - name: ORDER_QUEUE_PASSWORD\n          value: \"password\"\n        - name: ORDER_QUEUE_NAME\n          value: \"orders\"\n        - name: FASTIFY_ADDRESS\n          value: \"0.0.0.0\"\n        resources:\n          requests:\n            cpu: 1m\n            memory: 50Mi\n          limits:\n            cpu: 75m\n            memory: 128Mi\n        startupProbe:\n          httpGet:\n            path: /health\n            port: 3000\n          failureThreshold: 3\n          initialDelaySeconds: 15\n          periodSeconds: 5\n        readinessProbe:\n          httpGet:\n            path: /health\n            port: 3000\n          failureThreshold: 3\n          initialDelaySeconds: 3\n          periodSeconds: 5\n        livenessProbe:\n          httpGet:\n            path: /health\n            port: 3000\n          failureThreshold: 5\n          initialDelaySeconds: 3\n          periodSeconds: 3\n      initContainers:\n      - name: wait-for-rabbitmq\n        image: busybox\n        command: ['sh', '-c', 'until nc -zv rabbitmq 5672; do echo waiting for rabbitmq; sleep 2; done;']\n        resources:\n          requests:\n            cpu: 1m\n            memory: 50Mi\n          limits:\n            cpu: 75m\n            memory: 128Mi    \n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: order-service\nspec:\n  type: ClusterIP\n  ports:\n  - name: http\n    port: 3000\n    targetPort: 3000\n  selector:\n    app: order-service\n---\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: product-service\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: product-service\n  template:\n    metadata:\n      labels:\n        app: product-service\n    spec:\n      nodeSelector:\n        \"kubernetes.io/os\": linux\n      containers:\n      - name: product-service\n        image: ghcr.io/azure-samples/aks-store-demo/product-service:latest\n        ports:\n        - containerPort: 3002\n        env: \n        - name: AI_SERVICE_URL\n          value: \"http://ai-service:5001/\"\n        resources:\n          requests:\n            cpu: 1m\n            memory: 1Mi\n          limits:\n            cpu: 2m\n            memory: 10Mi\n        readinessProbe:\n          httpGet:\n            path: /health\n            port: 3002\n          failureThreshold: 3\n          initialDelaySeconds: 3\n          periodSeconds: 5\n        livenessProbe:\n          httpGet:\n            path: /health\n            port: 3002\n          failureThreshold: 5\n          initialDelaySeconds: 3\n          periodSeconds: 3\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: product-service\nspec:\n  type: ClusterIP\n  ports:\n  - name: http\n    port: 3002\n    targetPort: 3002\n  selector:\n    app: product-service\n---\napiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: store-front\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: store-front\n  template:\n    metadata:\n      labels:\n        app: store-front\n    spec:\n      nodeSelector:\n        \"kubernetes.io/os\": linux\n      containers:\n      - name: store-front\n        image: ghcr.io/azure-samples/aks-store-demo/store-front:latest\n        ports:\n        - containerPort: 8080\n          name: store-front\n        env: \n        - name: VUE_APP_ORDER_SERVICE_URL\n          value: \"http://order-service:3000/\"\n        - name: VUE_APP_PRODUCT_SERVICE_URL\n          value: \"http://product-service:3002/\"\n        resources:\n          requests:\n            cpu: 1m\n            memory: 200Mi\n          limits:\n            cpu: 1000m\n            memory: 512Mi\n        startupProbe:\n          httpGet:\n            path: /health\n            port: 8080\n          failureThreshold: 3\n          initialDelaySeconds: 5\n          periodSeconds: 5\n        readinessProbe:\n          httpGet:\n            path: /health\n            port: 8080\n          failureThreshold: 3\n          initialDelaySeconds: 3\n          periodSeconds: 3\n        livenessProbe:\n          httpGet:\n            path: /health\n            port: 8080\n          failureThreshold: 5\n          initialDelaySeconds: 3\n          periodSeconds: 3\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: store-front\nspec:\n  ports:\n  - port: 80\n    targetPort: 8080\n  selector:\n    app: store-front\n  type: LoadBalancer"
+  broker-data-persistentvolumeclaim.yaml: |
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        io.kompose.service: broker-data
+      name: broker-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+  broker-deployment.yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: broker
+      name: broker
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: broker
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f compose.yml
+            kompose.version: 1.33.0 (HEAD)
+          labels:
+            io.kompose.network/colandr-back: "true"
+            io.kompose.service: broker
+        spec:
+          containers:
+            - image: redis:7.0
+              livenessProbe:
+                exec:
+                  command:
+                    - redis-cli ping
+                failureThreshold: 5
+                periodSeconds: 10
+                timeoutSeconds: 5
+              name: colandr-broker
+              ports:
+                - containerPort: 6379
+                  hostPort: 6379
+                  protocol: TCP
+              volumeMounts:
+                - mountPath: /data
+                  name: broker-data
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 5
+          volumes:
+            - name: broker-data
+              persistentVolumeClaim:
+                claimName: broker-data
+  broker-service.yaml: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: broker
+      name: broker
+    spec:
+      ports:
+        - name: "6379"
+          port: 6379
+          targetPort: 6379
+      selector:
+        io.kompose.service: broker
+  compose.yml: |
+    name: colandr-back
+
+    services:
+      db:
+        container_name: colandr-db
+        image: "postgres:16"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        ports:
+          - "5432:5432"
+        env_file: ".env"
+        environment:
+          - POSTGRES_USER=${COLANDR_DB_USER}
+          - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+          - POSTGRES_DB=${COLANDR_DB_NAME}
+          - PGDATA=/var/lib/postgresql/data
+          - POSTGRES_HOST_AUTH_METHOD=md5
+          - POSTGRES_INITDB_ARGS="--auth-host=md5"
+        healthcheck:
+          test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      email:
+        container_name: colandr-email
+        image: "axllent/mailpit:v1.17"
+        restart: unless-stopped
+        ports:
+          - "8025:8025" # web ui
+          - "1025:1025" # smtp
+        environment:
+          - MP_SMTP_AUTH_ALLOW_INSECURE=1
+          - MP_VERBOSE=1
+          - MP_MAX_MESSAGES=100
+      broker:
+        container_name: colandr-broker
+        image: "redis:7.0"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - broker-data:/data
+        ports:
+          - "6379:6379"
+        healthcheck:
+          test: "redis-cli ping"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      api:
+        container_name: colandr-api
+        image: dkdsprototypesreg01.azurecr.io/colandr-api:api
+        build:
+          context: "."
+          dockerfile: Dockerfile
+          target: dev
+        depends_on:
+          - db
+          - broker
+          - worker
+        stop_signal: SIGINT
+        healthcheck:
+          test: "curl localhost:5000/api/health"
+          interval: "10s"
+          timeout: "3s"
+          start_period: "5s"
+          retries: 3
+        env_file: ".env"
+        environment:
+          - FLASK_APP=colandr.app:create_app()
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+          - COLANDR_REDIS_HOST=colandr-broker
+          - COLANDR_MAIL_SERVER=colandr-email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        volumes:
+          - .:/app
+        ports:
+          - 5001:5000
+      worker:
+        container_name: colandr-worker
+        image: dkdsprototypesreg01.azurecr.io/colandr-api:worker
+        build:
+          context: "."
+          dockerfile: Dockerfile
+          target: dev
+        depends_on:
+          - db
+          - broker
+        stop_signal: SIGINT
+        ports:
+          - "8000:8000"
+        env_file: ".env"
+        environment:
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+          - COLANDR_REDIS_HOST=colandr-broker
+          - COLANDR_MAIL_SERVER=colandr-email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        command: "celery --app=make_celery.celery_app worker --loglevel=info"
+
+    networks:
+      default:
+        name: "colandr-back"
+
+    volumes:
+      db-data: {}
+      broker-data: {}
+  db-data-persistentvolumeclaim.yaml: |
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels:
+        io.kompose.service: db-data
+      name: db-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Mi
+  db-deployment.yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: db
+      name: db
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: db
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f compose.yml
+            kompose.version: 1.33.0 (HEAD)
+          labels:
+            io.kompose.network/colandr-back: "true"
+            io.kompose.service: db
+        spec:
+          containers:
+            - env:
+                - name: COLANDR_APP_DIR
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_APP_DIR
+                      name: env
+                - name: COLANDR_DATABASE_URI
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_DATABASE_URI
+                      name: env
+                - name: COLANDR_DB_NAME
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_DB_NAME
+                      name: env
+                - name: COLANDR_DB_PASSWORD
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_DB_PASSWORD
+                      name: env
+                - name: COLANDR_DB_USER
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_DB_USER
+                      name: env
+                - name: COLANDR_FLASK_CONFIG
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_FLASK_CONFIG
+                      name: env
+                - name: COLANDR_MAIL_PASSWORD
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_MAIL_PASSWORD
+                      name: env
+                - name: COLANDR_MAIL_USERNAME
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_MAIL_USERNAME
+                      name: env
+                - name: COLANDR_PASSWORD_SALT
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_PASSWORD_SALT
+                      name: env
+                - name: COLANDR_SECRET_KEY
+                  valueFrom:
+                    configMapKeyRef:
+                      key: COLANDR_SECRET_KEY
+                      name: env
+                - name: PGDATA
+                  value: /var/lib/postgresql/data
+                - name: POSTGRES_DB
+                - name: POSTGRES_HOST_AUTH_METHOD
+                  value: md5
+                - name: POSTGRES_INITDB_ARGS
+                  value: '"--auth-host=md5"'
+                - name: POSTGRES_PASSWORD
+                - name: POSTGRES_USER
+              image: postgres:16
+              livenessProbe:
+                exec:
+                  command:
+                    - 'pg_isready -U  -d '
+                failureThreshold: 5
+                periodSeconds: 10
+                timeoutSeconds: 5
+              name: colandr-db
+              ports:
+                - containerPort: 5432
+                  hostPort: 5432
+                  protocol: TCP
+              volumeMounts:
+                - mountPath: /var/lib/postgresql/data
+                  name: db-data
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 5
+          volumes:
+            - name: db-data
+              persistentVolumeClaim:
+                claimName: db-data
+  db-service.yaml: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: db
+      name: db
+    spec:
+      ports:
+        - name: "5432"
+          port: 5432
+          targetPort: 5432
+      selector:
+        io.kompose.service: db
+  deploy_azure.py: "#\n# This Python script is used to tag and push Docker images to Azure Container Registry.\n#\n# Befor running you'll need to have the Azure command line tools installed and logged in. To log in ..\n#\n#  az login\n#\n#  az acr login --name dkcontainerregistryus\n#\n\n# 0. docker compose up -d, made note of image names, updated deploy_azure.py which I copied over from another repo I did\n# 1. az webapp create --resource-group DK-DS-Prototypes --plan DK-DS-Prototypes --name colandr-api --multicontainer-config-type compose --multicontainer-config-file compose.yml \n# 2. Navigated to app in Azure portal and environment variables as sent to me by Larry. I changed 'localhost' to be 'db'\n#    As this would be the hostname on the docker network\n# 3. In portal went to deployment center and configured container registry\n# 4. Pasted in docker-compose.yml\n# 5. Edited it to change ...\n#      - images in compose directives to point at registry, e.g. colandr.azurecr.io/colandr-api:db. These were set by deploy script.\n#      - Commented out any bind mounts and builds\n#      - Changed API Port to 80     \n# 7. Copied web webhook URL\n# 8. Created web hook under resources in colandr container service\n# 9. Created docker-compose-deploy.yml to use linux/amd64 platform (on a Mac push fails)\n# 10. Modified deploy_azure.py to push images to registry and use docker-compose-deploy.yml\n# 11. Ran deploy_azure.py\n# 12. Went to web app, used Developer tools > Kudo to tail logs in LogFile\n# 13. Checked site was up using https://colandr-api.azurewebsites.net/\n\n\n# If you want local filesystem storage, you can use  ${WEBAPP_STORAGE_HOME}\n\n\n\nimport os\nimport sys\n\nimport docker\nfrom dotenv import load_dotenv\n\nload_dotenv()\n\ncontainer_registry = \"dkdsprototypesreg01.azurecr.io\"\nrepo = \"colandr-api\"\n\n# Script is run from top directory\ndocker_compose_file = \"docker-compose-deploy.yml\"\nazure_platform = \"linux/amd64\"\n\nif sys.platform == \"darwin\":\n    print(\"Running on Mac\")\n    client = docker.DockerClient(\n        base_url=\"unix:///Users/matthewharris/.docker/run/docker.sock \"\n    )\nelse:\n    client = docker.from_env()\n\n\ndef run_cmd(cmd):\n    \"\"\"\n    Executes a command in the shell and prints the command before executing.\n\n    Args:\n        cmd (str): The command to be executed.\n\n    Returns:\n        None\n    \"\"\"\n    print(cmd)\n    os.system(cmd)\n\n\ndef deploy():\n    \"\"\"\n    Deploys the application to Azure using Docker Compose.\n\n    This function performs the following steps:\n    1. Logs into Azure using the 'az login' command.\n    2. Logs into the Azure Container Registry using the 'az acr login' command.\n    3. Stops and removes any existing containers using the 'docker compose down' command.\n    4. Pulls the latest images from the Docker Compose file using the 'docker compose pull' command.\n    5. Builds the Docker images using the 'docker compose build' command.\n    6. Tags and pushes the Docker images to the Azure Container Registry.\n    7. Reverts to the host architecture by stopping and removing containers again.\n    8. Pulls the latest images from the Docker Compose file.\n    9. Builds and starts the containers using the 'docker compose up -d' command.\n    10. Prints the URL to trigger the deployment.\n\n    Note: The variables 'container_registry', 'repo', 'azure_platform', and 'docker_compose_file'\n    should be defined before calling this function.\n    \"\"\"\n    tags = {\n        \"colandr-back-api\": [f\"{container_registry}/{repo}\", \"api\"],\n        \"colandr-back-worker\": [f\"{container_registry}/{repo}\", \"worker\"],\n        \"postgres:16\": [\n            f\"{container_registry}/{repo}\",\n            \"db\",\n        ],\n        \"axllent/mailpit:v1.17\": [f\"{container_registry}/{repo}\", \"email\"],\n        \"redis:7.0\": [f\"{container_registry}/{repo}\", \"broker\"],\n    }\n\n    run_cmd(\"az login\")\n    run_cmd(f\"az acr login --name {container_registry}\")\n\n    run_cmd(f\"docker compose -f {docker_compose_file} down\")\n    run_cmd(\n        f\"DOCKER_DEFAULT_PLATFORM={azure_platform} && docker compose -f {docker_compose_file} pull\"\n    )\n    run_cmd(\n        f\"DOCKER_DEFAULT_PLATFORM={azure_platform} && docker compose -f {docker_compose_file} build\"\n    )\n\n    for image in tags.keys():\n        print(f\"Tagging {image} image ... with tag {tags[image][0]}:{tags[image][1]}\")\n        client.images.get(image).tag(tags[image][0], tags[image][1])\n        print(f\"Pushing {image} image ... to {tags[image][0]}:{tags[image][1]}\")\n        client.images.push(tags[image][0], tags[image][1])\n\n    run_cmd(f\"docker compose -f {docker_compose_file} down\")\n    run_cmd(f\"docker compose -f {docker_compose_file} pull\")\n    run_cmd(f\"docker compose -f {docker_compose_file} build\")\n    run_cmd(f\"docker compose -f {docker_compose_file} up -d\")\n\n    print(\n        \"Now go and click on https://colandr-api.azurewebsites.net/ to trigger to deploy\"\n    )\n\n\nif __name__ == \"__main__\":\n    deploy()\n"
+  docker-compose-azure.yml: |
+    name: colandr-back
+
+    services:
+      db:
+        container_name: colandr-db
+        image: "colandr.azurecr.io/colandr-api:db"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        env_file: ".env"
+        environment:
+          - POSTGRES_USER=${COLANDR_DB_USER}
+          - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+          - POSTGRES_DB=${COLANDR_DB_NAME}
+          - PGDATA=/var/lib/postgresql/data
+          - POSTGRES_HOST_AUTH_METHOD=md5
+          - POSTGRES_INITDB_ARGS="--auth-host=md5"
+        healthcheck:
+          test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      email:
+        container_name: colandr-email
+        image: "colandr.azurecr.io/colandr-api:email"
+        restart: unless-stopped
+        environment:
+          - MP_SMTP_AUTH_ALLOW_INSECURE=1
+          - MP_VERBOSE=1
+          - MP_MAX_MESSAGES=100
+      broker:
+        container_name: colandr-broker
+        image: "colandr.azurecr.io/colandr-api:broker"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - broker-data:/data
+        healthcheck:
+          test: "redis-cli ping"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      api:
+        container_name: colandr-api
+        image: "colandr.azurecr.io/colandr-api:api"
+        depends_on:
+          - db
+          - broker
+          - worker
+        stop_signal: SIGINT
+        healthcheck:
+          test: "curl api:5000/api/health"
+          interval: "10s"
+          timeout: "3s"
+          start_period: "5s"
+          retries: 3
+        env_file: ".env"
+        environment:
+          - FLASK_APP=colandr.app:create_app()
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
+          - COLANDR_REDIS_HOST=broker
+          - COLANDR_MAIL_SERVER=email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        #volumes:
+        #  - .:/app
+        ports:
+          - 443:5000
+      worker:
+        container_name: colandr-worker
+        image: "colandr.azurecr.io/colandr-api:worker"
+        depends_on:
+           - db
+           - broker
+        stop_signal: SIGINT
+        env_file: ".env"
+        environment:
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+          - COLANDR_REDIS_HOST=colandr-broker
+          - COLANDR_MAIL_SERVER=colandr-email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        command: "celery --app=make_celery.celery_app worker --loglevel=info"
+
+    networks:
+      default:
+        name: "colandr-back"
+
+    volumes:
+      db-data: {}
+      broker-data: {}
+  docker-compose-deploy.yml: |
+    name: colandr-back
+
+    services:
+      db:
+        platform: linux/amd64
+        container_name: colandr-db
+        image: "postgres:16"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        ports:
+          - "5432:5432"
+        env_file: ".env"
+        environment:
+          - POSTGRES_USER=${COLANDR_DB_USER}
+          - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+          - POSTGRES_DB=${COLANDR_DB_NAME}
+          - PGDATA=/var/lib/postgresql/data
+          - POSTGRES_HOST_AUTH_METHOD=md5
+          - POSTGRES_INITDB_ARGS="--auth-host=md5"
+        healthcheck:
+          test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      email:
+        platform: linux/amd64
+        container_name: colandr-email
+        image: "axllent/mailpit:v1.17"
+        restart: unless-stopped
+        ports:
+          - "8025:8025" # web ui
+          - "1025:1025" # smtp
+        environment:
+          - MP_SMTP_AUTH_ALLOW_INSECURE=1
+          - MP_VERBOSE=1
+          - MP_MAX_MESSAGES=100
+      broker:
+        platform: linux/amd64
+        container_name: colandr-broker
+        image: "redis:7.0"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - broker-data:/data
+        ports:
+          - "6379:6379"
+        healthcheck:
+          test: "redis-cli ping"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      api:
+        platform: linux/amd64
+        container_name: colandr-api
+        build:
+          context: "."
+          dockerfile: Dockerfile
+          target: dev
+        depends_on:
+          - db
+          - broker
+          - worker
+        stop_signal: SIGINT
+        healthcheck:
+          test: "curl api:5000/api/health"
+          interval: "10s"
+          timeout: "3s"
+          start_period: "5s"
+          retries: 3
+        env_file: ".env"
+        environment:
+          - FLASK_APP=colandr.app:create_app()
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
+          - COLANDR_REDIS_HOST=broker
+          - COLANDR_MAIL_SERVER=email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        volumes:
+          - .:/app
+        #ports:
+        #  - 5001:5000
+      worker:
+        platform: linux/amd64
+        container_name: colandr-worker
+        build:
+          context: "."
+          dockerfile: Dockerfile
+          target: dev
+        depends_on:
+          - db
+          - broker
+        stop_signal: SIGINT
+        env_file: ".env"
+        environment:
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
+          - COLANDR_REDIS_HOST=broker
+          - COLANDR_MAIL_SERVER=email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        command: "celery --app=make_celery.celery_app worker --loglevel=info"
+
+    networks:
+      default:
+        name: "colandr-back"
+
+    volumes:
+      db-data: {}
+      broker-data: {}
+  docker-compose-in-azure.yml: |
+    name: colandr-back
+
+    services:
+      db:
+        container_name: colandr-db
+        image: "colandr.azurecr.io/colandr-api:db"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - db-data:/var/lib/postgresql/data
+        env_file: ".env"
+        environment:
+          - POSTGRES_USER=${COLANDR_DB_USER}
+          - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+          - POSTGRES_DB=${COLANDR_DB_NAME}
+          - PGDATA=/var/lib/postgresql/data
+          - POSTGRES_HOST_AUTH_METHOD=md5
+          - POSTGRES_INITDB_ARGS="--auth-host=md5"
+        healthcheck:
+          test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      email:
+        container_name: colandr-email
+        image: "colandr.azurecr.io/colandr-api:email"
+        restart: unless-stopped
+        environment:
+          - MP_SMTP_AUTH_ALLOW_INSECURE=1
+          - MP_VERBOSE=1
+          - MP_MAX_MESSAGES=100
+      broker:
+        container_name: colandr-broker
+        image: "colandr.azurecr.io/colandr-api:broker"
+        restart: unless-stopped
+        stop_grace_period: 5s
+        volumes:
+          - broker-data:/data
+        healthcheck:
+          test: "redis-cli ping"
+          interval: 10s
+          timeout: 5s
+          retries: 5
+      api:
+        container_name: colandr-api
+        image: "colandr.azurecr.io/colandr-api:api"
+        depends_on:
+          - db
+          - broker
+          - worker
+        stop_signal: SIGINT
+        healthcheck:
+          test: "curl api:5000/api/health"
+          interval: "10s"
+          timeout: "3s"
+          start_period: "5s"
+          retries: 3
+        env_file: ".env"
+        environment:
+          - FLASK_APP=colandr.app:create_app()
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
+          - COLANDR_REDIS_HOST=broker
+          - COLANDR_MAIL_SERVER=email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        #volumes:
+        #  - .:/app
+        ports:
+          - 443:5000
+      worker:
+        container_name: colandr-worker
+        image: "colandr.azurecr.io/colandr-api:worker"
+        depends_on:
+           - db
+           - broker
+        stop_signal: SIGINT
+        env_file: ".env"
+        environment:
+          - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+          - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
+          - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
+          - COLANDR_REDIS_HOST=broker
+          - COLANDR_MAIL_SERVER=email
+          - COLANDR_MAIL_PORT=1025
+          - COLANDR_MAIL_USE_TLS=0
+          - COLANDR_MAIL_USE_SSL=0
+        command: "celery --app=make_celery.celery_app worker --loglevel=info"
+
+    networks:
+      default:
+        name: "colandr-back"
+
+    volumes:
+      db-data: {}
+      broker-data: {}
+  email-deployment.yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: email
+      name: email
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          io.kompose.service: email
+      template:
+        metadata:
+          annotations:
+            kompose.cmd: kompose convert -f compose.yml
+            kompose.version: 1.33.0 (HEAD)
+          labels:
+            io.kompose.network/colandr-back: "true"
+            io.kompose.service: email
+        spec:
+          containers:
+            - env:
+                - name: MP_MAX_MESSAGES
+                  value: "100"
+                - name: MP_SMTP_AUTH_ALLOW_INSECURE
+                  value: "1"
+                - name: MP_VERBOSE
+                  value: "1"
+              image: axllent/mailpit:v1.17
+              name: colandr-email
+              ports:
+                - containerPort: 8025
+                  hostPort: 8025
+                  protocol: TCP
+                - containerPort: 1025
+                  hostPort: 1025
+                  protocol: TCP
+          restartPolicy: Always
+  email-service.yaml: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.service: email
+      name: email
+    spec:
+      ports:
+        - name: "8025"
+          port: 8025
+          targetPort: 8025
+        - name: "1025"
+          port: 1025
+          targetPort: 1025
+      selector:
+        io.kompose.service: email
+  env-configmap.yaml: |
+    apiVersion: v1
+    data:
+      COLANDR_APP_DIR: /path/to/permanent-colandr-back
+      COLANDR_DATABASE_URI: postgresql://colandr_app:postgres@localhost:5432/colandr
+      COLANDR_DB_NAME: colandr_app
+      COLANDR_DB_PASSWORD: postgres
+      COLANDR_DB_USER: postgres
+      COLANDR_FLASK_CONFIG: default
+      COLANDR_MAIL_PASSWORD: helpme
+      COLANDR_MAIL_USERNAME: support@datakind.org
+      COLANDR_PASSWORD_SALT: pepperistasty
+      COLANDR_SECRET_KEY: q1w2e3r4t5y6
+    kind: ConfigMap
+    metadata:
+      labels:
+        io.kompose.service: api-env
+      name: env
+  gunicorn.conf.py: |
+    # reference: https://docs.gunicorn.org/en/stable/settings.html
+    import multiprocessing
+    import os
+
+
+    bind = f"0.0.0.0:{os.getenv('PORT', '5000')}"
+    worker_class = "sync"
+    workers = int(os.getenv("COLANDR_GUNICORN_WORKERS", multiprocessing.cpu_count() * 2))
+    threads = int(os.getenv("COLANDR_GUNICORN_THREADS", 1))
+    reload = bool(int(os.getenv("COLANDR_GUNICORN_RELOAD", False)))
+    pidfile = "./colandr.pid"
+    daemon = False  # TODO: in prod, should be True?
+    accesslog = "-"
+    loglevel = os.getenv("COLANDR_GUNICORN_LOG_LEVEL", "info")
+  make_celery.py: |
+    #!/usr/bin/env python
+    from colandr.app import create_app
+
+
+    app = create_app()
+    celery_app = app.extensions["celery"]
+  pyproject.toml: |
+    [build-system]
+    requires = ["setuptools >= 64.0.0", "wheel"]
+    build-backend = "setuptools.build_meta"
+
+    [project]
+    name = "colandr"
+    version = "1.1.0.dev0"
+    description = "Back-end code for running the colandr app."
+    readme = { file = "README.md", content-type = "text/markdown" }
+    requires-python = ">= 3.10"
+    classifiers = [
+      "Development Status :: 4 - Beta",
+      "Intended Audience :: Science/Research",
+      "Programming Language :: Python",
+      "Programming Language :: Python :: 3",
+      "Programming Language :: Python :: 3.10",
+    ]
+    dependencies = [
+      "alembic~=1.13.0",
+      "arrow~=1.3.0",
+      "bibtexparser~=1.4.0",
+      "celery~=5.4.0",
+      "click~=8.0",
+      "dedupe~=2.0.23",
+      "flask~=3.0",
+      "flask-caching~=2.1.0",
+      "flask-jwt-extended~=4.6.0",
+      "flask_mail>=0.9.1",           # TODO: this package is dead, we should replace it
+      "flask_migrate~=4.0.0",
+      "flask_sqlalchemy~=3.1.0",     # constrained by sqlalchemy
+      "flask-restx~=1.3.0",
+      "ftfy~=6.0",
+      "gunicorn~=21.0",
+      "jinja2~=3.0",
+      "joblib~=1.4",
+      "markupsafe~=2.0",
+      "marshmallow~=3.19.0",
+      "numpy~=1.20",
+      "psycopg[binary,pool]~=3.1.0",
+      "pymupdf~=1.24.0",
+      "python-dateutil~=2.8",
+      "python-dotenv~=1.0.0",
+      "redis~=5.0",
+      "rispy~=0.9.0",
+      "scikit-learn~=1.3.0",
+      "sqlalchemy~=2.0.0",
+      "textacy~=0.13.0",
+      "webargs~=8.0",
+      "werkzeug",
+    ]
+
+    [project.optional-dependencies]
+    dev = [
+      "httpx~=0.27.0",
+      "mypy~=1.0",
+      "pytest~=8.0",
+      "pytest-postgresql~=6.0",
+      "SQLAlchemy-Utils~=0.41.0",
+      "ruff~=0.4.0",
+    ]
+
+    [tool.setuptools.packages.find]
+    where = ["colandr"]
+
+    [tool.mypy]
+    files = ["colandr/**/*.py"]
+    python_version = "3.10"
+    pretty = true
+    ignore_errors = true
+    allow_redefinition = true
+    ignore_missing_imports = true
+    follow_imports = "silent"
+
+    [tool.pytest.ini_options]
+    addopts = "--verbose"
+    testpaths = ["tests"]
+
+    [tool.ruff]
+    # ignore line-length violations, None comparisons, unused imports
+    ignore = ["E501", "E711", "F401"]
+    ignore-init-module-imports = true
+    line-length = 88
+    indent-width = 4
+    target-version = "py310"
+    src = ["colandr"]
+
+    [tool.ruff.format]
+    quote-style = "double"
+    indent-style = "space"
+    skip-magic-trailing-comma = false
+    line-ending = "auto"
+
+    [tool.ruff.lint.isort]
+    lines-after-imports = 2
+    known-first-party = ["colandr"]
+  restart_service.sh: "#!/bin/bash \nbin_dir=`dirname \"$0\"`\nbin_dir=`cd \"$bin_dir\"; pwd`\necho \"working in $bin_dir\"\ncd $bin_dir\n\ncelery multi restart worker -A \"celery_worker.celery\"\n\npid_file=\"colandr.pid\"\n#echo $pid_file\npid=0\n\nrun_service=0\nif [ -e $pid_file ];\nthen\n  pid=`cat $pid_file`\n  ps_output=`ps -p $pid -o pid | tail -n +2`\n  if [ -z $ps_output ];\n  then\n    run_service=1\n  fi\nelse\n  run_service=1\nfi\n\nif [ $run_service == 0 ];\nthen\n  echo \"gunicorn running pid: $pid\"\n  echo \"Stopping gunicorn\"\n  kill $pid\n  sleep 5\n  echo \"restarting gunicorn\"\nelse\n  echo \"starting gunicorn\"\nfi\n\ngunicorn --config=gunicorn_config.py gunicorn_runserver:app --log-file=colandr.log\nsleep 5\necho \"gunicorn now running pid: `cat colandr.pid`\" \n"
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: api
+  name: api-cm0

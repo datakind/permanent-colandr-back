@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.33.0 (HEAD)
+  labels:
+    io.kompose.service: email
+  name: email
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: email
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.network/colandr-back: "true"
+        io.kompose.service: email
+    spec:
+      containers:
+        - env:
+            - name: MP_MAX_MESSAGES
+              value: "100"
+            - name: MP_SMTP_AUTH_ALLOW_INSECURE
+              value: "1"
+            - name: MP_VERBOSE
+              value: "1"
+          image: axllent/mailpit:v1.17
+          name: colandr-email
+          ports:
+            - containerPort: 8025
+              hostPort: 8025
+              protocol: TCP
+            - containerPort: 1025
+              hostPort: 1025
+              protocol: TCP
+      restartPolicy: Always
