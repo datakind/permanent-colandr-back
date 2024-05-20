@@ -52,11 +52,11 @@ services:
       timeout: 5s
       retries: 5
   api:
-    platform: linux/amd64
     container_name: colandr-api
+    platform: linux/amd64
     build:
       context: "."
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.api
       target: dev
     depends_on:
       - db
@@ -69,8 +69,11 @@ services:
       timeout: "3s"
       start_period: "5s"
       retries: 3
-    env_file: ".env"
+    #env_file: ".env"
     environment:
+      - COLANDR_DB_USER=${COLANDR_DB_USER}
+      - COLANDR_DB_PASSWORD=${COLANDR_DB_PASSWORD}
+      - COLANDR_DB_NAME=${COLANDR_DB_NAME}
       - FLASK_APP=colandr.app:create_app()
       - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@db:5432/${COLANDR_DB_NAME}
       - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
@@ -80,24 +83,28 @@ services:
       - COLANDR_MAIL_PORT=1025
       - COLANDR_MAIL_USE_TLS=0
       - COLANDR_MAIL_USE_SSL=0
-    volumes:
-      - .:/app
+      - COLANDR_FLASK_CONFIG="default"
+    #volumes:
+    #  - .:/app
     #ports:
     #  - 5001:5000
   worker:
-    platform: linux/amd64
     container_name: colandr-worker
+    platform: linux/amd64
     build:
       context: "."
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.worker
       target: dev
     depends_on:
       - db
       - broker
     stop_signal: SIGINT
-    env_file: ".env"
+    #env_file: ".env"
     environment:
-      - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@db:5432/${COLANDR_DB_NAME}
+      - COLANDR_DB_USER=${COLANDR_DB_USER}
+      - COLANDR_DB_PASSWORD=${COLANDR_DB_PASSWORD}
+      - COLANDR_DB_NAME=${COLANDR_DB_NAME}
+      - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@${COLANDR_DB_NAME}:5432/${COLANDR_DB_NAME}
       - COLANDR_CELERY_BROKER_URL=redis://broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://broker:6379/0
       - COLANDR_REDIS_HOST=broker
@@ -105,7 +112,7 @@ services:
       - COLANDR_MAIL_PORT=1025
       - COLANDR_MAIL_USE_TLS=0
       - COLANDR_MAIL_USE_SSL=0
-    command: "celery --app=make_celery.celery_app worker --loglevel=info"
+    #command: "celery --app=make_celery.celery_app worker --loglevel=info"
 
 networks:
   default:

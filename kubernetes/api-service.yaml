@@ -8,9 +8,11 @@ metadata:
     io.kompose.service: colandr-api
   name: colandr-api
 spec:
+  type: LoadBalancer  # Add this line
   ports:
     - name: "5001"
       port: 5001
       targetPort: 5000
   selector:
     io.kompose.service: colandr-api
+

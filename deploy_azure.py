@@ -39,7 +39,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-container_registry = "colandr.azurecr.io"
+container_registry = "dkdsprototypesreg01.azurecr.io"
 repo = "colandr-api"
 
 # Script is run from top directory
@@ -49,7 +49,7 @@ azure_platform = "linux/amd64"
 if sys.platform == "darwin":
     print("Running on Mac")
     client = docker.DockerClient(
-        base_url="unix:///Users/matthewharris/.docker/run/docker.sock "
+        base_url=f"unix:///Users/{os.getenv('LOGNAME')}/.docker/run/docker.sock "
     )
 else:
     client = docker.from_env()
@@ -89,14 +89,14 @@ def deploy():
     should be defined before calling this function.
     """
     tags = {
-        "colandr-back-api": [f"{container_registry}/{repo}", "api"],
-        "colandr-back-worker": [f"{container_registry}/{repo}", "worker"],
-        "postgres:16": [
-            f"{container_registry}/{repo}",
-            "db",
-        ],
-        "axllent/mailpit:v1.17": [f"{container_registry}/{repo}", "email"],
-        "redis:7.0": [f"{container_registry}/{repo}", "broker"],
+        "colandr-back-api": [f"{container_registry}/{repo}", "colandr-api"],
+        "colandr-back-worker": [f"{container_registry}/{repo}", "colandr-worker"],
+        #"postgres:16": [
+        #    f"{container_registry}/{repo}",
+        #    "db",
+        #],
+        #"axllent/mailpit:v1.17": [f"{container_registry}/{repo}", "colandr-email"],
+        #"redis:7.0": [f"{container_registry}/{repo}", "colandr-broker"],
     }
 
     run_cmd("az login")
@@ -110,20 +110,18 @@ def deploy():
         f"DOCKER_DEFAULT_PLATFORM={azure_platform} && docker compose -f {docker_compose_file} build"
     )
 
+    run_cmd(f"docker compose -f {docker_compose_file} up -d --build")
+
     for image in tags.keys():
         print(f"Tagging {image} image ... with tag {tags[image][0]}:{tags[image][1]}")
         client.images.get(image).tag(tags[image][0], tags[image][1])
         print(f"Pushing {image} image ... to {tags[image][0]}:{tags[image][1]}")
         client.images.push(tags[image][0], tags[image][1])
 
-    run_cmd(f"docker compose -f {docker_compose_file} down")
-    run_cmd(f"docker compose -f {docker_compose_file} pull")
-    run_cmd(f"docker compose -f {docker_compose_file} build")
-    run_cmd(f"docker compose -f {docker_compose_file} up -d")
-
-    print(
-        "Now go and click on https://colandr-api.azurewebsites.net/ to trigger to deploy"
-    )
+    #run_cmd(f"docker compose -f {docker_compose_file} down")
+    #run_cmd(f"docker compose -f {docker_compose_file} pull")
+    #run_cmd(f"docker compose -f {docker_compose_file} build")
+    #run_cmd(f"docker compose -f {docker_compose_file} up -d")
 
 
 if __name__ == "__main__":
