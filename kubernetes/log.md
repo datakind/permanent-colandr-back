@@ -24,12 +24,14 @@ I think did the following ...
 
 1. Created an AKS service
 
-```az aks create \
+```
+az aks create \
     --resource-group  DK-DS-Prototypes \
     --name dkprototypesaks \
     --node-count 2 \
     --generate-ssh-keys \
-    --attach-acr dkdsprototypesreg01```
+    --attach-acr dkdsprototypesreg01
+```
 
 
 2. Attached a container registry (where the DOcker images will come from)
@@ -38,9 +40,11 @@ I think did the following ...
 
 3. Set up credentials
 
-```az aks get-credentials --resource-group DK-DS-Prototypes --name dkprototypesaks
+```
+az aks get-credentials --resource-group DK-DS-Prototypes --name dkprototypesaks
 
-az acr list --resource-group DK-DS-Prototypes --query "[].{acrLoginServer:loginServer}" --output table```
+az acr list --resource-group DK-DS-Prototypes --query "[].{acrLoginServer:loginServer}" --output table
+```
 
 4. Created namespace in portal colandr-api
 
