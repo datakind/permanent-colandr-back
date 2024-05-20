@@ -87,8 +87,9 @@ NOTE: For now, all files in sub-folder 'kubernetes', these would need to be move
 7. Wrote a deploy script
 
 For locally built images (api and worker) we need to push to Azure container registry. I Wrote
-a simple script to tag and push these images. IMPORTANT: Azure expects amd64 images, so the 
-script forces this build but using `docker-compose-deploy.yaml`.
+a simple script to tag and push these images. 
+
+**IMPORTANT:** Azure expects amd64 images, so the script forces this build but using `docker-compose-deploy.yaml`.
 
 I ran the script .... a LOT.
 
@@ -150,3 +151,9 @@ Exec into AKS container ...
 To Get running container's env ...
 
 `kubectl exec -it  worker-98b947488-bdhhb  -n colandr-api -- env`
+
+Trick to get a failing container up, so you can exec into it and debug, temporarily change the CMD in the Dockerfile to ...
+
+`CMD ["tail", "-f", "/dev/null"]`
+
+You can then run the command interactively.
