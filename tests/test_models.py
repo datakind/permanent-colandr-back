@@ -324,12 +324,12 @@ class TestStudy:
             (
                 1,
                 "TITLE1\n\nABSTRACT1\n\nKEYWORD1_1, KEYWORD1_2",
-                'TITLE1\n\nABSTRACT1\n\n["KEYWORD1_1", "KEYWORD1_2"]',
+                'TITLE1\n\nABSTRACT1\n\n"KEYWORD1_1", "KEYWORD1_2"',
             ),
             (
                 2,
                 "TITLE2\n\nABSTRACT2\n\nKEYWORD2",
-                'TITLE2\n\nABSTRACT2\n\n["KEYWORD2"]',
+                'TITLE2\n\nABSTRACT2\n\n"KEYWORD2"',
             ),
         ],
     )

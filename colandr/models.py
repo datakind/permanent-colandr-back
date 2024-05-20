@@ -537,13 +537,12 @@ class Study(db.Model):
 
     @hybrid_property
     def citation_text_content(self):
-        return "\n\n".join(
-            (
-                self.citation.get("title", ""),
-                self.citation.get("abstract", ""),
-                ", ".join(self.citation.get("keywords", [])),
-            )
-        ).strip()
+        parts = (
+            self.citation.get("title", ""),
+            self.citation.get("abstract", ""),
+            ", ".join(self.citation.get("keywords", [])),
+        )
+        return "\n\n".join(part for part in parts if part)
 
     @citation_text_content.inplace.expression
     @classmethod
@@ -555,7 +554,7 @@ class Study(db.Model):
             "\n\n",
             cls.citation["title"].astext,
             cls.citation["abstract"].astext,
-            cls.citation["keywords"].astext,
+            sa.func.trim(cls.citation["keywords"].astext, "[]"),
         )
 
     # @citation_text_content.expression
