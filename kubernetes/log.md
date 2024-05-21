@@ -7,7 +7,7 @@ PLEASE NOTE: THIS IS ONLY A BASIC DEPLOYMENT, FOLLOWUP IS NEEDED TO SECURE THE S
 Specifically, outstanding steps are:
 
 - Adjust passwords, and save them as AKS secrets instead of in the files in folder `./kubernetes`
-- For consistenct, names need to be wteaked so they all start with 'colandr-`
+- For consistent, names need to be wteaked so they all start with 'colandr-`
 - Cost analysis, this might be pricey!
 - Refactoring of this into GitHub actions for CI/CD
 - Removal of this branch 
@@ -20,7 +20,7 @@ I first did [this tutorial](https://learn.microsoft.com/en-us/azure/aks/tutorial
 
 This tutorial gets you set up with Azure and Kubernetes CLI.
 
-I think did the following ...
+I then did the following ...
 
 1. Created an AKS service
 
@@ -93,6 +93,11 @@ a simple script to tag and push these images.
 
 I ran the script .... a LOT.
 
+8. Created some secrets
+
+`create secret generic colandr-db-password --from-literal=password='<SECRET>'`
+`create secret generic colandr-database-uri --from-literal=password='<SECRET>'`
+
 8. Adjusted the AKS files
 
 The files created by kompose did not work out of the box, due to idiosyncracies on colandr-api. hereis what I adjusted ...
@@ -144,7 +149,7 @@ docker run --env-file .env -it -e "COLANDR_DATABASE_URI=postgresql+psycopg://${C
 
 .... Then run the docker compose 'command' or entry point for this container, eg celery --app=make_celery.celery_app worker --loglevel=info
 
-Exec into AKS container ...
+Run a container ...
 
 `kubectl run -i --tty --rm debug --image=dkdsprototypesreg01.azurecr.io/colandr-api:worker -- bash`
 
