@@ -114,6 +114,10 @@ The files created by kompose did not work out of the box, due to idiosyncracies 
 - Added load balancer directive to api service to get public IP
 - Made PGDATA subdirectory of mount point so folder was empty
 
+9. Enabled application routing add-on so we can set up SSL per [this article](https://learn.microsoft.com/en-us/azure/aks/app-routing-dns-ssl) 
+
+`az aks approuting enable --resource-group DK-DS-Prototypes --name dkprototypesaks`
+
 # Useful commands
 
 Get list of pods, you need the name for getting logs and exec commands ...
