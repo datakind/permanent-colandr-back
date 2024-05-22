@@ -12,7 +12,7 @@ from webargs.flaskparser import use_args, use_kwargs
 from .. import tasks
 from ..extensions import db, jwt
 from ..models import User
-from .errors import forbidden_error, not_found_error
+from .errors import forbidden_error, not_found_error, unauthorized_error
 from .schemas import UserSchema
 from .swagger import login_model, user_model
 
@@ -68,6 +68,8 @@ class LoginResource(Resource):
             user = authenticate_user(email, password)
         except ValueError:
             return not_found_error("no user found matching given email and password")
+        if not user.is_confirmed:
+            return unauthorized_error("user has been created but is not yet confirmed")
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
         current_app.logger.info("%s logged in", user)
@@ -141,7 +143,7 @@ class RefreshTokenResource(Resource):
 )
 class RegisterResource(Resource):
     @ns.doc(expect=(user_model, "new user data to be registered"))
-    @use_args(UserSchema(), location="json")
+    @use_args(UserSchema(only=["name", "email", "password"]), location="json")
     def post(self, args):
         """
         Register a new user.

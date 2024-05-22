@@ -9,3 +9,4 @@
 - [ ] Only run dedupe jobs upon request (requires a "deduplicate" button to front-end interface)
 - [x] Allow for requiring multiple screeners on a configurable percentage of studies (for "rapid review" style projects)
 - [x] Add filtering studies by number of citation/fulltext reviewers
+- [ ] Investigate migrating from flask-restx to apiflask

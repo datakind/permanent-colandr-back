@@ -169,6 +169,7 @@ class TestStudiesResource:
             (2, {"review_id": 1, "tsquery": "TITLE1"}, [1]),
             (1, {"review_id": 1, "data_extraction_status": "not_started"}, [1]),
             (1, {"review_id": 1, "order_by": "relevance"}, [1, 2, 3]),
+            (1, {"review_id": 1, "tsquery": "TITLE1", "order_by": "relevance"}, [1]),
             (1, {"review_id": 1, "order_by": "recency"}, [1, 2, 3]),
             (1, {"review_id": 1, "order_by": "recency", "page": 0, "per_page": 1}, [3]),
             (1, {"review_id": 1, "order_by": "recency", "page": 1, "per_page": 1}, [2]),

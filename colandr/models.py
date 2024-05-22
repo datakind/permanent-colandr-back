@@ -1,3 +1,4 @@
+import collections
 import datetime
 import itertools
 import logging
@@ -49,23 +50,40 @@ class User(db.Model):
         back_populates="user",
         cascade="all, delete",
         lazy="write_only",
-        passive_deletes=True,
         order_by="ReviewUserAssoc.review_id",
+        passive_deletes=True,
     )
-    reviews = association_proxy("review_user_assoc", "review")
-
     imports: WOM["Import"] = sa_orm.relationship(
-        "Import", back_populates="user", lazy="write_only", passive_deletes=True
+        "Import",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
     )
     studies: WOM["Study"] = sa_orm.relationship(
-        "Study", back_populates="user", lazy="write_only", passive_deletes=True
+        "Study",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="user", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
     )
 
     def __repr__(self):
         return f"<User(id={self.id})>"
+
+    @property
+    def reviews(self) -> list["Review"]:
+        return [
+            rua.review
+            for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        ]
 
     @property
     def owned_reviews(self) -> list["Review"]:
@@ -122,7 +140,9 @@ class User(db.Model):
 
     @staticmethod
     def hash_password(password: str) -> str:
-        return werkzeug.security.generate_password_hash(password, method="pbkdf2")
+        return werkzeug.security.generate_password_hash(
+            password, method="scrypt", salt_length=16
+        )
 
 
 class Review(db.Model):
@@ -149,16 +169,13 @@ class Review(db.Model):
     fulltext_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
         postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
     )
-    num_citations_included: M[int] = mapcol(sa.Integer, server_default="0")
-    num_citations_excluded: M[int] = mapcol(sa.Integer, server_default="0")
-    num_fulltexts_included: M[int] = mapcol(sa.Integer, server_default="0")
-    num_fulltexts_excluded: M[int] = mapcol(sa.Integer, server_default="0")
 
     # relationships
     review_user_assoc = sa_orm.relationship(
         "ReviewUserAssoc",
         back_populates="review",
         cascade="all, delete",
+        # TODO: we should make this write-only, replace assoc proxy w/ users property
         lazy="dynamic",
         order_by="ReviewUserAssoc.user_id",
     )
@@ -168,37 +185,96 @@ class Review(db.Model):
         "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
     )
     imports: WOM["Import"] = sa_orm.relationship(
-        "Import", back_populates="review", lazy="write_only", passive_deletes=True
+        "Import",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
     )
     studies: WOM["Study"] = sa_orm.relationship(
-        "Study", back_populates="review", lazy="write_only", passive_deletes=True
+        "Study",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
     )
     screenings: WOM["Screening"] = sa_orm.relationship(
-        "Screening", back_populates="review", lazy="write_only", passive_deletes=True
+        "Screening",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
     )
     dedupes: WOM["Dedupe"] = sa_orm.relationship(
-        "Dedupe", back_populates="review", lazy="write_only", passive_deletes=True
+        "Dedupe",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Dedupe.id",
+        passive_deletes=True,
     )
     data_extractions: WOM["DataExtraction"] = sa_orm.relationship(
         "DataExtraction",
         back_populates="review",
         lazy="write_only",
+        order_by="DataExtraction.id",
         passive_deletes=True,
     )
 
     def __repr__(self):
         return f"<Review(id={self.id})>"
 
+    # @property
+    # def users(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+    #     ]
+
+    # @property
+    # def owners(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in self.review_user_assoc.select().filter_by(user_role="owner").scalars()
+    #     ]
+
     @property
     def owners(self) -> list[User]:
         return [
             rua.user
             for rua in db.session.execute(
-                sa.select(ReviewUserAssoc).filter_by(
-                    review_id=self.id, user_role="owner"
-                )
+                sa.select(ReviewUserAssoc)
+                .filter_by(review_id=self.id, user_role="owner")
+                .order_by(ReviewUserAssoc.user_id)
             ).scalars()
         ]
+
+    def num_citations_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.citation_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.citation_status.in_(statuses))
+            .group_by(Study.citation_status)
+        )
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.citation_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        return result
+
+    def num_fulltexts_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.fulltext_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.fulltext_status.in_(statuses))
+            .group_by(Study.fulltext_status)
+        )
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.fulltext_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        return result
 
 
 class ReviewUserAssoc(db.Model):
@@ -441,6 +517,7 @@ class Study(db.Model):
         back_populates="studies",
         lazy="select",
     )
+    # TODO: maybe change lazy to "select" here? there will always be 0-3 screenings...
     screenings: WOM["Screening"] = sa_orm.relationship(
         "Screening",
         back_populates="study",
@@ -448,7 +525,6 @@ class Study(db.Model):
         passive_deletes=True,
         order_by="Screening.id",
     )
-
     dedupe: M["Dedupe"] = sa_orm.relationship(
         "Dedupe", back_populates="study", lazy="select", passive_deletes=True
     )
@@ -461,24 +537,24 @@ class Study(db.Model):
 
     @hybrid_property
     def citation_text_content(self):
-        return "\n\n".join(
-            (
-                self.citation.get("title", ""),
-                self.citation.get("abstract", ""),
-                ", ".join(self.citation.get("keywords", [])),
-            )
-        ).strip()
+        parts = (
+            self.citation.get("title", ""),
+            self.citation.get("abstract", ""),
+            ", ".join(self.citation.get("keywords", [])),
+        )
+        return "\n\n".join(part for part in parts if part)
 
-    @citation_text_content.expression
-    def citation_text_content(cls):
+    @citation_text_content.inplace.expression
+    @classmethod
+    def _citation_text_content_expression(cls):
         # NOTE: i can't convince sqlalchemy to convert the keywords jsonb array
         # into a concatenated string; i have LOOKED, this shit is BONKERS
         # no, db.func.array_to_string(cls.citation["keywords"], ", ") does not work
-        return db.func.concat_ws(
+        return sa.func.concat_ws(
             "\n\n",
-            cls.citation["title"],
-            cls.citation["abstract"],
-            cls.citation["keywords"].astext,
+            cls.citation["title"].astext,
+            cls.citation["abstract"].astext,
+            sa.func.trim(cls.citation["keywords"].astext, "[]"),
         )
 
     # @citation_text_content.expression
@@ -701,7 +777,7 @@ def insert_review_plan(mapper, connection, target):
 @sa_event.listens_for(Review, "after_update")
 def update_study_num_reviewers(mapper, connection, target):
     review_id = target.id
-    study_id_updates: dict[int, dict[str, int]] = {}
+    study_id_updates = collections.defaultdict(dict)
     # randomly assign num citation reviewers for unscreened studies
     citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
     study_ids: list[int] = (
@@ -719,12 +795,8 @@ def update_study_num_reviewers(mapper, connection, target):
             weights=[num_pct["pct"] for num_pct in citation_reviewer_num_pcts],
             k=len(study_ids),
         )
-        study_id_updates |= {
-            id_: {"num_citation_reviewers": num_citation_reviewers}
-            for id_, num_citation_reviewers in zip(
-                study_ids, study_num_citation_reviewers
-            )
-        }
+        for id_, num_citation_reviewers in zip(study_ids, study_num_citation_reviewers):
+            study_id_updates[id_]["num_citation_reviewers"] = num_citation_reviewers
     # randomly assign num fulltext reviewers for unscreened studies
     fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
     study_ids: list[int] = (
@@ -742,12 +814,8 @@ def update_study_num_reviewers(mapper, connection, target):
             weights=[num_pct["pct"] for num_pct in fulltext_reviewer_num_pcts],
             k=len(study_ids),
         )
-        study_id_updates |= {
-            id_: {"num_fulltext_reviewers": num_fulltext_reviewers}
-            for id_, num_fulltext_reviewers in zip(
-                study_ids, study_num_fulltext_reviewers
-            )
-        }
+        for id_, num_fulltext_reviewers in zip(study_ids, study_num_fulltext_reviewers):
+            study_id_updates[id_]["num_fulltext_reviewers"] = num_fulltext_reviewers
     # munge updates into form required for sqlalchemy bulk update, submit all together
     if study_id_updates:
         studies_to_update = [
@@ -781,20 +849,10 @@ def update_study_status(mapper, connection, target):
     stage = target.stage
     if stage == "citation":
         num_reviewers = study.num_citation_reviewers
-        study_status_col = Study.citation_status
         study_status_col_str = "citation_status"
-        review_num_included_col = Review.num_citations_included
-        review_num_included_col_str = "num_citations_included"
     else:
         num_reviewers = study.num_fulltext_reviewers
-        study_status_col = Study.fulltext_status
         study_status_col_str = "fulltext_status"
-        review_num_included_col = Review.num_fulltexts_included
-        review_num_included_col_str = "num_fulltexts_included"
-    # get the current (soon to be *old*) status of the study
-    old_status = connection.execute(
-        sa.select(study_status_col).where(Study.id == study_id)
-    ).fetchone()[0]
     # compute the new status, and update the study accordingly
     status = utils.assign_status(
         [
@@ -812,16 +870,6 @@ def update_study_status(mapper, connection, target):
     )
     LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
 
-    # we may have to update our counts for review num_*_included / num_*_excluded
-    _update_review_num_counts(
-        old_status=old_status,
-        status=status,
-        review_id=review_id,
-        review_num_included_col=review_num_included_col,
-        review_num_included_col_str=review_num_included_col_str,
-        connection=connection,
-    )
-
     if stage == "citation":
         # get rid of any contrary fulltext screenings
         if status != "included":
@@ -833,17 +881,14 @@ def update_study_status(mapper, connection, target):
             LOGGER.info(
                 "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
             )
-            # TODO: do we also need to update review.num_fulltexts_included/excluded?
-        # update review models, as needed
-        status_counts = connection.execute(
-            sa.select(
-                Review.num_citations_included, Review.num_citations_excluded
-            ).where(Review.id == review_id)
-        ).fetchone()
-        LOGGER.info(
-            "<Review(id=%s)> citation_status counts = %s", review_id, status_counts
+        review = (
+            db.session.execute(sa.select(Review).filter_by(id=review_id))
+            .scalars()
+            .one()
         )
-        n_included, n_excluded = status_counts
+        status_counts = review.num_citations_by_status(["included", "excluded"])
+        n_included = status_counts.get("included", 0)
+        n_excluded = status_counts.get("excluded", 0)
         # if at least 25 citations have been included AND excluded
         # and only once every 25 included citations
         # (re-)compute the suggested keyterms
@@ -884,39 +929,3 @@ def update_study_status(mapper, connection, target):
         #             '<Review(id=%s)> fulltext_status counts = %s',
         #             review_id, status_counts)
         #         n_included, n_excluded = status_counts
-
-
-def _update_review_num_counts(
-    *,
-    old_status: str,
-    status: str,
-    review_id: int,
-    review_num_included_col: sa_orm.InstrumentedAttribute[int],
-    review_num_included_col_str: str,
-    connection,
-):
-    if old_status != status:
-        if old_status == "included":  # decrement
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col - 1})
-            )
-        elif status == "included":  # increment
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col + 1})
-            )
-        elif old_status == "excluded":  # decrement
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col - 1})
-            )
-        elif status == "excluded":  # increment
-            connection.execute(
-                sa.update(Review)
-                .where(Review.id == review_id)
-                .values({review_num_included_col_str: review_num_included_col + 1})
-            )

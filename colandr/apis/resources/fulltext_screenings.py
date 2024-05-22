@@ -495,20 +495,11 @@ class FulltextsScreeningsResource(Resource):
         current_app.logger.info(
             "inserted %s data extractions", len(data_extractions_to_insert)
         )
-        # now update include/exclude counts on review
-        status_counts_stmt = (
-            sa.select(models.Study.fulltext_status, db.func.count(1))
-            .filter_by(review_id=review_id, dedupe_status="not_duplicate")
-            .filter(models.Study.fulltext_status == sa.any_(["included", "excluded"]))
-            .group_by(models.Study.fulltext_status)
-        )
-        status_counts: dict[str, int] = {
-            row.fulltext_status: row.count
-            for row in db.session.execute(status_counts_stmt)
-        }  # type: ignore
-        review.num_fulltexts_included = status_counts.get("included", 0)
-        review.num_fulltexts_excluded = status_counts.get("excluded", 0)
-        db.session.commit()
+        # get include/exclude counts on review
+        # status_counts = review.num_fulltexts_by_status(["included", "excluded"])
+        # n_included = status_counts.get("included", 0)
+        # n_excluded = status_counts.get("excluded", 0)
+        # TODO: do stuff given num included/excluded?
 
 
 def _convert_screening_v2_into_v1(record) -> dict:
