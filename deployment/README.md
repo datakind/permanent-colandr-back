@@ -14,10 +14,11 @@ Then all  the commands mentioned the useful commands section below should work.
 
 So a workflow would look like ...
 
-1. `git checkout matt-azure-kubernetes-service-deployment` 
-2. Do some work, change some code, or adjust the Kubernetes configuration files in `./deployment`
-3. Run deployment script to push to container registry: `python3 deploy_azure.py`
-4. Go to the URL, to find it click under "Services and Ingresses" in the Azure portal
+1. Replace `./deployment/env-configmap.yaml` with the one configured for your host
+2. `git checkout matt-azure-kubernetes-service-deployment` 
+3. Do some work, change some code, or adjust the Kubernetes configuration files in `./deployment`
+4. Run deployment script to push to container registry: `python3 deploy_azure.py`
+5. Go to the URL, to find it click under "Services and Ingresses" in the Azure portal
 
 
 # Useful commands
