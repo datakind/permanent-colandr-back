@@ -1,6 +1,6 @@
-# Setting up AKS for colandr-api
+# Setup log
 
-Below is a brief log and list of useful commands I worked through in deploying to Azure Kubernetes service.
+elow is a brief log and list of useful commands I worked through in deploying to Azure Kubernetes service.
 
 PLEASE NOTE: THIS IS ONLY A BASIC DEPLOYMENT, FOLLOWUP IS NEEDED TO SECURE THE SITE
 
@@ -11,30 +11,6 @@ Specifically, outstanding steps are:
 - Cost analysis, this might be pricey!
 - Refactoring of this into GitHub actions for CI/CD
 - Removal of this branch 
-
-# Quick start
-
-Install Azure CLI and Kubernetes CLI, as instructed [here](https://learn.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster?tabs=azure-cli).
-
-Then log into Azure ...
-
-`az login`
-
-Then log into [the cluster](https://portal.azure.com/#@DataKindO365.onmicrosoft.com/resource/subscriptions/21fe0672-504b-4b05-b7e1-a154142c9fd4/resourceGroups/dk-ds-prototypes/providers/Microsoft.ContainerService/managedClusters/dkprototypesaks/workloads) ...
-
-`az aks get-credentials --resource-group DK-DS-Prototypes --name dkprototypesaks`
-
-Then all  the commands mentioned the useful commands section below should work. 
-
-So a workflow would look like ...
-
-1. git checkout matt-azure-kubernetes-service-deployment (it's on a branch for now)
-2. Do some work, change some code
-3. Run deployment script to push to container registry: python3 deploy_azure.py
-4. Re-run the AKS deploy for the affected service, eg kubectl apply -f api-deployment.yaml -n colandr-api (assuming you're in the kubernetes directory where these files are). Note, if nothing changed in the docker build, but you changed something like an environment variable, you can restart the service with kubectl rollout restart deployment/colandr-api -n colandr-api 
-5. Go to the URL, to find it click under "Services and Ingresses" in the Azure portal
-
-# Setup log
 
 My first time with AKS, so some steps may not be optimal, but here is what I did ...
 
