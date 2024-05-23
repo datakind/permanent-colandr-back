@@ -24,18 +24,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  email:
-    platform: linux/amd64
-    container_name: colandr-email
-    image: "axllent/mailpit:v1.17"
-    restart: unless-stopped
-    ports:
-      - "8025:8025" # web ui
-      - "1025:1025" # smtp
-    environment:
-      - MP_SMTP_AUTH_ALLOW_INSECURE=1
-      - MP_VERBOSE=1
-      - MP_MAX_MESSAGES=100
+  #email:
+  #  platform: linux/amd64
+  #  container_name: colandr-email
+  #  image: "axllent/mailpit:v1.17"
+  #  restart: unless-stopped
+  #  ports:
+  #    - "8025:8025" # web ui
+  #    - "1025:1025" # smtp
+  #  environment:
+  #    - MP_SMTP_AUTH_ALLOW_INSECURE=1
+  #    - MP_VERBOSE=1
+  #    - MP_MAX_MESSAGES=100
   broker:
     platform: linux/amd64
     container_name: colandr-broker
