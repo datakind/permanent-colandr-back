@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f compose.yml
+    kompose.version: 1.33.0 (HEAD)
+  labels:
+    io.kompose.service: colandr-api
+  name: colandr-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: colandr-api
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f compose.yml
+        kompose.version: 1.33.0 (HEAD)
+      labels:
+        io.kompose.network/colandr-back: "true"
+        io.kompose.service: colandr-api
+    spec:
+      containers:
+        - env:
+            - name: COLANDR_APP_DIR
+              value: /app
+              #valueFrom:
+              #  configMapKeyRef:
+              #    key: COLANDR_APP_DIR
+              #    name: env
+            - name: COLANDR_CELERY_BROKER_URL
+              value: redis://broker:6379/0
+            - name: COLANDR_CELERY_RESULT_BACKEND
+              value: redis://broker:6379/0
+            - name: COLANDR_DATABASE_URI
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_DATABASE_URI
+                  name: env
+            - name: COLANDR_DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_DB_NAME
+                  name: env
+            - name: COLANDR_DB_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_DB_PASSWORD
+                  name: env
+            - name: COLANDR_DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_DB_USER
+                  name: env
+            #- name: COLANDR_FLASK_CONFIG
+            #  valueFrom:
+            #    configMapKeyRef:
+            #      key: COLANDR_FLASK_CONFIG
+            #      name: env
+            - name: COLANDR_MAIL_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_MAIL_PASSWORD
+                  name: env
+            - name: COLANDR_MAIL_PORT
+              value: "1025"
+            - name: COLANDR_MAIL_SERVER
+              value: email
+            - name: COLANDR_MAIL_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_MAIL_USERNAME
+                  name: env
+            - name: COLANDR_MAIL_USE_SSL
+              value: "0"
+            - name: COLANDR_MAIL_USE_TLS
+              value: "0"
+            - name: COLANDR_PASSWORD_SALT
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_PASSWORD_SALT
+                  name: env
+            - name: COLANDR_REDIS_HOST
+              value: broker
+            - name: COLANDR_SECRET_KEY
+              valueFrom:
+                configMapKeyRef:
+                  key: COLANDR_SECRET_KEY
+                  name: env
+            - name: FLASK_APP
+              value: colandr.app:create_app()
+            - name: COLANDR_FLASK_CONFIG
+              value: default
+          image: dkdsprototypesreg01.azurecr.io/colandr-api:colandr-api
+          imagePullPolicy: Always
+          livenessProbe:
+            exec:
+              command:
+                - curl api:5000/api/health
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          name: colandr-api
+          ports:
+            - containerPort: 5000
+              hostPort: 5001
+              protocol: TCP
+          #volumeMounts:
+          #  - mountPath: /app
+          #    name: api-cm0
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            name: api-cm0
+          name: api-cm0

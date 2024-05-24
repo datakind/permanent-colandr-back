@@ -6,3 +6,4 @@
 !gunicorn_config.py
 !make_celery.py
 !colandr_data/
+!migrations
