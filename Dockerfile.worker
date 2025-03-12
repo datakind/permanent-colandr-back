@@ -1,48 +1,18 @@
-# Use Python 3.11 slim as the base image
-FROM python:3.11-slim AS base
+# Use a minimal image for production (e.g., an Alpine-based image with Python)
+FROM python:3.9-slim AS base
 
-# Set environment variable for the app directory
-ENV COLANDR_APP_DIR=/app
+# Set the working directory
+WORKDIR /app
 
-# Create the application directory and set the working directory
-RUN mkdir -p ${COLANDR_APP_DIR}
-WORKDIR ${COLANDR_APP_DIR}
+# Install dependencies
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install system dependencies for building Python packages and Git
-RUN apt update && \
-    apt install -y g++ git && \
-    apt clean && \
-    rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+# Copy the worker files
+COPY . /app
 
-# Copy the requirements folder and install the production dependencies
-COPY requirements/ ./requirements/
+# Set environment for production
+ENV FLASK_ENV=production
 
-# Upgrade pip and install production dependencies
-RUN python -m pip install --upgrade pip wheel --no-cache-dir && \
-    python -m pip install -r requirements/prod.txt --no-cache-dir
-
-# Copy the entire application code into the container
-COPY . .
-
-#####
-# Development environment setup
-FROM base AS dev
-
-# Install development dependencies
-RUN python -m pip install -r requirements/dev.txt --no-cache-dir
-
-# Expose port 5000 for Flask
-EXPOSE 5000
-
-# Set the default command for development (Flask in debug mode)
-CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
-
-#####
-# Production environment setup
-FROM base AS prod
-
-# Expose port 5000 for the app to be accessible
-EXPOSE 5000
-
-# Use Gunicorn for production deployment
-CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
+# Command to run the Celery worker
+CMD ["celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]

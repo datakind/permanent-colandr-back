@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   db:
     container_name: colandr-db
@@ -8,7 +10,7 @@ services:
       - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    env_file: ".env"
+    env_file: .env
     environment:
       - POSTGRES_USER=${COLANDR_DB_USER}
       - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
@@ -21,6 +23,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   email:
     container_name: colandr-email
     image: "axllent/mailpit:v1.17"
@@ -32,6 +35,7 @@ services:
       - MP_SMTP_AUTH_ALLOW_INSECURE=1
       - MP_VERBOSE=1
       - MP_MAX_MESSAGES=100
+
   broker:
     container_name: colandr-broker
     image: "redis:7.0"
@@ -46,12 +50,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   api:
     container_name: colandr-api
     build:
       context: "."
       dockerfile: Dockerfile.api
-      target: dev
+      target: prod # Use the 'prod' target for production
     platform: linux/amd64
     depends_on:
       - db
@@ -79,12 +84,13 @@ services:
       - .:/app
     ports:
       - 5001:5000
+
   worker:
     container_name: colandr-worker
     build:
       context: "."
       dockerfile: Dockerfile.worker
-      target: dev
+      target: prod # Use the 'prod' target for production
     platform: linux/amd64
     depends_on:
       - db
