@@ -1,28 +1,48 @@
+# Use Python 3.11 slim as the base image
 FROM python:3.11-slim AS base
 
+# Set environment variable for the app directory
 ENV COLANDR_APP_DIR=/app
+
+# Create the application directory and set the working directory
 RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
 
-RUN apt update \
-    && apt install -y g++ git \
-    && apt clean \
-    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+# Install system dependencies for building Python packages and Git
+RUN apt update && \
+    apt install -y g++ git && \
+    apt clean && \
+    rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
+# Copy the requirements folder and install the production dependencies
 COPY requirements/ ./requirements/
-RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
-RUN python -m textacy download lang_identifier --version 3.0 \
-    && python -m spacy download en_core_web_md \
-    && python -m spacy download es_core_news_md \
-    && python -m spacy download fr_core_news_md
 
-#####
-FROM base AS dev
+# Upgrade pip and install production dependencies
+RUN python -m pip install --upgrade pip wheel --no-cache-dir && \
+    python -m pip install -r requirements/prod.txt --no-cache-dir
 
-RUN python -m pip install -r requirements/dev.txt
-
+# Copy the entire application code into the container
 COPY . .
 
-CMD ["celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]
+#####
+# Development environment setup
+FROM base AS dev
 
-#CMD ["tail", "-f", "/dev/null"]
+# Install development dependencies
+RUN python -m pip install -r requirements/dev.txt --no-cache-dir
+
+# Expose port 5000 for Flask
+EXPOSE 5000
+
+# Set the default command for development (Flask in debug mode)
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+#####
+# Production environment setup
+FROM base AS prod
+
+# Expose port 5000 for the app to be accessible
+EXPOSE 5000
+
+# Use Gunicorn for production deployment
+CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
