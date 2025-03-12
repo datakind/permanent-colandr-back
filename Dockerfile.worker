@@ -1,18 +1,39 @@
-# Use a minimal image for production (e.g., an Alpine-based image with Python)
-FROM python:3.9-slim AS base
+FROM python:3.11-slim AS base
 
-# Set the working directory
-WORKDIR /app
+# Set environment variable for the application directory
+ENV COLANDR_APP_DIR=/app
+RUN mkdir -p ${COLANDR_APP_DIR}
+WORKDIR ${COLANDR_APP_DIR}
 
-# Install dependencies
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Install required system dependencies (only necessary for production)
+RUN apt update \
+    && apt install -y g++ git \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
-# Copy the worker files
-COPY . /app
+# Copy requirements and install production dependencies
+COPY requirements/ ./requirements/
+RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
 
-# Set environment for production
+# Stage 2: Production Stage
+FROM base AS prod
+
+# Copy only the necessary code to the container (avoid copying unnecessary files)
+COPY . .
+
+# Set environment variables for production (can be adjusted for your app)
 ENV FLASK_ENV=production
+ENV COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+ENV COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+ENV COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+ENV COLANDR_REDIS_HOST=colandr-broker
+ENV COLANDR_MAIL_SERVER=colandr-email
+ENV COLANDR_MAIL_PORT=1025
+ENV COLANDR_MAIL_USE_TLS=0
+ENV COLANDR_MAIL_USE_SSL=0
 
-# Command to run the Celery worker
+# Expose the app's port (adjust if needed)
+EXPOSE 5000
+
+# Run the app in production mode
 CMD ["celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]

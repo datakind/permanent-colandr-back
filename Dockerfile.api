@@ -1,15 +1,41 @@
 # Use a minimal image for production (e.g., an Alpine-based image with Python)
-FROM python:3.9-slim AS base
+FROM python:3.11-slim AS base
 
 # Set the working directory
-WORKDIR /app
+ENV COLANDR_APP_DIR=/app
+RUN mkdir -p ${COLANDR_APP_DIR}
+WORKDIR ${COLANDR_APP_DIR}
 
 # Install dependencies (use a requirements.txt)
-COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt update \
+    && apt install -y g++ git \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
+
+COPY requirements/ ./requirements/
+RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
 
 # Copy the app files
-COPY . /app
+COPY . .
+
+#####
+FROM base AS dev
+
+RUN python -m pip install -r requirements/dev.txt
+
+# TODO: should we do this instead?
+# RUN python -m pip install -e .[dev]
+
+EXPOSE 5000
+
+# flask --app "colandr.app:create_app()" run --host 0.0.0.0 --port 5000 --debug
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+# Good for debugging
+#CMD ["tail", "-f", "/dev/null"]
+
+#####
+FROM base AS prod
 
 # Set the environment to production
 ENV FLASK_ENV=production
