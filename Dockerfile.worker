@@ -1,3 +1,4 @@
+# Base Stage
 FROM python:3.11-slim AS base
 
 # Set environment variable for the application directory
@@ -15,24 +16,38 @@ RUN apt update \
 COPY requirements/ ./requirements/
 RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
 
-# Stage 2: Production Stage
-FROM base AS prod
+# Stage 2: Development Stage
+FROM base AS dev
 
-# Copy only the necessary code to the container (avoid copying unnecessary files)
+# Install development dependencies
+RUN python -m pip install -r requirements/dev.txt
+
+# Copy only the necessary code to the container
 COPY . .
 
-# Set environment variables for production (can be adjusted for your app)
-ENV FLASK_ENV=production
+# Set environment variables for development
+ENV FLASK_ENV=development
 ENV COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
 ENV COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
 ENV COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
 ENV COLANDR_REDIS_HOST=colandr-broker
-ENV COLANDR_MAIL_SERVER=colandr-email
-ENV COLANDR_MAIL_PORT=1025
-ENV COLANDR_MAIL_USE_TLS=0
-ENV COLANDR_MAIL_USE_SSL=0
 
-# Expose the app's port (adjust if needed)
+# Expose the app's port
+EXPOSE 5000
+
+# Run the app in development mode
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+# Stage 3: Production Stage
+FROM base AS prod
+
+# Copy only the necessary code to the container
+COPY . .
+
+# Set environment variables for production
+ENV FLASK_ENV=production
+
+# Expose the app's port
 EXPOSE 5000
 
 # Run the app in production mode
