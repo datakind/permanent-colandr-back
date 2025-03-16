@@ -27,7 +27,7 @@ $ brew doctor
 Lastly, use Homebrew to install [Docker](https://docs.docker.com), a tool for developing and running applications, and [git](https://git-scm.com), for version control and access to colandr's code:
 
 ```shell
-$ brew cask install docker
+$ brew install --cask docker
 $ brew install git
 ```
 
