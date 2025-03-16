@@ -313,14 +313,14 @@ class ConfirmResetPasswordResource(Resource):
 
 
 @jwt.user_identity_loader
-def user_identity_loader(user: t.Union[User, str]):
+def user_identity_loader(user: t.Union[User, str]) -> str:
     """
     Callback function that takes the ``User`` passed in as the "identity"
-    when creating JWTs and returns it in JSON serializable format,
-    i.e. as the corresponding unique integer ``User.id`` .
+    when creating JWTs and returns it as a string,
+    e.g. as the corresponding unique integer ``User.id`` (stringified).
     """
     if isinstance(user, User):
-        return user.id
+        return str(user.id)
     elif isinstance(user, str):
         Email()(user)  # validate as email
         return user
@@ -333,8 +333,8 @@ def user_lookup_callback(_jwt_header, jwt_data: dict) -> t.Optional[User]:
     whenever a protected API route is accessed.
     """
     identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    if isinstance(identity, int):  # id
-        user = db.session.get(User, identity)
+    if identity.isdigit():
+        user = db.session.get(User, int(identity))
     elif isinstance(identity, str):  # email
         Email()(identity)  # validate as email
         user = db.session.execute(
@@ -399,8 +399,8 @@ def get_user_from_token(token: str) -> t.Optional[User]:
     """
     jwt_data = jwtext.decode_token(token, allow_expired=False)
     identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    if isinstance(identity, int):
-        user = db.session.get(User, identity)
+    if identity.isdigit():
+        user = db.session.get(User, int(identity))
     elif isinstance(identity, str):
         Email()(identity)  # validate as email
         user = db.session.execute(
