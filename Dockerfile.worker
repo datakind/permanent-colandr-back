@@ -18,8 +18,6 @@ RUN python -m textacy download lang_identifier --version 3.0 \
     && python -m spacy download es_core_news_md \
     && python -m spacy download fr_core_news_md
 
-COPY . .
-
 # Stage 2: Development Stage
 FROM base AS dev
 
