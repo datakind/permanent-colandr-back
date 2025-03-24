@@ -6,15 +6,19 @@ ENV COLANDR_APP_DIR=/app
 RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
 
-# Install required system dependencies (only necessary for production)
 RUN apt update \
     && apt install -y g++ git \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
-# Copy requirements and install production dependencies
 COPY requirements/ ./requirements/
 RUN python -m pip install --upgrade pip wheel && python -m pip install -r requirements/prod.txt
+RUN python -m textacy download lang_identifier --version 3.0 \
+    && python -m spacy download en_core_web_md \
+    && python -m spacy download es_core_news_md \
+    && python -m spacy download fr_core_news_md
+
+COPY . .
 
 # Stage 2: Development Stage
 FROM base AS dev
