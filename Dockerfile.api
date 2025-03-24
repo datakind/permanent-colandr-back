@@ -45,4 +45,6 @@ ENV FLASK_APP=colandr.app:create_app()
 EXPOSE 5000
 
 # Use a production server (e.g., Gunicorn)
+#TODO: can we return to the below line in place of the direct binding? or will this fail to deploy on GCP?
+#CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
 CMD ["gunicorn", "-b", "0.0.0.0:5000", "colandr.app:create_app()"]

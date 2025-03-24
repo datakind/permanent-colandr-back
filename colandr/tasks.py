@@ -33,7 +33,7 @@ def _get_redis_conn() -> redis.client.Redis:
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
 
-
+# TODO: Update sender email dynamically (previously used "sender=current_app.config["MAIL_DEFAULT_SENDER"]", but this failed)
 @shared_task
 def send_email(recipients, subject, text_body, html_body):
     msg = Message(
