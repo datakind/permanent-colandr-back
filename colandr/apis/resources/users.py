@@ -160,6 +160,11 @@ class UsersResource(Resource):
                 "type": "integer",
                 "description": "unique review id on which users are collaborators",
             },
+            "admins": {
+                "in": "query",
+                "type": "boolean",
+                "description": "if True, get all admin users in the system",
+            },
         },
         responses={
             200: "successfully got user record(s)",
@@ -173,11 +178,12 @@ class UsersResource(Resource):
             "review_id": ma_fields.Int(
                 load_default=None, validate=Range(min=1, max=constants.MAX_INT)
             ),
+            "admins": ma_fields.Boolean(load_default=None),
         },
         location="query",
     )
     @jwtext.jwt_required()
-    def get(self, email, review_id):
+    def get(self, email, review_id, admins):
         """get user record(s) for one or more matching users"""
         current_user = jwtext.get_current_user()
         if email:
@@ -206,6 +212,15 @@ class UsersResource(Resource):
                     f"{current_user} forbidden to see users for this review"
                 )
             return UserSchema(many=True).dump(review.users)
+        elif admins:
+            if not current_user.is_admin:
+                return forbidden_error(
+                    f"{current_user} must be an admin to get all admins"
+                )
+            admins = db.session.execute(
+                sa.select(models.User).filter_by(is_admin=True)
+            ).scalars()
+            return UserSchema(many=True).dump(admins)
 
     @ns.doc(
         expect=(user_model, "user data to be created"),
