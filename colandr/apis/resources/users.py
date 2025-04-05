@@ -126,7 +126,13 @@ class UserResource(Resource):
             if key is missing:
                 continue
             else:
-                if key == "email":
+                # only admins can add/remove other admins
+                if key == "is_admin":
+                    if not current_user.is_admin:
+                        return forbidden_error(
+                            f"{current_user} forbidden from assigning admin status"
+                        )
+                elif key == "email":
                     current_app.logger.warning(
                         "%s is modifying %s email, from %s to %s",
                         current_user,
