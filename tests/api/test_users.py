@@ -186,17 +186,18 @@ class TestUserResource:
 @pytest.mark.usefixtures("db_session")
 class TestUsersResource:
     @pytest.mark.parametrize(
-        ["email", "review_id", "user_ids"],
+        ["email", "review_id", "admins", "user_ids"],
         [
-            ("name1@example.com", None, 1),
-            ("name2@example.com", 1, 2),
-            (None, 1, [1, 2, 3]),
+            ("name1@example.com", None, None, 1),
+            ("name2@example.com", 1, None, 2),
+            (None, 1, None, [1, 2, 3]),
+            (None, None, True, [1]),
         ],
     )
-    def test_get(self, email, review_id, user_ids, app, client, admin_headers):
+    def test_get(self, email, review_id, admins, user_ids, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
-                "users_users_resource", email=email, review_id=review_id
+                "users_users_resource", email=email, review_id=review_id, admins=admins
             )
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
@@ -209,21 +210,33 @@ class TestUsersResource:
         elif review_id is not None:
             assert isinstance(data, list)
             assert [user["id"] for user in data] == user_ids
+        elif admins is not None:
+            assert isinstance(data, list)
+            assert [user["id"] for user in data] == user_ids
 
     @pytest.mark.parametrize(
-        ["current_user_id", "email", "review_id", "status_code"],
+        ["current_user_id", "email", "review_id", "admins", "status_code"],
         [
-            (1, "name999@example.com", None, 404),
-            (1, None, 999, 404),
-            (4, None, 1, 403),
+            (1, "name999@example.com", None, None, 404),
+            (1, None, 999, None, 404),
+            (4, None, 1, None, 403),
+            (2, None, None, True, 403),
         ],
     )
     def test_get_errors(
-        self, current_user_id, email, review_id, status_code, app, client, db_session
+        self,
+        current_user_id,
+        email,
+        review_id,
+        admins,
+        status_code,
+        app,
+        client,
+        db_session,
     ):
         with app.test_request_context():
             url = flask.url_for(
-                "users_users_resource", email=email, review_id=review_id
+                "users_users_resource", email=email, review_id=review_id, admins=admins
             )
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
