@@ -162,21 +162,45 @@ class RegisterResource(Resource):
         current_app.logger.info("%s successfully registered", user)
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = url_for(
-            "auth_confirm_registration_resource", token=access_token, _external=True
-        )
-        html = render_template(
-            "emails/user_registration.html",
-            url=confirm_url,
-            name=user.name,
-        )
-        if current_app.config["MAIL_SERVER"]:
-            tasks.send_email.apply_async(
-                args=[[user.email], "Confirm your registration", "", html]
-            )
-            current_app.logger.info("registration email sent to %s", user.email)
+        _send_confirm_registration_email(user, access_token)
         current_app.logger.info("registration submitted for %s", user)
         return UserSchema().dump(user)
+
+
+@ns.route(
+    "/register/resend",
+    doc={
+        "summary": "re-send a registration confirmation email",
+        "produces": ["application/json"],
+        "responses": {
+            200: "successful user registration",
+            401: "unsuccessful user registration",
+        },
+    },
+)
+class RegisterResendResource(Resource):
+    @jwtext.jwt_required()
+    def post(self):
+        """
+        Re-send a registration confirmation email for an unconfirmed, registered user.
+        """
+        current_user = jwtext.get_current_user()
+        access_token = jwtext.create_access_token(identity=current_user, fresh=True)
+        _send_confirm_registration_email(current_user, access_token)
+
+
+def _send_confirm_registration_email(user, access_token):
+    confirm_url = url_for(
+        "auth_confirm_registration_resource", token=access_token, _external=True
+    )
+    html = render_template(
+        "emails/user_registration.html", url=confirm_url, name=user.name
+    )
+    if current_app.config["MAIL_SERVER"]:
+        tasks.send_email.apply_async(
+            args=[[user.email], "Confirm your registration", "", html]
+        )
+        current_app.logger.info("registration email sent to %s", user.email)
 
 
 @ns.route(
