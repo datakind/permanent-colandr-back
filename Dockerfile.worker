@@ -1,5 +1,7 @@
+# Base Stage
 FROM python:3.11-slim AS base
 
+# Set environment variable for the application directory
 ENV COLANDR_APP_DIR=/app
 RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
@@ -16,13 +18,39 @@ RUN python -m textacy download lang_identifier --version 3.0 \
     && python -m spacy download es_core_news_md \
     && python -m spacy download fr_core_news_md
 
-#####
+# Stage 2: Development Stage
 FROM base AS dev
 
+# Install development dependencies
 RUN python -m pip install -r requirements/dev.txt
 
+# Copy only the necessary code to the container
 COPY . .
 
-CMD ["celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]
+# Set environment variables for development
+ENV FLASK_ENV=development
+ENV COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+ENV COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+ENV COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+ENV COLANDR_REDIS_HOST=colandr-broker
 
-#CMD ["tail", "-f", "/dev/null"]
+# Expose the app's port
+EXPOSE 5000
+
+# Run the app in development mode
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+
+# Stage 3: Production Stage
+FROM base AS prod
+
+# Copy only the necessary code to the container
+COPY . .
+
+# Set environment variables for production
+ENV FLASK_ENV=production
+
+# Expose the app's port
+EXPOSE 5000
+
+# Run the app in production mode
+CMD ["celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]

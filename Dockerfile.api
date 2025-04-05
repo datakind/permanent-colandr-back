@@ -1,5 +1,7 @@
+# Use a minimal image for production (e.g., an Alpine-based image with Python)
 FROM python:3.11-slim AS base
 
+# Set the working directory
 ENV COLANDR_APP_DIR=/app
 RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
@@ -37,6 +39,14 @@ CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "
 #####
 FROM base AS prod
 
+# Set the environment to production
+ENV FLASK_ENV=production
+ENV FLASK_APP=colandr.app:create_app()
+
+# Expose the application port
 EXPOSE 5000
 
-CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
+# Use a production server (e.g., Gunicorn)
+#TODO: can we return to the below line in place of the direct binding? or will this fail to deploy on GCP?
+#CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "colandr.app:create_app()"]
