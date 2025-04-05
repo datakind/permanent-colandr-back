@@ -144,6 +144,7 @@ class TestUserResource:
             (1, 2, {"name": "NEW_NAME2"}),
             (1, 3, {"email": "name3@example.net"}),
             (1, 4, {"name": "NEW_NAME4", "email": "name4@example.net"}),
+            (1, 2, {"is_admin": True}),
         ],
     )
     def test_put(self, current_user_id, user_id, data, app, client, db_session):
@@ -165,6 +166,7 @@ class TestUserResource:
         [
             (3, 2, {"name": "NEW_NAME2"}, 403),
             (1, 999, {"name": "NEW_NAME999"}, 404),
+            (2, 2, {"is_admin": True}, 403),
             # TODO: figure out if there's a way to throw nice errors
             # in case "current user" doesn't actually exist
             # (999, 999, {"name": "NEW_NAME999"}, 404),
