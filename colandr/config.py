@@ -83,3 +83,5 @@ RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_mode
 CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
 FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
 ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
+
+SERVER_NAME = os.environ.get("COLANDR_SERVER_NAME")
