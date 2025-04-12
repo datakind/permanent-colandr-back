@@ -162,9 +162,15 @@ class RegisterResource(Resource):
         current_app.logger.info("%s successfully registered", user)
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = url_for(
-            "auth_confirm_registration_resource", token=access_token, _external=True
-        )
+        if current_app.config["SERVER_NAME"]:
+            confirm_url = (
+                f"{current_app.config['SERVER_NAME']}/{ns.path}/register/confirm"
+                f"?token={access_token}"
+            )
+        else:
+            confirm_url = url_for(
+                "auth_confirm_registration_resource", token=access_token, _external=True
+            )
         html = render_template(
             "emails/user_registration.html",
             url=confirm_url,
