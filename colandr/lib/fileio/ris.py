@@ -143,7 +143,7 @@ def _sanitize_reference(reference: dict) -> dict:
     if "notes" in reference:
         reference["notes"] = _strip_tags_from_notes(reference["notes"])
     # split date key into year (if needed) and month
-    if "date" in reference:
+    if reference.get("date"):
         reference["pub_month"] = reference["date"].month
         if "pub_year" not in reference:
             reference["pub_year"] = reference["date"].year
