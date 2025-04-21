@@ -3,6 +3,7 @@ References:
     - https://github.com/asreview/citation-file-formatting/tree/main
     - https://en.wikipedia.org/wiki/RIS_(file_format)
 """
+
 import logging
 import pathlib
 import typing as t
@@ -142,7 +143,7 @@ def _sanitize_reference(reference: dict) -> dict:
     if "notes" in reference:
         reference["notes"] = _strip_tags_from_notes(reference["notes"])
     # split date key into year (if needed) and month
-    if "date" in reference:
+    if reference.get("date"):
         reference["pub_month"] = reference["date"].month
         if "pub_year" not in reference:
             reference["pub_year"] = reference["date"].year
@@ -151,7 +152,7 @@ def _sanitize_reference(reference: dict) -> dict:
         {
             key: reference[key].strftime("%Y-%m-%d")
             for key in DTTM_KEYS
-            if key in reference
+            if reference.get(key)
         }
     )
     return reference
