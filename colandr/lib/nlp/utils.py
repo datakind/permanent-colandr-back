@@ -8,9 +8,14 @@ from operator import itemgetter
 import spacy
 import textacy
 from spacy.tokens import Doc
+from textacy import lang_id
 
 
 LOGGER = logging.getLogger(__name__)
+
+# HACK!
+lang_identifier = lang_id.LangIdentifier(version="3.0", data_dir="/data/langid")
+identify_lang = lang_identifier.identify_lang
 
 
 def get_lang_to_models() -> dict[str, list[str]]:
@@ -53,16 +58,14 @@ def process_texts_into_docs(
     # identify most probable language (w/ optional fallback) for texts
     if min_prob is not None:
         text_lang_probs = (
-            (text, textacy.identify_lang(text, with_probs=True)) for text in texts
+            (text, identify_lang(text, with_probs=True)) for text in texts
         )
         text_langs = (
             (text, lang) if prob >= min_prob else (text, fallback_lang)
             for text, (lang, prob) in text_lang_probs
         )
     else:
-        text_langs = (
-            (text, textacy.identify_lang(text, with_probs=False)) for text in texts
-        )
+        text_langs = ((text, identify_lang(text, with_probs=False)) for text in texts)
     # join texts to langs, then iterate over lang-groups for processing efficiency
     lang_models = get_lang_to_models()
     for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):

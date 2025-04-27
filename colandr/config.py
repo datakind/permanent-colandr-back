@@ -78,6 +78,8 @@ COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
 DEDUPE_MODELS_DIR = os.path.join(
     COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
 )
+# HACK!
+LANGID_MODELS_DIR = "/data/langid"
 RANKER_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranker_models")
 RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
 CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
