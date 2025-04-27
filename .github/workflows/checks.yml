@@ -73,7 +73,7 @@ jobs:
       shell: bash
     - name: Download language data
       run: |
-        uv run python -m textacy download lang_identifier --version 3.0
+        uv run python -m textacy download lang_identifier --version 3.0 --data_dir /data/langid
     - name: Test with pytest
       run: |
         uv run python -m pytest tests --verbose
