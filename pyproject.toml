@@ -54,7 +54,6 @@ dependencies = [
 dev = [
   "httpx~=0.28.0",
   "mypy~=1.0",
-  "pip",
   "pytest~=8.0",
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.41.0",

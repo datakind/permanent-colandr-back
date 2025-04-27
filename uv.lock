@@ -454,7 +454,6 @@ dependencies = [
 dev = [
     { name = "httpx" },
     { name = "mypy" },
-    { name = "pip" },
     { name = "pytest" },
     { name = "pytest-postgresql" },
     { name = "ruff" },
@@ -505,7 +504,6 @@ requires-dist = [
 dev = [
     { name = "httpx", specifier = "~=0.28.0" },
     { name = "mypy", specifier = "~=1.0" },
-    { name = "pip" },
     { name = "pytest", specifier = "~=8.0" },
     { name = "pytest-postgresql", specifier = "~=7.0" },
     { name = "ruff", specifier = "~=0.9.0" },
@@ -1458,15 +1456,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/7e/1e2a66b1877eff0b29cee1f0af54ca9ee977f056224d09e5f792750b28b4/persistent-6.1.1-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:1281e94901af3e7290696557c3804078bd22e5edab07b3a9b5113fd94bbd8c3e", size = 229267, upload_time = "2025-02-26T08:04:34.833Z" },
     { url = "https://files.pythonhosted.org/packages/43/30/d33a557ce4aa058b0ae7b418ca0c8d2a123bd2aadbbec51aa1e9fd461dc1/persistent-6.1.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3688428e9f39bf89bae2ae2d67dcf35e61958a9ec4370e14a6ffa5489f13a702", size = 239062, upload_time = "2025-02-26T08:04:46.229Z" },
     { url = "https://files.pythonhosted.org/packages/24/ca/c3100eabcda47aa8a1bf73e16934d9eed0da8313e735eff5728af63b0fec/persistent-6.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:e09807dfcd8d268795819776de8e871fe5ca1151acac3705d0855848cfccf710", size = 128350, upload_time = "2025-02-26T08:03:28.303Z" },
-]
-
-[[package]]
-name = "pip"
-version = "25.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/79/67/c06f625e2968c417052b3a4a0eef40656d5d4d44033e57b40ec474af1d28/pip-25.1.tar.gz", hash = "sha256:272bdd1289f80165e9070a4f881e8f9e1001bbb50378561d1af20e49bf5a2200", size = 1939624, upload_time = "2025-04-26T09:45:36.149Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e0/f0/8a2806114cd36e282823fd4d8e88e3b94dc943c2569c350d0c826a49db38/pip-25.1-py3-none-any.whl", hash = "sha256:13b4aa0aaad055020a11bec8a1c2a70a2b2d080e12d89b962266029fff0a16ba", size = 1824948, upload_time = "2025-04-26T09:45:33.871Z" },
 ]
 
 [[package]]
