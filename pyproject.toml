@@ -41,9 +41,13 @@ dependencies = [
   "river~=0.22.0",
   "scikit-learn~=1.6.0",
   "sqlalchemy~=2.0.0",
+  "spacy~=3.8.0",
   "textacy~=0.13.0",
   "webargs~=8.6.0",
   "werkzeug",
+  "en_core_web_md@https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl",
+  "es_core_news_md@https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl",
+  "fr_core_news_md@https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl",
 ]
 
 [dependency-groups]

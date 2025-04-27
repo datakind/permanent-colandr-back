@@ -418,6 +418,8 @@ dependencies = [
     { name = "celery" },
     { name = "click" },
     { name = "dedupe" },
+    { name = "en-core-web-md" },
+    { name = "es-core-news-md" },
     { name = "flask" },
     { name = "flask-caching" },
     { name = "flask-jwt-extended" },
@@ -425,6 +427,7 @@ dependencies = [
     { name = "flask-migrate" },
     { name = "flask-restx" },
     { name = "flask-sqlalchemy" },
+    { name = "fr-core-news-md" },
     { name = "ftfy" },
     { name = "gunicorn" },
     { name = "jinja2" },
@@ -440,6 +443,7 @@ dependencies = [
     { name = "rispy" },
     { name = "river" },
     { name = "scikit-learn" },
+    { name = "spacy" },
     { name = "sqlalchemy" },
     { name = "textacy" },
     { name = "webargs" },
@@ -465,6 +469,8 @@ requires-dist = [
     { name = "celery", specifier = "~=5.5.0" },
     { name = "click", specifier = "~=8.1.0" },
     { name = "dedupe", specifier = "~=3.0.3" },
+    { name = "en-core-web-md", url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl" },
+    { name = "es-core-news-md", url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl" },
     { name = "flask", specifier = "~=3.1.0" },
     { name = "flask-caching", specifier = "~=2.3.0" },
     { name = "flask-jwt-extended", specifier = "~=4.7.0" },
@@ -472,6 +478,7 @@ requires-dist = [
     { name = "flask-migrate", specifier = "~=4.0.0" },
     { name = "flask-restx", specifier = "~=1.3.0" },
     { name = "flask-sqlalchemy", specifier = "~=3.1.0" },
+    { name = "fr-core-news-md", url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl" },
     { name = "ftfy", specifier = "~=6.3.0" },
     { name = "gunicorn", specifier = "~=23.0" },
     { name = "jinja2", specifier = "~=3.1.0" },
@@ -487,6 +494,7 @@ requires-dist = [
     { name = "rispy", specifier = "~=0.9.0" },
     { name = "river", specifier = "~=0.22.0" },
     { name = "scikit-learn", specifier = "~=1.6.0" },
+    { name = "spacy", specifier = "~=3.8.0" },
     { name = "sqlalchemy", specifier = "~=2.0.0" },
     { name = "textacy", specifier = "~=0.13.0" },
     { name = "webargs", specifier = "~=8.6.0" },
@@ -682,6 +690,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/8a/fb/054ad89223951abedde4351c5ff8ba009dcd576d8ecafed357762c7f2d9d/DoubleMetaphone-1.1.tar.gz", hash = "sha256:cd185dbc18347accb5a27c1289a6bdc989a479294a74f41c42a6cb0b414e5379", size = 34025, upload_time = "2021-12-18T23:48:46.706Z" }
 
 [[package]]
+name = "en-core-web-md"
+version = "3.8.0"
+source = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl", hash = "sha256:5e6329fe3fecedb1d1a02c3ea2172ee0fede6cea6e4aefb6a02d832dba78a310" },
+]
+
+[[package]]
+name = "es-core-news-md"
+version = "3.8.0"
+source = { url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/explosion/spacy-models/releases/download/es_core_news_md-3.8.0/es_core_news_md-3.8.0-py3-none-any.whl", hash = "sha256:478b8bb3f3e8eb149192f7d80e7cd64f990b7e9bccbc5329df41a57e86326be2" },
+]
+
+[[package]]
 name = "flask"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -800,6 +824,14 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/c6/99/a4b611ac73b1232e5afc7e412ad3e1511ea1971f3608ce359b277a5e9a03/floret-0.10.5-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:7c3d1d189fd12f75bc2f4229a5fd4f6eb333f598063609ff050c6a1296568e98", size = 302033, upload_time = "2023-11-04T08:30:57.95Z" },
     { url = "https://files.pythonhosted.org/packages/2f/68/f5c6dc90acf6ddf8203fb79d5ff4e6f2bf93f1ec4987ff1094f22ce6f2c1/floret-0.10.5-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:dfea32120951b8781c318e5ee9847eb9895ff7a18dd49c5d466ad8951589a0f5", size = 321590, upload_time = "2023-11-04T08:30:59.453Z" },
     { url = "https://files.pythonhosted.org/packages/e6/25/297f47eab2fb42cb9bea8c1eadeece3bcdd3af185448dd90eed6baa8e106/floret-0.10.5-cp312-cp312-win_amd64.whl", hash = "sha256:e074b9e731504191e366f5f21f2f419a2dc3194d6d17ef26ced7edceefac3f79", size = 243375, upload_time = "2023-11-04T08:31:01.12Z" },
+]
+
+[[package]]
+name = "fr-core-news-md"
+version = "3.8.0"
+source = { url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl" }
+wheels = [
+    { url = "https://github.com/explosion/spacy-models/releases/download/fr_core_news_md-3.8.0/fr_core_news_md-3.8.0-py3-none-any.whl", hash = "sha256:8a70d090a54ef77525c3ffa6a6195b9d365f2cf369ae1cd84ede93f3d709079e" },
 ]
 
 [[package]]
