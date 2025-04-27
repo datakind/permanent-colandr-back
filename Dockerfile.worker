@@ -48,4 +48,4 @@ ENV FLASK_ENV=production
 # expose app port
 EXPOSE 5000
 
-CMD ["uv", "run", "celery", "--app=make_celery.celery_app", "worker", "--loglevel=info"]
+CMD ["uv", "run", "celery", "--app=make_celery.celery_app", "worker", "--loglevel=info", "--soft-time-limit=1800"]
