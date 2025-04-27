@@ -68,6 +68,8 @@ services:
       timeout: "3s"
       start_period: "5s"
       retries: 3
+    ports:
+      - 5001:5000
     env_file: ".env"
     environment:
       - FLASK_APP=colandr.app:create_app()
@@ -77,8 +79,6 @@ services:
       - COLANDR_REDIS_HOST=colandr-broker
     volumes:
       - .:/app
-    ports:
-      - 5001:5000
 
   worker:
     container_name: colandr-worker
@@ -101,7 +101,6 @@ services:
       - COLANDR_REDIS_HOST=colandr-broker
     volumes:
       - .:/app
-    command: "celery --app=make_celery.celery_app worker --loglevel=info"
 
 networks:
   default:
