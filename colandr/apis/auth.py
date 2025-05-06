@@ -69,7 +69,9 @@ class LoginResource(Resource):
         except ValueError:
             return not_found_error("no user found matching given email and password")
         if not user.is_confirmed:
-            return unauthorized_error("user has been created but is not yet confirmed")
+            # TODO: confirm that we want to allow uncomfirmed user logins
+            current_app.logger.warning("%s not yet confirmed")
+            # return unauthorized_error("user has been created but is not yet confirmed")
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
         current_app.logger.info("%s logged in", user)
