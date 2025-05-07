@@ -13,6 +13,8 @@ RUN apt update \
 ENV COLANDR_APP_DIR=/app
 RUN mkdir -p ${COLANDR_APP_DIR}
 WORKDIR ${COLANDR_APP_DIR}
+ENV COLANDR_DATA_DIR=/data
+RUN mkdir -p ${COLANDR_DATA_DIR}
 
 ENV UV_LINK_MODE=copy
 # install dependencies only
@@ -21,7 +23,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --no-install-project --compile-bytecode --locked
 # download language data
-RUN uv run python -m textacy download lang_identifier --version 3.0 --data_dir /data/langid
+RUN uv run python -m textacy download lang_identifier --version 3.0 --data_dir ${COLANDR_DATA_DIR}/langid
 # copy and install project
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/uv \
