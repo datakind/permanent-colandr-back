@@ -19,6 +19,7 @@ env:
   COLANDR_APP_DIR: "/tmp"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
+  COLANDR_DATA_DIR: "/tmp/data"
 
 jobs:
 
@@ -27,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11"]
+        python-version: ["3.11"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
 
@@ -62,21 +63,21 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-        cache: "pip"
-        cache-dependency-path: "pyproject.toml"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5.3.1
+      with:
+        version: "0.6.17"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip wheel
-        python -m pip install -e '.[dev]'
+      run: uv sync --frozen --dev
+      shell: bash
     - name: Download language data
       run: |
-        python -m textacy download lang_identifier --version 3.0
-        python -m spacy download en_core_web_md
-        python -m spacy download es_core_news_md
-        python -m spacy download fr_core_news_md
+        uv run python -m textacy download lang_identifier --version 3.0 --data_dir ${{ env.COLANDR_DATA_DIR }}/langid
     - name: Test with pytest
       run: |
-        python -m pytest tests --verbose
+        uv run python -m pytest tests --verbose
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -85,15 +86,18 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-        cache: "pip"
-        cache-dependency-path: "pyproject.toml"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5.3.1
+      with:
+        version: "0.6.17"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip wheel
-        python -m pip install -e '.[dev]'
+      run: uv sync --frozen --dev
+      shell: bash
     - name: Check with ruff
       run: |
-        python -m ruff check --output-format=github --exit-zero colandr
+        uv run python -m ruff check --output-format=github --exit-zero colandr
   types:
     runs-on: ubuntu-latest
     steps:
@@ -102,12 +106,15 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-        cache: "pip"
-        cache-dependency-path: "pyproject.toml"
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5.3.1
+      with:
+        version: "0.6.17"
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip wheel
-        python -m pip install -e '.[dev]'
+      run: uv sync --frozen --dev
+      shell: bash
     - name: Check types with mypy
       run: |
-        python -m mypy --install-types --non-interactive colandr
+        uv run python -m mypy --install-types --non-interactive colandr
