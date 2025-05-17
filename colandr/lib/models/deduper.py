@@ -6,8 +6,8 @@ import typing as t
 import urllib.parse
 from collections.abc import Iterable
 
-import dedupe
-from dedupe import variables
+# import dedupe
+# from dedupe import variables
 from textacy import preprocessing
 
 from .. import utils
@@ -22,21 +22,21 @@ RE_SPACED_HYPHEN = re.compile(r" *(–|-) *")
 
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
-VARIABLES: list[variables.base.Variable] = [
-    variables.Exact("doi"),
-    variables.String("title", name="title"),
-    variables.String("authors_joined", has_missing=True, name="authors_joined"),
-    variables.Set("authors_initials", name="authors_initials"),
-    variables.Exact("pub_year", has_missing=True, name="pub_year"),
-    variables.String("journal_name", has_missing=True, name="journal_name"),
-    variables.Exact("journal_volume", name="journal_volume"),
-    variables.Exact("journal_number", name="journal_number"),
-    variables.String("issn", name="issn"),
-    variables.Text("abstract", has_missing=True),
-    variables.Interaction("journal_name", "journal_volume", "journal_number"),
-    variables.Interaction("issn", "pub_year"),
-    variables.Interaction("title", "authors_joined"),
-]
+# VARIABLES: list[variables.base.Variable] = [
+#     variables.Exact("doi"),
+#     variables.String("title", name="title"),
+#     variables.String("authors_joined", has_missing=True, name="authors_joined"),
+#     variables.Set("authors_initials", name="authors_initials"),
+#     variables.Exact("pub_year", has_missing=True, name="pub_year"),
+#     variables.String("journal_name", has_missing=True, name="journal_name"),
+#     variables.Exact("journal_volume", name="journal_volume"),
+#     variables.Exact("journal_number", name="journal_number"),
+#     variables.String("issn", name="issn"),
+#     variables.Text("abstract", has_missing=True),
+#     variables.Interaction("journal_name", "journal_volume", "journal_number"),
+#     variables.Interaction("issn", "pub_year"),
+#     variables.Interaction("title", "authors_joined"),
+# ]
 
 
 class Deduper:
@@ -61,7 +61,7 @@ class Deduper:
         )
 
     @functools.cached_property
-    def model(self) -> dedupe.Dedupe | dedupe.StaticDedupe:
+    def model(self): # -> dedupe.Dedupe | dedupe.StaticDedupe:
         if self.settings_fpath is None:
             _model = dedupe.Dedupe(
                 VARIABLES,  # type: ignore
