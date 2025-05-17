@@ -1,5 +1,4 @@
 import collections
-import functools as ft
 import itertools
 import logging
 import typing as t
@@ -9,7 +8,6 @@ from operator import itemgetter
 import spacy
 import textacy
 from spacy.tokens import Doc
-from textacy import lang_id
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +30,6 @@ def get_lang_to_models() -> dict[str, list[str]]:
 def process_texts_into_docs(
     texts: Iterable[str],
     *,
-    langid_data_dir: str,
     max_len: t.Optional[int] = 1000,
     min_prob: t.Optional[float] = 0.5,
     fallback_lang: t.Optional[str] = "en",
@@ -48,9 +45,7 @@ def process_texts_into_docs(
         fallback_lang: Fallback language used in place of low-probability predictions.
         **kwargs: Passed as-is into :func:`textacy.load_spacy_lang()` .
     """
-    # HACK!
-    lang_identifier = load_lang_identifier(langid_data_dir)
-    identify_lang = lang_identifier.identify_lang
+    identify_lang = textacy.identify_lang
     # clean up whitespace, since lang identifier model is picky
     texts = (text.strip().replace("\n", " ") for text in texts)
     # truncate texts, optionally
@@ -84,8 +79,3 @@ def process_texts_into_docs(
             )
             for _ in range(num_texts):
                 yield None
-
-
-@ft.cache
-def load_lang_identifier(langid_data_dir: str) -> lang_id.LangIdentifier:
-    return lang_id.LangIdentifier(version="3.0", data_dir=langid_data_dir)

@@ -226,7 +226,6 @@ def get_citations_text_content_vectors(review_id: int):
     ids, texts = zip(*results)
     docs = nlp_utils.process_texts_into_docs(
         texts,
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=1000,
         min_prob=0.75,
         fallback_lang="en",
@@ -269,7 +268,6 @@ def get_fulltext_text_content_vector(fulltext_id: int):
 
     docs = nlp_utils.process_texts_into_docs(
         [fulltext["text_content"]],
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
@@ -329,7 +327,6 @@ def suggest_keyterms(review_id: int, sample_size: int):
     ]
     docs = nlp_utils.process_texts_into_docs(
         (text for _, text in itertools.chain(included, excluded)),
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
