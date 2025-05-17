@@ -3,13 +3,14 @@ name = "colandr"
 version = "1.1.0.dev0"
 description = "Back-end code for running the colandr app."
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">= 3.11"
+requires-python = ">= 3.11,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
   "alembic~=1.15.1",
@@ -69,7 +70,7 @@ where = ["colandr"]
 
 [tool.mypy]
 files = ["colandr/**/*.py"]
-python_version = "3.11"
+python_version = "3.12"
 pretty = true
 ignore_errors = true
 allow_redefinition = true
@@ -83,7 +84,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py311"
+target-version = "py312"
 src = ["colandr"]
 
 [tool.ruff.format]
