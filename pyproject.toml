@@ -41,7 +41,7 @@ dependencies = [
   "river~=0.22.0",
   "scikit-learn~=1.3.0",
   "sqlalchemy~=2.0.0",
-  "spacy~=3.8.0",
+  "spacy==3.8.4",
   "textacy~=0.13.0",
   "webargs~=8.6.0",
   "werkzeug",
