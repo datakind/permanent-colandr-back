@@ -1,11 +1,12 @@
 *
 !colandr
-!requirements
+!colandr_data
+!scripts
+!tests
 !pyproject.toml
 !uv.lock
 !README.md
 !restart_service.sh
 !gunicorn_config.py
 !make_celery.py
-!colandr_data/
 !migrations
