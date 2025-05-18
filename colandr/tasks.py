@@ -33,6 +33,7 @@ def _get_redis_conn() -> redis.client.Redis:
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
 
+
 # TODO: Update sender email dynamically (previously used "sender=current_app.config["MAIL_DEFAULT_SENDER"]", but this failed)
 @shared_task
 def send_email(recipients, subject, text_body, html_body):
@@ -116,7 +117,7 @@ def deduplicate_citations(review_id: int):
     preproc_data = deduper.preprocess_data(results, id_key="id")
 
     # TODO: decide on suitable value for threshold; higher => higher precision
-    clustered_dupes = deduper.model.partition(preproc_data, threshold=0.5)
+    clustered_dupes = deduper.predict(preproc_data, threshold=0.5)
     try:
         LOGGER.info(
             "<Review(id=%s)>: found %s duplicate clusters",
@@ -222,11 +223,15 @@ def get_citations_text_content_vectors(review_id: int):
         .where(models.Study.citation_text_content_vector_rep == [])
         .order_by(models.Study.id)
     )
-    results = db.session.execute(stmt)
+    results = db.session.execute(stmt).all()
+    if not results:
+        LOGGER.warning("no citation text content found for <Review(id=%s)>", review_id)
+        lock.release()
+        return
+
     ids, texts = zip(*results)
     docs = nlp_utils.process_texts_into_docs(
         texts,
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=1000,
         min_prob=0.75,
         fallback_lang="en",
@@ -269,7 +274,6 @@ def get_fulltext_text_content_vector(fulltext_id: int):
 
     docs = nlp_utils.process_texts_into_docs(
         [fulltext["text_content"]],
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,
@@ -329,7 +333,6 @@ def suggest_keyterms(review_id: int, sample_size: int):
     ]
     docs = nlp_utils.process_texts_into_docs(
         (text for _, text in itertools.chain(included, excluded)),
-        langid_data_dir=current_app.config["LANGID_MODELS_DIR"],
         max_len=3000,
         min_prob=0.75,
         fallback_lang=None,

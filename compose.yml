@@ -21,10 +21,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
   email:
     container_name: colandr-email
-    image: "axllent/mailpit:v1.17"
+    image: "axllent/mailpit:v1.24"
     restart: unless-stopped
     ports:
       - "8025:8025" # web ui
@@ -49,7 +48,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
   api:
     container_name: colandr-api
     build:
@@ -77,9 +75,8 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
-    volumes:
-      - .:/app
-
+    # volumes:
+    #   - .:/app
   worker:
     container_name: colandr-worker
     build:
@@ -99,8 +96,8 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
-    volumes:
-      - .:/app
+    # volumes:
+    #   - .:/app
 
 networks:
   default:
