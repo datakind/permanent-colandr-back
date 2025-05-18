@@ -70,7 +70,7 @@ where = ["colandr"]
 
 [tool.mypy]
 files = ["colandr/**/*.py"]
-python_version = "3.12"
+python_version = "3.11"
 pretty = true
 ignore_errors = true
 allow_redefinition = true
@@ -84,7 +84,7 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 88
 indent-width = 4
-target-version = "py312"
+target-version = "py311"
 src = ["colandr"]
 
 [tool.ruff.format]

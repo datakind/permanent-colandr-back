@@ -19,7 +19,6 @@ env:
   COLANDR_APP_DIR: "/tmp"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
-  COLANDR_DATA_DIR: "/tmp/data"
 
 jobs:
 
@@ -28,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.11", "3.12"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
 
@@ -64,9 +63,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v5.3.1
+      uses: astral-sh/setup-uv@v6.0.1
       with:
-        version: "0.6.17"
+        version: "0.7.5"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
     - name: Install dependencies
@@ -74,7 +73,7 @@ jobs:
       shell: bash
     - name: Download language data
       run: |
-        uv run python -m textacy download lang_identifier --version 3.0 --data_dir ${{ env.COLANDR_DATA_DIR }}/langid
+        uv run python -m textacy download lang_identifier --version 3.0
     - name: Test with pytest
       run: |
         uv run python -m pytest tests --verbose
@@ -87,9 +86,9 @@ jobs:
       with:
         python-version: "3.11"
     - name: Install uv
-      uses: astral-sh/setup-uv@v5.3.1
+      uses: astral-sh/setup-uv@v6.0.1
       with:
-        version: "0.6.17"
+        version: "0.7.5"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
     - name: Install dependencies
@@ -107,9 +106,9 @@ jobs:
       with:
         python-version: "3.11"
     - name: Install uv
-      uses: astral-sh/setup-uv@v5.3.1
+      uses: astral-sh/setup-uv@v6.0.1
       with:
-        version: "0.6.17"
+        version: "0.7.5"
         enable-cache: true
         cache-dependency-glob: "uv.lock"
     - name: Install dependencies
