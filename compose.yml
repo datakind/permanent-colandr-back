@@ -36,7 +36,7 @@ services:
       - dev
   broker:
     container_name: colandr-broker
-    image: "redis:7.0"
+    image: "redis:8.0"
     restart: unless-stopped
     stop_grace_period: 5s
     volumes:
