@@ -223,7 +223,12 @@ def get_citations_text_content_vectors(review_id: int):
         .where(models.Study.citation_text_content_vector_rep == [])
         .order_by(models.Study.id)
     )
-    results = db.session.execute(stmt)
+    results = db.session.execute(stmt).all()
+    if not results:
+        LOGGER.warning("no citation text content found for <Review(id=%s)>", review_id)
+        lock.release()
+        return
+
     ids, texts = zip(*results)
     docs = nlp_utils.process_texts_into_docs(
         texts,
