@@ -33,6 +33,7 @@ def _get_redis_conn() -> redis.client.Redis:
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
 
+
 # TODO: Update sender email dynamically (previously used "sender=current_app.config["MAIL_DEFAULT_SENDER"]", but this failed)
 @shared_task
 def send_email(recipients, subject, text_body, html_body):
@@ -116,7 +117,7 @@ def deduplicate_citations(review_id: int):
     preproc_data = deduper.preprocess_data(results, id_key="id")
 
     # TODO: decide on suitable value for threshold; higher => higher precision
-    clustered_dupes = deduper.model.partition(preproc_data, threshold=0.5)
+    clustered_dupes = deduper.predict(preproc_data, threshold=0.5)
     try:
         LOGGER.info(
             "<Review(id=%s)>: found %s duplicate clusters",
