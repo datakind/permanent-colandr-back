@@ -12,7 +12,7 @@ load_dotenv(os.path.join(basedir, ".env"))
 # flask config
 TESTING = False
 SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
-MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB file upload limit
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB file upload limit
 LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
 
 # sql database config
