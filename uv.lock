@@ -414,7 +414,7 @@ requires-dist = [
     { name = "pymupdf", specifier = "~=1.25.0" },
     { name = "python-dateutil", specifier = "~=2.9.0" },
     { name = "python-dotenv", specifier = "~=1.1.0" },
-    { name = "rispy", specifier = "~=0.9.0" },
+    { name = "rispy", specifier = "~=0.10.0" },
     { name = "river", specifier = "~=0.22.0" },
     { name = "scikit-learn", specifier = "~=1.3.0" },
     { name = "spacy", specifier = "==3.8.4" },
@@ -1707,11 +1707,11 @@ wheels = [
 
 [[package]]
 name = "rispy"
-version = "0.9.0"
+version = "0.10.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/68/bf/c57b399f569c50266615f8cd56c046b6d28064d65d1b26714a951eb5f29f/rispy-0.9.0.tar.gz", hash = "sha256:1b4d1aa2243919796d0b4502a44d32e0b1361cf68a02d23146dc7904bdbc9190", size = 18577, upload-time = "2024-01-18T03:51:39.717Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/21/80/79150d1fabf30a863e2ec5e8d289731863efe2a7762ff5072d9e97b8bfbc/rispy-0.10.0.tar.gz", hash = "sha256:0b815b668fcc993e4f540670fd37090576ecfbc58a57e2daae67774241e91c84", size = 16703, upload-time = "2025-05-23T17:00:39.479Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/bd/704634fac841823dbdfce2ccc2fb73e86ce17b13678c32b13f13cb5da0a1/rispy-0.9.0-py3-none-any.whl", hash = "sha256:e73ce54541c6319563a3d2a4fbd6f05674313a323221c423c79f466de7dd8d66", size = 15811, upload-time = "2024-01-18T03:51:38.324Z" },
+    { url = "https://files.pythonhosted.org/packages/14/25/efdcd3dadf3f2aabbdb64d028db1dca1b1467a08d84b5117bffc3b1a599b/rispy-0.10.0-py3-none-any.whl", hash = "sha256:acc8b941ab5e7b65b5365e468af2e00f0cb031a9e5c5a6b06538d856151e61be", size = 15260, upload-time = "2025-05-23T17:00:37.796Z" },
 ]
 
 [[package]]
