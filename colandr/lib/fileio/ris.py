@@ -17,9 +17,11 @@ from . import utils
 
 LOGGER = logging.getLogger(__name__)
 
-TYPE_OF_REFERENCE_MAPPING = {
-    key: val.lower() for key, val in rispy.config.TYPE_OF_REFERENCE_MAPPING.items()
-}
+TYPE_OF_REFERENCE_MAPPING = (
+    {key: val.lower() for key, val in rispy.config.TYPE_OF_REFERENCE_MAPPING.items()}
+    # override "BOOK" => "whole book", which is silly
+    | {"BOOK": "book"}
+)
 
 REF_TYPE_TAG_OVERRIDES = {
     "journal": {
@@ -95,9 +97,9 @@ def parse(data: str) -> list[dict]:
 
 def sanitize(references: list[dict]) -> list[dict]:
     # convert reference types into human-readable equivalents
-    # override "BOOK" => "whole book", which is silly
-    type_map = TYPE_OF_REFERENCE_MAPPING | {"BOOK": "book"}
-    references = rispy.utils.convert_reference_types(references, type_map=type_map)
+    references = rispy.utils.convert_reference_types(
+        references, type_map=TYPE_OF_REFERENCE_MAPPING
+    )
     references = [_sanitize_reference(reference) for reference in references]
     return references
 
@@ -108,15 +110,18 @@ def _sanitize_reference(reference: dict) -> dict:
         tag_overrides = REF_TYPE_TAG_OVERRIDES[reference["type_of_reference"]]
         reference = {tag_overrides.get(k, k): v for k, v in reference.items()}
     # try to cast certain values to more specific dtypes
-    reference.update(
-        {
+    reference = (
+        reference
+        | {
             key: utils.try_to_dttm(reference[key])
             for key in DTTM_KEYS
             if key in reference
         }
-    )
-    reference.update(
-        {key: utils.try_to_int(reference[key]) for key in INT_KEYS if key in reference}
+        | {
+            key: utils.try_to_int(reference[key])
+            for key in INT_KEYS
+            if key in reference
+        }
     )
     if reference["type_of_reference"] == "book":
         if "start_page" in reference and "end_page" in reference:
