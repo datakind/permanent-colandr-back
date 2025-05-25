@@ -89,7 +89,6 @@ def parse(data: str) -> list[dict]:
     return rispy.loads(
         data,
         implementation=rispy.parser.RisParser,  # type: ignore
-        skip_missing_tags=False,
         skip_unknown_tags=False,
     )
 
