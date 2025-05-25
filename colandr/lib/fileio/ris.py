@@ -123,16 +123,6 @@ def _sanitize_reference(reference: dict) -> dict:
             if key in reference
         }
     )
-    if reference["type_of_reference"] == "book":
-        if "start_page" in reference and "end_page" in reference:
-            try:
-                reference["number_of_pages"] = (
-                    reference["end_page"] - reference["start_page"]
-                )
-            except TypeError:
-                pass
-        elif "start_page" in reference:
-            reference["number_of_pages"] = reference.pop("start_page")
     # assign standardized fields in preferential key order
     for default_key, alt_keys in DEFAULT_TO_ALT_KEYS.items():
         if default_key not in reference:
@@ -159,6 +149,17 @@ def _sanitize_reference(reference: dict) -> dict:
             if reference.get(key)
         }
     )
+    # add num pages field for books only
+    if reference["type_of_reference"] == "book":
+        if "start_page" in reference and "end_page" in reference:
+            try:
+                reference["number_of_pages"] = (
+                    reference["end_page"] - reference["start_page"]
+                )
+            except TypeError:
+                pass
+        elif "start_page" in reference:
+            reference["number_of_pages"] = reference.pop("start_page")
     return reference
 
 
