@@ -185,7 +185,7 @@ class DataExtractionResource(Resource):
             )
         data_extraction_form = db.session.execute(
             sa.select(ReviewPlan.data_extraction_form).filter_by(id=review_id)
-        ).scalar_one_or_none()
+        ).one_or_none()
         if not data_extraction_form:
             return forbidden_error(
                 f"<ReviewPlan({review_id})> does not have a data extraction form"

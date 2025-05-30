@@ -26,6 +26,8 @@ from .resources import (
     data_extractions,
     deduplicate_studies,
     exports,
+    fulltext_locations,
+    fulltext_metadata,
     fulltext_screenings,
     fulltext_uploads,
     fulltexts,
@@ -56,6 +58,8 @@ api.add_namespace(citation_imports.ns)
 api.add_namespace(citation_screenings.ns)
 api.add_namespace(deduplicate_studies.ns)
 api.add_namespace(fulltexts.ns)
+api.add_namespace(fulltext_locations.ns)
+api.add_namespace(fulltext_metadata.ns)
 api.add_namespace(fulltext_uploads.ns)
 api.add_namespace(fulltext_screenings.ns)
 api.add_namespace(data_extractions.ns)
