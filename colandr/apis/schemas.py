@@ -220,6 +220,7 @@ class FulltextSchema(Schema):
 
 class MetadataSchema(Schema):
     """Schema for metadata extracted from fulltext."""
+
     record = fields.Str(required=True)
     meta_data = fields.Str(required=True)
     value = fields.Str(required=True)

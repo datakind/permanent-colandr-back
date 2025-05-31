@@ -12,7 +12,9 @@ from ..errors import forbidden_error, not_found_error
 from ..schemas import MetadataSchema
 
 
-ns = Namespace("fulltext_locations", path="/fulltexts", description="get fulltext locations")
+ns = Namespace(
+    "fulltext_locations", path="/fulltexts", description="get fulltext locations"
+)
 
 
 @ns.route("/<int:id>/locations")

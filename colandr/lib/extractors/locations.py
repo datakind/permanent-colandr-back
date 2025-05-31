@@ -1,4 +1,5 @@
 """Location extraction from document full text."""
+
 import logging
 from typing import List
 
@@ -80,21 +81,27 @@ class LocationExtractor:
 
                 context_start = max(0, sent_pos - 3)
                 context_end = min(len(sentences) - 1, sent_pos + 3)
-                context = "\n".join(sent.text for sent in sentences[context_start:context_end+1])
+                context = "\n".join(
+                    sent.text for sent in sentences[context_start : context_end + 1]
+                )
 
                 # Percentage location in doc
                 percentage = sent_pos / len(sentences)
 
-                locations.append({
-                    "entity": ent.text,
-                    "sentence": context,
-                    "sentence_location": sent_pos,
-                    "percentage": percentage
-                })
+                locations.append(
+                    {
+                        "entity": ent.text,
+                        "sentence": context,
+                        "sentence_location": sent_pos,
+                        "percentage": percentage,
+                    }
+                )
 
         return self._group_locations(record_id, locations)
 
-    def _group_locations(self, record_id: int, locations: List[Metadata]) -> List[Metadata]:
+    def _group_locations(
+        self, record_id: int, locations: List[Metadata]
+    ) -> List[Metadata]:
         """
         Group locations by name and sort by frequency.
 
@@ -114,7 +121,9 @@ class LocationExtractor:
 
         # Sort groups by count (most mentions first)
         result = []
-        for entity, locs in sorted(grouped.items(), key=lambda x: len(x[1]), reverse=True):
+        for entity, locs in sorted(
+            grouped.items(), key=lambda x: len(x[1]), reverse=True
+        ):
             # Sort locations by position in document
             sorted_locs = sorted(locs, key=lambda x: x["sentence_location"])
 
@@ -125,13 +134,14 @@ class LocationExtractor:
                     value=entity,
                     sentence="\n".join(loc["sentence"] for loc in sorted_locs),
                     sentence_location=sorted_locs[0]["sentence_location"],
-                    confidence=1.0
-                ))
+                    confidence=1.0,
+                )
+            )
 
         return result
 
 
-def get_locations(record_id: int,text: str) -> List[Metadata]:
+def get_locations(record_id: int, text: str) -> List[Metadata]:
     """
     Extract locations from text using the LocationExtractor.
 

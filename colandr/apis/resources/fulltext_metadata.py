@@ -12,7 +12,9 @@ from ..errors import forbidden_error, not_found_error
 from ..schemas import MetadataSchema
 
 
-ns = Namespace("fulltext_metadata", path="/fulltexts", description="get fulltext metadata")
+ns = Namespace(
+    "fulltext_metadata", path="/fulltexts", description="get fulltext metadata"
+)
 
 
 @ns.route("/<int:id>/metadata")
@@ -45,9 +47,7 @@ class FulltextMetadataResource(Resource):
         location="view_args",
     )
     @use_kwargs(
-        {
-            "meta": ma_fields.String(load_default=None)
-        },
+        {"meta": ma_fields.String(load_default=None)},
         location="query",
     )
     @jwtext.jwt_required()
@@ -73,7 +73,7 @@ class FulltextMetadataResource(Resource):
             record_id=str(id),
             review_id=study.review_id,
             text=study.fulltext.get("text_content", ""),
-            meta=meta
+            meta=meta,
         )
 
         return MetadataSchema(many=True).dump(metadata)

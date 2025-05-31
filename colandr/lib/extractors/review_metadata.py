@@ -1,16 +1,12 @@
 """Metadata extraction from document full text."""
+
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 import spacy
-from river import feature_extraction
-from river import compose
-from river import linear_model
-from river import preprocessing
-from river import multiclass
-
-from sqlalchemy import select
 from flask import current_app
+from river import compose, feature_extraction, linear_model, multiclass, preprocessing
+from sqlalchemy import select
 
 from ... import models
 from ...extensions import db, review_model_cache
@@ -24,6 +20,7 @@ class ReviewModel:
     """
     Review-specific model for metadata extraction.
     """
+
     def __init__(self, review_id: int):
         """Initialize model for specific review."""
         self.review_id = review_id
@@ -68,7 +65,9 @@ class ReviewModel:
         """
         stmt = (
             select(models.Study, models.DataExtraction)
-            .join(models.DataExtraction, models.Study.id == models.DataExtraction.study_id)
+            .join(
+                models.DataExtraction, models.Study.id == models.DataExtraction.study_id
+            )
             .where(models.Study.review_id == self.review_id)
             .where(models.Study.fulltext.is_not(None))
             .where(models.DataExtraction.extracted_items.is_not(None))
@@ -136,14 +135,16 @@ class ReviewModel:
             sent_vector = sent.vector
 
             # Create feature dict
-            features.append({
-                "text": sent_text,
-                "position": position,
-                "index": i,
-                "sentence_length": len(sent),
-                "has_numeric": any(token.is_digit for token in sent),
-                "has_entities": any(token.ent_type_ for token in sent)
-            })
+            features.append(
+                {
+                    "text": sent_text,
+                    "position": position,
+                    "index": i,
+                    "sentence_length": len(sent),
+                    "has_numeric": any(token.is_digit for token in sent),
+                    "has_entities": any(token.ent_type_ for token in sent),
+                }
+            )
 
         return features
 
@@ -172,22 +173,34 @@ class ReviewModel:
 
         # Track training counts for each field
         old_training_counts = self.training_counts.copy()
-        self.training_counts = {field: len(samples) for field, samples in field_data.items()}
+        self.training_counts = {
+            field: len(samples) for field, samples in field_data.items()
+        }
 
         # Train a classifier for each field
         for field, samples in field_data.items():
             if len(samples) < min_samples:
-                logger.info("Not enough training data for field %s (only %s samples, need %s)",
-                            field, len(samples), min_samples)
+                logger.info(
+                    "Not enough training data for field %s (only %s samples, need %s)",
+                    field,
+                    len(samples),
+                    min_samples,
+                )
                 continue
 
             # Create a classifier
             self._train_field_classifier(field, samples)
 
-        logger.info("Trained classifiers for review %s: %s",
-                    self.review_id, list(self.classifiers.keys()))
-        logger.info("Training counts: %s, previous counts: %s",
-                    self.training_counts, old_training_counts)
+        logger.info(
+            "Trained classifiers for review %s: %s",
+            self.review_id,
+            list(self.classifiers.keys()),
+        )
+        logger.info(
+            "Training counts: %s, previous counts: %s",
+            self.training_counts,
+            old_training_counts,
+        )
         return len(self.classifiers) > 0
 
     def _train_field_classifier(self, field: str, samples: List[Tuple[str, str]]):
@@ -200,11 +213,14 @@ class ReviewModel:
         """
         # Create a Multi-class classifier using River
         model = compose.Pipeline(
-            ('tfidf', feature_extraction.TFIDF(lowercase=True)),
-            ('normalize', preprocessing.StandardScaler()),
-            ('classifier', multiclass.OneVsRestClassifier(
-                linear_model.LogisticRegression(l2=0.01)
-            ))
+            ("tfidf", feature_extraction.TFIDF(lowercase=True)),
+            ("normalize", preprocessing.StandardScaler()),
+            (
+                "classifier",
+                multiclass.OneVsRestClassifier(
+                    linear_model.LogisticRegression(l2=0.01)
+                ),
+            ),
         )
 
         # Process each document
@@ -217,7 +233,9 @@ class ReviewModel:
         # Store the classifier
         self.classifiers[field] = model
 
-    def extract_metadata(self, record_id: str, text: str, threshold: float = 0.5) -> List[Metadata]:
+    def extract_metadata(
+        self, record_id: str, text: str, threshold: float = 0.5
+    ) -> List[Metadata]:
         """
         Extract metadata from text.
 
@@ -247,7 +265,9 @@ class ReviewModel:
                 prediction = classifier.predict_proba_one(sentence["text"])
 
                 # Sort by probability
-                sorted_preds = sorted(prediction.items(), key=lambda x: x[1], reverse=True)
+                sorted_preds = sorted(
+                    prediction.items(), key=lambda x: x[1], reverse=True
+                )
 
                 # Add results above threshold
                 for value, prob in sorted_preds:
@@ -261,12 +281,14 @@ class ReviewModel:
                                 sentence=sentence["text"],
                                 sentence_location=sentence["index"],
                                 confidence=prob,
-                                confidence_level=confidence_level
+                                confidence_level=confidence_level,
                             )
                         )
 
             # Take top 3 predictions for this field
-            results.extend(sorted(field_results, key=lambda x: x.confidence, reverse=True)[:3])
+            results.extend(
+                sorted(field_results, key=lambda x: x.confidence, reverse=True)[:3]
+            )
 
         return sorted(results, key=lambda x: x.confidence, reverse=True)
 
@@ -294,10 +316,8 @@ class ReviewModel:
         return 1  # Low confidence
 
     def compare_and_train(
-            self,
-            min_samples: int = 40,
-            increase_requirement: int = 5
-            ) -> Tuple[bool, "ReviewModel"]:
+        self, min_samples: int = 40, increase_requirement: int = 5
+    ) -> Tuple[bool, "ReviewModel"]:
         """
         Compare current training data with previous data and retrain if necessary.
 
@@ -323,24 +343,34 @@ class ReviewModel:
         # Filter fields with enough samples
         current_counts_filtered = {
             f: count for f, count in current_counts.items() if count >= min_samples
-            }
+        }
 
         if not current_counts_filtered:
             logger.info("No fields have enough training data (min %s)", min_samples)
             return False, self
 
-        prev_max_count = max(self.training_counts.values()) if self.training_counts else 0
+        prev_max_count = (
+            max(self.training_counts.values()) if self.training_counts else 0
+        )
         current_max_count = max(current_counts_filtered.values())
 
         # If we have enough new samples, retrain
         if current_max_count >= prev_max_count + increase_requirement:
-            logger.info("Retraining model due to increased training data: %s >= %s + %s",
-                        current_max_count, prev_max_count, increase_requirement)
+            logger.info(
+                "Retraining model due to increased training data: %s >= %s + %s",
+                current_max_count,
+                prev_max_count,
+                increase_requirement,
+            )
             self.train(min_samples=min_samples)
             return True, self
 
-        logger.info("Not retraining model: %s < %s + %s",
-                    current_max_count, prev_max_count, increase_requirement)
+        logger.info(
+            "Not retraining model: %s < %s + %s",
+            current_max_count,
+            prev_max_count,
+            increase_requirement,
+        )
         return False, self
 
 
@@ -370,7 +400,9 @@ def split_references(text: str) -> Tuple[str, str]:
             if line_lower == "references":
                 in_references = True
                 continue
-            if line_lower.startswith("works cited") or line_lower.startswith("literature cited"):
+            if line_lower.startswith("works cited") or line_lower.startswith(
+                "literature cited"
+            ):
                 in_references = True
                 continue
 
@@ -394,8 +426,8 @@ def get_model_for_review(review_id: int) -> Optional[ReviewModel]:
     Returns:
         ReviewModel if successful, None otherwise
     """
-    min_to_train = current_app.config.get('METADATA_MIN_TO_TRAIN', 40)
-    increase_to_retrain = current_app.config.get('METADATA_INCREASE_TO_RETRAIN', 5)
+    min_to_train = current_app.config.get("METADATA_MIN_TO_TRAIN", 40)
+    increase_to_retrain = current_app.config.get("METADATA_INCREASE_TO_RETRAIN", 5)
 
     # Try to get from cache first
     model = review_model_cache.get(str(review_id))
@@ -403,8 +435,7 @@ def get_model_for_review(review_id: int) -> Optional[ReviewModel]:
     if model is not None:
         # Check if model needs retraining
         retrained, model = model.compare_and_train(
-            min_samples=min_to_train,
-            increase_requirement=increase_to_retrain
+            min_samples=min_to_train, increase_requirement=increase_to_retrain
         )
 
         if retrained:
@@ -424,11 +455,8 @@ def get_model_for_review(review_id: int) -> Optional[ReviewModel]:
 
 
 def extract_metadata(
-        record_id: str,
-        review_id: int,
-        text: str,
-        meta: Optional[str] = None
-        ) -> List[Metadata]:
+    record_id: str, review_id: int, text: str, meta: Optional[str] = None
+) -> List[Metadata]:
     """
     Extract metadata from text.
 
@@ -441,7 +469,7 @@ def extract_metadata(
     Returns:
         List of metadata
     """
-    threshold = current_app.config.get('METADATA_THRESHOLD', 0.65)
+    threshold = current_app.config.get("METADATA_THRESHOLD", 0.65)
 
     model = get_model_for_review(review_id)
     if not model:

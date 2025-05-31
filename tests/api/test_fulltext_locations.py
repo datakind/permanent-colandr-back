@@ -1,6 +1,7 @@
+from unittest.mock import patch
+
 import flask
 import pytest
-from unittest.mock import patch
 
 from colandr.lib.extractors.metadata import Metadata
 
@@ -17,7 +18,9 @@ class TestFulltextLocationsResource:
     )
     def test_get(self, id_, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("fulltext_locations_fulltext_locations_resource", id=id_)
+            url = flask.url_for(
+                "fulltext_locations_fulltext_locations_resource", id=id_
+            )
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
