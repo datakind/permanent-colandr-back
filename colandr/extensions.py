@@ -8,7 +8,6 @@ import flask_migrate
 import flask_sqlalchemy
 import sqlalchemy.orm
 # from sqlalchemy.dialects import postgresql
-from flask import Flask
 
 
 class _BaseModel(sqlalchemy.orm.DeclarativeBase):
@@ -45,17 +44,3 @@ def init_celery_app(app):
         app.extensions = {}
     app.extensions["celery"] = celery_app
     return celery_app
-
-
-def init_extensions(app: Flask) -> None:
-    """Initialize all available Flask extensions."""
-    cache.init_app(app)
-    with app.app_context():
-        cache.clear()
-    db.init_app(app)
-    jwt.init_app(app)
-    mail.init_app(app)
-    migrate.init_app(app, db)
-
-    # Initialize the model cache
-    review_model_cache.init_app(app)

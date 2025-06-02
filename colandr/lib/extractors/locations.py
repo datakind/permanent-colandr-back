@@ -1,7 +1,6 @@
 """Location extraction from document full text."""
 
 import logging
-from typing import List
 
 import spacy
 from spacy.tokens import Span
@@ -43,7 +42,7 @@ class LocationExtractor:
 
         return False
 
-    def extract_locations(self, record_id: int, text: str) -> List[Metadata]:
+    def extract_locations(self, record_id: int, text: str) -> list[Metadata]:
         """
         Extract locations from text and return structured data.
 
@@ -100,8 +99,8 @@ class LocationExtractor:
         return self._group_locations(record_id, locations)
 
     def _group_locations(
-        self, record_id: int, locations: List[Metadata]
-    ) -> List[Metadata]:
+        self, record_id: int, locations: list[Metadata]
+    ) -> list[Metadata]:
         """
         Group locations by name and sort by frequency.
 
@@ -129,8 +128,8 @@ class LocationExtractor:
 
             result.append(
                 Metadata(
-                    record=str(record_id),
-                    meta_data="location",
+                    record=record_id,
+                    metadata="location",
                     value=entity,
                     sentence="\n".join(loc["sentence"] for loc in sorted_locs),
                     sentence_location=sorted_locs[0]["sentence_location"],
@@ -141,7 +140,7 @@ class LocationExtractor:
         return result
 
 
-def get_locations(record_id: int, text: str) -> List[Metadata]:
+def get_locations(record_id: int, text: str) -> list[Metadata]:
     """
     Extract locations from text using the LocationExtractor.
 

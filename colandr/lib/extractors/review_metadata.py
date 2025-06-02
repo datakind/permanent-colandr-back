@@ -1,7 +1,7 @@
 """Metadata extraction from document full text."""
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import spacy
 from flask import current_app
@@ -56,7 +56,7 @@ class ReviewModel:
                 if allowed_values:
                     self.allowed_values[label] = allowed_values
 
-    def _get_training_data(self) -> List[Tuple[str, str, str]]:
+    def _get_training_data(self) -> list[tuple[str, str, str]]:
         """
         Get training data from data extractions.
 
@@ -104,7 +104,7 @@ class ReviewModel:
 
         return training_data
 
-    def _process_text(self, text: str) -> List[Dict[str, Any]]:
+    def _process_text(self, text: str) -> list[dict[str, Any]]:
         """
         Process text into features for classification.
 
@@ -203,7 +203,7 @@ class ReviewModel:
         )
         return len(self.classifiers) > 0
 
-    def _train_field_classifier(self, field: str, samples: List[Tuple[str, str]]):
+    def _train_field_classifier(self, field: str, samples: list[tuple[str, str]]):
         """
         Train a classifier for a specific field.
 
@@ -234,8 +234,8 @@ class ReviewModel:
         self.classifiers[field] = model
 
     def extract_metadata(
-        self, record_id: str, text: str, threshold: float = 0.5
-    ) -> List[Metadata]:
+        self, record_id: int, text: str, threshold: float = 0.5
+    ) -> list[Metadata]:
         """
         Extract metadata from text.
 
@@ -276,7 +276,7 @@ class ReviewModel:
                         field_results.append(
                             Metadata(
                                 record=record_id,
-                                meta_data=field,
+                                metadata=field,
                                 value=value,
                                 sentence=sentence["text"],
                                 sentence_location=sentence["index"],
@@ -317,7 +317,7 @@ class ReviewModel:
 
     def compare_and_train(
         self, min_samples: int = 40, increase_requirement: int = 5
-    ) -> Tuple[bool, "ReviewModel"]:
+    ) -> tuple[bool, "ReviewModel"]:
         """
         Compare current training data with previous data and retrain if necessary.
 
@@ -374,7 +374,7 @@ class ReviewModel:
         return False, self
 
 
-def split_references(text: str) -> Tuple[str, str]:
+def split_references(text: str) -> tuple[str, str]:
     """
     Split document text into main content and references sections.
 
@@ -455,8 +455,8 @@ def get_model_for_review(review_id: int) -> Optional[ReviewModel]:
 
 
 def extract_metadata(
-    record_id: str, review_id: int, text: str, meta: Optional[str] = None
-) -> List[Metadata]:
+    record_id: int, review_id: int, text: str, meta: Optional[str] = None
+) -> list[Metadata]:
     """
     Extract metadata from text.
 
@@ -479,6 +479,6 @@ def extract_metadata(
 
     # Filter by metadata type if specified
     if meta:
-        metadata = [m for m in metadata if m.meta_data == meta]
+        metadata = [m for m in metadata if m.metadata == meta]
 
     return metadata

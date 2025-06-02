@@ -41,7 +41,7 @@ class TestFulltextLocationsResource:
         mock_locations = [
             Metadata(
                 record=1,
-                meta_data="location",
+                metadata="location",
                 value="kenya",
                 sentence="This study was conducted in Kenya.",
                 sentence_location=5,
@@ -49,7 +49,7 @@ class TestFulltextLocationsResource:
             ),
             Metadata(
                 record=1,
-                meta_data="location",
+                metadata="location",
                 value="tanzania",
                 sentence="Similar studies have been conducted in Tanzania.",
                 sentence_location=10,
@@ -66,8 +66,8 @@ class TestFulltextLocationsResource:
         locations_data = response.json
         assert len(locations_data) == 2
 
-        assert locations_data[0]["record"] == "1"
-        assert locations_data[0]["meta_data"] == "location"
+        assert locations_data[0]["record"] == 1
+        assert locations_data[0]["metadata"] == "location"
         assert "value" in locations_data[0]
         assert "sentence" in locations_data[0]
         assert "sentence_location" in locations_data[0]

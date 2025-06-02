@@ -42,6 +42,15 @@ def _configure_logging(app: flask.Flask) -> None:
 
 def _register_extensions(app: flask.Flask) -> None:
     """Register flask extensions on ``app`` ."""
-    extensions.init_extensions(app)
+    extensions.cache.init_app(app)
+    with app.app_context():
+        extensions.cache.clear()
+    extensions.db.init_app(app)
+    extensions.jwt.init_app(app)
+    extensions.mail.init_app(app)
+    extensions.migrate.init_app(app, extensions.db)
+
+    extensions.review_model_cache.init_app(app)
+
     api_v1.init_app(app)
     extensions.init_celery_app(app)

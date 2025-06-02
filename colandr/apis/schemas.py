@@ -221,8 +221,8 @@ class FulltextSchema(Schema):
 class MetadataSchema(Schema):
     """Schema for metadata extracted from fulltext."""
 
-    record = fields.Str(required=True)
-    meta_data = fields.Str(required=True)
+    record = fields.Int(required=True)
+    metadata = fields.Str(required=True)
     value = fields.Str(required=True)
     sentence = fields.Str(required=True)
     sentence_location = fields.Int(required=True)

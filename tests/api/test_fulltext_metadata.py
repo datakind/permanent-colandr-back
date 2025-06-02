@@ -38,8 +38,8 @@ class TestFulltextMetadataResource:
         """Test getting metadata with mocked extraction."""
         mock_metadata = [
             {
-                "record": "1",
-                "meta_data": "biome",
+                "record": 1,
+                "metadata": "biome",
                 "value": "forest",
                 "sentence": "This study was conducted in a tropical forest.",
                 "sentence_location": 8,
@@ -47,8 +47,8 @@ class TestFulltextMetadataResource:
                 "confidence_level": 2
             },
             {
-                "record": "1",
-                "meta_data": "species",
+                "record": 1,
+                "metadata": "species",
                 "value": "lion",
                 "sentence": "We observed several lion populations.",
                 "sentence_location": 15,
@@ -66,8 +66,8 @@ class TestFulltextMetadataResource:
         metadata_data = response.json
         assert len(metadata_data) == 2
 
-        assert metadata_data[0]["record"] == "1"
-        assert "meta_data" in metadata_data[0]
+        assert metadata_data[0]["record"] == 1
+        assert "metadata" in metadata_data[0]
         assert "value" in metadata_data[0]
         assert "sentence" in metadata_data[0]
         assert "sentence_location" in metadata_data[0]
@@ -79,8 +79,8 @@ class TestFulltextMetadataResource:
         """Test getting filtered metadata with mocked extraction."""
         mock_metadata = [
             {
-                "record": "1",
-                "meta_data": "biome",
+                "record": 1,
+                "metadata": "biome",
                 "value": "forest",
                 "sentence": "This study was conducted in a tropical forest.",
                 "sentence_location": 8,
@@ -98,10 +98,10 @@ class TestFulltextMetadataResource:
 
         metadata_data = response.json
         assert len(metadata_data) == 1
-        assert metadata_data[0]["meta_data"] == "biome"
+        assert metadata_data[0]["metadata"] == "biome"
 
         mock_extract_metadata.assert_called_with(
-            record_id="1",
+            record_id=1,
             review_id=1,
             text="This is an example text in English.",
             meta="biome"

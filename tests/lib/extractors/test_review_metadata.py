@@ -54,7 +54,7 @@ class TestReviewMetadataExtraction:
         mock_model.extract_metadata.return_value = [
             Metadata(
                 record="123",
-                meta_data="biome",
+                metadata="biome",
                 value="forest",
                 sentence="This is a forest biome.",
                 sentence_location=5,
@@ -63,7 +63,7 @@ class TestReviewMetadataExtraction:
             ),
             Metadata(
                 record="123",
-                meta_data="species",
+                metadata="species",
                 value="lion",
                 sentence="Lions live here.",
                 sentence_location=10,
@@ -81,9 +81,9 @@ class TestReviewMetadataExtraction:
         )
 
         assert len(result) == 2
-        assert result[0].meta_data == "biome"
+        assert result[0].metadata == "biome"
         assert result[0].value == "forest"
-        assert result[1].meta_data == "species"
+        assert result[1].metadata == "species"
         assert result[1].value == "lion"
 
         # Test with metadata_type filter

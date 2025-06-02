@@ -70,9 +70,9 @@ class FulltextMetadataResource(Resource):
             return [], 200
 
         metadata = extract_metadata(
-            record_id=str(id),
+            record_id=id,
             review_id=study.review_id,
-            text=study.fulltext.get("text_content", ""),
+            text=study.fulltext.get("text_content"),
             meta=meta,
         )
 

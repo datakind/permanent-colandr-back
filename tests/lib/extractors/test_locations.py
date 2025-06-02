@@ -102,7 +102,7 @@ class TestLocationExtractor:
                 mock_group.return_value = [
                     Metadata(
                         record=1,
-                        meta_data="location",
+                        metadata="location",
                         value="london",
                         sentence="London is a city in England.",
                         sentence_location=1,
@@ -110,7 +110,7 @@ class TestLocationExtractor:
                     ),
                     Metadata(
                         record=1,
-                        meta_data="location",
+                        metadata="location",
                         value="england",
                         sentence="London is a city in England.",
                         sentence_location=1,
