@@ -1,5 +1,6 @@
 """Location extraction from document full text."""
 
+import collections
 import logging
 
 import spacy
@@ -84,15 +85,11 @@ class LocationExtractor:
                     sent.text for sent in sentences[context_start : context_end + 1]
                 )
 
-                # Percentage location in doc
-                percentage = sent_pos / len(sentences)
-
                 locations.append(
                     {
                         "entity": ent.text,
                         "sentence": context,
-                        "sentence_location": sent_pos,
-                        "percentage": percentage,
+                        "sentence_location": sent_pos
                     }
                 )
 
@@ -111,12 +108,9 @@ class LocationExtractor:
             List of grouped location metadata with confidence
         """
         # Group by location name
-        grouped = {}
+        grouped = collections.defaultdict(list)
         for loc in locations:
-            entity = loc["entity"].lower()
-            if entity not in grouped:
-                grouped[entity] = []
-            grouped[entity].append(loc)
+            grouped[loc["entity"].lower()].append(loc)
 
         # Sort groups by count (most mentions first)
         result = []
