@@ -24,14 +24,14 @@ class TestFulltextMetadataResource:
             assert isinstance(data, list)
             for metadata in data:
                 assert "record" in metadata
-                assert "meta_data" in metadata
+                assert "metadata" in metadata
                 assert "value" in metadata
                 assert "sentence" in metadata
                 assert "sentence_location" in metadata
                 assert "confidence" in metadata
                 assert "confidence_level" in metadata
                 if params["meta"]:
-                    assert metadata["meta_data"] == params["meta"]
+                    assert metadata["metadata"] == params["meta"]
 
     @patch("colandr.apis.resources.fulltext_metadata.extract_metadata")
     def test_get_with_mock(self, mock_extract_metadata, app, client, admin_headers):

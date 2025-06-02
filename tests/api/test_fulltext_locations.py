@@ -28,7 +28,7 @@ class TestFulltextLocationsResource:
             assert isinstance(data, list)
             for location in data:
                 assert "record" in location
-                assert "meta_data" in location
+                assert "metadata" in location
                 assert "value" in location
                 assert "sentence" in location
                 assert "sentence_location" in location
