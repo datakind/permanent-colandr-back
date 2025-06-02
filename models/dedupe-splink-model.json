@@ -1,0 +1,307 @@
+{
+    "link_type": "dedupe_only",
+    "probability_two_random_records_match": 1.0152044853688113e-05,
+    "retain_matching_columns": true,
+    "retain_intermediate_calculation_columns": false,
+    "additional_columns_to_retain": [],
+    "sql_dialect": "duckdb",
+    "linker_uid": "ov8izqg9",
+    "em_convergence": 0.0001,
+    "max_iterations": 25,
+    "bayes_factor_column_prefix": "bf_",
+    "term_frequency_adjustment_column_prefix": "tf_",
+    "comparison_vector_value_column_prefix": "gamma_",
+    "unique_id_column_name": "record_id",
+    "source_dataset_column_name": "source_dataset",
+    "blocking_rules_to_generate_predictions": [
+        {
+            "blocking_rule": "l.\"doi\" = r.\"doi\"",
+            "sql_dialect": "duckdb"
+        },
+        {
+            "blocking_rule": "l.\"title\" = r.\"title\"",
+            "sql_dialect": "duckdb"
+        },
+        {
+            "blocking_rule": "l.\"author\" = r.\"author\"",
+            "sql_dialect": "duckdb"
+        },
+        {
+            "blocking_rule": "(SUBSTRING(l.title, 1, 25) = SUBSTRING(r.title, 1, 25)) AND (l.\"authors\" = r.\"authors\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors"
+            ]
+        },
+        {
+            "blocking_rule": "(l.\"pub_year\" = r.\"pub_year\") AND (SUBSTRING(l.title, 1, 25) = SUBSTRING(r.title, 1, 25))",
+            "sql_dialect": "duckdb"
+        },
+        {
+            "blocking_rule": "(l.\"pub_year\" = r.\"pub_year\") AND (l.\"authors\" = r.\"authors\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors"
+            ]
+        },
+        {
+            "blocking_rule": "(l.\"pub_year\" = r.\"pub_year\") AND (l.\"journal_name\" = r.\"journal_name\") AND (l.\"authors_initials\" = r.\"authors_initials\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors_initials"
+            ]
+        },
+        {
+            "blocking_rule": "(l.\"isxn\" = r.\"isxn\") AND (SUBSTRING(l.title, 1, 25) = SUBSTRING(r.title, 1, 25))",
+            "sql_dialect": "duckdb"
+        },
+        {
+            "blocking_rule": "(l.\"isxn\" = r.\"isxn\") AND (l.\"authors\" = r.\"authors\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors"
+            ]
+        },
+        {
+            "blocking_rule": "(SUBSTRING(l.title, 1, 25) = SUBSTRING(r.title, 1, 25)) AND (l.\"authors_initials\" = r.\"authors_initials\") AND (l.\"journal_name_initials\" = r.\"journal_name_initials\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors_initials"
+            ]
+        },
+        {
+            "blocking_rule": "(SUBSTRING(l.abstract, 1, 50) = SUBSTRING(r.abstract, 1, 50)) AND (l.\"authors_initials\" = r.\"authors_initials\")",
+            "sql_dialect": "duckdb",
+            "arrays_to_explode": [
+                "authors_initials"
+            ]
+        },
+        {
+            "blocking_rule": "(l.\"pub_year\" = r.\"pub_year\") AND (SUBSTRING(REVERSE(l.title), 1, 50) = SUBSTRING(REVERSE(r.title), 1, 50))",
+            "sql_dialect": "duckdb"
+        }
+    ],
+    "comparisons": [
+        {
+            "output_column_name": "doi",
+            "comparison_levels": [
+                {
+                    "sql_condition": "\"doi_l\" IS NULL OR \"doi_r\" IS NULL",
+                    "label_for_charts": "doi is NULL",
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "is_null_level": true
+                },
+                {
+                    "sql_condition": "\"doi_l\" = \"doi_r\"",
+                    "label_for_charts": "Exact match on doi",
+                    "m_probability": 0.9862569890787479,
+                    "u_probability": 2.2617484882612093e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "ELSE",
+                    "label_for_charts": "All other comparisons",
+                    "m_probability": 0.013743010921252024,
+                    "u_probability": 0.9999773825151174,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                }
+            ],
+            "comparison_description": "ExactMatch"
+        },
+        {
+            "output_column_name": "content",
+            "comparison_levels": [
+                {
+                    "sql_condition": "(\"title_l\" IS NULL OR \"title_r\" IS NULL) AND (\"abstract_l\" IS NULL OR \"abstract_r\" IS NULL)",
+                    "label_for_charts": "(title is NULL) AND (abstract is NULL)",
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "is_null_level": true
+                },
+                {
+                    "sql_condition": "(\"title_l\" = \"title_r\") OR (\"abstract_l\" = \"abstract_r\")",
+                    "label_for_charts": "(Exact match on title) OR (Exact match on abstract)",
+                    "m_probability": 0.9312927385216542,
+                    "u_probability": 1.9870219667852292e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "(levenshtein(\"title_l\", \"title_r\") <= 10) OR (levenshtein(\"abstract_l\", \"abstract_r\") <= 25)",
+                    "label_for_charts": "(Levenshtein distance of title <= 10) OR (Levenshtein distance of abstract <= 25)",
+                    "m_probability": 0.059822300786156204,
+                    "u_probability": 1.6472720968167702e-06,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "ELSE",
+                    "label_for_charts": "All other comparisons",
+                    "m_probability": 0.008884960692189608,
+                    "u_probability": 0.9999784825082353,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                }
+            ],
+            "comparison_description": "CustomComparison"
+        },
+        {
+            "output_column_name": "authorship",
+            "comparison_levels": [
+                {
+                    "sql_condition": "\"authors_l\" IS NULL OR \"authors_r\" IS NULL",
+                    "label_for_charts": "authors is NULL",
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "is_null_level": true
+                },
+                {
+                    "sql_condition": "\"author_l\" = \"author_r\"",
+                    "label_for_charts": "Exact match on author",
+                    "m_probability": 0.5937103448275862,
+                    "u_probability": 1.5215269898803848e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "tf_adjustment_column": "author",
+                    "tf_adjustment_weight": 1.0
+                },
+                {
+                    "sql_condition": "len(list_intersect(authors_l, authors_r)) / list_unique(list_concat(authors_l, authors_r)) >= 0.5",
+                    "label_for_charts": "Jaccard similarity of authors >= 0.5",
+                    "m_probability": 0.07177931034482758,
+                    "u_probability": 2.324893240537228e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "len(list_intersect(authors_initials_l, authors_initials_r)) / list_unique(list_concat(authors_initials_l, authors_initials_r)) >= 0.5",
+                    "label_for_charts": "Jaccard similarity of authors initials >= 0.5",
+                    "m_probability": 0.07966896551724138,
+                    "u_probability": 4.94191966313149e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "array_length(list_intersect(\"authors_l\", \"authors_r\")) >= 1",
+                    "label_for_charts": "Array intersection size >= 1",
+                    "m_probability": 0.01886896551724138,
+                    "u_probability": 0.0004935833555171969,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "array_length(list_intersect(\"authors_initials_l\", \"authors_initials_r\")) >= 1",
+                    "label_for_charts": "Array intersection size >= 1",
+                    "m_probability": 0.09964137931034482,
+                    "u_probability": 0.019560507537583847,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "ELSE",
+                    "label_for_charts": "All other comparisons",
+                    "m_probability": 0.13633103448275863,
+                    "u_probability": 0.9798580257079634,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                }
+            ],
+            "comparison_description": "CustomComparison"
+        },
+        {
+            "output_column_name": "venue",
+            "comparison_levels": [
+                {
+                    "sql_condition": "(\"journal_name_l\" IS NULL OR \"journal_name_r\" IS NULL) AND (\"isxn_l\" IS NULL OR \"isxn_r\" IS NULL)",
+                    "label_for_charts": "(journal_name is NULL) AND (isxn is NULL)",
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "is_null_level": true
+                },
+                {
+                    "sql_condition": "(\"journal_name_l\" = \"journal_name_r\") OR (\"isxn_l\" = \"isxn_r\")",
+                    "label_for_charts": "(Exact match on journal_name) OR (Exact match on isxn)",
+                    "m_probability": 0.8486541864580422,
+                    "u_probability": 0.0012823467048029618,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "(levenshtein(\"journal_name_l\", \"journal_name_r\") <= 3) OR (\"journal_name_initials_l\" = \"journal_name_initials_r\")",
+                    "label_for_charts": "(Levenshtein distance of journal_name <= 3) OR (Exact match on journal_name_initials)",
+                    "m_probability": 0.041911148365465216,
+                    "u_probability": 0.00045910285329891695,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "(levenshtein(\"journal_name_l\", \"journal_name_r\") <= 10) OR (jaro_similarity(\"journal_name_initials_l\", \"journal_name_initials_r\") >= 0.9)",
+                    "label_for_charts": "(Levenshtein distance of journal_name <= 10) OR (Jaro distance of 'journal_name_initials >= 0.9')",
+                    "m_probability": 0.0621216354661451,
+                    "u_probability": 0.020533563694191827,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "ELSE",
+                    "label_for_charts": "All other comparisons",
+                    "m_probability": 0.0473130297103474,
+                    "u_probability": 0.9777249867477062,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                }
+            ],
+            "comparison_description": "CustomComparison"
+        },
+        {
+            "output_column_name": "time",
+            "comparison_levels": [
+                {
+                    "sql_condition": "(\"journal_volume_l\" IS NULL OR \"journal_volume_r\" IS NULL) AND (\"journal_number_l\" IS NULL OR \"journal_number_r\" IS NULL) AND (\"pub_year_l\" IS NULL OR \"pub_year_r\" IS NULL)",
+                    "label_for_charts": "(journal_volume is NULL) AND (journal_number is NULL) AND (pub_year is NULL)",
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "is_null_level": true
+                },
+                {
+                    "sql_condition": "(\"journal_volume_l\" = \"journal_volume_r\") AND (\"journal_number_l\" = \"journal_number_r\") AND (\"pub_year_l\" = \"pub_year_r\")",
+                    "label_for_charts": "(Exact match on journal_volume) AND (Exact match on journal_number) AND (Exact match on pub_year)",
+                    "m_probability": 0.6967411545623836,
+                    "u_probability": 5.211898702937636e-05,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "\"pub_year_l\" = \"pub_year_r\"",
+                    "label_for_charts": "Exact match on pub_year",
+                    "m_probability": 0.2956703910614525,
+                    "u_probability": 0.05720697438568092,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false,
+                    "tf_adjustment_column": "pub_year",
+                    "tf_adjustment_weight": 1.0
+                },
+                {
+                    "sql_condition": "ABS(\"pub_year_l\" - \"pub_year_r\") <= 1",
+                    "label_for_charts": "Absolute difference of 'pub_year' <= 1",
+                    "m_probability": 0.006284916201117319,
+                    "u_probability": 0.10782161792580028,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                },
+                {
+                    "sql_condition": "ELSE",
+                    "label_for_charts": "All other comparisons",
+                    "m_probability": 0.0013035381750465549,
+                    "u_probability": 0.8349192887014895,
+                    "fix_m_probability": false,
+                    "fix_u_probability": false
+                }
+            ],
+            "comparison_description": "CustomComparison"
+        }
+    ]
+}
