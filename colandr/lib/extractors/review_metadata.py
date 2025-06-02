@@ -131,9 +131,6 @@ class ReviewModel:
             # Position in document (percentage)
             position = i / total_sentences if total_sentences else 0
 
-            # Get vector representation of sentence
-            sent_vector = sent.vector
-
             # Create feature dict
             features.append(
                 {
@@ -141,8 +138,6 @@ class ReviewModel:
                     "position": position,
                     "index": i,
                     "sentence_length": len(sent),
-                    "has_numeric": any(token.is_digit for token in sent),
-                    "has_entities": any(token.ent_type_ for token in sent),
                 }
             )
 

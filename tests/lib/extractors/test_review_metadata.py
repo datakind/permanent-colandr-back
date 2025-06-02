@@ -123,23 +123,9 @@ class TestReviewMetadataExtraction:
             assert "position" in feature
             assert "index" in feature
             assert "sentence_length" in feature
-            assert "has_numeric" in feature
-            assert "has_entities" in feature
 
             assert 0 <= feature["position"] <= 1
             assert feature["sentence_length"] > 0
-
-        # Test with text containing numbers
-        text = "The study included 250 participants from 5 different countries."
-        features = model._process_text(text)
-        assert len(features) == 1
-        assert features[0]["has_numeric"] is True
-
-        # Test with text containing entities
-        text = "The scientific research was conducted in London during 2020."
-        features = model._process_text(text)
-        assert len(features) == 1
-        assert features[0]["has_entities"] is True
 
         # Test with references section that should be excluded
         text = """
