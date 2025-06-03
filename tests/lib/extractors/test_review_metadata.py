@@ -33,7 +33,7 @@ class TestReviewMetadataExtraction:
         mock_result.scalar_one_or_none.return_value = mock_review_plan
         mock_execute.return_value = mock_result
 
-        with patch("spacy.load") as mock_load:
+        with patch("textacy.load_spacy_lang") as mock_load:
             mock_nlp = MagicMock()
             mock_load.return_value = mock_nlp
 

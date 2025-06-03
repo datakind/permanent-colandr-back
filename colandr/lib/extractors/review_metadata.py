@@ -4,10 +4,10 @@ from collections import defaultdict
 import logging
 from typing import Any, Optional
 
-import spacy
 from flask import current_app
 from river import compose, feature_extraction, linear_model, multiclass, preprocessing
 from sqlalchemy import select
+import textacy
 
 from ... import models
 from ...extensions import db, review_model_cache
@@ -25,7 +25,7 @@ class ReviewModel:
     def __init__(self, review_id: int):
         """Initialize model for specific review."""
         self.review_id = review_id
-        self.nlp = spacy.load("en_core_web_md")
+        self.nlp = textacy.load_spacy_lang("en_core_web_md")  # TODO: implement language detection
         self.classifiers = {}
         self.field_types = {}
         self.allowed_values = {}

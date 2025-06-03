@@ -10,7 +10,7 @@ class TestLocationExtractor:
 
     def test_init(self):
         """Test LocationExtractor initialization."""
-        with patch("spacy.load") as mock_load:
+        with patch("textacy.load_spacy_lang") as mock_load:
             mock_nlp = MagicMock()
             mock_nlp.has_pipe.return_value = True
             mock_load.return_value = mock_nlp
@@ -21,7 +21,7 @@ class TestLocationExtractor:
 
     def test_is_in_reference(self):
         """Test is_in_reference function."""
-        with patch("spacy.load") as mock_load:
+        with patch("textacy.load_spacy_lang") as mock_load:
             mock_nlp = MagicMock()
             mock_nlp.has_pipe.return_value = True
             mock_load.return_value = mock_nlp
@@ -60,7 +60,7 @@ class TestLocationExtractor:
 
     def test_extract_locations(self):
         """Test extract_locations function."""
-        with patch("spacy.load") as mock_load:
+        with patch("textacy.load_spacy_lang") as mock_load:
             mock_nlp = MagicMock()
             mock_nlp.has_pipe.return_value = True
             mock_load.return_value = mock_nlp
@@ -126,7 +126,7 @@ class TestLocationExtractor:
 
     def test_group_locations(self):
         """Test _group_locations function."""
-        with patch("spacy.load") as mock_load:
+        with patch("textacy.load_spacy_lang") as mock_load:
             mock_nlp = MagicMock()
             mock_nlp.has_pipe.return_value = True
             mock_load.return_value = mock_nlp

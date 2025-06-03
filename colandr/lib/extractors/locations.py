@@ -3,8 +3,8 @@
 import collections
 import logging
 
-import spacy
 from spacy.tokens import Span
+import textacy
 
 from .metadata import Metadata
 
@@ -17,7 +17,7 @@ class LocationExtractor:
 
     def __init__(self, model: str = "en_core_web_md"):
         """Initialize the extractor with the specified language model."""
-        self.nlp = spacy.load(model)
+        self.nlp = textacy.load_spacy_lang(model)  # TODO: implement language detection
         # Ensure we have sentence segmentation and named entity recognition
         if not self.nlp.has_pipe("ner"):
             raise ValueError(f"Model {model} doesn't have NER component")
