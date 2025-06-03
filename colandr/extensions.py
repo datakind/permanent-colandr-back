@@ -21,11 +21,13 @@ jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
 
-review_model_cache = flask_caching.Cache(config={
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 3600 * 24,  # 24 hours
-    'CACHE_THRESHOLD': 25  # Maximum number of items
-})
+review_model_cache = flask_caching.Cache(
+    config={
+        "CACHE_TYPE": "SimpleCache",
+        "CACHE_DEFAULT_TIMEOUT": 3600 * 24,  # 24 hours
+        "CACHE_THRESHOLD": 25,  # Maximum number of items
+    },
+)
 
 
 def init_celery_app(app):

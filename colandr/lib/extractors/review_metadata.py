@@ -1,5 +1,6 @@
 """Metadata extraction from document full text."""
 
+from collections import defaultdict
 import logging
 from typing import Any, Optional
 
@@ -143,7 +144,7 @@ class ReviewModel:
 
         return features
 
-    def train(self, min_samples: int = 40):
+    def train(self, min_samples: int = 40) -> bool:
         """
         Train classifiers for each metadata field.
 
@@ -160,10 +161,8 @@ class ReviewModel:
             return False
 
         # Group training data by field
-        field_data = {}
+        field_data = defaultdict(list)
         for text, field, value in training_data:
-            if field not in field_data:
-                field_data[field] = []
             field_data[field].append((text, value))
 
         # Track training counts for each field
