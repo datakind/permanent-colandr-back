@@ -1,20 +1,51 @@
 """Metadata extraction from document full text."""
 
 from collections import defaultdict
-import logging
+from dataclasses import dataclass
 from typing import Any, Optional
+import logging
 
-from flask import current_app
 from river import compose, feature_extraction, linear_model, multiclass, preprocessing
-from sqlalchemy import select
 import textacy
 
-from ... import models
-from ...extensions import db, review_model_cache
 from .metadata import Metadata
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Label:
+    """Base class for labels."""
+    label: str
+
+
+@dataclass
+class SingleValue(Label):
+    """Label which contains a single value."""
+    value: str
+
+
+@dataclass
+class MultiValue(Label):
+    """Label which contains multiple values."""
+    values: list[str]
+
+
+@dataclass
+class TrainingData:
+    """Training data for a document."""
+    record_id: int
+    text_content: str
+    labels: list[Label]
+
+
+@dataclass
+class RecordType:
+    """Definition of a field from the review plan."""
+    label: str
+    field_type: str
+    allowed_values: Optional[list[str]] = None
 
 
 class ReviewModel:
@@ -27,83 +58,7 @@ class ReviewModel:
         self.review_id = review_id
         self.nlp = textacy.load_spacy_lang("en_core_web_md")  # TODO: implement language detection
         self.classifiers = {}
-        self.field_types = {}
-        self.allowed_values = {}
         self.training_counts = {}  # Track the number of training samples for each field
-
-        # Load review plan information to know what fields we need to extract
-        self._load_review_plan()
-
-    def _load_review_plan(self):
-        """Load the data extraction form from the review plan."""
-        stmt = select(models.ReviewPlan).where(models.ReviewPlan.id == self.review_id)
-        review_plan = db.session.execute(stmt).scalar_one_or_none()
-
-        if not review_plan or not review_plan.data_extraction_form:
-            logger.info("No data extraction form found for review %s", self.review_id)
-            return
-
-        # Filter to only types we support
-        valid_types = {"select_one", "select_many"}
-        for field in review_plan.data_extraction_form:
-            field_type = field.get("field_type")
-            label = field.get("label")
-
-            if field_type in valid_types and label:
-                self.field_types[label] = field_type
-
-                # Store allowed values for each field
-                allowed_values = field.get("allowed_values", [])
-                if allowed_values:
-                    self.allowed_values[label] = allowed_values
-
-    def _get_training_data(self) -> list[tuple[str, str, str]]:
-        """
-        Get training data from data extractions.
-
-        Returns:
-            List of (text_content, field_name, field_value) tuples
-        """
-        stmt = (
-            select(models.Study, models.DataExtraction)
-            .join(
-                models.DataExtraction, models.Study.id == models.DataExtraction.study_id
-            )
-            .where(models.Study.review_id == self.review_id)
-            .where(models.Study.fulltext.is_not(None))
-            .where(models.DataExtraction.extracted_items.is_not(None))
-        )
-
-        result = db.session.execute(stmt)
-        training_data = []
-
-        for study, data_extraction in result:
-            if not study.fulltext or not study.fulltext.get("text_content"):
-                continue
-
-            text_content = study.fulltext.get("text_content")
-
-            # Split text into main content and references
-            main_content, _ = split_references(text_content)
-
-            # Process extracted items
-            for item in data_extraction.extracted_items or []:
-                label = item.get("label")
-                value = item.get("value")
-
-                if not label or not value or label not in self.field_types:
-                    continue
-
-                # Handle select_many fields which could have multiple values
-                if self.field_types[label] == "select_many" and isinstance(value, list):
-                    for val in value:
-                        if val:  # Skip empty values
-                            training_data.append((main_content, label, val))
-                else:
-                    # Handle select_one fields
-                    training_data.append((main_content, label, str(value)))
-
-        return training_data
 
     def _process_text(self, text: str) -> list[dict[str, Any]]:
         """
@@ -144,26 +99,31 @@ class ReviewModel:
 
         return features
 
-    def train(self, min_samples: int = 40) -> bool:
+    def train(self, training_data: list[TrainingData], min_samples: int = 40) -> bool:
         """
         Train classifiers for each metadata field.
 
         Args:
+            training_data: List of training data records
             min_samples: Minimum number of training samples required to train a classifier
 
         Returns:
             bool: True if training was successful, False otherwise
         """
-
-        training_data = self._get_training_data()
         if not training_data:
             logger.info("No training data for review %s", self.review_id)
             return False
 
         # Group training data by field
         field_data = defaultdict(list)
-        for text, field, value in training_data:
-            field_data[field].append((text, value))
+        for item in training_data:
+            text = item.text_content
+            for label in item.labels:
+                if isinstance(label, SingleValue):
+                    field_data[label.label].append((text, label.value))
+                elif isinstance(label, MultiValue):
+                    for value in label.values:
+                        field_data[label.label].append((text, value))
 
         # Track training counts for each field
         old_training_counts = self.training_counts.copy()
@@ -241,10 +201,8 @@ class ReviewModel:
         Returns:
             List of extracted metadata
         """
-
         if not self.classifiers:
-            if not self.train():
-                return []
+            return []
 
         sentences = self._process_text(text)
         results = []
@@ -310,29 +268,34 @@ class ReviewModel:
         return 1  # Low confidence
 
     def compare_and_train(
-        self, min_samples: int = 40, increase_requirement: int = 5
+        self,
+        training_data: list[TrainingData],
+        min_samples: int = 40,
+        increase_requirement: int = 5
     ) -> tuple[bool, "ReviewModel"]:
         """
         Compare current training data with previous data and retrain if necessary.
 
         Args:
+            training_data: New training data to compare against
             min_samples: Minimum number of samples needed to train
             increase_requirement: Number of new samples needed to trigger retraining
 
         Returns:
             Tuple of (whether model was retrained, the current model)
         """
-
-        # Get training counts for current data
-        training_data = self._get_training_data()
         if not training_data:
             logger.info("No training data for review %s", self.review_id)
             return False, self
 
-        # Group by field and count
-        current_counts = {}
-        for _, field, _ in training_data:
-            current_counts[field] = current_counts.get(field, 0) + 1
+        # Count labels by field
+        current_counts = defaultdict(int)
+        for item in training_data:
+            for label in item.labels:
+                if isinstance(label, SingleValue):
+                    current_counts[label.label] += 1
+                elif isinstance(label, MultiValue):
+                    current_counts[label.label] += len(label.values)
 
         # Filter fields with enough samples
         current_counts_filtered = {
@@ -356,7 +319,7 @@ class ReviewModel:
                 prev_max_count,
                 increase_requirement,
             )
-            self.train(min_samples=min_samples)
+            self.train(training_data, min_samples=min_samples)
             return True, self
 
         logger.info(
@@ -407,72 +370,3 @@ def split_references(text: str) -> tuple[str, str]:
             main_content.append(line)
 
     return "\n".join(main_content), "\n".join(references)
-
-
-def get_model_for_review(review_id: int) -> Optional[ReviewModel]:
-    """
-    Get or create a model for a specific review.
-    Uses cache to avoid retraining.
-
-    Args:
-        review_id: The review ID
-
-    Returns:
-        ReviewModel if successful, None otherwise
-    """
-    min_to_train = current_app.config.get("METADATA_MIN_TO_TRAIN", 40)
-    increase_to_retrain = current_app.config.get("METADATA_INCREASE_TO_RETRAIN", 5)
-
-    # Try to get from cache first
-    model = review_model_cache.get(str(review_id))
-
-    if model is not None:
-        # Check if model needs retraining
-        retrained, model = model.compare_and_train(
-            min_samples=min_to_train, increase_requirement=increase_to_retrain
-        )
-
-        if retrained:
-            review_model_cache.set(str(review_id), model)
-            logger.info("Updated cache with retrained model for review %s", review_id)
-
-        return model
-
-    # Create new model
-    model = ReviewModel(review_id)
-    if model.train(min_samples=min_to_train):
-        review_model_cache.set(str(review_id), model)
-        logger.info("Cached new model for review %s", review_id)
-        return model
-
-    return None
-
-
-def extract_metadata(
-    record_id: int, review_id: int, text: str, meta: Optional[str] = None
-) -> list[Metadata]:
-    """
-    Extract metadata from text.
-
-    Args:
-        record_id: Record identifier
-        review_id: Review identifier
-        text: Full text content
-        meta: Optional type to filter results
-
-    Returns:
-        List of metadata
-    """
-    threshold = current_app.config.get("METADATA_THRESHOLD", 0.65)
-
-    model = get_model_for_review(review_id)
-    if not model:
-        return []
-
-    metadata = model.extract_metadata(record_id, text, threshold=threshold)
-
-    # Filter by metadata type if specified
-    if meta:
-        metadata = [m for m in metadata if m.metadata == meta]
-
-    return metadata
