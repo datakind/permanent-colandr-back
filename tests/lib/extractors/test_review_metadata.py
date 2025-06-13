@@ -1,173 +1,167 @@
 """Tests for the text metadata extractors."""
+import unittest
 from unittest.mock import patch, MagicMock
 
-from colandr.lib.extractors import review_metadata
+import numpy as np
+import pandas as pd
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MultiLabelBinarizer
+
 from colandr.lib.extractors.review_metadata import (
-    ReviewModel, TrainingData, SingleValue, MultiValue
+    ReviewModel, TrainingData, SingleValue
 )
 
 
-class TestReviewMetadataExtraction:
-    """Tests for the review_metadata extraction module."""
+class TestReviewModel(unittest.TestCase):
+    """Tests for the ReviewModel class."""
 
-    def test_process_text(self):
-        """Test the _process_text method with enhanced features."""
-        with patch("textacy.load_spacy_lang") as mock_load:
-            mock_nlp = MagicMock()
+    def _create_mock_sentence(self, text, has_verb=True):
+        """Helper to create a mock spaCy sentence with POS tags."""
+        mock_sent = MagicMock()
+        mock_sent.text = text
 
-            mock_sent1 = MagicMock()
-            mock_sent1.text = "This is a test document with several long sentences."
-            mock_sent1.__len__ = lambda x: 10
+        mock_tokens = []
+        for word in text.split():
+            token = MagicMock()
+            # A simple rule for the test: if the word is 'is', it's a verb
+            token.pos_ = "VERB" if has_verb and word.lower() == "is" else "NOUN"
+            mock_tokens.append(token)
 
-            mock_sent2 = MagicMock()
-            mock_sent2.text = "It contains information about the study conducted in Brazil."
-            mock_sent2.__len__ = lambda x: 15
+        mock_sent.__iter__ = MagicMock(return_value=iter(mock_tokens))
+        return mock_sent
 
-            mock_sents = [mock_sent1, mock_sent2]
-            mock_doc = MagicMock()
-            mock_doc.sents = mock_sents
+    def test_is_valid_sentence(self):
+        """Test the _is_valid_sentence helper directly."""
+        model = ReviewModel()
 
-            mock_nlp.return_value = mock_doc
-            mock_load.return_value = mock_nlp
+        valid_sent = self._create_mock_sentence(
+            "This is a perfectly valid and long sentence for model."
+        )
+        short_sent = self._create_mock_sentence("This sentence is too short.")
+        no_verb_sent = self._create_mock_sentence(
+            "A long title fragment with no actual verb.",
+            has_verb=False
+        )
+        keyword_sent = self._create_mock_sentence(
+            "A long sentence that contains a forbidden keyword like DEBUG."
+        )
 
-            model = ReviewModel(1)
+        self.assertTrue(model._is_valid_sentence(valid_sent))
+        self.assertFalse(model._is_valid_sentence(short_sent))
+        self.assertFalse(model._is_valid_sentence(no_verb_sent))
+        self.assertFalse(model._is_valid_sentence(keyword_sent))
+        self.assertFalse(model._is_valid_sentence(None))
 
-            text = """
-            This is a test document with several long sentences.
-            It contains information about the study conducted in Brazil.
-            """
+    def test_train_success(self):
+        """Test the train method succeeds with sufficient data."""
+        model = ReviewModel()
+        training_data = [
+            TrainingData(1, "This is a valid sentence.", labels=[SingleValue("biome", "forest")])
+        ] * 10  # 10 labels
 
-            features = model._process_text(text)
+        with patch("colandr.lib.extractors.review_metadata.Pipeline") as mock_pipeline_class:
+            mock_pipeline_instance = MagicMock()
+            mock_pipeline_class.return_value = mock_pipeline_instance
 
-            assert len(features) == 2
+            with patch.object(model, "_prepare_data_for_training") as mock_prepare:
+                mock_x = pd.DataFrame([{"text": "mock"}])
+                mock_y = np.array([[1]])
+                mock_prepare.return_value = (mock_x, mock_y)
 
-            for feature in features:
-                assert "text" in feature
-                assert "position" in feature
-                assert "index" in feature
-                assert "sentence_length" in feature
+                model.label_binarizer = MagicMock(spec=MultiLabelBinarizer)
+                model.label_binarizer.classes_ = ["biome:forest"]
 
-                assert 0 <= feature["position"] <= 1
-                assert feature["sentence_length"] > 0
+                result = model.train(training_data, min_samples=5)
 
-    def test_train_model(self):
-        """Test the train method with training data."""
-        with patch("textacy.load_spacy_lang") as mock_load:
-            mock_nlp = MagicMock()
-            mock_doc = MagicMock()
-            mock_sent = MagicMock()
-            mock_sent.text = "Test sentence"
-            mock_sent.__len__ = lambda x: 2
-            mock_doc.sents = [mock_sent]
-            mock_nlp.return_value = mock_doc
-            mock_load.return_value = mock_nlp
+                self.assertTrue(result)
+                mock_prepare.assert_called_once_with(training_data)
+                mock_pipeline_instance.fit.assert_called_once_with(mock_x, mock_y)
+                self.assertIsNotNone(model.pipeline)
+                self.assertEqual(model.last_training_size, 10)
 
-            # Mock River components
-            with patch("river.compose.Pipeline") as mock_pipeline:
-                mock_classifier = MagicMock()
-                mock_pipeline.return_value = mock_classifier
+    def test_train_insufficient_data(self):
+        """Test that training is skipped if data is insufficient."""
+        model = ReviewModel()
+        training_data = [TrainingData(1, "text", labels=[SingleValue("a", "b")])]
 
-                # Create model and training data
-                model = ReviewModel(1)
-                training_data = [
-                    TrainingData(
-                        record_id=1,
-                        text_content="This is a forest biome with many tropic trees and bushes.",
-                        labels=[SingleValue(label="biome", value="forest")]
-                    ),
-                    TrainingData(
-                        record_id=2,
-                        text_content="Desert regions have limited precipitation and poor flora.",
-                        labels=[SingleValue(label="biome", value="desert")]
-                    ),
-                    TrainingData(
-                        record_id=3,
-                        text_content="Lions and tigers are apex predators which controls area.",
-                        labels=[
-                            MultiValue(label="species", values=["lion", "tiger"])
-                        ]
-                    )
-                ]
+        with patch.object(model, "_prepare_data_for_training") as mock_prepare:
+            result = model.train(training_data, min_samples=40)
+            self.assertFalse(result)
+            mock_prepare.assert_not_called()
 
-                result = model.train(training_data, min_samples=1)
+    def test_compare_and_train_triggers_retrain(self):
+        """Test compare_and_train triggers a new training session when required."""
+        model = ReviewModel()
+        model.last_training_size = 10
 
-                assert result is True
-                assert mock_pipeline.call_count > 0
-                assert len(model.classifiers) > 0
+        training_data = [TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(16)]
 
-    def test_compare_and_train(self):
-        """Test the compare_and_train method."""
-        with patch("textacy.load_spacy_lang") as mock_load:
-            mock_nlp = MagicMock()
-            mock_doc = MagicMock()
-            mock_sent = MagicMock()
-            mock_sent.text = "Test sentence"
-            mock_sent.__len__ = lambda x: 2
-            mock_doc.sents = [mock_sent]
-            mock_nlp.return_value = mock_doc
-            mock_load.return_value = mock_nlp
+        with patch.object(model, 'train') as mock_train:
+            mock_train.return_value = True
+            retrained, _ = model.compare_and_train(
+                training_data, min_samples=10, increase_requirement=5
+            )
+            self.assertTrue(retrained)
+            mock_train.assert_called_once_with(training_data, min_samples=10)
 
-            model = ReviewModel(1)
-            model.training_counts = {"biome": 5}
+    def test_compare_and_train_skips_retrain(self):
+        """Test compare_and_train skips training when the increase is not sufficient."""
+        model = ReviewModel()
+        model.last_training_size = 10
 
-            training_data = []
-            for i in range(20):
-                training_data.append(
-                    TrainingData(
-                        record_id=i,
-                        text_content=f"Sample {i} about forest biomes",
-                        labels=[SingleValue(label="biome", value="forest")]
-                    )
-                )
+        training_data = [TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(14)]
 
-            with patch.object(model, 'train') as mock_train:
-                mock_train.return_value = True
+        with patch.object(model, 'train') as mock_train:
+            retrained, _ = model.compare_and_train(
+                training_data, min_samples=10, increase_requirement=5
+            )
+            self.assertFalse(retrained)
+            mock_train.assert_not_called()
 
-                retrained, updated_model = model.compare_and_train(
-                    training_data=training_data,
-                    min_samples=5,
-                    increase_requirement=5
-                )
+    @patch('colandr.lib.extractors.review_metadata.process_texts_into_docs')
+    def test_extract_metadata(self, mock_process_texts):
+        """Test the full metadata extraction integration."""
+        model = ReviewModel()
 
-                assert retrained is True
-                assert mock_train.called
-                mock_train.assert_called_once_with(training_data, min_samples=5)
+        mock_pipeline = MagicMock(spec=Pipeline)
+        mock_probs = [
+            np.array([[0.1, 0.9]]), # Probs for label 1 (class 0, class 1)
+            np.array([[0.6, 0.4]])  # Probs for label 2 (class 0, class 1)
+        ]
+        mock_pipeline.predict_proba.return_value = mock_probs
+        model.pipeline = mock_pipeline
+
+        mock_binarizer = MagicMock(spec=MultiLabelBinarizer)
+        mock_binarizer.classes_ = ["biome:forest", "biome:desert"]
+        model.label_binarizer = mock_binarizer
+
+        sent_text = "This is a valid long sentence about forest biomes."
+        mock_sent = self._create_mock_sentence(sent_text, has_verb=True)
+        mock_doc = MagicMock()
+        mock_doc.sents = [mock_sent]
+        mock_process_texts.return_value = iter([mock_doc])
+
+        results = model.extract_metadata(123, "some input text", threshold=0.5)
+
+        mock_process_texts.assert_called_once()
+        self.assertEqual(len(results), 1)
+        result = results[0]
+        self.assertEqual(result.record, 123)
+        self.assertEqual(result.metadata, "biome")
+        self.assertEqual(result.value, "forest")
+        self.assertAlmostEqual(result.confidence, 0.9)
+        self.assertEqual(result.sentence, sent_text)
 
     def test_split_references(self):
         """Test splitting document into main content and references."""
-        # Test with references section
-        text = """
-        This is the main content.
+        model = ReviewModel()
+        text = "Main content.\n\nReferences\n1. Smith, J."
+        main, refs = model._split_references(text)
+        self.assertEqual(main.strip(), "Main content.")
+        self.assertEqual(refs, "1. Smith, J.")
 
-        References
-        Smith, J. (2020). Some paper title. Journal, 10(2), 123-145.
-        Jones, A. (2019). Another paper. Conference Proceedings, pp. 234-245.
-        """
-
-        main, refs = review_metadata.split_references(text)
-        assert "This is the main content." in main
-        assert "References" not in main
-        assert "Smith, J. (2020)" in refs
-
-        # Test with works cited
-        text = """
-        This is the main content.
-
-        Works Cited
-        Smith, J. (2020). Some paper title. Journal, 10(2), 123-145.
-        """
-
-        main, refs = review_metadata.split_references(text)
-        assert "This is the main content." in main
-        assert "Works Cited" not in main
-        assert "Smith, J. (2020)" in refs
-
-        # Test with no references section
-        text = "This is just content with no references section."
-        main, refs = review_metadata.split_references(text)
-        assert main == text
-        assert refs == ""
-
-        # Test with empty text
-        assert review_metadata.split_references("") == ("", "")
-        assert review_metadata.split_references(None) == ("", "")
+        text_no_refs = "Main content only."
+        main, refs = model._split_references(text_no_refs)
+        self.assertEqual(main, text_no_refs)
+        self.assertEqual(refs, "")
+        self.assertEqual(model._split_references(""), ("", ""))

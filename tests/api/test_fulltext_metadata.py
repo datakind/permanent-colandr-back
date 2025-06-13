@@ -155,23 +155,27 @@ class TestFulltextMetadataResource:
 
         mock_get_training_data.return_value = mock_training
 
+        mock_model = MagicMock()
+
         # Test with cache miss
-        with patch("colandr.extensions.review_model_cache.get") as mock_cache_get:
-            with patch("colandr.extensions.review_model_cache.set") as mock_cache_set:
-                mock_cache_get.return_value = None
+        with patch("colandr.extensions.review_model_cache.get") as mock_cache_get, \
+            patch("colandr.extensions.review_model_cache.set") as mock_cache_set, \
+            patch("colandr.apis.resources.fulltext_metadata.ReviewModel") as mock_model_class:
 
-                with app.test_request_context():
-                    model = _get_model_for_review(1)
+            mock_cache_get.return_value = None
+            mock_model_class.return_value = mock_model
+            mock_model.train.return_value = True
 
-                # Should create new model
-                assert model.review_id == 1
-                mock_get_training_data.assert_called_once_with(1)
-                mock_cache_set.assert_called_once()
+            with app.test_request_context():
+                model = _get_model_for_review(1)
+
+            # Should create new model
+            mock_get_training_data.assert_called_once_with(1)
+            mock_cache_set.assert_called_once()
 
         # Test with cache hit and no retraining
         with patch("colandr.extensions.review_model_cache.get") as mock_cache_get:
             with patch("colandr.extensions.review_model_cache.set") as mock_cache_set:
-                mock_model = MagicMock()
                 mock_model.compare_and_train.return_value = (False, mock_model)
                 mock_cache_get.return_value = mock_model
 

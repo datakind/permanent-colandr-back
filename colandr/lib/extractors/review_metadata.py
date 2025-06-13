@@ -2,12 +2,20 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Optional
 import logging
+from typing import Optional
 
-from river import compose, feature_extraction, linear_model, multiclass, preprocessing
-import textacy
+import numpy as np
+import pandas as pd
+from spacy.tokens import Doc, Span
+from sklearn.compose import ColumnTransformer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import SGDClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 
+from ..nlp.utils import process_texts_into_docs
 from .metadata import Metadata
 
 
@@ -53,219 +61,122 @@ class ReviewModel:
     Review-specific model for metadata extraction.
     """
 
-    def __init__(self, review_id: int):
-        """Initialize model for specific review."""
-        self.review_id = review_id
-        self.nlp = textacy.load_spacy_lang("en_core_web_md")  # TODO: implement language detection
-        self.classifiers = {}
-        self.training_counts = {}  # Track the number of training samples for each field
-
-    def _process_text(self, text: str) -> list[dict[str, Any]]:
-        """
-        Process text into features for classification.
-
-        Args:
-            text: Full text content
-
-        Returns:
-            List of sentence features
-        """
-        # Split text into main content and references
-        main_content, _ = split_references(text)
-
-        doc = self.nlp(main_content)
-        sentences = list(doc.sents)
-        total_sentences = len(sentences)
-
-        features = []
-        for i, sent in enumerate(sentences):
-            # Clean text and extract features
-            sent_text = sent.text.strip()
-            if len(sent_text) < 50:  # Skip very short sentences
-                continue
-
-            # Position in document (percentage)
-            position = i / total_sentences if total_sentences else 0
-
-            # Create feature dict
-            features.append(
-                {
-                    "text": sent_text,
-                    "position": position,
-                    "index": i,
-                    "sentence_length": len(sent),
-                }
-            )
-
-        return features
+    def __init__(self):
+        """Initialize the model."""
+        self.pipeline: Optional[Pipeline] = None
+        self.label_binarizer: Optional[MultiLabelBinarizer] = None
+        self.last_training_size: int = 0
 
     def train(self, training_data: list[TrainingData], min_samples: int = 40) -> bool:
         """
-        Train classifiers for each metadata field.
+        Train a single multi-label classifier for all metadata fields.
 
         Args:
             training_data: List of training data records
-            min_samples: Minimum number of training samples required to train a classifier
+            min_samples: The minimum number of total label instances required to train.
 
         Returns:
-            bool: True if training was successful, False otherwise
+            bool: True if training was successful, False otherwise.
         """
         if not training_data:
-            logger.info("No training data for review %s", self.review_id)
+            logger.warning("No training data provided. Model not trained.")
             return False
 
-        # Group training data by field
-        field_data = defaultdict(list)
-        for item in training_data:
-            text = item.text_content
-            for label in item.labels:
-                if isinstance(label, SingleValue):
-                    field_data[label.label].append((text, label.value))
-                elif isinstance(label, MultiValue):
-                    for value in label.values:
-                        field_data[label.label].append((text, value))
+        total_label_count = self._count_total_labels(training_data)
+        if total_label_count < min_samples:
+            logger.warning("Not enough training data. Found %s labels, but require %s.",
+                           total_label_count, min_samples)
+            return False
 
-        # Track training counts for each field
-        old_training_counts = self.training_counts.copy()
-        self.training_counts = {
-            field: len(samples) for field, samples in field_data.items()
-        }
+        try:
+            x_train, y_train = self._prepare_data_for_training(training_data)
+        except ValueError as e:
+            logger.error("Failed to prepare training data: %s", e)
+            return False
 
-        # Train a classifier for each field
-        for field, samples in field_data.items():
-            if len(samples) < min_samples:
-                logger.info(
-                    "Not enough training data for field %s (only %s samples, need %s)",
-                    field,
-                    len(samples),
-                    min_samples,
-                )
-                continue
+        logger.info("Generated %s sentence examples for training.", x_train.shape[0])
+        logger.info("Discovered %s unique labels.", len(self.label_binarizer.classes_))
 
-            # Create a classifier
-            self._train_field_classifier(field, samples)
-
-        logger.info(
-            "Trained classifiers for review %s: %s",
-            self.review_id,
-            list(self.classifiers.keys()),
+        tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000, min_df=3)
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('text', tfidf_vectorizer, 'text'),
+                ('numeric', StandardScaler(), ['position', 'sentence_length'])
+            ],
+            remainder='drop'
         )
-        logger.info(
-            "Training counts: %s, previous counts: %s",
-            self.training_counts,
-            old_training_counts,
+        sgd_classifier = SGDClassifier(
+            loss='log_loss', random_state=42, early_stopping=True,
+            n_iter_no_change=10, alpha=5e-4
         )
-        return len(self.classifiers) > 0
+        self.pipeline = Pipeline([
+            ('preprocessor', preprocessor),
+            ('classifier', MultiOutputClassifier(sgd_classifier))
+        ])
 
-    def _train_field_classifier(self, field: str, samples: list[tuple[str, str]]):
-        """
-        Train a classifier for a specific field.
+        logger.info("Starting model training...")
+        self.pipeline.fit(x_train, y_train)
 
-        Args:
-            field: Field name
-            samples: List of (text, value) tuples
-        """
-        # Create a Multi-class classifier using River
-        model = compose.Pipeline(
-            ("tfidf", feature_extraction.TFIDF(lowercase=True)),
-            ("normalize", preprocessing.StandardScaler()),
-            (
-                "classifier",
-                multiclass.OneVsRestClassifier(
-                    linear_model.LogisticRegression(l2=0.01)
-                ),
-            ),
-        )
+        self.last_training_size = total_label_count
+        logger.info("Training completed successfully with %s labels.", self.last_training_size)
 
-        # Process each document
-        for text, value in samples:
-            sentences = self._process_text(text)
-            for sentence in sentences:
-                # Train the model on each sentence
-                model.learn_one(sentence["text"], value)
-
-        # Store the classifier
-        self.classifiers[field] = model
+        return True
 
     def extract_metadata(
         self, record_id: int, text: str, threshold: float = 0.5
     ) -> list[Metadata]:
         """
-        Extract metadata from text.
+        Extract metadata from a new text document using the trained model.
 
         Args:
-            record_id: Record identifier
-            text: Full text content
-            threshold: Confidence threshold
+            record_id: An identifier for the record being processed.
+            text: The full text content to extract metadata from.
+            threshold: The confidence threshold for returning a prediction (0.0 to 1.0).
 
         Returns:
-            List of extracted metadata
+            List of extracted Metadata objects, sorted by confidence.
         """
-        if not self.classifiers:
+        if self.pipeline is None or self.label_binarizer is None:
+            logger.warning("Model has not been trained yet. Cannot extract metadata.")
             return []
 
-        sentences = self._process_text(text)
-        results = []
+        features_list, original_sentences = self._process_text(text)
 
-        # Process each field
-        for field, classifier in self.classifiers.items():
-            field_results = []
+        if not features_list:
+            return []
 
-            # For each sentence, predict the field value
-            for sentence in sentences:
-                # Get predictions with probabilities
-                prediction = classifier.predict_proba_one(sentence["text"])
+        x_predict = pd.DataFrame(features_list)
+        list_of_prob_arrays = self.pipeline.predict_proba(x_predict)
+        probabilities = np.hstack([arr[:, 1].reshape(-1, 1) for arr in list_of_prob_arrays])
 
-                # Sort by probability
-                sorted_preds = sorted(
-                    prediction.items(), key=lambda x: x[1], reverse=True
-                )
-
-                # Add results above threshold
-                for value, prob in sorted_preds:
-                    if prob >= threshold:
-                        confidence_level = self._get_confidence_level(threshold, prob)
-                        field_results.append(
-                            Metadata(
-                                record=record_id,
-                                metadata=field,
-                                value=value,
-                                sentence=sentence["text"],
-                                sentence_location=sentence["index"],
-                                confidence=prob,
-                                confidence_level=confidence_level,
-                            )
+        results: list[Metadata] = []
+        for i, sentence_scores in enumerate(probabilities):
+            for j, prob in enumerate(sentence_scores):
+                if prob >= threshold:
+                    label_full = self.label_binarizer.classes_[j]
+                    field, value = label_full.split(":", 1)
+                    results.append(
+                        Metadata(
+                            record=record_id,
+                            metadata=field,
+                            value=value,
+                            sentence=original_sentences[i]["text"],
+                            sentence_location=original_sentences[i]["index"],
+                            confidence=prob,
+                            confidence_level=self._get_confidence_level(threshold, prob)
                         )
+                    )
 
-            # Take top 3 predictions for this field
-            results.extend(
-                sorted(field_results, key=lambda x: x.confidence, reverse=True)[:3]
-            )
+        grouped_results: dict[str, list[Metadata]] = defaultdict(list)
+        for res in results:
+            grouped_results[res.metadata].append(res)
 
-        return sorted(results, key=lambda x: x.confidence, reverse=True)
+        final_results = []
+        for field, items in grouped_results.items():
+            top_3 = sorted(items, key=lambda x: x.confidence, reverse=True)[:3]
+            final_results.extend(top_3)
 
-    def _get_confidence_level(self, threshold: float, prob: float) -> int:
-        """
-        Calculate confidence level (0-3) based on probability.
-
-        Args:
-            threshold: Minimum threshold
-            prob: Prediction probability
-
-        Returns:
-            Integer confidence level from 0 to 3
-        """
-        if prob < threshold:
-            return -1
-
-        # Divide the range from threshold to 1.0 into 3 parts
-        one_third = (1.0 - threshold) / 3
-
-        if prob >= threshold + (2 * one_third):
-            return 3  # High confidence
-        if prob >= threshold + one_third:
-            return 2  # Medium confidence
-        return 1  # Low confidence
+        return sorted(final_results, key=lambda x: x.confidence, reverse=True)
 
     def compare_and_train(
         self,
@@ -274,99 +185,232 @@ class ReviewModel:
         increase_requirement: int = 5
     ) -> tuple[bool, "ReviewModel"]:
         """
-        Compare current training data with previous data and retrain if necessary.
+        Compare new training data with previous data and retrain if necessary.
 
         Args:
-            training_data: New training data to compare against
-            min_samples: Minimum number of samples needed to train
-            increase_requirement: Number of new samples needed to trigger retraining
+            training_data: New training data to compare against.
+            min_samples: Minimum number of samples needed to consider training.
+            increase_requirement: Number of new samples needed to trigger retraining.
 
         Returns:
-            Tuple of (whether model was retrained, the current model)
+            Tuple of (was_retrained, self).
         """
         if not training_data:
-            logger.info("No training data for review %s", self.review_id)
+            logger.info("No training data provided for comparison.")
             return False, self
 
-        # Count labels by field
-        current_counts = defaultdict(int)
+        current_total_labels = self._count_total_labels(training_data)
+
+        if current_total_labels < min_samples:
+            logger.info("Current data (%s labels) is below minimum of %s. Not training.",
+                        current_total_labels, min_samples)
+            return False, self
+
+        if current_total_labels >= self.last_training_size + increase_requirement:
+            logger.info("New data meets retraining threshold (%s >= %s + %s).",
+                        current_total_labels, self.last_training_size, increase_requirement)
+            was_trained = self.train(training_data, min_samples=min_samples)
+            return was_trained, self
+
+        logger.info("Not retraining model. New data (%s labels) does not exceed threshold.",
+                    current_total_labels)
+        return False, self
+
+    def _prepare_data_for_training(
+            self,
+            training_data: list[TrainingData]
+    ) -> tuple[pd.DataFrame, np.ndarray]:
+        """
+        Process raw training data into a feature DataFrame and target array.
+
+        Args:
+            training_data: List of TrainingData objects.
+
+        Returns:
+            Tuple containing the feature DataFrame (X) and target array (y).
+
+        Raises:
+            ValueError: If no valid training examples can be generated.
+        """
+        features_list = []
+        targets_list = []
+
+        logger.info("Preparing data from %s documents...", len(training_data))
+
+        doc_labels = defaultdict(set)
         for item in training_data:
             for label in item.labels:
                 if isinstance(label, SingleValue):
-                    current_counts[label.label] += 1
+                    doc_labels[item.record_id].add(f"{label.label}:{label.value}")
                 elif isinstance(label, MultiValue):
-                    current_counts[label.label] += len(label.values)
+                    for value in label.values:
+                        doc_labels[item.record_id].add(f"{label.label}:{value}")
 
-        # Filter fields with enough samples
-        current_counts_filtered = {
-            f: count for f, count in current_counts.items() if count >= min_samples
-        }
+        main_contents = (self._split_references(item.text_content)[0] for item in training_data)
+        processed_docs = process_texts_into_docs(main_contents, max_len=None, exclude=("ner",))
 
-        if not current_counts_filtered:
-            logger.info("No fields have enough training data (min %s)", min_samples)
-            return False, self
-
-        prev_max_count = (
-            max(self.training_counts.values()) if self.training_counts else 0
-        )
-        current_max_count = max(current_counts_filtered.values())
-
-        # If we have enough new samples, retrain
-        if current_max_count >= prev_max_count + increase_requirement:
-            logger.info(
-                "Retraining model due to increased training data: %s >= %s + %s",
-                current_max_count,
-                prev_max_count,
-                increase_requirement,
-            )
-            self.train(training_data, min_samples=min_samples)
-            return True, self
-
-        logger.info(
-            "Not retraining model: %s < %s + %s",
-            current_max_count,
-            prev_max_count,
-            increase_requirement,
-        )
-        return False, self
-
-
-def split_references(text: str) -> tuple[str, str]:
-    """
-    Split document text into main content and references sections.
-
-    Args:
-        text: The full document text
-
-    Returns:
-        Tuple of (main_content, references_section)
-    """
-    if not text:
-        return "", ""
-
-    lines = text.split("\n")
-    main_content = []
-    references = []
-
-    in_references = False
-
-    for line in lines:
-        # Check for common reference section headers
-        if not in_references:
-            line_lower = line.lower().strip()
-            if line_lower == "references":
-                in_references = True
-                continue
-            if line_lower.startswith("works cited") or line_lower.startswith(
-                "literature cited"
-            ):
-                in_references = True
+        for item, doc in zip(training_data, processed_docs):
+            doc_features, _ = self._extract_features_from_doc(doc)
+            if not doc_features:
                 continue
 
-        # Add line to appropriate section
-        if in_references:
-            references.append(line)
-        else:
-            main_content.append(line)
+            current_doc_labels = list(doc_labels[item.record_id])
+            features_list.extend(doc_features)
+            targets_list.extend([current_doc_labels] * len(doc_features))
 
-    return "\n".join(main_content), "\n".join(references)
+        if not features_list:
+            raise ValueError("No valid training examples could be generated from the provided data")
+
+        self.label_binarizer = MultiLabelBinarizer()
+        y = self.label_binarizer.fit_transform(targets_list)
+        x = pd.DataFrame(features_list)
+
+        return x, y
+
+    def _extract_features_from_doc(self, doc: Optional[Doc]) -> tuple[list[dict], list[dict]]:
+        """
+        Extracts feature dictionaries from a single processed spaCy Doc.
+
+        Args:
+            doc: A processed spaCy Doc object, or None.
+
+        Returns:
+            Tuple containing:
+            - List of feature dictionaries for creating a DataFrame.
+            - List of dictionaries containing the original sentence text and index.
+        """
+        if not doc:
+            return [], []
+
+        features_list = []
+        original_sentences = []
+        sentences = list(doc.sents)
+        total_sentences = len(sentences)
+
+        if total_sentences > 0:
+            for i, sent in enumerate(sentences):
+                if self._is_valid_sentence(sent):
+                    features_list.append({
+                        "text": sent.text.strip(),
+                        "position": i / total_sentences,
+                        "sentence_length": len(sent),
+                    })
+                    original_sentences.append({"text": sent.text.strip(), "index": i})
+
+        return features_list, original_sentences
+
+    def _process_text(self, text_content: str) -> tuple[list[dict], list[dict]]:
+        """
+        Processes a single raw text into a list of sentence features.
+
+        Args:
+            text_content: The raw text of the document.
+
+        Returns:
+            Tuple containing the features list and original sentences list.
+        """
+        main_content, _ = self._split_references(text_content)
+        processed_docs_iter = process_texts_into_docs(
+            [main_content], max_len=None, exclude=("ner",)
+        )
+        doc = next(processed_docs_iter, None)
+
+        return self._extract_features_from_doc(doc)
+
+    def _is_valid_sentence(self, sent: Optional[Span]) -> bool:
+        """
+        Helper to check if a spaCy sentence span is valid for processing.
+
+        Args:
+            sent: A spaCy Span object representing a sentence.
+
+        Returns:
+            True if the sentence is valid, False otherwise.
+        """
+        if sent is None:
+            return False
+        sent_text = sent.text.strip()
+        exclude_keywords = {"org.apache", "WARN", "DEBUG"}
+        if len(sent_text) < 50 or any(keyword in sent_text for keyword in exclude_keywords):
+            return False
+        if not any(token.pos_ == "VERB" for token in sent):
+            return False
+        return True
+
+    def _split_references(self, text: str) -> tuple[str, str]:
+        """
+        Split document text into main content and references sections.
+
+        Args:
+            text: The full document text
+
+        Returns:
+            Tuple of (main_content, references_section)
+        """
+        if not text:
+            return "", ""
+
+        lines = text.split("\n")
+        main_content = []
+        references = []
+
+        in_references = False
+
+        for line in lines:
+            # Check for common reference section headers
+            if not in_references:
+                line_lower = line.lower().strip()
+                if line_lower == "references":
+                    in_references = True
+                    continue
+                if line_lower.startswith("works cited") or line_lower.startswith(
+                    "literature cited"
+                ):
+                    in_references = True
+                    continue
+
+            # Add line to appropriate section
+            if in_references:
+                references.append(line)
+            else:
+                main_content.append(line)
+
+        return "\n".join(main_content), "\n".join(references)
+
+    def _get_confidence_level(self, threshold: float, prob: float) -> int:
+        """
+        Calculate a discrete confidence level (0-2) based on probability.
+
+        Args:
+            threshold: The minimum prediction threshold.
+            prob: The prediction probability for a given label.
+
+        Returns:
+            Integer confidence level from 0 to 2.
+        """
+        if prob < threshold:
+            return 0
+        one_third = (1.0 - threshold) / 3
+        thresholds = [threshold + i * one_third for i in range(3)]
+
+        return sum(prob >= t for t in thresholds) - 1
+
+    @staticmethod
+    def _count_total_labels(training_data: list[TrainingData]) -> int:
+        """
+        Helper function to count all individual label instances.
+
+        Args:
+            training_data: List of TrainingData
+
+        Returns:
+            Int number of labels
+        """
+        count = 0
+        for item in training_data:
+            for label in item.labels:
+                if isinstance(label, SingleValue):
+                    count += 1
+                elif isinstance(label, MultiValue):
+                    count += len(label.values)
+        return count

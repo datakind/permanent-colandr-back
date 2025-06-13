@@ -221,7 +221,7 @@ def _get_model_for_review(review_id: int) -> ReviewModel:
         return model
 
     # Create new model
-    model = ReviewModel(review_id)
+    model = ReviewModel()
 
     if model.train(training_data, min_samples=min_to_train):
         review_model_cache.set(str(review_id), model)
