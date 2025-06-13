@@ -9,7 +9,7 @@ from webargs.flaskparser import use_kwargs
 from ... import models
 from ...extensions import db, review_model_cache
 from ...lib import constants
-from ...lib.extractors.review_metadata import (
+from ...lib.extractors.review_model import (
     ReviewModel, TrainingData, SingleValue, MultiValue, RecordType
 )
 from ..errors import forbidden_error, not_found_error

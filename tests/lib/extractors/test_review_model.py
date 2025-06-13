@@ -7,7 +7,7 @@ import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MultiLabelBinarizer
 
-from colandr.lib.extractors.review_metadata import (
+from lib.extractors.review_model import (
     ReviewModel, TrainingData, SingleValue
 )
 
@@ -59,7 +59,7 @@ class TestReviewModel(unittest.TestCase):
             TrainingData(1, "This is a valid sentence.", labels=[SingleValue("biome", "forest")])
         ] * 10  # 10 labels
 
-        with patch("colandr.lib.extractors.review_metadata.Pipeline") as mock_pipeline_class:
+        with patch("lib.extractors.review_model.Pipeline") as mock_pipeline_class:
             mock_pipeline_instance = MagicMock()
             mock_pipeline_class.return_value = mock_pipeline_instance
 
@@ -118,7 +118,7 @@ class TestReviewModel(unittest.TestCase):
             self.assertFalse(retrained)
             mock_train.assert_not_called()
 
-    @patch('colandr.lib.extractors.review_metadata.process_texts_into_docs')
+    @patch('lib.extractors.review_model.process_texts_into_docs')
     def test_extract_metadata(self, mock_process_texts):
         """Test the full metadata extraction integration."""
         model = ReviewModel()

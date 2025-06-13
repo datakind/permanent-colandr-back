@@ -127,7 +127,7 @@ class TestFulltextMetadataResource:
     @patch("colandr.apis.resources.fulltext_metadata._get_training_data")
     def test_get_model_for_review(self, mock_get_training_data, app):
         """Test the get_model_for_review function."""
-        from colandr.lib.extractors.review_metadata import TrainingData, SingleValue
+        from lib.extractors.review_model import TrainingData, SingleValue
         from colandr.apis.resources.fulltext_metadata import _get_model_for_review
 
         mock_training = [
@@ -190,7 +190,7 @@ class TestFulltextMetadataResource:
     def test_get_training_data_filtering(self, mock_get_field_definitions, app, db_session):
         """Test get_training_data function properly filters labels based on field types."""
         from colandr.apis.resources.fulltext_metadata import _get_training_data
-        from colandr.lib.extractors.review_metadata import RecordType
+        from lib.extractors.review_model import RecordType
 
         mock_field_defs = [
             RecordType(label="biome", field_type="select_one", allowed_values=["forest", "desert"]),
