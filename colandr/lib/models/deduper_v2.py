@@ -1,5 +1,6 @@
 import functools as ft
 import logging
+import math
 import pathlib
 import re
 import typing as t
@@ -29,10 +30,14 @@ class DeduperV2:
         self,
         *,
         df: pd.DataFrame,
+        id_col: str = "record_id",
+        label_col: t.Optional[str] = None,
         duckdb_conn: str = ":memory:",
         settings: t.Optional[str | pathlib.Path | dict[str, t.Any]] = None,
     ):
         self.df = df
+        self.id_col = id_col
+        self.label_col = label_col
         self.duckdb_conn = duckdb_conn
         self.db_api = splink.DuckDBAPI(connection=self.duckdb_conn)
         self.settings = settings or self._init_settings()
@@ -188,21 +193,43 @@ class DeduperV2:
             ],
             retain_matching_columns=True,
             retain_intermediate_calculation_columns=True,
-            unique_id_column_name="record_id",
+            unique_id_column_name=self.id_col,
         )
 
     @ft.cached_property
     def model(self) -> splink.Linker:
         return splink.Linker(self.df, self.settings, self.db_api)  # type: ignore
 
-    @staticmethod
-    def preprocess_records(records: Iterable[dict[str, t.Any]]) -> pd.DataFrame:
+    def preprocess_records(self, records: Iterable[dict[str, t.Any]]) -> pd.DataFrame:
         LOGGER.info("preprocessing records for deduplication ...")
+        df = pd.DataFrame(data=records)
+        if self.id_col not in df.columns:
+            raise ValueError(f"records don't include id_col '{self.id_col}'")
+        if self.label_col and self.label_col not in df.columns:
+            raise ValueError(f"records don't include label_col '{self.label_col}'")
+
+        preproc_cols = [
+            self.id_col,
+            "doi",
+            "title",
+            "abstract",
+            "authors",
+            "authors_initials",
+            "author",
+            "author_initials",
+            "isxn",
+            "journal_name",
+            "journal_name_initials",
+            "journal_volume",
+            "journal_number",
+            "pub_year",
+        ]
+        if self.label_col:
+            preproc_cols.append(self.label_col)
+
         return (
-            pd.DataFrame(data=records)
-            .rename(
+            df.rename(
                 columns={
-                    # TODO: rename id col to "record_id" ?
                     "volume": "journal_volume",
                     "issue_number": "journal_number",
                 }
@@ -228,8 +255,6 @@ class DeduperV2:
                 ),
                 # derive new columns
                 isxn=lambda df: df["issn"].fillna(df["isbn"]),
-                # title_excerpt=lambda df: df["title"].str.slice(stop=25),
-                # abstract_excerpt=lambda df: df["title"].str.slice(stop=50),
                 authors_initials=lambda df: df["authors"].map(
                     _compute_authors_initials, na_action="ignore"
                 ),
@@ -246,9 +271,7 @@ class DeduperV2:
                 {
                     "doi": "string",
                     "title": "string",
-                    # "title_excerpt":"string",
                     "abstract": "string",
-                    # "abstract_excerpt": "string",
                     "author": "string",
                     "author_initials": "string",
                     "isxn": "string",
@@ -257,50 +280,99 @@ class DeduperV2:
                     "pub_year": "Int16",
                 }
             )
-            .reindex(
-                columns=[
-                    "doi",
-                    "title",
-                    # "title_excerpt",
-                    "abstract",
-                    # "abstract_excerpt",
-                    "authors",
-                    "authors_initials",
-                    "author",
-                    "author_initials",
-                    "isxn",
-                    "journal_name",
-                    "journal_name_initials",
-                    "journal_volume",
-                    "journal_number",
-                    "pub_year",
-                ]
-            )
+            .reindex(columns=preproc_cols)
         )
 
     def fit(
         self,
         max_pairs: int = 1_000_000,
-        label_col: t.Optional[str] = None,
         seed: t.Optional[int] = None,
     ) -> "DeduperV2":
         LOGGER.info("training dedupe model on labeled examples ...")
+        self._estimate_prob_two_records_match()
+        self._estimate_u_parameters(max_pairs, seed)
+        self._estimate_m_parameters()
+        return self
+
+    def _estimate_prob_two_records_match(self) -> None:
+        if self.label_col:
+            prob = self._compute_probability_two_records_match_from_label_column()
+            self.model._settings_obj._probability_two_random_records_match = prob
+        else:
+            deterministic_rules = [
+                splink.block_on("doi"),
+                splink.block_on("title", "author"),
+            ]
+            self.model.training.estimate_probability_two_random_records_match(
+                deterministic_rules,  # type: ignore
+                recall=0.7,
+            )
+
+    def _estimate_u_parameters(
+        self, max_pairs: int, seed: t.Optional[int] = None
+    ) -> None:
         self.model.training.estimate_u_using_random_sampling(
             max_pairs=max_pairs,
             seed=seed,  # type: ignore
         )
-        if label_col:
-            self.model.training.estimate_m_from_label_column(label_col)
-        return self
+
+    def _estimate_m_parameters(self) -> None:
+        if self.label_col:
+            self.model.training.estimate_m_from_label_column(self.label_col)
+        else:
+            training_blocking_rules = [
+                splink.block_on("isxn", "pub_year"),
+                splink.block_on("journal_name_initials"),
+                splink.block_on("authors", arrays_to_explode=["authors"]),
+            ]
+            for blocking_rule in training_blocking_rules:
+                _ = self.model.training.estimate_parameters_using_expectation_maximisation(
+                    blocking_rule
+                )
+
+    def _compute_probability_two_records_match_from_label_column(self) -> float:
+        clusters_with_dupes = (
+            self.df.groupby(self.label_col).size().gt(1).loc[lambda s: s.eq(True)].index
+        )
+        # for multi-record clusters, one is non-dupe and the rest are dupes
+        num_dupe_records = len(
+            self.df.loc[self.df[self.label_col].isin(clusters_with_dupes)]
+        ) - len(clusters_with_dupes)
+        num_record_pairs = math.comb(len(self.df), 2)
+        probability_two_random_records_match = num_dupe_records / num_record_pairs
+        LOGGER.info(
+            "computed probability two records match = %s from labels in '%s'",
+            probability_two_random_records_match,
+            self.label_col,
+        )
+        return probability_two_random_records_match
 
     def predict(
         self, threshold: float = 0.5
     ):  # -> list[tuple[tuple, tuple[float, ...]]]:
-        df_preds = self.model.inference.predict(threshold_match_probability=threshold)
-        df_clusters = self.model.clustering.cluster_pairwise_predictions_at_threshold(
-            df_preds, threshold_match_probability=threshold
+        df_predict = self.model.inference.predict(threshold_match_probability=threshold)
+        df_clustered = self.model.clustering.cluster_pairwise_predictions_at_threshold(
+            df_predict, threshold_match_probability=threshold
         )
-        # TODO: finish this
+        id_col_l, id_col_r = f"{self.id_col}_l", f"{self.id_col}_r"
+        df_preds = df_predict.as_pandas_dataframe()
+        record_pair_match_probs: dict[tuple[int, int], float] = {
+            tuple(sorted([rec[id_col_l], rec[id_col_r]])): rec["match_probability"]
+            for rec in (
+                df_preds.loc[:, [id_col_l, id_col_r, "match_probability"]]
+                .sort_values("match_probability", ascending=True)
+                .to_dict(orient="records")
+            )
+        }
+        df_clusters = df_clustered.as_pandas_dataframe()
+        cluster_record_ids = [
+            grp["record_id"].tolist()
+            for _, grp in df_clusters.groupby("cluster_id")
+            if len(grp) > 1
+        ]
+        # TODO: return these results as-is, or compute your own "confidence score"
+        # following the example of dedupe, for an exact replacement of deduper v1
+        # ref: https://docs.dedupe.io/en/latest/API-documentation.html#dedupe.Dedupe.cluster
 
     def save(self, dir_path: str | pathlib.Path) -> None:
         dir_path = utils.to_path(dir_path).resolve()
