@@ -30,7 +30,6 @@ jobs:
         python-version: ["3.11", "3.12"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
-
     services:
       # NOTE: these containers should match those in app's docker compose file
       colandr_db:
@@ -55,65 +54,43 @@ jobs:
           --health-retries 5
         ports:
           - 6379:6379
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6.0.1
-      with:
-        version: "0.7.5"
-        enable-cache: true
-        cache-dependency-glob: "uv.lock"
-    - name: Install dependencies
-      run: uv sync --frozen --dev
-      shell: bash
-    - name: Download language data
-      run: |
-        uv run python -m textacy download lang_identifier --version 3.0
-    - name: Test with pytest
-      run: |
-        uv run python -m pytest tests --verbose
-  lint:
+      - name: Check out repository
+        uses: actions/checkout@v4.2
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Download language data
+        run: |
+          uv run python -m textacy download lang_identifier --version 3.0
+      - name: Test with pytest
+        run: |
+          uv run python -m pytest tests --verbose
+  style:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6.0.1
-      with:
-        version: "0.7.5"
-        enable-cache: true
-        cache-dependency-glob: "uv.lock"
-    - name: Install dependencies
-      run: uv sync --frozen --dev
-      shell: bash
-    - name: Check with ruff
-      run: |
-        uv run python -m ruff check --output-format=github --exit-zero colandr
+      - name: Check out repository
+        uses: actions/checkout@v4.2
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      # - name: Run formatter
+      #   run: |
+      #     uv run python -m ruff format --diff colandr
+      - name: Run linter
+        run: |
+          uv run python -m ruff check --exit-zero colandr
   types:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
-    - name: Install uv
-      uses: astral-sh/setup-uv@v6.0.1
-      with:
-        version: "0.7.5"
-        enable-cache: true
-        cache-dependency-glob: "uv.lock"
-    - name: Install dependencies
-      run: uv sync --frozen --dev
-      shell: bash
-    - name: Check types with mypy
-      run: |
-        uv run python -m mypy --install-types --non-interactive colandr
+      - name: Check out repository
+        uses: actions/checkout@v4.2
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check types with mypy
+        run: |
+          uv run python -m mypy --install-types --non-interactive colandr
