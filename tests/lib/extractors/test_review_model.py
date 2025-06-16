@@ -1,5 +1,4 @@
 """Tests for the text metadata extractors."""
-import unittest
 from unittest.mock import patch, MagicMock
 
 import numpy as np
@@ -12,7 +11,7 @@ from lib.extractors.review_model import (
 )
 
 
-class TestReviewModel(unittest.TestCase):
+class TestReviewModel:
     """Tests for the ReviewModel class."""
 
     def _create_mock_sentence(self, text, has_verb=True):
@@ -46,11 +45,11 @@ class TestReviewModel(unittest.TestCase):
             "A long sentence that contains a forbidden keyword like DEBUG."
         )
 
-        self.assertTrue(model._is_valid_sentence(valid_sent))
-        self.assertFalse(model._is_valid_sentence(short_sent))
-        self.assertFalse(model._is_valid_sentence(no_verb_sent))
-        self.assertFalse(model._is_valid_sentence(keyword_sent))
-        self.assertFalse(model._is_valid_sentence(None))
+        assert model._is_valid_sentence(valid_sent) is True
+        assert model._is_valid_sentence(short_sent) is False
+        assert model._is_valid_sentence(no_verb_sent) is False
+        assert model._is_valid_sentence(keyword_sent) is False
+        assert model._is_valid_sentence(None) is False
 
     def test_train_success(self):
         """Test the train method succeeds with sufficient data."""
@@ -73,11 +72,11 @@ class TestReviewModel(unittest.TestCase):
 
                 result = model.train(training_data, min_samples=5)
 
-                self.assertTrue(result)
+                assert result is True
                 mock_prepare.assert_called_once_with(training_data)
                 mock_pipeline_instance.fit.assert_called_once_with(mock_x, mock_y)
-                self.assertIsNotNone(model.pipeline)
-                self.assertEqual(model.last_training_size, 10)
+                assert model.pipeline is not None
+                assert model.last_training_size == 10
 
     def test_train_insufficient_data(self):
         """Test that training is skipped if data is insufficient."""
@@ -86,7 +85,7 @@ class TestReviewModel(unittest.TestCase):
 
         with patch.object(model, "_prepare_data_for_training") as mock_prepare:
             result = model.train(training_data, min_samples=40)
-            self.assertFalse(result)
+            assert result is False
             mock_prepare.assert_not_called()
 
     def test_compare_and_train_triggers_retrain(self):
@@ -101,7 +100,7 @@ class TestReviewModel(unittest.TestCase):
             retrained, _ = model.compare_and_train(
                 training_data, min_samples=10, increase_requirement=5
             )
-            self.assertTrue(retrained)
+            assert retrained is True
             mock_train.assert_called_once_with(training_data, min_samples=10)
 
     def test_compare_and_train_skips_retrain(self):
@@ -115,7 +114,7 @@ class TestReviewModel(unittest.TestCase):
             retrained, _ = model.compare_and_train(
                 training_data, min_samples=10, increase_requirement=5
             )
-            self.assertFalse(retrained)
+            assert retrained is False
             mock_train.assert_not_called()
 
     @patch('lib.extractors.review_model.process_texts_into_docs')
@@ -144,24 +143,25 @@ class TestReviewModel(unittest.TestCase):
         results = model.extract_metadata(123, "some input text", threshold=0.5)
 
         mock_process_texts.assert_called_once()
-        self.assertEqual(len(results), 1)
+        assert len(results) == 1
         result = results[0]
-        self.assertEqual(result.record, 123)
-        self.assertEqual(result.metadata, "biome")
-        self.assertEqual(result.value, "forest")
-        self.assertAlmostEqual(result.confidence, 0.9)
-        self.assertEqual(result.sentence, sent_text)
+        assert result.record == 123
+        assert result.metadata == "biome"
+        assert result.value == "forest"
+        assert result.confidence == 0.9
+        assert result.sentence == sent_text
 
     def test_split_references(self):
         """Test splitting document into main content and references."""
         model = ReviewModel()
         text = "Main content.\n\nReferences\n1. Smith, J."
         main, refs = model._split_references(text)
-        self.assertEqual(main.strip(), "Main content.")
-        self.assertEqual(refs, "1. Smith, J.")
+        assert main.strip() == "Main content."
+        assert refs == "1. Smith, J."
 
         text_no_refs = "Main content only."
         main, refs = model._split_references(text_no_refs)
-        self.assertEqual(main, text_no_refs)
-        self.assertEqual(refs, "")
-        self.assertEqual(model._split_references(""), ("", ""))
+        assert main == text_no_refs
+        assert refs == ""
+
+        assert model._split_references("") == ("", "")
