@@ -287,15 +287,14 @@ class ReviewModel:
         sentences = list(doc.sents)
         total_sentences = len(sentences)
 
-        if total_sentences > 0:
-            for i, sent in enumerate(sentences):
-                if self._is_valid_sentence(sent):
-                    features_list.append({
-                        "text": sent.text.strip(),
-                        "position": i / total_sentences,
-                        "sentence_length": len(sent),
-                    })
-                    original_sentences.append({"text": sent.text.strip(), "index": i})
+        for i, sent in enumerate(sentences):
+            if self._is_valid_sentence(sent):
+                features_list.append({
+                    "text": sent.text.strip(),
+                    "position": i / total_sentences,
+                    "sentence_length": len(sent),
+                })
+                original_sentences.append({"text": sent.text.strip(), "index": i})
 
         return features_list, original_sentences
 
