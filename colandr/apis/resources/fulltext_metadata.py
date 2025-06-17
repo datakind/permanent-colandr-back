@@ -9,7 +9,7 @@ from webargs.flaskparser import use_kwargs
 from ... import models
 from ...extensions import db, review_model_cache
 from ...lib import constants
-from ...lib.extractors.review_metadata import (
+from ...lib.extractors.review_model import (
     ReviewModel, TrainingData, SingleValue, MultiValue, RecordType
 )
 from ..errors import forbidden_error, not_found_error
@@ -221,7 +221,7 @@ def _get_model_for_review(review_id: int) -> ReviewModel:
         return model
 
     # Create new model
-    model = ReviewModel(review_id)
+    model = ReviewModel()
 
     if model.train(training_data, min_samples=min_to_train):
         review_model_cache.set(str(review_id), model)
