@@ -1,8 +1,10 @@
 import functools as ft
+import itertools
 import logging
 import math
 import pathlib
 import re
+import statistics
 import typing as t
 import urllib.parse
 from collections.abc import Iterable
@@ -347,9 +349,7 @@ class DeduperV2:
         )
         return probability_two_random_records_match
 
-    def predict(
-        self, threshold: float = 0.5
-    ):  # -> list[tuple[tuple, tuple[float, ...]]]:
+    def predict(self, threshold: float = 0.5) -> list[tuple[list[int], list[float]]]:
         df_predict = self.model.inference.predict(threshold_match_probability=threshold)
         df_clustered = self.model.clustering.cluster_pairwise_predictions_at_threshold(
             df_predict, threshold_match_probability=threshold
@@ -365,14 +365,42 @@ class DeduperV2:
             )
         }
         df_clusters = df_clustered.as_pandas_dataframe()
-        cluster_record_ids = [
-            grp["record_id"].tolist()
-            for _, grp in df_clusters.groupby("cluster_id")
+        clusters_record_ids = [
+            grp["record_id"].to_list()
+            for _, grp in df_clusters.sort_values(by=self.id_col).groupby("cluster_id")
             if len(grp) > 1
         ]
-        # TODO: return these results as-is, or compute your own "confidence score"
-        # following the example of dedupe, for an exact replacement of deduper v1
+        # mediocre version of dedupe's "confidence score", to match deduper v1's api
         # ref: https://docs.dedupe.io/en/latest/API-documentation.html#dedupe.Dedupe.cluster
+        clusters_records_avg_match_probs = (
+            self._compute_clusters_record_avg_match_probs(
+                clusters_record_ids, record_pair_match_probs
+            )
+        )
+        return list(zip(clusters_record_ids, clusters_records_avg_match_probs))
+
+    def _compute_clusters_record_avg_match_probs(
+        self,
+        clusters_record_ids: list[list],
+        record_pair_match_probs: dict[tuple, float],
+    ) -> list[list[float]]:
+        clusters_records_avg_match_probs = []
+        for cluster_record_ids in clusters_record_ids:
+            all_comb_match_probs = {
+                comb: record_pair_match_probs[comb]
+                for comb in itertools.combinations(cluster_record_ids, 2)
+                if comb in record_pair_match_probs
+            }
+            cluster_record_avg_match_probs = [
+                statistics.mean(
+                    match_prob
+                    for comb, match_prob in all_comb_match_probs.items()
+                    if cluster_record_id in comb
+                )
+                for cluster_record_id in cluster_record_ids
+            ]
+            clusters_records_avg_match_probs.append(cluster_record_avg_match_probs)
+        return clusters_records_avg_match_probs
 
     def save(self, dir_path: str | pathlib.Path) -> None:
         dir_path = utils.to_path(dir_path).resolve()
