@@ -42,9 +42,28 @@ class DeduperV2:
         self.label_col = label_col
         self.duckdb_conn = duckdb_conn
         self.db_api = splink.DuckDBAPI(connection=self.duckdb_conn)
-        self.settings = settings or self._init_settings()
+        self.settings = settings or self._default_settings()
 
-    def _init_settings(self) -> splink.SettingsCreator:
+    @classmethod
+    def from_records(
+        cls,
+        records: Iterable[dict[str, t.Any]],
+        *,
+        id_col: str = "record_id",
+        label_col: t.Optional[str] = None,
+        duckdb_conn: str = ":memory:",
+        settings: t.Optional[str | pathlib.Path | dict[str, t.Any]] = None,
+    ):
+        df = cls.preprocess_records(records, id_col=id_col, label_col=label_col)
+        return cls(
+            df=df,
+            id_col=id_col,
+            label_col=label_col,
+            duckdb_conn=duckdb_conn,
+            settings=settings,
+        )
+
+    def _default_settings(self) -> splink.SettingsCreator:
         return splink.SettingsCreator(
             link_type="dedupe_only",
             blocking_rules_to_generate_predictions=[
@@ -202,16 +221,22 @@ class DeduperV2:
     def model(self) -> splink.Linker:
         return splink.Linker(self.df, self.settings, self.db_api)  # type: ignore
 
-    def preprocess_records(self, records: Iterable[dict[str, t.Any]]) -> pd.DataFrame:
+    @staticmethod
+    def preprocess_records(
+        records: Iterable[dict[str, t.Any]],
+        *,
+        id_col: str = "record_id",
+        label_col: t.Optional[str] = None,
+    ) -> pd.DataFrame:
         LOGGER.info("preprocessing records for deduplication ...")
         df = pd.DataFrame(data=records)
-        if self.id_col not in df.columns:
-            raise ValueError(f"records don't include id_col '{self.id_col}'")
-        if self.label_col and self.label_col not in df.columns:
-            raise ValueError(f"records don't include label_col '{self.label_col}'")
+        if id_col not in df.columns:
+            raise ValueError(f"records don't include id_col '{id_col}'")
+        if label_col and label_col not in df.columns:
+            raise ValueError(f"records don't include label_col '{label_col}'")
 
         preproc_cols = [
-            self.id_col,
+            id_col,
             "doi",
             "title",
             "abstract",
@@ -226,8 +251,8 @@ class DeduperV2:
             "journal_number",
             "pub_year",
         ]
-        if self.label_col:
-            preproc_cols.append(self.label_col)
+        if label_col:
+            preproc_cols.append(label_col)
 
         return (
             df.rename(
