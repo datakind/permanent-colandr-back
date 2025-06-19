@@ -273,8 +273,9 @@ class DeduperV2:
                 authors=lambda df: df["author"].map(
                     _standardize_authors, na_action="ignore"
                 ),
-                issn=lambda df: df["isbn"].map(_standardize_issn, na_action="ignore"),
-                isbn=lambda df: df["isbn"].map(_standardize_isbn, na_action="ignore"),
+                # TODO: figure out if/how we want to separate isbn and issn in raw data
+                isbn=lambda df: df["issn"].map(_standardize_isbn, na_action="ignore"),
+                issn=lambda df: df["issn"].map(_standardize_issn, na_action="ignore"),
                 # TODO: handle abbreviations?
                 journal_name=lambda df: df["journal_name"].map(
                     ft.partial(_standardize_journal_name, abbrevs_map=None),
@@ -375,6 +376,7 @@ class DeduperV2:
         return probability_two_random_records_match
 
     def predict(self, threshold: float = 0.5) -> list[tuple[list[int], list[float]]]:
+        LOGGER.info("predicting dedupe status for %s records ...", len(self.df))
         df_predict = self.model.inference.predict(threshold_match_probability=threshold)
         df_clustered = self.model.clustering.cluster_pairwise_predictions_at_threshold(
             df_predict, threshold_match_probability=threshold
