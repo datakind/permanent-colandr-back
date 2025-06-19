@@ -15,7 +15,7 @@ from flask_mail import Message
 from . import models
 from .apis.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
-from .lib.models import Deduper, StudyRanker
+from .lib.models import Deduper, DeduperV2, StudyRanker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
 
@@ -87,10 +87,6 @@ def deduplicate_citations(review_id: int):
         lock.release()
         return
 
-    deduper = Deduper.load(
-        current_app.config["DEDUPE_MODELS_DIR"], num_cores=1, in_memory=False
-    )
-
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
     stmt = sa.delete(models.Dedupe).where(models.Dedupe.review_id == review_id)
@@ -103,21 +99,52 @@ def deduplicate_citations(review_id: int):
         models.Dedupe.__tablename__,
     )
 
-    stmt = sa.select(
-        models.Study.id,
-        models.Study.citation["type_of_reference"].label("type_of_reference"),
-        models.Study.citation["title"].label("title"),
-        models.Study.citation["pub_year"].label("pub_year"),
-        models.Study.citation["authors"].label("authors"),
-        models.Study.citation["abstract"].label("abstract"),
-        models.Study.citation["doi"].label("doi"),
-    ).where(models.Study.review_id == review_id)
-    # results = db.session.execute(stmt).mappings() instead ?
-    results = (row._asdict() for row in db.session.execute(stmt))
-    preproc_data = deduper.preprocess_data(results, id_key="id")
-
+    # stmt = sa.select(
+    #     models.Study.id,
+    #     models.Study.citation["type_of_reference"].label("type_of_reference"),
+    #     models.Study.citation["title"].label("title"),
+    #     models.Study.citation["pub_year"].label("pub_year"),
+    #     models.Study.citation["authors"].label("authors"),
+    #     models.Study.citation["abstract"].label("abstract"),
+    #     models.Study.citation["doi"].label("doi"),
+    # ).where(models.Study.review_id == review_id)
+    # # results = db.session.execute(stmt).mappings() instead ?
+    # results = (row._asdict() for row in db.session.execute(stmt))
+    # deduper = Deduper.load(
+    #     current_app.config["DEDUPE_MODELS_DIR"], num_cores=1, in_memory=False
+    # )
+    # preproc_data = deduper.preprocess_data(results, id_key="id")
     # TODO: decide on suitable value for threshold; higher => higher precision
-    clustered_dupes = deduper.predict(preproc_data, threshold=0.5)
+    # clustered_dupes = deduper.predict(preproc_data, threshold=0.5)
+
+    stmt = sa.select(
+        models.Study.id.label("record_id"),
+        models.Study.citation["doi"].label("doi"),
+        models.Study.citation["title"].label("title"),
+        models.Study.citation["abstract"].label("abstract"),
+        models.Study.citation["authors"].label("author"),  # TBD: label "author" or no
+        models.Study.citation["isbn"].label("isbn"),
+        models.Study.citation["journal_name"].label("journal_name"),
+        models.Study.citation["volume"].label("journal_volume"),
+        models.Study.citation["issue_number"].label("journal_number"),
+        models.Study.citation["pub_year"].label("pub_year"),
+    ).where(models.Study.review_id == review_id)
+    results = (dict(row) for row in db.session.execute(stmt).mappings())
+
+    settings_fpath = os.path.join(
+        current_app.config["COLANDR_APP_DIR"],
+        "colandr_data",
+        "dedupe-v2",
+        "dedupe-splink-model.json",
+    )
+    deduper = DeduperV2.from_records(
+        results, id_col="record_id", settings=settings_fpath
+    )
+    current_app.logger.info("df = \n%s", deduper.df)
+    current_app.logger.info(
+        "initialized deduper model from settings at %s", settings_fpath
+    )
+    clustered_dupes = deduper.predict(threshold=0.99)
     try:
         LOGGER.info(
             "<Review(id=%s)>: found %s duplicate clusters",
