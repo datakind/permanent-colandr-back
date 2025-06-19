@@ -24,7 +24,7 @@ migrate = flask_migrate.Migrate()
 review_model_cache = flask_caching.Cache(
     config={
         "CACHE_TYPE": "SimpleCache",
-        "CACHE_DEFAULT_TIMEOUT": 3600 * 24,  # 24 hours
+        "CACHE_DEFAULT_TIMEOUT": 0,
         "CACHE_THRESHOLD": 25,  # Maximum number of items
     },
 )

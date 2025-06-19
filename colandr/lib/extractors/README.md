@@ -15,14 +15,14 @@ Features:
 - Provides context (surrounding sentences) for each location
 - Includes confidence scores
 
-### `review_metadata.py`
+### `review_model.py`
 
 Extracts metadata fields based on trained models for each review.
 
 Features:
 - Review-specific model training based on existing data extractions
 - Support for select_one and select_many field types
-- Sentence-level classification using River (online machine learning) library
+- Sentence-level classification
 - Confidence scores and levels
 - Model caching to improve performance
 
