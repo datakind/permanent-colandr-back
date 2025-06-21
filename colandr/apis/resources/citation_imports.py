@@ -1,3 +1,5 @@
+import os
+
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
 from flask import current_app
@@ -6,8 +8,8 @@ from marshmallow import ValidationError
 from marshmallow import fields as ma_fields
 from marshmallow.validate import URL, Length, OneOf, Range
 from webargs.flaskparser import use_kwargs
+from werkzeug.utils import secure_filename
 
-# from werkzeug.utils import secure_filename
 from ... import models, tasks
 from ...extensions import db
 from ...lib import constants, preprocessors
@@ -196,8 +198,13 @@ class CitationsImportsResource(Resource):
         current_app.logger.info("inserted %s", data_source)
         data_source_id = data_source.id
 
-        # TODO: see about using secure_filename(uploaded_file.filename)
-        fname = uploaded_file.filename
+        # properly validate uploaded file names/exts
+        fname = secure_filename(uploaded_file.filename)
+        _, fext = os.path.splitext(fname)
+        if fext not in current_app.config["ALLOWED_CITATION_UPLOAD_EXTENSIONS"]:
+            return bad_request_error(
+                f"received invalid file type for citation import: '{fext}'"
+            )
         try:
             citations_to_insert = preprocessors.preprocess_citations(
                 uploaded_file.stream, fname, review_id

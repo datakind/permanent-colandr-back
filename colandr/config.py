@@ -83,6 +83,7 @@ RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_mode
 CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
 FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
 ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
+ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
 
 # metadata extraction config
 METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", 0.65))
