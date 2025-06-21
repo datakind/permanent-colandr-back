@@ -205,13 +205,13 @@ class StudiesResource(Resource):
                 "in": "query",
                 "type": "string",
                 "enum": ["recency", "relevance"],
-                "description": "order matching studies by either date imported or expected relevance",
+                "description": "order matching studies by either date imported or expected relevance (default: 'relevance')",
             },
             "order_dir": {
                 "in": "query",
                 "type": "string",
                 "enum": ["ASC", "DESC"],
-                "description": "direction of ordering, either in ascending or descending order",
+                "description": "direction of ordering, either in ascending or descending order (default: 'DESC')",
             },
             "page": {
                 "in": "query",
@@ -221,7 +221,7 @@ class StudiesResource(Resource):
             "per_page": {
                 "in": "query",
                 "type": "integer",
-                "description": "number of studies to include per page",
+                "description": "number of studies to include per page (default: 25)",
             },
         },
         responses={
