@@ -80,6 +80,42 @@ class VectorReshaper(BaseEstimator, TransformerMixin):
 class ReviewModel:
     """
     Review-specific model for metadata extraction.
+
+    This class builds a multi-label classification pipeline to identify key
+    sentences in documents that correspond to specific metadata labels. It is
+    designed to be trained on a corpus of documents with known labels.
+
+    The model's intelligence comes from a sophisticated feature engineering
+    pipeline that combines three types of features for each sentence:
+    1.  **TF-IDF Features**: Based on lemmatized n-grams to capture important
+        keywords and phrases.
+    2.  **Sentence Embeddings**: Semantic vectors from a spaCy model that
+        capture the contextual meaning of the sentence.
+    3.  **Numeric Features**: Simple features like the sentence's relative
+        position in the document.
+
+    Once trained, the `extract_metadata` method can be used to process new,
+    unseen documents and return the most relevant sentences for each potential label.
+
+    Usage Example:
+        # 1. Load your full dataset (list of TrainingData objects)
+        all_my_data = load_my_data()
+
+        # 2. Split into training and validation sets
+        from sklearn.model_selection import train_test_split
+        train_set, validation_set = train_test_split(all_my_data, test_size=0.2)
+
+        # 3. Instantiate and train the model
+        model = ReviewModel()
+        model.train(training_data=train_set)
+
+        # 4. (Optional) Validate the model and log metrics
+        model.validate(validation_data=validation_set)
+
+        # 5. Extract metadata from a new document
+        new_document_text = "The study of forest management shows..."
+        extracted_meta = model.extract_metadata(record_id=999, text=new_document_text)
+        print(extracted_meta)
     """
 
     def __init__(self):
