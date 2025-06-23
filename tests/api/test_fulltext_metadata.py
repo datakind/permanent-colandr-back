@@ -35,7 +35,7 @@ class TestFulltextMetadataResource:
                 if id_ == 1:
                     mock_model.extract_metadata.assert_called_with(
                         id_,
-                        "This is an example text in English.",
+                        "This is an example text in English. Second sentence.",
                         threshold=app.config.get("METADATA_THRESHOLD")
                     )
 
@@ -85,7 +85,7 @@ class TestFulltextMetadataResource:
 
         mock_model.extract_metadata.assert_called_with(
             1,
-            "This is an example text in English.",
+            "This is an example text in English. Second sentence.",
             threshold=app.config.get("METADATA_THRESHOLD")
         )
 
@@ -120,7 +120,7 @@ class TestFulltextMetadataResource:
 
         mock_model.extract_metadata.assert_called_with(
             1,
-            "This is an example text in English.",
+            "This is an example text in English. Second sentence.",
             threshold=app.config.get("METADATA_THRESHOLD")
         )
 
