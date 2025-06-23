@@ -1,19 +1,21 @@
 """Metadata extraction from document full text."""
 
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
-import logging
 from typing import Optional
 
 import numpy as np
 import pandas as pd
-from spacy.tokens import Doc, Span
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import classification_report
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
+from spacy.tokens import Doc, Span
 
 from ..nlp.utils import process_texts_into_docs
 from .metadata import Metadata
@@ -56,9 +58,64 @@ class RecordType:
     allowed_values: Optional[list[str]] = None
 
 
+class VectorReshaper(BaseEstimator, TransformerMixin):
+    """Transformer that reshapes a pandas Series of 1D arrays into a 2D numpy array."""
+    def fit(self, x: pd.Series, y: Optional[pd.Series] = None) -> "VectorReshaper":
+        """Fits the transformer (no-op)."""
+        return self
+
+    def transform(self, x: pd.Series) -> np.ndarray:
+        """
+        Reshape a Series of arrays into a 2D NumPy array.
+
+        Args:
+            x: A pandas Series where each element is a 1D array.
+
+        Returns:
+            A 2D NumPy array of shape (n_samples, n_features).
+        """
+        return np.vstack(x)
+
+
 class ReviewModel:
     """
     Review-specific model for metadata extraction.
+
+    This class builds a multi-label classification pipeline to identify key
+    sentences in documents that correspond to specific metadata labels. It is
+    designed to be trained on a corpus of documents with known labels.
+
+    The model's intelligence comes from a sophisticated feature engineering
+    pipeline that combines three types of features for each sentence:
+    1.  **TF-IDF Features**: Based on lemmatized n-grams to capture important
+        keywords and phrases.
+    2.  **Sentence Embeddings**: Semantic vectors from a spaCy model that
+        capture the contextual meaning of the sentence.
+    3.  **Numeric Features**: Simple features like the sentence's relative
+        position in the document.
+
+    Once trained, the `extract_metadata` method can be used to process new,
+    unseen documents and return the most relevant sentences for each potential label.
+
+    Usage Example:
+        # 1. Load your full dataset (list of TrainingData objects)
+        all_my_data = load_my_data()
+
+        # 2. Split into training and validation sets
+        from sklearn.model_selection import train_test_split
+        train_set, validation_set = train_test_split(all_my_data, test_size=0.2)
+
+        # 3. Instantiate and train the model
+        model = ReviewModel()
+        model.train(training_data=train_set)
+
+        # 4. (Optional) Validate the model and log metrics
+        model.validate(validation_data=validation_set)
+
+        # 5. Extract metadata from a new document
+        new_document_text = "The study of forest management shows..."
+        extracted_meta = model.extract_metadata(record_id=999, text=new_document_text)
+        print(extracted_meta)
     """
 
     def __init__(self):
@@ -89,26 +146,32 @@ class ReviewModel:
             return False
 
         try:
-            x_train, y_train = self._prepare_data_for_training(training_data)
+            x_train, targets = self._create_sentence_features(training_data)
         except ValueError as e:
             logger.error("Failed to prepare training data: %s", e)
             return False
 
         logger.info("Generated %s sentence examples for training.", x_train.shape[0])
+
+        self.label_binarizer = MultiLabelBinarizer()
+        y_train = self.label_binarizer.fit_transform(targets)
         logger.info("Discovered %s unique labels.", len(self.label_binarizer.classes_))
 
         tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000, min_df=3)
         preprocessor = ColumnTransformer(
             transformers=[
-                ('text', tfidf_vectorizer, 'text'),
+                ('tfidf', tfidf_vectorizer, 'lemmatized_text'),
+                ('vectors', VectorReshaper(), 'sentence_vector'),
                 ('numeric', StandardScaler(), ['position', 'sentence_length'])
             ],
             remainder='drop'
         )
+
         sgd_classifier = SGDClassifier(
             loss='log_loss', random_state=42, early_stopping=True,
-            n_iter_no_change=10, alpha=5e-4
+            n_iter_no_change=10, alpha=5e-4, class_weight='balanced'
         )
+
         self.pipeline = Pipeline([
             ('preprocessor', preprocessor),
             ('classifier', MultiOutputClassifier(sgd_classifier))
@@ -121,6 +184,40 @@ class ReviewModel:
         logger.info("Training completed successfully with %s labels.", self.last_training_size)
 
         return True
+
+    def validate(self, validation_data: list[TrainingData]) -> Optional[str]:
+        """
+        Validates the trained model against a validation dataset.
+
+        Args:
+            validation_data: List of validation data to score the model against.
+
+        Returns:
+            A string containing the classification report, or None if validation fails.
+        """
+        if self.pipeline is None or self.label_binarizer is None:
+            logger.warning("Model has not been trained yet. Cannot validate.")
+            return None
+
+        logger.info("--- Starting Model Validation ---")
+        try:
+            x_val, targets_val_true = self._create_sentence_features(validation_data)
+            y_val_true = self.label_binarizer.transform(targets_val_true)
+
+            y_val_pred = self.pipeline.predict(x_val)
+
+            report = classification_report(
+                y_val_true,
+                y_val_pred,
+                target_names=self.label_binarizer.classes_,
+                zero_division=0
+            )
+            logger.info("Model Validation Report:\n%s", report)
+            return report
+
+        except Exception as e:
+            logger.error("Failed during model validation: %s", e)
+            return None
 
     def extract_metadata(
         self, record_id: int, text: str, threshold: float = 0.5
@@ -140,12 +237,11 @@ class ReviewModel:
             logger.warning("Model has not been trained yet. Cannot extract metadata.")
             return []
 
-        features_list, original_sentences = self._process_text(text)
-
-        if not features_list:
+        features_df, original_sentences = self._process_text(text)
+        if features_df.empty:
             return []
 
-        x_predict = pd.DataFrame(features_list)
+        x_predict = features_df
         list_of_prob_arrays = self.pipeline.predict_proba(x_predict)
         probabilities = np.hstack([arr[:, 1].reshape(-1, 1) for arr in list_of_prob_arrays])
 
@@ -216,29 +312,28 @@ class ReviewModel:
                     current_total_labels)
         return False, self
 
-    def _prepare_data_for_training(
-            self,
-            training_data: list[TrainingData]
-    ) -> tuple[pd.DataFrame, np.ndarray]:
+    def _create_sentence_features(
+        self,
+        data: list[TrainingData]
+    ) -> tuple[pd.DataFrame, list]:
         """
-        Process raw training data into a feature DataFrame and target array.
+        Process documents and extract sentence-level features.
 
         Args:
-            training_data: List of TrainingData objects.
+            data: List of TrainingData objects.
 
         Returns:
-            Tuple containing the feature DataFrame (X) and target array (y).
-
-        Raises:
-            ValueError: If no valid training examples can be generated.
+            Tuple containing:
+            - DataFrame where each row is a sentence with its features.
+            - List of lists, containing the document-level labels for each sentence.
         """
         features_list = []
         targets_list = []
 
-        logger.info("Preparing data from %s documents...", len(training_data))
+        logger.info("Preparing data from %s documents...", len(data))
 
         doc_labels = defaultdict(set)
-        for item in training_data:
+        for item in data:
             for label in item.labels:
                 if isinstance(label, SingleValue):
                     doc_labels[item.record_id].add(f"{label.label}:{label.value}")
@@ -246,42 +341,37 @@ class ReviewModel:
                     for value in label.values:
                         doc_labels[item.record_id].add(f"{label.label}:{value}")
 
-        main_contents = (self._split_references(item.text_content)[0] for item in training_data)
+        main_contents = (self._split_references(item.text_content)[0] for item in data)
         processed_docs = process_texts_into_docs(main_contents, max_len=None, exclude=("ner",))
 
-        for item, doc in zip(training_data, processed_docs):
+        for item, doc in zip(data, processed_docs):
             doc_features, _ = self._extract_features_from_doc(doc)
-            if not doc_features:
+            if doc_features.empty:
                 continue
 
             current_doc_labels = list(doc_labels[item.record_id])
-            features_list.extend(doc_features)
+            features_list.append(doc_features)
             targets_list.extend([current_doc_labels] * len(doc_features))
 
         if not features_list:
-            raise ValueError("No valid training examples could be generated from the provided data")
+            raise ValueError("No valid examples could be generated from the provided data")
 
-        self.label_binarizer = MultiLabelBinarizer()
-        y = self.label_binarizer.fit_transform(targets_list)
-        x = pd.DataFrame(features_list)
+        return pd.concat(features_list, ignore_index=True), targets_list
 
-        return x, y
-
-    def _extract_features_from_doc(self, doc: Optional[Doc]) -> tuple[list[dict], list[dict]]:
+    def _extract_features_from_doc(self, doc: Optional[Doc]) -> tuple[pd.DataFrame, list[dict]]:
         """
-        Extracts feature dictionaries from a single processed spaCy Doc.
+        Extracts a feature DataFrame and sentence context from a single spaCy Doc.
 
         Args:
             doc: A processed spaCy Doc object, or None.
 
         Returns:
             Tuple containing:
-            - List of feature dictionaries for creating a DataFrame.
+            - DataFrame of features.
             - List of dictionaries containing the original sentence text and index.
         """
         if not doc:
-            return [], []
-
+            return pd.DataFrame(), []
         features_list = []
         original_sentences = []
         sentences = list(doc.sents)
@@ -289,24 +379,26 @@ class ReviewModel:
 
         for i, sent in enumerate(sentences):
             if self._is_valid_sentence(sent):
+                lemmas = [tok.lemma_.lower() for tok in sent if tok.is_alpha and not tok.is_stop]
                 features_list.append({
-                    "text": sent.text.strip(),
+                    "lemmatized_text": " ".join(lemmas),
+                    "sentence_vector": sent.vector,
                     "position": i / total_sentences,
                     "sentence_length": len(sent),
                 })
                 original_sentences.append({"text": sent.text.strip(), "index": i})
 
-        return features_list, original_sentences
+        return pd.DataFrame(features_list), original_sentences
 
-    def _process_text(self, text_content: str) -> tuple[list[dict], list[dict]]:
+    def _process_text(self, text_content: str) -> tuple[pd.DataFrame, list[dict]]:
         """
-        Processes a single raw text into a list of sentence features.
+        Processes a single raw text into a feature DataFrame and sentence context.
 
         Args:
             text_content: The raw text of the document.
 
         Returns:
-            Tuple containing the features list and original sentences list.
+            Tuple containing the feature DataFrame and original sentences list.
         """
         main_content, _ = self._split_references(text_content)
         processed_docs_iter = process_texts_into_docs(

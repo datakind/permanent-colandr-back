@@ -62,13 +62,10 @@ class TestReviewModel:
             mock_pipeline_instance = MagicMock()
             mock_pipeline_class.return_value = mock_pipeline_instance
 
-            with patch.object(model, "_prepare_data_for_training") as mock_prepare:
+            with patch.object(model, "_create_sentence_features") as mock_prepare:
                 mock_x = pd.DataFrame([{"text": "mock"}])
                 mock_y = np.array([[1]])
                 mock_prepare.return_value = (mock_x, mock_y)
-
-                model.label_binarizer = MagicMock(spec=MultiLabelBinarizer)
-                model.label_binarizer.classes_ = ["biome:forest"]
 
                 result = model.train(training_data, min_samples=5)
 
@@ -83,7 +80,7 @@ class TestReviewModel:
         model = ReviewModel()
         training_data = [TrainingData(1, "text", labels=[SingleValue("a", "b")])]
 
-        with patch.object(model, "_prepare_data_for_training") as mock_prepare:
+        with patch.object(model, "_create_sentence_features") as mock_prepare:
             result = model.train(training_data, min_samples=40)
             assert result is False
             mock_prepare.assert_not_called()
