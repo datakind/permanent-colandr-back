@@ -69,12 +69,12 @@ class TestLocationExtractor:
 
         mock_ent1 = MagicMock()
         mock_ent1.text = "London"
-        mock_ent1.label_ = "GPE"
+        mock_ent1.label_ = "LOC"
         mock_ent1.sent = mock_sent2
 
         mock_ent2 = MagicMock()
         mock_ent2.text = "England"
-        mock_ent2.label_ = "GPE"
+        mock_ent2.label_ = "LOC"
         mock_ent2.sent = mock_sent2
 
         mock_doc.ents = [mock_ent1, mock_ent2]

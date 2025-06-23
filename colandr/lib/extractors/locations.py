@@ -60,7 +60,7 @@ class LocationExtractor:
         # Extract location entities
         locations = []
         for ent in doc.ents:
-            if ent.label_ in {"GPE", "LOC"} and not self.is_in_reference(ent):
+            if ent.label_ == "LOC" and not self.is_in_reference(ent):
                 # Get context (3 sentences before and after)
                 sent_idx = ent.sent.start_char
                 sent_pos = -1
