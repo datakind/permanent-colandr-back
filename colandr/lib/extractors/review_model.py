@@ -110,12 +110,15 @@ class ReviewModel:
             return False
 
         try:
-            x_train, y_train = self._prepare_data_for_training(training_data)
+            x_train, targets = self._create_sentence_features(training_data)
         except ValueError as e:
             logger.error("Failed to prepare training data: %s", e)
             return False
 
         logger.info("Generated %s sentence examples for training.", x_train.shape[0])
+
+        self.label_binarizer = MultiLabelBinarizer()
+        y_train = self.label_binarizer.fit_transform(targets)
         logger.info("Discovered %s unique labels.", len(self.label_binarizer.classes_))
 
         tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000, min_df=3)
@@ -272,25 +275,6 @@ class ReviewModel:
         logger.info("Not retraining model. New data (%s labels) does not exceed threshold.",
                     current_total_labels)
         return False, self
-
-    def _prepare_data_for_training(
-        self,
-        training_data: list[TrainingData]
-    ) -> tuple[pd.DataFrame, np.ndarray]:
-        """
-        Process raw training data into a feature DataFrame and target array.
-
-        Args:
-            training_data: List of TrainingData objects.
-
-        Returns:
-            Tuple containing the feature DataFrame (X) and target array (y).
-        """
-        x, targets = self._create_sentence_features(training_data)
-        self.label_binarizer = MultiLabelBinarizer()
-        y = self.label_binarizer.fit_transform(targets)
-
-        return x, y
 
     def _create_sentence_features(
         self,
