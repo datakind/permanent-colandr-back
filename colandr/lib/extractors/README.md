@@ -9,7 +9,7 @@ This module provides functionality for extracting metadata from full text docume
 Extracts geographical locations mentioned in a text document using spaCy's Named Entity Recognition (NER).
 
 Features:
-- Identifies locations (GPE, LOC entities) in text
+- Identifies locations (LOC entities) in text
 - Filters out locations that appear in references/citations
 - Groups locations by name and ranks by frequency
 - Provides context (surrounding sentences) for each location

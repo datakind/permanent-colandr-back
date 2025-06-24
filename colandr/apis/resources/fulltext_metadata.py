@@ -1,5 +1,5 @@
-from flask import current_app
 import flask_jwt_extended as jwtext
+from flask import current_app
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -10,7 +10,11 @@ from ... import models
 from ...extensions import db, review_model_cache
 from ...lib import constants
 from ...lib.extractors.review_model import (
-    ReviewModel, TrainingData, SingleValue, MultiValue, RecordType
+    MultiValue,
+    RecordType,
+    ReviewModel,
+    SingleValue,
+    TrainingData,
 )
 from ..errors import forbidden_error, not_found_error
 from ..schemas import MetadataSchema
