@@ -12,6 +12,7 @@ python scripts/populate_full_texts.py -a pdfestrian/json/aidSeq.json -i pdfestri
     -f pdfestrian/json/fulltextids.txt -d /path/to/pdfs -t YOUR_AUTH_TOKEN
 """
 import argparse
+import csv
 import json
 import logging
 import os
@@ -69,11 +70,11 @@ def parse_id_map(filepath: str) -> dict[str, str]:
     Parse file with aid index to study id map
     """
     id_map = {}
-    with open(filepath, 'r') as f:
-        for line in f:
-            parts = line.strip().split('\t')
-            if len(parts) >= 2:
-                id_map[parts[0]] = parts[1]
+    with open(filepath, 'r', newline='') as f:
+        reader = csv.reader(f, delimiter='\t')
+        for row in reader:
+            if len(row) >= 2:
+                id_map[row[0]] = row[1]
     return id_map
 
 

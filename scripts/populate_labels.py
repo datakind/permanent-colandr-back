@@ -9,6 +9,7 @@ Example:
 python scripts/populate_labels.py -a pdfestrian/json/aidSeq.json -i pdfestrian/json/idMap.tsv -t AT
 """
 import argparse
+import csv
 import json
 import logging
 import sys
@@ -147,11 +148,11 @@ def to_labels(label: str, labels: list[str]) -> list[Label]:
 def parse_id_map(filepath: str) -> dict[str, str]:
     """Parse ID map file that maps AidSeq indices to API IDs"""
     id_map = {}
-    with open(filepath, 'r') as f:
-        for line in f:
-            parts = line.strip().split('\t')
-            if len(parts) >= 2:
-                id_map[parts[0]] = parts[1]
+    with open(filepath, 'r', newline='') as f:
+        reader = csv.reader(f, delimiter='\t')
+        for row in reader:
+            if len(row) >= 2:
+                id_map[row[0]] = row[1]
     return id_map
 
 

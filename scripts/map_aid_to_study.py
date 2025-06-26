@@ -12,6 +12,7 @@ python scripts/map_aid_to_study.py -a pdfestrian/json/aidSeq.json -o pdfestrian/
     --db-host localhost --db-port 5432 --db-name colandr --db-user colandr --db-password thepassword
 """
 import argparse
+import csv
 import json
 import logging
 import sys
@@ -68,6 +69,7 @@ def get_study_id_by_title(conn: psycopg.Connection, title: str) -> int | None:
             """
             SELECT id FROM studies
             WHERE citation->>'title' = %s
+            AND dedupe_status='not_duplicate'
             LIMIT 1
             """,
             (title,)
@@ -105,9 +107,10 @@ def main():
                 found += 1
         print(f"Found {found} out of {len(aids)} citations")
 
-        with open(args.out, "w") as f:
+        with open(args.out, "w", newline="") as f:
+            writer = csv.writer(f, delimiter="\t")
             for aid_index, study_id in aid_to_study_id.items():
-                f.write(f"{aid_index}\t{study_id}\n")
+                writer.writerow([aid_index, study_id])
     finally:
         conn.close()
 
