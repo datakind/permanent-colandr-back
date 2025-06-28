@@ -4,7 +4,6 @@ References:
     - https://en.wikipedia.org/wiki/RIS_(file_format)
 """
 
-import datetime
 import logging
 import pathlib
 import typing as t
@@ -74,16 +73,16 @@ class RisReader(base.BaseReader):
         | {"BOOK": "book"}
     )
     field_sanitizers = {
+        "access_date": [base.to_dttm],
         "authors": [lambda x: _split_up_authors(x)],
-        "end_page": [lambda x: to_int(x)],
-        "notes": [lambda x: to_list(x), lambda x: _strip_tags_from_notes(x)],
-        "number_of_pages": [lambda x: to_int(x)],
-        "number_of_volumes": [lambda x: to_int(x)],
-        "publication_year": [lambda x: to_int(x)],
-        "start_page": [lambda x: to_int(x)],
-        "year": [lambda x: to_int(x)],
-        "access_date": [lambda x: to_dttm(x)],
-        "date": [lambda x: to_dttm(x)],
+        "date": [base.to_dttm],
+        "end_page": [base.to_int],
+        "notes": [base.to_list, lambda x: _strip_tags_from_notes(x)],
+        "number_of_pages": [base.to_int],
+        "number_of_volumes": [base.to_int],
+        "publication_year": [base.to_int],
+        "start_page": [base.to_int],
+        "year": [base.to_int],
     }
 
     def read(
@@ -145,52 +144,3 @@ def _split_up_authors(authors: list[str]) -> list[str]:
 def _strip_tags_from_notes(notes: list[str]) -> list[str]:
     notes = [markupsafe.Markup(note).striptags() for note in notes]
     return [note for note in notes if note]
-
-
-def to_dttm(
-    value: datetime.datetime | datetime.date | float | int | str,
-) -> t.Optional[datetime.datetime]:
-    """Cast ``value`` into a dttm, as able."""
-    if isinstance(value, datetime.datetime):
-        return value
-    elif isinstance(value, datetime.date):
-        return datetime.datetime(value.year, value.month, value.day)
-    elif isinstance(value, str):
-        try:
-            return datetime.datetime.fromisoformat(value)
-        except ValueError:
-            for fmt in ("%m/%d/%Y", "%d/%m/%Y"):
-                try:
-                    return datetime.datetime.strptime(value, fmt)
-                except ValueError:
-                    pass
-    elif isinstance(value, (float, int)):
-        try:
-            return datetime.datetime.fromtimestamp(value, tz=datetime.timezone.utc)
-        except Exception:
-            pass
-
-    LOGGER.debug("unable to cast '%s' into a dttm", value)
-    return None
-
-
-def to_int(value: float | int | str) -> t.Optional[int]:
-    """Cast ``value`` into an int, as able."""
-    if isinstance(value, int):
-        return value
-    else:
-        try:
-            return int(float(value))
-        except ValueError:
-            LOGGER.debug("unable to cast '%s' into an int", value)
-            return None
-
-
-def to_list(value: t.Any) -> list:
-    """Cast ``value`` into a list, as able."""
-    if isinstance(value, list):
-        return value
-    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-        return list(value)
-    else:
-        return [value]

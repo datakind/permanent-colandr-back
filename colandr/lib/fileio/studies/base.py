@@ -1,4 +1,5 @@
 import abc
+import datetime
 import io
 import logging
 import pathlib
@@ -141,3 +142,52 @@ class BaseReader:
 # TODO
 class BaseWriter:
     def write(self, records: Iterable[dict]) -> None: ...
+
+
+def to_dttm(
+    value: datetime.datetime | datetime.date | float | int | str,
+) -> t.Optional[datetime.datetime]:
+    """Cast ``value`` into a dttm, as able."""
+    if isinstance(value, datetime.datetime):
+        return value
+    elif isinstance(value, datetime.date):
+        return datetime.datetime(value.year, value.month, value.day)
+    elif isinstance(value, str):
+        try:
+            return datetime.datetime.fromisoformat(value)
+        except ValueError:
+            for fmt in ("%m/%d/%Y", "%d/%m/%Y"):
+                try:
+                    return datetime.datetime.strptime(value, fmt)
+                except ValueError:
+                    pass
+    elif isinstance(value, (float, int)):
+        try:
+            return datetime.datetime.fromtimestamp(value, tz=datetime.timezone.utc)
+        except Exception:
+            pass
+
+    LOGGER.debug("unable to cast '%s' into a dttm", value)
+    return None
+
+
+def to_int(value: float | int | str) -> t.Optional[int]:
+    """Cast ``value`` into an int, as able."""
+    if isinstance(value, int):
+        return value
+    else:
+        try:
+            return int(float(value))
+        except ValueError:
+            LOGGER.debug("unable to cast '%s' into an int", value)
+            return None
+
+
+def to_list(value: object) -> list:
+    """Cast ``value`` into a list, as able."""
+    if isinstance(value, list):
+        return value
+    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+        return list(value)
+    else:
+        return [value]

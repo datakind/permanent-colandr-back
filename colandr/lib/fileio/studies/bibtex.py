@@ -55,13 +55,13 @@ class BibTexReader(base.BaseReader):
     field_sanitizers = {
         "authors": [lambda x: _split_names(x)],
         "editors": [lambda x: _split_names(x)],
-        "end_page": [lambda x: to_int(x)],
+        "end_page": [base.to_int],
         "keywords": [lambda x: _split_keywords(x)],
-        "notes": [lambda x: to_list(x)],
-        "number_of_pages": [lambda x: to_int(x)],
+        "notes": [base.to_list],
+        "number_of_pages": [base.to_int],
         "pub_month": [lambda x: _sanitize_month(x)],
-        "pub_year": [lambda x: to_int(x)],
-        "start_page": [lambda x: to_int(x)],
+        "pub_year": [base.to_int],
+        "start_page": [base.to_int],
     }
 
     def read(
@@ -97,7 +97,7 @@ class BibTexReader(base.BaseReader):
         # parse pages into constituent parts (if present), and standardize naming
         if "pages" in record:
             # case: pages is just an int
-            pages = to_int(record["pages"])
+            pages = base.to_int(record["pages"])
             if pages is not None:
                 record["number_of_pages"] = pages
             # case: pages is a range of ints
@@ -145,32 +145,7 @@ def _split_pages(value: str) -> t.Optional[tuple[t.Optional[int], t.Optional[int
         pages = value.split("--")
         if len(pages) == 2:
             start_page, end_page = pages
-            return (to_int(start_page), to_int(end_page))
+            return (base.to_int(start_page), base.to_int(end_page))
 
     LOGGER.warning("unable to sanitize pages='%s' value", value)
     return None
-
-
-# TODO: share these with other formats
-
-
-def to_int(value: float | int | str) -> t.Optional[int]:
-    """Cast ``value`` into an int, as able."""
-    if isinstance(value, int):
-        return value
-    else:
-        try:
-            return int(float(value))
-        except ValueError:
-            LOGGER.debug("unable to cast '%s' into an int", value)
-            return None
-
-
-def to_list(value: t.Any) -> list:
-    """Cast ``value`` into a list, as able."""
-    if isinstance(value, list):
-        return value
-    elif isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
-        return list(value)
-    else:
-        return [value]
