@@ -156,7 +156,7 @@ def to_dttm(
         try:
             return datetime.datetime.fromisoformat(value)
         except ValueError:
-            for fmt in ("%m/%d/%Y", "%d/%m/%Y"):
+            for fmt in ("%m/%d/%Y", "%d/%m/%Y", "%Y/%m/%d/"):
                 try:
                     return datetime.datetime.strptime(value, fmt)
                 except ValueError:
