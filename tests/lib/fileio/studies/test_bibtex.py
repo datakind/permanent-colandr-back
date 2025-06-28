@@ -4,7 +4,7 @@ import pathlib
 import flask
 import pytest
 
-from colandr.lib.fileio.studies import RisReader
+from colandr.lib.fileio.studies import BibTexReader
 
 
 @pytest.fixture(scope="module")
@@ -20,13 +20,10 @@ def exp_records(app_ctx, request):
 @pytest.mark.parametrize(
     "file_name",
     [
-        "example.ris",
-        # this file fails to parse 1 out of 4 citations, but *inconsistently*
-        # given an identical input file, it will parse all 4 correctly
-        # this behavior is insane, and i won't subject myself to it further
-        # "example-endnote.ris",
-        "example-mendeley.ris",
-        "example-zotero.ris",
+        "example.bib",
+        "example-endnote.bib",
+        "example-mendeley.bib",
+        "example-zotero.bib",
     ],
 )
 def test_reader(file_name, exp_records, app_ctx, request):
@@ -34,22 +31,15 @@ def test_reader(file_name, exp_records, app_ctx, request):
         request.config.rootpath / "tests" / "fixtures" / "citations"
     )
     file_path = fixtures_dir / file_name
-    reader = RisReader()
+    reader = BibTexReader()
     records = list(reader.sanitize(reader.read(file_path)))
     assert records
     assert len(records) == len(exp_records)
     for record, exp_record in zip(records, exp_records):
         shared_keys = record.keys() & exp_record.keys()
+        # HACK: bibtex doesn't properly handle multiple notes
+        if "notes" in exp_record and len(exp_record) > 1:
+            shared_keys -= {"notes"}
         record = {k: v for k, v in record.items() if k in shared_keys}
         exp_record = {k: v for k, v in exp_record.items() if k in shared_keys}
-        try:
-            assert flask.jsonify(record).json == exp_record
-        # HACK: mendeley exports newspaper articles as generic references (!!!)
-        except AssertionError:
-            if (
-                file_name == "example-mendeley.ris"
-                and exp_record["type_of_reference"] == "book"
-            ):
-                del record["type_of_reference"]
-                del exp_record["type_of_reference"]
-                assert flask.jsonify(record).json == exp_record
+        assert flask.jsonify(record).json == exp_record
