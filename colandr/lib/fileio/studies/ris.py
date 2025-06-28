@@ -96,14 +96,15 @@ class RisReader(base.BaseReader):
             implementation=rispy.parser.RisParser,
             skip_unknown_tags=False,
         )
-        return records
+        for record in records:
+            yield record
 
     def sanitize(self, records: Iterable[dict]) -> Iterable[dict]:
         records = rispy.utils.convert_reference_types(
             list(records), type_map=self.reference_type_map
         )
-        records = [self._sanitize_record(record) for record in records]
-        return records
+        for record in records:
+            yield self._sanitize_record(record)
 
     def _sanitize_record(self, record: dict) -> dict:
         # rename certain tags with their type-specific names

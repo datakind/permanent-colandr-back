@@ -78,8 +78,8 @@ class BibTexReader(base.BaseReader):
             customization=self._parser_customization,
         )
         bib_db = bibtexparser.loads(data, parser=parser)
-        records = bib_db.entries
-        return records
+        for record in bib_db.entries:
+            yield record
 
     def _parser_customization(self, record: dict) -> dict:
         record = bibtexparser.customization.convert_to_unicode(record)
@@ -87,7 +87,8 @@ class BibTexReader(base.BaseReader):
         return record
 
     def sanitize(self, records: Iterable[dict]) -> Iterable[dict]:
-        return [self._sanitize_record(record) for record in records]
+        for record in records:
+            yield self._sanitize_record(record)
 
     def _sanitize_record(self, record: dict) -> dict:
         # standardize all field names
