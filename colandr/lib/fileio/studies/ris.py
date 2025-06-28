@@ -80,7 +80,7 @@ class RisReader(base.BaseReader):
         "notes": [base.to_list, lambda x: _strip_tags_from_notes(x)],
         "number_of_pages": [base.to_int],
         "number_of_volumes": [base.to_int],
-        "publication_year": [base.to_int],
+        "pub_year": [base.to_int],
         "start_page": [base.to_int],
         "year": [base.to_int],
     }
