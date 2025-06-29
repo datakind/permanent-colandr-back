@@ -1,4 +1,6 @@
 import os
+import pathlib
+import typing as t
 
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
@@ -12,9 +14,9 @@ from werkzeug.utils import secure_filename
 
 from ... import models, tasks
 from ...extensions import db
-from ...lib import constants, preprocessors
+from ...lib import constants, fileio, preprocessors
 from ..errors import bad_request_error, forbidden_error, not_found_error
-from ..schemas import DataSourceSchema, ImportSchema
+from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
 
 ns = Namespace(
@@ -206,7 +208,11 @@ class CitationsImportsResource(Resource):
                 f"received invalid file type for citation import: '{fext}'"
             )
         try:
-            citations_to_insert = preprocessors.preprocess_citations(
+            # OLD PATH
+            # citations_to_insert = preprocessors.preprocess_citations(
+            #     uploaded_file.stream, fname, review_id
+            # )
+            citations_to_insert = _preprocess_citations(
                 uploaded_file.stream, fname, review_id
             )
         except ValueError as e:
@@ -260,3 +266,49 @@ class CitationsImportsResource(Resource):
         )
         if dedupe is True:
             tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)
+
+
+def _preprocess_citations(
+    path_or_stream: str | pathlib.Path | t.IO[bytes], fname: str, review_id: int
+) -> list[dict]:
+    _, fext = os.path.splitext(fname)
+    reader = (
+        fileio.studies.RisReader()
+        if fext in (".ris", ".txt")
+        else fileio.studies.BibTexReader()
+        if fext == ".bib"
+        else fileio.studies.TabularReader(delimiter=",")
+        if fext == ".csv"
+        else fileio.studies.TabularReader(delimiter="\t")
+        if fext == ".tsv"
+        else None
+    )
+    # NOTE: we already check file extension in API, so this should never happen
+    assert reader is not None
+
+    try:
+        records = reader.sanitize(reader.read(path_or_stream))
+    except Exception:
+        raise ValueError(f"unable to parse citations import file: '{fname}'")
+
+    schema = CitationSchema(partial=True, unknown="include")
+    declared_fields = schema.declared_fields
+    citations = []
+    for record in records:
+        record["review_id"] = review_id
+        citation = {
+            key: value for key, value in record.items() if key in declared_fields
+        }
+        citation["other_fields"] = {
+            key: value for key, value in record.items() if key not in declared_fields
+        }
+        try:
+            citation = schema.load(record)
+        except Exception as e:
+            current_app.logger.warning(
+                "citation not compliant with schema; skipping... %s", e
+            )
+            continue
+        citations.append(citation)
+
+    return citations
