@@ -114,7 +114,7 @@ class BaseReader:
         return data
 
     def _standardize_field_names(self, record: dict[str, object]) -> dict[str, object]:
-        record = {key.lower(): value for key, value in record.items()}
+        record = {key.lower().replace(" ", "_"): value for key, value in record.items()}
         if self.field_alt_names:
             # only one alt name per field? take this faster path
             if any(isinstance(val, str) for val in self.field_alt_names.values()):
