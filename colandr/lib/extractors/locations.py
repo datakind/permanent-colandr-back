@@ -4,8 +4,8 @@ import collections
 import logging
 
 from spacy.tokens import Span
-import textacy
 
+from ..nlp.utils import process_texts_into_docs
 from .metadata import Metadata
 
 
@@ -14,13 +14,6 @@ logger = logging.getLogger(__name__)
 
 class LocationExtractor:
     """Extract locations from document text using spaCy NER."""
-
-    def __init__(self, model: str = "en_core_web_md"):
-        """Initialize the extractor with the specified language model."""
-        self.nlp = textacy.load_spacy_lang(model)  # TODO: implement language detection
-        # Ensure we have sentence segmentation and named entity recognition
-        if not self.nlp.has_pipe("ner"):
-            raise ValueError(f"Model {model} doesn't have NER component")
 
     def is_in_reference(self, ent: Span) -> bool:
         """
@@ -56,7 +49,8 @@ class LocationExtractor:
         if not text or not text.strip():
             return []
 
-        doc = self.nlp(text)
+        processed_docs_iter = process_texts_into_docs([text], max_len=None)
+        doc = next(processed_docs_iter, None)
 
         # Get all sentences
         sentences = list(doc.sents)
@@ -66,7 +60,7 @@ class LocationExtractor:
         # Extract location entities
         locations = []
         for ent in doc.ents:
-            if ent.label_ in {"GPE", "LOC"} and not self.is_in_reference(ent):
+            if ent.label_ == "LOC" and not self.is_in_reference(ent):
                 # Get context (3 sentences before and after)
                 sent_idx = ent.sent.start_char
                 sent_pos = -1

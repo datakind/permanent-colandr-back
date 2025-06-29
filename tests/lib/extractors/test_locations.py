@@ -8,17 +8,6 @@ from colandr.lib.extractors.metadata import Metadata
 class TestLocationExtractor:
     """Tests for the LocationExtractor class."""
 
-    def test_init(self):
-        """Test LocationExtractor initialization."""
-        with patch("textacy.load_spacy_lang") as mock_load:
-            mock_nlp = MagicMock()
-            mock_nlp.has_pipe.return_value = True
-            mock_load.return_value = mock_nlp
-
-            extractor = LocationExtractor()
-            mock_load.assert_called_once_with("en_core_web_md")
-            assert extractor.nlp == mock_nlp
-
     def test_is_in_reference(self):
         """Test is_in_reference function."""
         with patch("textacy.load_spacy_lang") as mock_load:
@@ -58,71 +47,67 @@ class TestLocationExtractor:
 
             assert extractor.is_in_reference(mock_ent) is False
 
-    def test_extract_locations(self):
+    @patch('lib.extractors.locations.process_texts_into_docs')
+    def test_extract_locations(self, mock_process_texts):
         """Test extract_locations function."""
-        with patch("textacy.load_spacy_lang") as mock_load:
-            mock_nlp = MagicMock()
-            mock_nlp.has_pipe.return_value = True
-            mock_load.return_value = mock_nlp
+        extractor = LocationExtractor()
 
-            extractor = LocationExtractor()
+        mock_doc = MagicMock()
+        mock_sent1 = MagicMock()
+        mock_sent1.text = "This is sentence 1."
+        mock_sent1.start_char = 0
 
-            mock_doc = MagicMock()
-            mock_sent1 = MagicMock()
-            mock_sent1.text = "This is sentence 1."
-            mock_sent1.start_char = 0
+        mock_sent2 = MagicMock()
+        mock_sent2.text = "London is a city in England."
+        mock_sent2.start_char = 20
 
-            mock_sent2 = MagicMock()
-            mock_sent2.text = "London is a city in England."
-            mock_sent2.start_char = 20
+        mock_sent3 = MagicMock()
+        mock_sent3.text = "This is sentence 3."
+        mock_sent3.start_char = 50
 
-            mock_sent3 = MagicMock()
-            mock_sent3.text = "This is sentence 3."
-            mock_sent3.start_char = 50
+        mock_doc.sents = [mock_sent1, mock_sent2, mock_sent3]
 
-            mock_doc.sents = [mock_sent1, mock_sent2, mock_sent3]
+        mock_ent1 = MagicMock()
+        mock_ent1.text = "London"
+        mock_ent1.label_ = "LOC"
+        mock_ent1.sent = mock_sent2
 
-            mock_ent1 = MagicMock()
-            mock_ent1.text = "London"
-            mock_ent1.label_ = "GPE"
-            mock_ent1.sent = mock_sent2
+        mock_ent2 = MagicMock()
+        mock_ent2.text = "England"
+        mock_ent2.label_ = "LOC"
+        mock_ent2.sent = mock_sent2
 
-            mock_ent2 = MagicMock()
-            mock_ent2.text = "England"
-            mock_ent2.label_ = "GPE"
-            mock_ent2.sent = mock_sent2
+        mock_doc.ents = [mock_ent1, mock_ent2]
 
-            mock_doc.ents = [mock_ent1, mock_ent2]
+        mock_process_texts.return_value = iter([mock_doc])
 
-            mock_nlp.return_value = mock_doc
+        extractor.is_in_reference = MagicMock(return_value=False)
 
-            extractor.is_in_reference = MagicMock(return_value=False)
+        with patch.object(extractor, '_group_locations') as mock_group:
+            mock_group.return_value = [
+                Metadata(
+                    record=1,
+                    metadata="location",
+                    value="london",
+                    sentence="London is a city in England.",
+                    sentence_location=1,
+                    confidence=1.0,
+                ),
+                Metadata(
+                    record=1,
+                    metadata="location",
+                    value="england",
+                    sentence="London is a city in England.",
+                    sentence_location=1,
+                    confidence=1.0,
+                ),
+            ]
 
-            with patch.object(extractor, '_group_locations') as mock_group:
-                mock_group.return_value = [
-                    Metadata(
-                        record=1,
-                        metadata="location",
-                        value="london",
-                        sentence="London is a city in England.",
-                        sentence_location=1,
-                        confidence=1.0,
-                    ),
-                    Metadata(
-                        record=1,
-                        metadata="location",
-                        value="england",
-                        sentence="London is a city in England.",
-                        sentence_location=1,
-                        confidence=1.0,
-                    ),
-                ]
+            result = extractor.extract_locations(1, "Document with locations: London, England.")
 
-                result = extractor.extract_locations(1, "Document with locations: London, England.")
-
-                assert len(result) == 2
-                assert result[0].value == "london"
-                assert result[1].value == "england"
+            assert len(result) == 2
+            assert result[0].value == "london"
+            assert result[1].value == "england"
 
     def test_group_locations(self):
         """Test _group_locations function."""

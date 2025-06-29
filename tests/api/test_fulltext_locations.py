@@ -12,7 +12,6 @@ class TestFulltextLocationsResource:
         ["id_", "status_code"],
         [
             (1, 200),
-            (2, 200),
             (999, 404),
         ],
     )

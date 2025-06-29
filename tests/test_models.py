@@ -234,7 +234,7 @@ class TestStudy:
                     "fulltext": {
                         "filename": "1.pdf",
                         "original_filename": "example-journal-short.pdf",
-                        "text_content": "This is an example text in English.",
+                        "text_content": "This is an example text in English. Second sentence.",
                     },
                     "num_citation_reviewers": 1,
                     "num_fulltext_reviewers": 1,
