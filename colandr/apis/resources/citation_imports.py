@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 
 from ... import models, tasks
 from ...extensions import db
-from ...lib import constants, fileio, preprocessors
+from ...lib import constants, fileio
 from ..errors import bad_request_error, forbidden_error, not_found_error
 from ..schemas import CitationSchema, DataSourceSchema, ImportSchema
 
@@ -208,10 +208,6 @@ class CitationsImportsResource(Resource):
                 f"received invalid file type for citation import: '{fext}'"
             )
         try:
-            # OLD PATH
-            # citations_to_insert = preprocessors.preprocess_citations(
-            #     uploaded_file.stream, fname, review_id
-            # )
             citations_to_insert = _preprocess_citations(
                 uploaded_file.stream, fname, review_id
             )
