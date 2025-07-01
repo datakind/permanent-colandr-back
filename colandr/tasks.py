@@ -264,7 +264,7 @@ def get_citations_text_content_vectors(review_id: int):
     )
     cvs = (doc.vector.tolist() if doc is not None else None for doc in docs)
     citations_to_update = [
-        {"id": id_, "text_content_vector_rep": cv}
+        {"id": id_, "citation_text_content_vector_rep": cv}
         for id_, cv in zip(ids, cvs)
         if cv is not None
     ]
