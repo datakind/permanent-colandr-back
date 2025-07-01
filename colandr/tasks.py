@@ -140,9 +140,10 @@ def deduplicate_citations(review_id: int):
     deduper = DeduperV2.from_records(
         results, id_col="record_id", settings=settings_fpath
     )
-    current_app.logger.info("df = \n%s", deduper.df)
     current_app.logger.info(
-        "initialized deduper model from settings at %s", settings_fpath
+        "initialized deduper model from %s records with settings at %s",
+        len(deduper.df),
+        settings_fpath,
     )
     clustered_dupes = deduper.predict(threshold=0.99)
     LOGGER.info(
