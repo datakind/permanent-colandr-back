@@ -223,7 +223,8 @@ def deduplicate_citations(review_id: int):
     )
 
     db.session.execute(sa.update(models.Study), studies_to_update)
-    db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
+    if dedupes_to_insert:
+        db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
