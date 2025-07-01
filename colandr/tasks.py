@@ -145,15 +145,11 @@ def deduplicate_citations(review_id: int):
         "initialized deduper model from settings at %s", settings_fpath
     )
     clustered_dupes = deduper.predict(threshold=0.99)
-    try:
-        LOGGER.info(
-            "<Review(id=%s)>: found %s duplicate clusters",
-            review_id,
-            len(clustered_dupes),  # type: ignore
-        )
-    # TODO: figure out if this is ever a generator instead
-    except TypeError:
-        LOGGER.info("<Review(id=%s)>: found duplicate clusters", review_id)
+    LOGGER.info(
+        "<Review(id=%s)>: found %s duplicate clusters",
+        review_id,
+        len(clustered_dupes),  # type: ignore
+    )
 
     # get *all* citation ids for this review, as well as included/excluded
     stmt = sa.select(models.Study.id).where(models.Study.review_id == review_id)
