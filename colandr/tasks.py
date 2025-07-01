@@ -123,7 +123,7 @@ def deduplicate_citations(review_id: int):
         models.Study.citation["title"].label("title"),
         models.Study.citation["abstract"].label("abstract"),
         models.Study.citation["authors"].label("author"),  # TBD: label "author" or no
-        models.Study.citation["isbn"].label("isbn"),
+        models.Study.citation["issn"].label("issn"),
         models.Study.citation["journal_name"].label("journal_name"),
         models.Study.citation["volume"].label("journal_volume"),
         models.Study.citation["issue_number"].label("journal_number"),
@@ -145,15 +145,11 @@ def deduplicate_citations(review_id: int):
         "initialized deduper model from settings at %s", settings_fpath
     )
     clustered_dupes = deduper.predict(threshold=0.99)
-    try:
-        LOGGER.info(
-            "<Review(id=%s)>: found %s duplicate clusters",
-            review_id,
-            len(clustered_dupes),  # type: ignore
-        )
-    # TODO: figure out if this is ever a generator instead
-    except TypeError:
-        LOGGER.info("<Review(id=%s)>: found duplicate clusters", review_id)
+    LOGGER.info(
+        "<Review(id=%s)>: found %s duplicate clusters",
+        review_id,
+        len(clustered_dupes),  # type: ignore
+    )
 
     # get *all* citation ids for this review, as well as included/excluded
     stmt = sa.select(models.Study.id).where(models.Study.review_id == review_id)
@@ -227,7 +223,8 @@ def deduplicate_citations(review_id: int):
     )
 
     db.session.execute(sa.update(models.Study), studies_to_update)
-    db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
+    if dedupes_to_insert:
+        db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
