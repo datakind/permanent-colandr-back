@@ -123,7 +123,7 @@ def deduplicate_citations(review_id: int):
         models.Study.citation["title"].label("title"),
         models.Study.citation["abstract"].label("abstract"),
         models.Study.citation["authors"].label("author"),  # TBD: label "author" or no
-        models.Study.citation["isbn"].label("isbn"),
+        models.Study.citation["issn"].label("issn"),
         models.Study.citation["journal_name"].label("journal_name"),
         models.Study.citation["volume"].label("journal_volume"),
         models.Study.citation["issue_number"].label("journal_number"),
