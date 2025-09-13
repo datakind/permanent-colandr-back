@@ -85,6 +85,9 @@ follow_imports = "silent"
 addopts = "--verbose"
 testpaths = ["tests"]
 
+[tool.uv]
+required-version = ">=0.8.0"
+
 [tool.ruff]
 line-length = 88
 indent-width = 4
