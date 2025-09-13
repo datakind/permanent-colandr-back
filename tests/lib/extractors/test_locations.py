@@ -47,7 +47,7 @@ class TestLocationExtractor:
 
             assert extractor.is_in_reference(mock_ent) is False
 
-    @patch('lib.extractors.locations.process_texts_into_docs')
+    @patch("colandr.lib.extractors.locations.process_texts_into_docs")
     def test_extract_locations(self, mock_process_texts):
         """Test extract_locations function."""
         extractor = LocationExtractor()

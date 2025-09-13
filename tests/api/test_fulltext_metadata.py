@@ -1,8 +1,9 @@
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 import flask
-from lib.extractors.metadata import Metadata
+import pytest
+
+from colandr.lib.extractors.metadata import Metadata
 
 
 @pytest.mark.usefixtures("db_session")
@@ -127,8 +128,8 @@ class TestFulltextMetadataResource:
     @patch("colandr.apis.resources.fulltext_metadata._get_training_data")
     def test_get_model_for_review(self, mock_get_training_data, app):
         """Test the get_model_for_review function."""
-        from lib.extractors.review_model import TrainingData, SingleValue
         from colandr.apis.resources.fulltext_metadata import _get_model_for_review
+        from colandr.lib.extractors.review_model import SingleValue, TrainingData
 
         mock_training = [
             TrainingData(
@@ -158,10 +159,13 @@ class TestFulltextMetadataResource:
         mock_model = MagicMock()
 
         # Test with cache miss
-        with patch("colandr.extensions.review_model_cache.get") as mock_cache_get, \
-            patch("colandr.extensions.review_model_cache.set") as mock_cache_set, \
-            patch("colandr.apis.resources.fulltext_metadata.ReviewModel") as mock_model_class:
-
+        with (
+            patch("colandr.extensions.review_model_cache.get") as mock_cache_get,
+            patch("colandr.extensions.review_model_cache.set") as mock_cache_set,
+            patch(
+                "colandr.apis.resources.fulltext_metadata.ReviewModel"
+            ) as mock_model_class,
+        ):
             mock_cache_get.return_value = None
             mock_model_class.return_value = mock_model
             mock_model.train.return_value = True
@@ -190,7 +194,7 @@ class TestFulltextMetadataResource:
     def test_get_training_data_filtering(self, mock_get_field_definitions, app, db_session):
         """Test get_training_data function properly filters labels based on field types."""
         from colandr.apis.resources.fulltext_metadata import _get_training_data
-        from lib.extractors.review_model import RecordType
+        from colandr.lib.extractors.review_model import RecordType
 
         mock_field_defs = [
             RecordType(label="biome", field_type="select_one", allowed_values=["forest", "desert"]),
@@ -200,7 +204,9 @@ class TestFulltextMetadataResource:
         ]
         mock_get_field_definitions.return_value = mock_field_defs
 
-        with patch("colandr.apis.resources.fulltext_metadata.db.session.execute") as mock_execute:
+        with patch(
+            "colandr.apis.resources.fulltext_metadata.db.session.execute"
+        ) as mock_execute:
             mock_study = MagicMock()
             mock_study.id = 1
             mock_study.review_id = 1
