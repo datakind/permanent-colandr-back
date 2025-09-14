@@ -1,14 +1,13 @@
 """Tests for the text metadata extractors."""
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MultiLabelBinarizer
 
-from lib.extractors.review_model import (
-    ReviewModel, TrainingData, SingleValue
-)
+from colandr.lib.extractors.review_model import ReviewModel, SingleValue, TrainingData
 
 
 class TestReviewModel:
@@ -38,8 +37,7 @@ class TestReviewModel:
         )
         short_sent = self._create_mock_sentence("This sentence is too short.")
         no_verb_sent = self._create_mock_sentence(
-            "A long title fragment with no actual verb.",
-            has_verb=False
+            "A long title fragment with no actual verb.", has_verb=False
         )
         keyword_sent = self._create_mock_sentence(
             "A long sentence that contains a forbidden keyword like DEBUG."
@@ -55,10 +53,14 @@ class TestReviewModel:
         """Test the train method succeeds with sufficient data."""
         model = ReviewModel()
         training_data = [
-            TrainingData(1, "This is a valid sentence.", labels=[SingleValue("biome", "forest")])
+            TrainingData(
+                1, "This is a valid sentence.", labels=[SingleValue("biome", "forest")]
+            )
         ] * 10  # 10 labels
 
-        with patch("lib.extractors.review_model.Pipeline") as mock_pipeline_class:
+        with patch(
+            "colandr.lib.extractors.review_model.Pipeline"
+        ) as mock_pipeline_class:
             mock_pipeline_instance = MagicMock()
             mock_pipeline_class.return_value = mock_pipeline_instance
 
@@ -90,9 +92,11 @@ class TestReviewModel:
         model = ReviewModel()
         model.last_training_size = 10
 
-        training_data = [TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(16)]
+        training_data = [
+            TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(16)
+        ]
 
-        with patch.object(model, 'train') as mock_train:
+        with patch.object(model, "train") as mock_train:
             mock_train.return_value = True
             retrained, _ = model.compare_and_train(
                 training_data, min_samples=10, increase_requirement=5
@@ -105,24 +109,26 @@ class TestReviewModel:
         model = ReviewModel()
         model.last_training_size = 10
 
-        training_data = [TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(14)]
+        training_data = [
+            TrainingData(i, "text", labels=[SingleValue("a", "b")]) for i in range(14)
+        ]
 
-        with patch.object(model, 'train') as mock_train:
+        with patch.object(model, "train") as mock_train:
             retrained, _ = model.compare_and_train(
                 training_data, min_samples=10, increase_requirement=5
             )
             assert retrained is False
             mock_train.assert_not_called()
 
-    @patch('lib.extractors.review_model.process_texts_into_docs')
+    @patch("colandr.lib.extractors.review_model.process_texts_into_docs")
     def test_extract_metadata(self, mock_process_texts):
         """Test the full metadata extraction integration."""
         model = ReviewModel()
 
         mock_pipeline = MagicMock(spec=Pipeline)
         mock_probs = [
-            np.array([[0.1, 0.9]]), # Probs for label 1 (class 0, class 1)
-            np.array([[0.6, 0.4]])  # Probs for label 2 (class 0, class 1)
+            np.array([[0.1, 0.9]]),  # Probs for label 1 (class 0, class 1)
+            np.array([[0.6, 0.4]]),  # Probs for label 2 (class 0, class 1)
         ]
         mock_pipeline.predict_proba.return_value = mock_probs
         model.pipeline = mock_pipeline

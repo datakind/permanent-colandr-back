@@ -1,8 +1,9 @@
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import MagicMock, patch
 
 import flask
-from lib.extractors.metadata import Metadata
+import pytest
+
+from colandr.lib.extractors.metadata import Metadata
 
 
 @pytest.mark.usefixtures("db_session")
@@ -17,13 +18,17 @@ class TestFulltextMetadataResource:
         ],
     )
     @patch("colandr.apis.resources.fulltext_metadata._get_model_for_review")
-    def test_get(self, mock_get_model, id_, params, status_code, app, client, admin_headers):
+    def test_get(
+        self, mock_get_model, id_, params, status_code, app, client, admin_headers
+    ):
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model if status_code == 200 else None
         mock_model.extract_metadata.return_value = []
 
         with app.test_request_context():
-            url = flask.url_for("fulltext_metadata_fulltext_metadata_resource", id=id_, **params)
+            url = flask.url_for(
+                "fulltext_metadata_fulltext_metadata_resource", id=id_, **params
+            )
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
 
@@ -36,7 +41,7 @@ class TestFulltextMetadataResource:
                     mock_model.extract_metadata.assert_called_with(
                         id_,
                         "This is an example text in English. Second sentence.",
-                        threshold=app.config.get("METADATA_THRESHOLD")
+                        threshold=app.config.get("METADATA_THRESHOLD"),
                     )
 
     @patch("colandr.apis.resources.fulltext_metadata._get_model_for_review")
@@ -53,7 +58,7 @@ class TestFulltextMetadataResource:
                 sentence="This study was conducted in a tropical forest.",
                 sentence_location=8,
                 confidence=0.85,
-                confidence_level=2
+                confidence_level=2,
             ),
             Metadata(
                 record=1,
@@ -62,8 +67,8 @@ class TestFulltextMetadataResource:
                 sentence="We observed several lion populations.",
                 sentence_location=15,
                 confidence=0.92,
-                confidence_level=3
-            )
+                confidence_level=3,
+            ),
         ]
         mock_model.extract_metadata.return_value = mock_metadata
 
@@ -86,7 +91,7 @@ class TestFulltextMetadataResource:
         mock_model.extract_metadata.assert_called_with(
             1,
             "This is an example text in English. Second sentence.",
-            threshold=app.config.get("METADATA_THRESHOLD")
+            threshold=app.config.get("METADATA_THRESHOLD"),
         )
 
     @patch("colandr.apis.resources.fulltext_metadata._get_model_for_review")
@@ -103,14 +108,16 @@ class TestFulltextMetadataResource:
                 sentence="This study was conducted in a tropical forest.",
                 sentence_location=8,
                 confidence=0.85,
-                confidence_level=2
+                confidence_level=2,
             )
         ]
         mock_model.extract_metadata.return_value = mock_metadata
 
         with app.test_request_context():
             params = {"meta": "biome"}
-            url = flask.url_for("fulltext_metadata_fulltext_metadata_resource", id=1, **params)
+            url = flask.url_for(
+                "fulltext_metadata_fulltext_metadata_resource", id=1, **params
+            )
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
 
@@ -121,35 +128,35 @@ class TestFulltextMetadataResource:
         mock_model.extract_metadata.assert_called_with(
             1,
             "This is an example text in English. Second sentence.",
-            threshold=app.config.get("METADATA_THRESHOLD")
+            threshold=app.config.get("METADATA_THRESHOLD"),
         )
 
     @patch("colandr.apis.resources.fulltext_metadata._get_training_data")
     def test_get_model_for_review(self, mock_get_training_data, app):
         """Test the get_model_for_review function."""
-        from lib.extractors.review_model import TrainingData, SingleValue
         from colandr.apis.resources.fulltext_metadata import _get_model_for_review
+        from colandr.lib.extractors.review_model import SingleValue, TrainingData
 
         mock_training = [
             TrainingData(
                 record_id=1,
                 text_content="This is a forest biome with trees.",
-                labels=[SingleValue(label="biome", value="forest")]
+                labels=[SingleValue(label="biome", value="forest")],
             ),
             TrainingData(
                 record_id=2,
                 text_content="Desert regions have hot climate.",
-                labels=[SingleValue(label="biome", value="desert")]
-            )
+                labels=[SingleValue(label="biome", value="desert")],
+            ),
         ]
 
         # Add enough training data to meet minimum requirements
         for i in range(38):
             mock_training.append(
                 TrainingData(
-                    record_id=i+3,
+                    record_id=i + 3,
                     text_content=f"Sample {i} forest text content",
-                    labels=[SingleValue(label="biome", value="forest")]
+                    labels=[SingleValue(label="biome", value="forest")],
                 )
             )
 
@@ -158,10 +165,13 @@ class TestFulltextMetadataResource:
         mock_model = MagicMock()
 
         # Test with cache miss
-        with patch("colandr.extensions.review_model_cache.get") as mock_cache_get, \
-            patch("colandr.extensions.review_model_cache.set") as mock_cache_set, \
-            patch("colandr.apis.resources.fulltext_metadata.ReviewModel") as mock_model_class:
-
+        with (
+            patch("colandr.extensions.review_model_cache.get") as mock_cache_get,
+            patch("colandr.extensions.review_model_cache.set") as mock_cache_set,
+            patch(
+                "colandr.apis.resources.fulltext_metadata.ReviewModel"
+            ) as mock_model_class,
+        ):
             mock_cache_get.return_value = None
             mock_model_class.return_value = mock_model
             mock_model.train.return_value = True
@@ -187,20 +197,32 @@ class TestFulltextMetadataResource:
                 mock_cache_set.assert_not_called()
 
     @patch("colandr.apis.resources.fulltext_metadata._get_field_definitions")
-    def test_get_training_data_filtering(self, mock_get_field_definitions, app, db_session):
+    def test_get_training_data_filtering(
+        self, mock_get_field_definitions, app, db_session
+    ):
         """Test get_training_data function properly filters labels based on field types."""
         from colandr.apis.resources.fulltext_metadata import _get_training_data
-        from lib.extractors.review_model import RecordType
+        from colandr.lib.extractors.review_model import RecordType
 
         mock_field_defs = [
-            RecordType(label="biome", field_type="select_one", allowed_values=["forest", "desert"]),
-            RecordType(label="species", field_type="select_many", allowed_values=["lion", "tiger"]),
+            RecordType(
+                label="biome",
+                field_type="select_one",
+                allowed_values=["forest", "desert"],
+            ),
+            RecordType(
+                label="species",
+                field_type="select_many",
+                allowed_values=["lion", "tiger"],
+            ),
             RecordType(label="area", field_type="float"),
-            RecordType(label="notes", field_type="text")
+            RecordType(label="notes", field_type="text"),
         ]
         mock_get_field_definitions.return_value = mock_field_defs
 
-        with patch("colandr.apis.resources.fulltext_metadata.db.session.execute") as mock_execute:
+        with patch(
+            "colandr.apis.resources.fulltext_metadata.db.session.execute"
+        ) as mock_execute:
             mock_study = MagicMock()
             mock_study.id = 1
             mock_study.review_id = 1
@@ -211,7 +233,7 @@ class TestFulltextMetadataResource:
                 {"label": "biome", "value": "forest"},
                 {"label": "species", "value": ["lion", "tiger"]},
                 {"label": "area", "value": "100.5"},
-                {"label": "notes", "value": "Some text notes"}
+                {"label": "notes", "value": "Some text notes"},
             ]
 
             mock_result = [(mock_study, mock_extraction)]

@@ -9,14 +9,15 @@ runs:
   using: composite
   steps:
     - name: Install python
-      uses: actions/setup-python@v5.6
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ inputs.python-version }}
     - name: Install uv
-      uses: astral-sh/setup-uv@v6.1.0
+      uses: astral-sh/setup-uv@v6.7.0
       with:
-        version: "0.7.13"
+        version-file: "pyproject.toml"
         enable-cache: true
+        ignore-nothing-to-cache: true
     - name: Install project and dependencies
       run: uv sync --frozen --dev
       shell: bash

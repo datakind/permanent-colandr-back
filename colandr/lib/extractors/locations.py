@@ -83,7 +83,7 @@ class LocationExtractor:
                     {
                         "entity": ent.text,
                         "sentence": context,
-                        "sentence_location": sent_pos
+                        "sentence_location": sent_pos,
                     }
                 )
 

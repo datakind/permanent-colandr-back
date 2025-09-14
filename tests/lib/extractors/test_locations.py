@@ -1,5 +1,6 @@
 """Tests for the text locations extractors."""
-from unittest.mock import patch, MagicMock
+
+from unittest.mock import MagicMock, patch
 
 from colandr.lib.extractors.locations import LocationExtractor
 from colandr.lib.extractors.metadata import Metadata
@@ -47,7 +48,7 @@ class TestLocationExtractor:
 
             assert extractor.is_in_reference(mock_ent) is False
 
-    @patch('lib.extractors.locations.process_texts_into_docs')
+    @patch("colandr.lib.extractors.locations.process_texts_into_docs")
     def test_extract_locations(self, mock_process_texts):
         """Test extract_locations function."""
         extractor = LocationExtractor()
@@ -83,7 +84,7 @@ class TestLocationExtractor:
 
         extractor.is_in_reference = MagicMock(return_value=False)
 
-        with patch.object(extractor, '_group_locations') as mock_group:
+        with patch.object(extractor, "_group_locations") as mock_group:
             mock_group.return_value = [
                 Metadata(
                     record=1,
@@ -103,7 +104,9 @@ class TestLocationExtractor:
                 ),
             ]
 
-            result = extractor.extract_locations(1, "Document with locations: London, England.")
+            result = extractor.extract_locations(
+                1, "Document with locations: London, England."
+            )
 
             assert len(result) == 2
             assert result[0].value == "london"
@@ -123,20 +126,20 @@ class TestLocationExtractor:
                     "entity": "London",
                     "sentence": "Sentence 1 about London.",
                     "sentence_location": 1,
-                    "percentage": 0.1
+                    "percentage": 0.1,
                 },
                 {
                     "entity": "london",
                     "sentence": "Sentence 2 about london.",
                     "sentence_location": 2,
-                    "percentage": 0.2
+                    "percentage": 0.2,
                 },
                 {
                     "entity": "Paris",
                     "sentence": "Sentence about Paris.",
                     "sentence_location": 3,
-                    "percentage": 0.3
-                }
+                    "percentage": 0.3,
+                },
             ]
 
             result = extractor._group_locations(1, locations)

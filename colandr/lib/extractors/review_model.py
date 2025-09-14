@@ -27,24 +27,28 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Label:
     """Base class for labels."""
+
     label: str
 
 
 @dataclass
 class SingleValue(Label):
     """Label which contains a single value."""
+
     value: str
 
 
 @dataclass
 class MultiValue(Label):
     """Label which contains multiple values."""
+
     values: list[str]
 
 
 @dataclass
 class TrainingData:
     """Training data for a document."""
+
     record_id: int
     text_content: str
     labels: list[Label]
@@ -53,6 +57,7 @@ class TrainingData:
 @dataclass
 class RecordType:
     """Definition of a field from the review plan."""
+
     label: str
     field_type: str
     allowed_values: Optional[list[str]] = None
@@ -60,6 +65,7 @@ class RecordType:
 
 class VectorReshaper(BaseEstimator, TransformerMixin):
     """Transformer that reshapes a pandas Series of 1D arrays into a 2D numpy array."""
+
     def fit(self, x: pd.Series, y: Optional[pd.Series] = None) -> "VectorReshaper":
         """Fits the transformer (no-op)."""
         return self
@@ -141,8 +147,11 @@ class ReviewModel:
 
         total_label_count = self._count_total_labels(training_data)
         if total_label_count < min_samples:
-            logger.warning("Not enough training data. Found %s labels, but require %s.",
-                           total_label_count, min_samples)
+            logger.warning(
+                "Not enough training data. Found %s labels, but require %s.",
+                total_label_count,
+                min_samples,
+            )
             return False
 
         try:
@@ -157,31 +166,41 @@ class ReviewModel:
         y_train = self.label_binarizer.fit_transform(targets)
         logger.info("Discovered %s unique labels.", len(self.label_binarizer.classes_))
 
-        tfidf_vectorizer = TfidfVectorizer(ngram_range=(1, 2), max_features=20000, min_df=3)
+        tfidf_vectorizer = TfidfVectorizer(
+            ngram_range=(1, 2), max_features=20000, min_df=3
+        )
         preprocessor = ColumnTransformer(
             transformers=[
-                ('tfidf', tfidf_vectorizer, 'lemmatized_text'),
-                ('vectors', VectorReshaper(), 'sentence_vector'),
-                ('numeric', StandardScaler(), ['position', 'sentence_length'])
+                ("tfidf", tfidf_vectorizer, "lemmatized_text"),
+                ("vectors", VectorReshaper(), "sentence_vector"),
+                ("numeric", StandardScaler(), ["position", "sentence_length"]),
             ],
-            remainder='drop'
+            remainder="drop",
         )
 
         sgd_classifier = SGDClassifier(
-            loss='log_loss', random_state=42, early_stopping=True,
-            n_iter_no_change=10, alpha=5e-4, class_weight='balanced'
+            loss="log_loss",
+            random_state=42,
+            early_stopping=True,
+            n_iter_no_change=10,
+            alpha=5e-4,
+            class_weight="balanced",
         )
 
-        self.pipeline = Pipeline([
-            ('preprocessor', preprocessor),
-            ('classifier', MultiOutputClassifier(sgd_classifier))
-        ])
+        self.pipeline = Pipeline(
+            [
+                ("preprocessor", preprocessor),
+                ("classifier", MultiOutputClassifier(sgd_classifier)),
+            ]
+        )
 
         logger.info("Starting model training...")
         self.pipeline.fit(x_train, y_train)
 
         self.last_training_size = total_label_count
-        logger.info("Training completed successfully with %s labels.", self.last_training_size)
+        logger.info(
+            "Training completed successfully with %s labels.", self.last_training_size
+        )
 
         return True
 
@@ -210,7 +229,7 @@ class ReviewModel:
                 y_val_true,
                 y_val_pred,
                 target_names=self.label_binarizer.classes_,
-                zero_division=0
+                zero_division=0,
             )
             logger.info("Model Validation Report:\n%s", report)
             return report
@@ -243,7 +262,9 @@ class ReviewModel:
 
         x_predict = features_df
         list_of_prob_arrays = self.pipeline.predict_proba(x_predict)
-        probabilities = np.hstack([arr[:, 1].reshape(-1, 1) for arr in list_of_prob_arrays])
+        probabilities = np.hstack(
+            [arr[:, 1].reshape(-1, 1) for arr in list_of_prob_arrays]
+        )
 
         results: list[Metadata] = []
         for i, sentence_scores in enumerate(probabilities):
@@ -259,7 +280,9 @@ class ReviewModel:
                             sentence=original_sentences[i]["text"],
                             sentence_location=original_sentences[i]["index"],
                             confidence=prob,
-                            confidence_level=self._get_confidence_level(threshold, prob)
+                            confidence_level=self._get_confidence_level(
+                                threshold, prob
+                            ),
                         )
                     )
 
@@ -278,7 +301,7 @@ class ReviewModel:
         self,
         training_data: list[TrainingData],
         min_samples: int = 40,
-        increase_requirement: int = 5
+        increase_requirement: int = 5,
     ) -> tuple[bool, "ReviewModel"]:
         """
         Compare new training data with previous data and retrain if necessary.
@@ -298,23 +321,31 @@ class ReviewModel:
         current_total_labels = self._count_total_labels(training_data)
 
         if current_total_labels < min_samples:
-            logger.info("Current data (%s labels) is below minimum of %s. Not training.",
-                        current_total_labels, min_samples)
+            logger.info(
+                "Current data (%s labels) is below minimum of %s. Not training.",
+                current_total_labels,
+                min_samples,
+            )
             return False, self
 
         if current_total_labels >= self.last_training_size + increase_requirement:
-            logger.info("New data meets retraining threshold (%s >= %s + %s).",
-                        current_total_labels, self.last_training_size, increase_requirement)
+            logger.info(
+                "New data meets retraining threshold (%s >= %s + %s).",
+                current_total_labels,
+                self.last_training_size,
+                increase_requirement,
+            )
             was_trained = self.train(training_data, min_samples=min_samples)
             return was_trained, self
 
-        logger.info("Not retraining model. New data (%s labels) does not exceed threshold.",
-                    current_total_labels)
+        logger.info(
+            "Not retraining model. New data (%s labels) does not exceed threshold.",
+            current_total_labels,
+        )
         return False, self
 
     def _create_sentence_features(
-        self,
-        data: list[TrainingData]
+        self, data: list[TrainingData]
     ) -> tuple[pd.DataFrame, list]:
         """
         Process documents and extract sentence-level features.
@@ -342,7 +373,9 @@ class ReviewModel:
                         doc_labels[item.record_id].add(f"{label.label}:{value}")
 
         main_contents = (self._split_references(item.text_content)[0] for item in data)
-        processed_docs = process_texts_into_docs(main_contents, max_len=None, exclude=("ner",))
+        processed_docs = process_texts_into_docs(
+            main_contents, max_len=None, exclude=("ner",)
+        )
 
         for item, doc in zip(data, processed_docs):
             doc_features, _ = self._extract_features_from_doc(doc)
@@ -354,11 +387,15 @@ class ReviewModel:
             targets_list.extend([current_doc_labels] * len(doc_features))
 
         if not features_list:
-            raise ValueError("No valid examples could be generated from the provided data")
+            raise ValueError(
+                "No valid examples could be generated from the provided data"
+            )
 
         return pd.concat(features_list, ignore_index=True), targets_list
 
-    def _extract_features_from_doc(self, doc: Optional[Doc]) -> tuple[pd.DataFrame, list[dict]]:
+    def _extract_features_from_doc(
+        self, doc: Optional[Doc]
+    ) -> tuple[pd.DataFrame, list[dict]]:
         """
         Extracts a feature DataFrame and sentence context from a single spaCy Doc.
 
@@ -379,13 +416,19 @@ class ReviewModel:
 
         for i, sent in enumerate(sentences):
             if self._is_valid_sentence(sent):
-                lemmas = [tok.lemma_.lower() for tok in sent if tok.is_alpha and not tok.is_stop]
-                features_list.append({
-                    "lemmatized_text": " ".join(lemmas),
-                    "sentence_vector": sent.vector,
-                    "position": i / total_sentences,
-                    "sentence_length": len(sent),
-                })
+                lemmas = [
+                    tok.lemma_.lower()
+                    for tok in sent
+                    if tok.is_alpha and not tok.is_stop
+                ]
+                features_list.append(
+                    {
+                        "lemmatized_text": " ".join(lemmas),
+                        "sentence_vector": sent.vector,
+                        "position": i / total_sentences,
+                        "sentence_length": len(sent),
+                    }
+                )
                 original_sentences.append({"text": sent.text.strip(), "index": i})
 
         return pd.DataFrame(features_list), original_sentences
@@ -422,7 +465,9 @@ class ReviewModel:
             return False
         sent_text = sent.text.strip()
         exclude_keywords = {"org.apache", "WARN", "DEBUG"}
-        if len(sent_text) < 50 or any(keyword in sent_text for keyword in exclude_keywords):
+        if len(sent_text) < 50 or any(
+            keyword in sent_text for keyword in exclude_keywords
+        ):
             return False
         if not any(token.pos_ == "VERB" for token in sent):
             return False
