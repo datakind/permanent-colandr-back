@@ -15,6 +15,7 @@ class Metadata:
         confidence (float): The probability under the model for the returned label.
         confidence_level (int): The confidence level.
     """
+
     record: int
     metadata: str
     value: str
