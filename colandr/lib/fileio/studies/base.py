@@ -76,7 +76,6 @@ class BaseReader:
             except UnicodeDecodeError:
                 LOGGER.warning(
                     "unable to read data from input path/stream with encoding='%s'",
-                    path_or_stream,
                     encoding,
                 )
                 continue
