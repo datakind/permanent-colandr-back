@@ -81,9 +81,7 @@ class FulltextMetadataResource(Resource):
 
         threshold = current_app.config.get("METADATA_THRESHOLD", 0.65)
         metadata = model.extract_metadata(
-            id,
-            study.fulltext.get("text_content"),
-            threshold=threshold
+            id, study.fulltext.get("text_content"), threshold=threshold
         )
 
         # Filter by metadata type if specified
@@ -118,9 +116,7 @@ def _get_field_definitions(review_id: int) -> list[RecordType]:
         if field_type and label:
             field_defs.append(
                 RecordType(
-                    label=label,
-                    field_type=field_type,
-                    allowed_values=allowed_values
+                    label=label, field_type=field_type, allowed_values=allowed_values
                 )
             )
 
@@ -144,9 +140,7 @@ def _get_training_data(review_id: int) -> list[TrainingData]:
 
     stmt = (
         select(models.Study, models.DataExtraction)
-        .join(
-            models.DataExtraction, models.Study.id == models.DataExtraction.study_id
-        )
+        .join(models.DataExtraction, models.Study.id == models.DataExtraction.study_id)
         .where(models.Study.review_id == review_id)
         .where(models.Study.fulltext.is_not(None))
         .where(models.DataExtraction.extracted_items.is_not(None))
@@ -175,7 +169,9 @@ def _get_training_data(review_id: int) -> list[TrainingData]:
             # Handle select_many fields which could have multiple values
             if isinstance(value, list):
                 if value:  # Skip empty lists
-                    labels.append(MultiValue(label=label, values=[v for v in value if v]))
+                    labels.append(
+                        MultiValue(label=label, values=[v for v in value if v])
+                    )
             else:
                 # Handle select_one fields
                 labels.append(SingleValue(label=label, value=str(value)))
@@ -183,9 +179,7 @@ def _get_training_data(review_id: int) -> list[TrainingData]:
         if labels:
             training_data.append(
                 TrainingData(
-                    record_id=study.id,
-                    text_content=text_content,
-                    labels=labels
+                    record_id=study.id, text_content=text_content, labels=labels
                 )
             )
 
@@ -216,7 +210,7 @@ def _get_model_for_review(review_id: int) -> ReviewModel:
         retrained, model = model.compare_and_train(
             training_data=training_data,
             min_samples=min_to_train,
-            increase_requirement=increase_to_retrain
+            increase_requirement=increase_to_retrain,
         )
 
         if retrained:
