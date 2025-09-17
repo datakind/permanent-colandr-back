@@ -88,7 +88,7 @@ All tools' configurations live alongside package config in the root `pyproject.t
 colandr's back-end Flask application includes a CLI with a few useful commands. Full details are available via the `--help` flag:
 
 ```shell
-$ docker exec -it colandr-api flask --help
+$ docker exec -it colandr-api flask --app "colandr.app.create_app()" --help
 ```
 
 ### initialize and modify the database
@@ -100,7 +100,7 @@ $ docker exec -it colandr-api flask db-create
 $ docker exec -it colandr-api flask db-seed --fpath /path/to/seed_data.json
 ```
 
-Technically you can "db-create" whenever you like, but it only creates tables that don't already exist in the database; in contrast, running "db-seed" on an alread-populated database may run into duplicate data violations. To drop and then re-create all of the db's tables to(to "reset" it), run
+Technically you can "db-create" whenever you like, but it only creates tables that don't already exist in the database; in contrast, running "db-seed" on an alread-populated database may run into duplicate data violations. To drop and then re-create all of the db's tables (to "reset" it), run
 
 ```shell
 $ docker exec -it colandr-api flask db-reset

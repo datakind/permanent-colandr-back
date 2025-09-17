@@ -86,8 +86,8 @@ ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
 ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
 
 # metadata extraction config
-METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", 0.65))
+METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
 METADATA_INCREASE_TO_RETRAIN = int(
-    os.environ.get("COLANDR_METADATA_INCREASE_TO_RETRAIN", 5)
+    os.environ.get("COLANDR_METADATA_INCREASE_TO_RETRAIN", "5")
 )
-METADATA_MIN_TO_TRAIN = int(os.environ.get("COLANDR_METADATA_MIN_TO_TRAIN", 40))
+METADATA_MIN_TO_TRAIN = int(os.environ.get("COLANDR_METADATA_MIN_TO_TRAIN", "40"))

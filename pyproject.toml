@@ -73,7 +73,8 @@ build-backend = "uv_build"
 required-version = ">=0.8.0,<0.9.0"
 
 [tool.uv.build-backend]
-namespace = true
+module-name = "colandr"
+module-root = ""
 
 [tool.mypy]
 files = ["colandr/**/*.py"]
@@ -101,10 +102,19 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "I"]
-# ignore line-length violations, None comparisons, unused imports
-ignore = ["E501", "E711", "F401"]
+select = [
+  "E4",  # pycodestyle
+  "E7",
+  "E9",
+  "F",   # pyflakes
+  "I",   # isort
+  "PLE", # pylint
+  "PLW",
+]
+# ignore line-length violations, None comparisons, unused imports, overwritten assignment
+ignore = ["E501", "E711", "F401", "PLW2901"]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2
 known-first-party = ["colandr"]
+known-third-party = ["alembic"]
