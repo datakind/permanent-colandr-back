@@ -73,7 +73,8 @@ build-backend = "uv_build"
 required-version = ">=0.8.0,<0.9.0"
 
 [tool.uv.build-backend]
-namespace = true
+module-name = "colandr"
+module-root = ""
 
 [tool.mypy]
 files = ["colandr/**/*.py"]
