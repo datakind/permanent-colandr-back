@@ -6,6 +6,8 @@ import flask_migrate
 import flask_sqlalchemy
 import sqlalchemy.orm
 
+from colandr.lib import flask_filesystem
+
 
 class _BaseModel(sqlalchemy.orm.DeclarativeBase):
     # type_annotation_map = {dict[str, typing.Any]: sqlalchemy.dialects.postgresql.JSON}
@@ -17,6 +19,7 @@ db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
+filesystem = flask_filesystem.FileSystem()
 
 review_model_cache = flask_caching.Cache(
     config={
