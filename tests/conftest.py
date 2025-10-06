@@ -41,6 +41,7 @@ def app(tmp_path_factory):
         ),
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
+        "FILESYSTEM_PROTOCOL": "file",
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
     }
     app = create_app(config_overrides)

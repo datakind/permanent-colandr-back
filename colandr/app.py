@@ -50,5 +50,6 @@ def _register_extensions(app: flask.Flask) -> None:
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)
     extensions.review_model_cache.init_app(app)
+    extensions.filesystem.init_app(app)
     api_v1.init_app(app)
     extensions.init_celery_app(app)

@@ -3,7 +3,7 @@ import os
 
 import flask_jwt_extended as jwtext
 import ftfy
-from flask import current_app, send_from_directory
+from flask import current_app, send_file
 from flask_restx import Namespace, Resource
 from marshmallow import fields as ma_fields
 from marshmallow.validate import Range
@@ -65,18 +65,20 @@ class FulltextUploadResource(Resource):
     def get(self, id, review_id):
         """get fulltext content file for a single fulltext by id"""
         current_user = jwtext.get_current_user()
-        upload_dir = None
-        filename = None
+        fs = current_app.extensions["filesystem"]
+        allowed_exts = current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]
+        filepath = None
         if review_id is None:
-            for dirname, _, filenames in os.walk(
-                current_app.config["FULLTEXT_UPLOADS_DIR"]
+            for fpath in fs.glob(
+                os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], "**"),
+                maxdepth=2,
             ):
-                for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
-                    fname = f"{id}{ext}"
-                    if fname in filenames:
-                        filename = fname
-                        upload_dir = dirname
-                        break
+                fname = os.path.basename(fpath)
+                # directories will have stem == "", so don't satisfy if condition
+                stem, ext = os.path.splitext(fname)
+                if stem == str(id) and ext in allowed_exts:
+                    filepath = fpath
+                    break
         else:
             # authenticate current user
             review = db.session.get(models.Review, review_id)
@@ -96,15 +98,30 @@ class FulltextUploadResource(Resource):
                 current_app.config["FULLTEXT_UPLOADS_DIR"], str(review_id)
             )
             for ext in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
-                fname = f"{id}{ext}"
-                if os.path.isfile(os.path.join(upload_dir, fname)):
-                    filename = fname
+                fpath = os.path.join(upload_dir, f"{id}{ext}")
+                if fs.exists(fpath):
+                    filepath = fpath
                     break
-        if not filename:
+        if not filepath:
             return not_found_error(f"no uploaded file for <Study(id={id})> found")
 
-        assert upload_dir is not None  # type guard
-        return send_from_directory(upload_dir, filename)
+        # NOTE: this approach leaves behind a local copy of the fulltext file
+        # when the filesystem isn't local disk -- not great!
+        # the workaround below should work for any filesystem
+        # if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
+        #     return send_file(filepath)
+        # else:
+        #     remote_filepath = filepath
+        #     local_filepath = os.path.join("/tmp", "colandr", filepath)
+        #     fs.get_file(remote_filepath, local_filepath)
+        #     return send_file(local_filepath)
+
+        with fs.open(filepath, mode="rb") as f:
+            file_contents = f.read()
+        return send_file(
+            io.BytesIO(file_contents),
+            download_name=os.path.basename(filepath),
+        )
 
     @ns.doc(
         params={
@@ -153,6 +170,7 @@ class FulltextUploadResource(Resource):
         _, ext = os.path.splitext(uploaded_file.filename)
         if ext not in current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]:
             return bad_request_error(f'invalid fulltext upload file type: "{ext}"')
+
         # assign filename based an id, and full path
         filename = f"{id}{ext}"
         filepath = os.path.join(
@@ -160,18 +178,36 @@ class FulltextUploadResource(Resource):
             str(study.review_id),
             filename,
         )
-        # HACK: make review directory if doesn't already exist
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        # save file content to disk
-        uploaded_file.save(filepath)
-        # extract content from disk, depending on type
-        if ext == ".txt":
-            with io.open(filepath, mode="rb") as f:
-                text_content = f.read()
-        elif ext == ".pdf":
-            text_content = fileio.pdf.read(filepath).encode("utf-8")
+        fs = current_app.extensions["filesystem"]
+        # make review directory if doesn't already exist
+        fs.makedirs(os.path.dirname(filepath), exist_ok=True)
+        # save content to file on filesystem
+        if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
+            uploaded_file.save(filepath)
         else:
-            raise ValueError(f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf")
+            # HACK: save file temporarily to local disk (is this advisable??)
+            remote_filepath = filepath
+            local_filepath = os.path.join("/tmp", "colandr", remote_filepath)
+            uploaded_file.save(local_filepath)
+            fs.put_file(local_filepath, remote_filepath)
+            # below, we'll leverage the local file for io
+            filepath = local_filepath
+
+        try:
+            # extract content from disk, depending on type
+            if ext == ".txt":
+                with io.open(filepath, mode="rb") as f:
+                    text_content = f.read()
+            elif ext == ".pdf":
+                text_content = fileio.pdf.read(filepath).encode("utf-8")
+            else:
+                raise ValueError(
+                    f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf"
+                )
+        finally:
+            # remove uploaded file that was temporarily saved in a local dir
+            if current_app.config["FILESYSTEM_PROTOCOL"] != "file":
+                os.remove(local_filepath)  # type: ignore
 
         fulltext = {
             "filename": filename,
@@ -237,9 +273,10 @@ class FulltextUploadResource(Resource):
             str(study.review_id),
             fulltext["filename"],
         )
+        fs = current_app.extensions["filesystem"]
         try:
-            os.remove(filepath)
-        except OSError:
+            fs.rm_file(filepath)
+        except IOError:
             msg = "error removing uploaded full-text file from disk"
             current_app.logger.exception(msg + "\n")
             return not_found_error(msg)
