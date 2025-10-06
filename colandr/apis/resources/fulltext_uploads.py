@@ -105,18 +105,23 @@ class FulltextUploadResource(Resource):
         if not filepath:
             return not_found_error(f"no uploaded file for <Study(id={id})> found")
 
-        # NOTE: this doesn't work, because the file is closed before it's read
-        # would be nice to have a cleaner way to do this for remote files :/
-        # with fs.open(filepath, mode="rb") as f:
-        #     return send_file(f, download_name=os.path.basename(filepath))
+        # NOTE: this approach leaves behind a local copy of the fulltext file
+        # when the filesystem isn't local disk -- not great!
+        # the workaround below should work for any filesystem
+        # if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
+        #     return send_file(filepath)
+        # else:
+        #     remote_filepath = filepath
+        #     local_filepath = os.path.join("/tmp", "colandr", filepath)
+        #     fs.get_file(remote_filepath, local_filepath)
+        #     return send_file(local_filepath)
 
-        if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
-            return send_file(filepath)
-        else:
-            remote_filepath = filepath
-            local_filepath = os.path.join("/tmp", "colandr", filepath)
-            fs.get_file(remote_filepath, local_filepath)
-            return send_file(local_filepath)
+        with fs.open(filepath, mode="rb") as f:
+            file_contents = f.read()
+        return send_file(
+            io.BytesIO(file_contents),
+            download_name=os.path.basename(filepath),
+        )
 
     @ns.doc(
         params={
