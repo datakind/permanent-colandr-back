@@ -105,11 +105,16 @@ class FulltextUploadResource(Resource):
         if not filepath:
             return not_found_error(f"no uploaded file for <Study(id={id})> found")
 
+        # NOTE: this doesn't work, because the file is closed before it's read
+        # would be nice to have a cleaner way to do this for remote files :/
+        # with fs.open(filepath, mode="rb") as f:
+        #     return send_file(f, download_name=os.path.basename(filepath))
+
         if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
             return send_file(filepath)
         else:
             remote_filepath = filepath
-            local_filepath = os.path.join("/tmp", filepath)
+            local_filepath = os.path.join("/tmp", "colandr", filepath)
             fs.get_file(remote_filepath, local_filepath)
             return send_file(local_filepath)
 
@@ -171,27 +176,33 @@ class FulltextUploadResource(Resource):
         fs = current_app.extensions["filesystem"]
         # make review directory if doesn't already exist
         fs.makedirs(os.path.dirname(filepath), exist_ok=True)
-        # breakpoint()
         # save content to file on filesystem
         if current_app.config["FILESYSTEM_PROTOCOL"] == "file":
             uploaded_file.save(filepath)
         else:
             # HACK: save file temporarily to local disk (is this advisable??)
             remote_filepath = filepath
-            local_filepath = os.path.join("/tmp", remote_filepath)
+            local_filepath = os.path.join("/tmp", "colandr", remote_filepath)
             uploaded_file.save(local_filepath)
             fs.put_file(local_filepath, remote_filepath)
             # below, we'll leverage the local file for io
             filepath = local_filepath
 
-        # extract content from disk, depending on type
-        if ext == ".txt":
-            with io.open(filepath, mode="rb") as f:
-                text_content = f.read()
-        elif ext == ".pdf":
-            text_content = fileio.pdf.read(filepath).encode("utf-8")
-        else:
-            raise ValueError(f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf")
+        try:
+            # extract content from disk, depending on type
+            if ext == ".txt":
+                with io.open(filepath, mode="rb") as f:
+                    text_content = f.read()
+            elif ext == ".pdf":
+                text_content = fileio.pdf.read(filepath).encode("utf-8")
+            else:
+                raise ValueError(
+                    f"filepath '{filepath}' suffix '{ext} is not .txt or .pdf"
+                )
+        finally:
+            # remove uploaded file that was temporarily saved in a local dir
+            if current_app.config["FILESYSTEM_PROTOCOL"] != "file":
+                os.remove(local_filepath)  # type: ignore
 
         fulltext = {
             "filename": filename,
