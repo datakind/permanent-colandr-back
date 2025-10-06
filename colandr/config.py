@@ -82,6 +82,10 @@ FILESYSTEM_STORAGE_OPTIONS = {
         "access": os.environ.get("COLANDR_FILESYSTEM_GCS_ACCESS", "read_write"),
     },
 }
+FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/tmp")
+FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "colandr_data", "fulltexts")
+ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
+ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
 # TODO: figure out root dir vs app dir
 COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
 DEDUPE_MODELS_DIR = os.path.join(
@@ -89,11 +93,6 @@ DEDUPE_MODELS_DIR = os.path.join(
 )
 RANKER_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranker_models")
 RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
-FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/tmp")
-CITATIONS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "colandr_data", "citations")
-FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "colandr_data", "fulltexts")
-ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
-ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
 
 # metadata extraction config
 METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
