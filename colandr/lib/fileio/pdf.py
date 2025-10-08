@@ -1,18 +1,26 @@
+import io
 import pathlib
+import typing as t
 
 import pymupdf
 
 
-def read(file_path: str | pathlib.Path, *, redact_tables: bool = False) -> str:
+def read(
+    *,
+    file_path: t.Optional[str | pathlib.Path] = None,
+    stream: t.Optional[bytes | io.BytesIO] = None,
+    redact_tables: bool = False,
+) -> str:
     """
     Extract text from a PDF file, optionally redacting tables so they're not included.
 
     Args:
         file_path
+        stream
         redact_tables
     """
     page_texts = []
-    with pymupdf.open(str(file_path), filetype="pdf") as doc:
+    with pymupdf.open(filename=file_path, stream=stream, filetype="pdf") as doc:
         for page in doc.pages():
             # assert isinstance(page, pymupdf.Page)  # type guard
             if redact_tables:

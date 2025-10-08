@@ -67,7 +67,7 @@ class TestPdfFile:
             request.config.rootpath / "tests" / "fixtures" / "fulltexts"
         )
         file_path = fixtures_dir / file_name
-        fulltext = pdf.read(file_path, redact_tables=redact_tables)
+        fulltext = pdf.read(file_path=file_path, redact_tables=redact_tables)
         assert fulltext and isinstance(fulltext, str)
         for snippet in included_snippets:
             assert snippet in fulltext
