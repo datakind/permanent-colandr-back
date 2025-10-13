@@ -67,6 +67,7 @@ services:
     platform: linux/amd64
     depends_on:
       - db
+      - gcs
       - broker
       - worker
     stop_signal: SIGINT
@@ -85,6 +86,7 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
+      - COLANDR_FILESYSTEM_GCS_ENDPOINT_URL=http://colandr-gcs:4443
     develop:
       watch:
         # sync working directory with container's `/app` directory
