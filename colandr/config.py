@@ -80,6 +80,8 @@ FILESYSTEM_STORAGE_OPTIONS = {
         "project": os.environ.get("COLANDR_FILESYSTEM_GCS_PROJECT"),
         "token": os.environ.get("COLANDR_FILESYSTEM_GCS_TOKEN"),
         "access": os.environ.get("COLANDR_FILESYSTEM_GCS_ACCESS", "read_write"),
+        "cache_timeout": 3600,
+        "endpoint_url": "http://localhost:4443" if TESTING else None,
     },
 }
 FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/tmp")

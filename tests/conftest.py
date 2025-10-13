@@ -44,9 +44,8 @@ def app(tmp_path_factory):
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
         # "FILESYSTEM_PROTOCOL": "gcs",
         # "FILESYSTEM_GCS_PROJECT": "test-project",
-        # "FILESYSTEM_GCS_ACCESS": "read_write",
-        # "FILESYSTEM_GCS_TOKEN": "anon",
         # "FILESYSTEM_ROOT_DIR": "test-bucket",
+        # "FILESYSTEM_GCS_TOKEN": "anon",
     }
     app = create_app(config_overrides)
     return app
