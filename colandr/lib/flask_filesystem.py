@@ -47,5 +47,8 @@ class FileSystem:
         bucket_name = app.config["FILESYSTEM_ROOT_DIR"]
         bucket = client.bucket(bucket_name)
         if not bucket.exists():
-            app.logger.info("creating GCS bucket %s ...", bucket_name)
-            client.create_bucket(bucket)
+            try:
+                app.logger.info("creating GCS bucket '%s' ...", bucket_name)
+                client.create_bucket(bucket)
+            except Exception:
+                app.logger.exception("error creating GCS bucket '%s'", bucket_name)
