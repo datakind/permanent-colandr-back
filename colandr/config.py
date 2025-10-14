@@ -79,8 +79,8 @@ FILESYSTEM_STORAGE_OPTIONS = {
     "gcs": {
         "project": os.environ.get("COLANDR_FILESYSTEM_GCS_PROJECT"),
         "token": os.environ.get("COLANDR_FILESYSTEM_GCS_TOKEN"),
-        "access": os.environ.get("COLANDR_FILESYSTEM_GCS_ACCESS", "read_write"),
         "endpoint_url": os.environ.get("COLANDR_FILESYSTEM_GCS_ENDPOINT_URL"),
+        "access": "read_write",
         "cache_timeout": 3600,
     },
 }
