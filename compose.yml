@@ -26,7 +26,13 @@ services:
     image: "fsouza/fake-gcs-server:1.52"
     ports:
       - "4443:4443"
-    command: -scheme http -port 4443 -data /storage -public-host colandr-gcs:4443
+    command:
+      [
+        "-scheme", "http",
+        "-public-host", "colandr-gcs:4443",
+        "-external-url", "http://colandr-gcs:4443",
+        "-data", "/storage",
+      ]
     volumes:
       - gcs-data:/storage
     profiles:
@@ -67,7 +73,6 @@ services:
     platform: linux/amd64
     depends_on:
       - db
-      - gcs
       - broker
       - worker
     stop_signal: SIGINT
