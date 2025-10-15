@@ -41,13 +41,13 @@ def app(tmp_path_factory):
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
         # local filesystem
-        # "FILESYSTEM_PROTOCOL": "file",
-        # "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
+        "FILESYSTEM_PROTOCOL": "file",
+        "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
         # (fake-)gcs filesystem
-        "FILESYSTEM_PROTOCOL": "gcs",
-        "FILESYSTEM_GCS_PROJECT": "test-project",
-        "FILESYSTEM_ROOT_DIR": "test-bucket",
-        "FILESYSTEM_GCS_TOKEN": "anon",
+        # "FILESYSTEM_PROTOCOL": "gcs",
+        # "FILESYSTEM_GCS_PROJECT": "test-project",
+        # "FILESYSTEM_ROOT_DIR": "test-bucket",
+        # "FILESYSTEM_GCS_TOKEN": "anon",
     }
     app = create_app(config_overrides)
     return app
