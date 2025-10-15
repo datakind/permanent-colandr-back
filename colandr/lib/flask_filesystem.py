@@ -31,3 +31,24 @@ class FileSystem:
         if not hasattr(app, "extensions"):
             app.extensions = {}
         app.extensions["filesystem"] = fs
+        # HACK!
+        if protocol == "gcs" and fs._endpoint is not None:
+            self._gcs_create_bucket(app, fs.project, fs._endpoint)
+
+    def _gcs_create_bucket(self, app: flask.Flask, project_id: str, api_endpoint: str):
+        from google.auth.credentials import AnonymousCredentials
+        from google.cloud import storage
+
+        client = storage.Client(
+            credentials=AnonymousCredentials(),
+            project=project_id,
+            client_options={"api_endpoint": api_endpoint},
+        )
+        bucket_name = app.config["FILESYSTEM_ROOT_DIR"]
+        bucket = client.bucket(bucket_name)
+        if not bucket.exists():
+            try:
+                app.logger.info("creating GCS bucket '%s' ...", bucket_name)
+                client.create_bucket(bucket)
+            except Exception:
+                app.logger.exception("error creating GCS bucket '%s'", bucket_name)

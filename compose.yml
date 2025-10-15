@@ -21,6 +21,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  gcs:
+    container_name: colandr-gcs
+    image: "fsouza/fake-gcs-server:1.52"
+    ports:
+      - "4443:4443"
+    command:
+      [
+        "-scheme", "http",
+        "-public-host", "colandr-gcs:4443",
+        "-external-url", "http://colandr-gcs:4443",
+        "-data", "/storage",
+      ]
+    volumes:
+      - gcs-data:/storage
+    profiles:
+      - dev
   email:
     container_name: colandr-email
     image: "axllent/mailpit:v1.24"
@@ -129,4 +145,5 @@ networks:
 
 volumes:
   db-data: {}
+  gcs-data: {}
   broker-data: {}
