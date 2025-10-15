@@ -59,17 +59,18 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
-      - uses: fsouza/fake-gcs-action@v0.4.1
+      - name: Set up fake GCS server
+        uses: fsouza/fake-gcs-action@v0.4.1
         with:
           version: "1.52.3"
-          backend: memory
-          data: /storage
+          backend: "memory"
+          data: "/storage"
           # public-host: "storage.gcs.127.0.0.1.nip.io:4443"
           # external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
           public-host: "colandr-gcs:4443"
           external-url: "http://colandr-gcs:4443"
-          scheme: http
-          port: 4443
+          scheme: "http"
+          port: "4443"
       - name: Set up Python
         uses: ./.github/actions/setup-python-env
         with:
