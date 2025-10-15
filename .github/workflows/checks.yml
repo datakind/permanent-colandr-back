@@ -19,6 +19,8 @@ env:
   COLANDR_APP_DIR: "/tmp"
   COLANDR_MAIL_USERNAME: "colandr_mail_username"
   COLANDR_MAIL_PASSWORD: "colandr_mail_password"
+  COLANDR_FILESYSTEM_GCS_ENDPOINT_URL: "http://colandr-gcs:4443"
+  COLANDR_FILESYSTEM_ROOT_DIR: "test-bucket"
 
 jobs:
 
@@ -57,6 +59,17 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
+      - uses: fsouza/fake-gcs-action@v0.4.1
+        with:
+          version: "1.52.3"
+          backend: memory
+          data: /storage
+          # public-host: "storage.gcs.127.0.0.1.nip.io:4443"
+          # external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
+          public-host: "colandr-gcs:4443"
+          external-url: "http://colandr-gcs:4443"
+          scheme: http
+          port: 4443
       - name: Set up Python
         uses: ./.github/actions/setup-python-env
         with:
