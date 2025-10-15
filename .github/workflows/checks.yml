@@ -64,7 +64,7 @@ jobs:
         with:
           version: "1.52.3"
           backend: "memory"
-          data: "./colandr_data/fake_gcs_storage"
+          data: "colandr_data"
           # public-host: "storage.gcs.127.0.0.1.nip.io:4443"
           # external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
           public-host: "colandr-gcs:4443"
