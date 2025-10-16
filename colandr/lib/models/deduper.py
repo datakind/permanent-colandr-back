@@ -6,8 +6,8 @@ import typing as t
 import urllib.parse
 from collections.abc import Iterable
 
-import dedupe
-from dedupe import variables
+# import dedupe
+# from dedupe import variables
 from textacy import preprocessing
 
 from .. import utils
@@ -22,21 +22,21 @@ RE_SPACED_HYPHEN = re.compile(r" *(–|-) *")
 
 SETTINGS_FNAME = "deduper_settings"
 TRAINING_FNAME = "deduper_training.json"
-VARIABLES: list[variables.base.Variable] = [
-    variables.Exact("doi"),
-    variables.String("title", name="title"),
-    variables.String("authors_joined", has_missing=True, name="authors_joined"),
-    variables.Set("authors_initials", name="authors_initials"),
-    variables.Exact("pub_year", has_missing=True, name="pub_year"),
-    variables.String("journal_name", has_missing=True, name="journal_name"),
-    variables.Exact("journal_volume", name="journal_volume"),
-    variables.Exact("journal_number", name="journal_number"),
-    variables.String("issn", name="issn"),
-    variables.Text("abstract", has_missing=True),
-    variables.Interaction("journal_name", "journal_volume", "journal_number"),
-    variables.Interaction("issn", "pub_year"),
-    variables.Interaction("title", "authors_joined"),
-]
+# VARIABLES: list[variables.base.Variable] = [
+#     variables.Exact("doi"),
+#     variables.String("title", name="title"),
+#     variables.String("authors_joined", has_missing=True, name="authors_joined"),
+#     variables.Set("authors_initials", name="authors_initials"),
+#     variables.Exact("pub_year", has_missing=True, name="pub_year"),
+#     variables.String("journal_name", has_missing=True, name="journal_name"),
+#     variables.Exact("journal_volume", name="journal_volume"),
+#     variables.Exact("journal_number", name="journal_number"),
+#     variables.String("issn", name="issn"),
+#     variables.Text("abstract", has_missing=True),
+#     variables.Interaction("journal_name", "journal_volume", "journal_number"),
+#     variables.Interaction("issn", "pub_year"),
+#     variables.Interaction("title", "authors_joined"),
+# ]
 
 
 class Deduper:
@@ -61,27 +61,29 @@ class Deduper:
         )
 
     @functools.cached_property
-    def model(self) -> dedupe.Dedupe | dedupe.StaticDedupe:
-        if self.settings_fpath is None:
-            _model = dedupe.Dedupe(
-                VARIABLES,  # type: ignore
-                num_cores=self.num_cores,
-                in_memory=self.in_memory,
-            )
-        else:
-            with open(self.settings_fpath, mode="rb") as f:
-                _model = dedupe.StaticDedupe(
-                    f, num_cores=self.num_cores, in_memory=self.in_memory
-                )
-        return _model
+    def model(self):  # -> dedupe.Dedupe | dedupe.StaticDedupe:
+        # if self.settings_fpath is None:
+        #     _model = dedupe.Dedupe(
+        #         VARIABLES,  # type: ignore
+        #         num_cores=self.num_cores,
+        #         in_memory=self.in_memory,
+        #     )
+        # else:
+        #     with open(self.settings_fpath, mode="rb") as f:
+        #         _model = dedupe.StaticDedupe(
+        #             f, num_cores=self.num_cores, in_memory=self.in_memory
+        #         )
+        # return _model
+        return None
 
     def preprocess_data(
         self,
         data: Iterable[dict[str, t.Any]],
         id_key: str,
     ) -> dict[t.Any, dict[str, t.Any]]:
-        fields = [pv.field for pv in self.model.data_model.field_variables]
-        LOGGER.info("preprocessing data with fields %s ...", fields)
+        # fields = [pv.field for pv in self.model.data_model.field_variables]
+        # LOGGER.info("preprocessing data with fields %s ...", fields)
+        LOGGER.info("preprocessing data for dedupe ...")
         return {record.pop(id_key): self._preprocess_record(record) for record in data}
 
     def _preprocess_record(self, record: dict[str, t.Any]) -> dict[str, t.Any]:
@@ -131,36 +133,38 @@ class Deduper:
         recall: float = 1.0,
         index_predicates: bool = True,
     ) -> "Deduper":
-        if isinstance(self.model, dedupe.StaticDedupe):
-            raise TypeError("deduper loaded from a settings file can't be re-fit")
-        LOGGER.info("preparing model %s for training ...", self.model)
-        if training_fpath is None:
-            self.model.prepare_training(data)
-        else:
-            training_fpath = utils.to_path(training_fpath)
-            with training_fpath.open(mode="r") as f:
-                self.model.prepare_training(data, training_file=f)
+        # if isinstance(self.model, dedupe.StaticDedupe):
+        #     raise TypeError("deduper loaded from a settings file can't be re-fit")
+        # LOGGER.info("preparing model %s for training ...", self.model)
+        # if training_fpath is None:
+        #     self.model.prepare_training(data)
+        # else:
+        #     training_fpath = utils.to_path(training_fpath)
+        #     with training_fpath.open(mode="r") as f:
+        #         self.model.prepare_training(data, training_file=f)
 
-        dedupe.console_label(self.model)
-        LOGGER.info("training model on labeled examples ...")
-        self.model.train(recall, index_predicates)
+        # dedupe.console_label(self.model)
+        # LOGGER.info("training model on labeled examples ...")
+        # self.model.train(recall, index_predicates)
         return self
 
     def predict(
         self, data: dict[t.Any, dict[str, t.Any]], threshold: float = 0.5
     ) -> list[tuple[tuple, tuple[float, ...]]]:
-        return self.model.partition(data, threshold=threshold)  # type: ignore
+        # return self.model.partition(data, threshold=threshold)  # type: ignore
+        return []
 
     def save(self, dir_path: str | pathlib.Path) -> None:
-        if isinstance(self.model, dedupe.StaticDedupe):
-            raise TypeError("deduper loaded from a settings file can't be re-saved")
-        dir_path = utils.to_path(dir_path)
-        dir_path.mkdir(parents=True, exist_ok=True)
-        LOGGER.info("saving deduper model setings and training data to %s", dir_path)
-        with (dir_path / SETTINGS_FNAME).open(mode="wb") as f:
-            self.model.write_settings(f)
-        with (dir_path / TRAINING_FNAME).open(mode="w") as f:
-            self.model.write_training(f)
+        # if isinstance(self.model, dedupe.StaticDedupe):
+        #     raise TypeError("deduper loaded from a settings file can't be re-saved")
+        # dir_path = utils.to_path(dir_path)
+        # dir_path.mkdir(parents=True, exist_ok=True)
+        # LOGGER.info("saving deduper model setings and training data to %s", dir_path)
+        # with (dir_path / SETTINGS_FNAME).open(mode="wb") as f:
+        #     self.model.write_settings(f)
+        # with (dir_path / TRAINING_FNAME).open(mode="w") as f:
+        #     self.model.write_training(f)
+        pass
 
 
 def _standardize_doi(value: str) -> str:

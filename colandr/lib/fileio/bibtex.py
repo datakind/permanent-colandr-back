@@ -3,6 +3,7 @@ References:
     - https://www.bibtex.com/g/bibtex-format
     - https://en.wikipedia.org/wiki/BibTeX
 """
+
 import logging
 import pathlib
 import re

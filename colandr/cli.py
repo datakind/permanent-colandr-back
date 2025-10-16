@@ -6,6 +6,7 @@ import shutil
 import alembic.command
 import alembic.config
 import click
+import sqlalchemy as sa
 from flask import Blueprint, current_app
 
 from colandr import models
@@ -62,6 +63,12 @@ def db_seed(file_path: pathlib.Path):
         db.session.add(models.Study(**record))
     for record in data["screenings"]:
         db.session.add(models.Screening(**record))
+    db.session.commit()
+    # hack! resync sequence after records w/ pkey ids specified inserted above
+    tbls = ["users", "reviews", "data_sources", "imports", "studies", "screenings"]
+    for tbl in tbls:
+        stmt = f"SELECT setval('{tbl}_id_seq', (SELECT MAX(id) FROM {tbl}))"
+        db.session.execute(sa.text(stmt))
     db.session.commit()
     # empty review plans already created w/ review
     for record in data["review_plans"]:

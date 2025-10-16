@@ -1,7 +1,6 @@
 import json
 import os
 import pathlib
-import shutil
 import typing as t
 
 import flask
@@ -41,7 +40,14 @@ def app(tmp_path_factory):
         ),
         "SQLALCHEMY_ECHO": True,
         "SQLALCHEMY_RECORD_QUERIES": True,
+        # local filesystem
+        "FILESYSTEM_PROTOCOL": "file",
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
+        # (fake-)gcs filesystem
+        # "FILESYSTEM_PROTOCOL": "gcs",
+        # "FILESYSTEM_GCS_PROJECT": "test-project",
+        # "FILESYSTEM_ROOT_DIR": "test-bucket",
+        # "FILESYSTEM_GCS_TOKEN": "anon",
     }
     app = create_app(config_overrides)
     return app
@@ -116,12 +122,14 @@ def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
             / "fulltexts"
             / record["fulltext"]["original_filename"]
         )
-        tgt_file_path = pathlib.Path(app.config["FULLTEXT_UPLOADS_DIR"]).joinpath(
-            str(record.get("review_id", 1)),  # HACK
+        tgt_file_path = os.path.join(
+            app.config["FULLTEXT_UPLOADS_DIR"],
+            str(record.get("review_id", 1)),
             record["fulltext"]["filename"],
         )
-        tgt_file_path.parent.mkdir(exist_ok=True)
-        shutil.copy(src_file_path, tgt_file_path)
+        fs = app.extensions["filesystem"]
+        fs.makedirs(os.path.dirname(tgt_file_path), exist_ok=True)
+        fs.put_file(src_file_path, tgt_file_path)
 
 
 @pytest.fixture

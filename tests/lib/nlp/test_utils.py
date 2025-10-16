@@ -40,7 +40,7 @@ from colandr.lib.nlp import utils
         ),
     ],
 )
-def test_process_texts_into_docs(texts, max_len, min_prob, fallback_lang):
+def test_process_texts_into_docs(texts, max_len, min_prob, fallback_lang, app):
     docs = list(
         utils.process_texts_into_docs(
             texts,

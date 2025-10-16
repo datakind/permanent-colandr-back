@@ -1,5 +1,3 @@
-# import typing
-
 import celery
 import flask_caching
 import flask_jwt_extended
@@ -7,11 +5,12 @@ import flask_mail
 import flask_migrate
 import flask_sqlalchemy
 import sqlalchemy.orm
-# from sqlalchemy.dialects import postgresql
+
+from colandr.lib import flask_filesystem
 
 
 class _BaseModel(sqlalchemy.orm.DeclarativeBase):
-    # type_annotation_map = {dict[str, typing.Any]: postgresql.JSON}
+    # type_annotation_map = {dict[str, typing.Any]: sqlalchemy.dialects.postgresql.JSON}
     pass
 
 
@@ -20,6 +19,15 @@ db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
+filesystem = flask_filesystem.FileSystem()
+
+review_model_cache = flask_caching.Cache(
+    config={
+        "CACHE_TYPE": "SimpleCache",
+        "CACHE_DEFAULT_TIMEOUT": 0,
+        "CACHE_THRESHOLD": 25,  # Maximum number of items
+    },
+)
 
 
 def init_celery_app(app):

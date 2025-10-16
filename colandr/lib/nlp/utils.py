@@ -45,6 +45,7 @@ def process_texts_into_docs(
         fallback_lang: Fallback language used in place of low-probability predictions.
         **kwargs: Passed as-is into :func:`textacy.load_spacy_lang()` .
     """
+    identify_lang = textacy.identify_lang
     # clean up whitespace, since lang identifier model is picky
     texts = (text.strip().replace("\n", " ") for text in texts)
     # truncate texts, optionally
@@ -53,16 +54,14 @@ def process_texts_into_docs(
     # identify most probable language (w/ optional fallback) for texts
     if min_prob is not None:
         text_lang_probs = (
-            (text, textacy.identify_lang(text, with_probs=True)) for text in texts
+            (text, identify_lang(text, with_probs=True)) for text in texts
         )
         text_langs = (
             (text, lang) if prob >= min_prob else (text, fallback_lang)
             for text, (lang, prob) in text_lang_probs
         )
     else:
-        text_langs = (
-            (text, textacy.identify_lang(text, with_probs=False)) for text in texts
-        )
+        text_langs = ((text, identify_lang(text, with_probs=False)) for text in texts)
     # join texts to langs, then iterate over lang-groups for processing efficiency
     lang_models = get_lang_to_models()
     for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):
