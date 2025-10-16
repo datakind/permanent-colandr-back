@@ -62,8 +62,8 @@ dev = [
   "mypy~=1.0",
   "pytest~=8.0",
   "pytest-postgresql~=7.0",
-  "SQLAlchemy-Utils~=0.41.0",
-  "ruff~=0.13.0",
+  "SQLAlchemy-Utils~=0.42.0",
+  "ruff~=0.14.0",
 ]
 
 [build-system]
