@@ -89,7 +89,7 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python-env
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
       - name: Run formatter
         run: |
           uv run python -m ruff format --diff colandr
@@ -104,7 +104,7 @@ jobs:
       - name: Set up Python
         uses: ./.github/actions/setup-python-env
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"
       - name: Check types with mypy
         run: |
           uv run python -m mypy --install-types --non-interactive colandr
