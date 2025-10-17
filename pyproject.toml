@@ -14,7 +14,7 @@ classifiers = [
 ]
 requires-python = ">= 3.11"
 dependencies = [
-  "alembic~=1.15.1",
+  "alembic~=1.17.0",
   "arrow~=1.3.0",
   "bibtexparser~=1.4.0",
   "celery[redis]~=5.5.0",
@@ -23,7 +23,7 @@ dependencies = [
   "flask-caching~=2.3.0",
   "flask-jwt-extended~=4.7.0",
   "flask_mail~=0.10.0",
-  "flask_migrate~=4.0.0",
+  "flask_migrate~=4.1.0",
   "flask_sqlalchemy~=3.1.0",
   "flask-restx~=1.3.0",
   "fsspec[gcs]~=2025.0",

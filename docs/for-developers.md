@@ -108,6 +108,8 @@ $ docker exec -it colandr-api flask db-reset
 
 **Warning:** You will lose all data stored in the database! Be sure to only run this command in development or testing environments.
 
+#### schema/data migrations
+
 Database "revisions" are handled through [alembic](https://alembic.sqlalchemy.org) using the [`flask-migrate`](https://flask-migrate.readthedocs.io) package. Any time you modify db models -- add a column, remove an index, etc. -- run the following command to generate a migration script:
 
 ```shell
@@ -121,6 +123,14 @@ $ docker exec -it colandr-api flask db upgrade
 ```
 
 Lastly, be sure to add and commit the migration file into version control.
+
+Sometimes it's necessary to go back to an earlier revision. In that case:
+
+```shell
+$ docker exec -it colandr-api flask db downgrade <REVISION>
+```
+
+See the [Alembic tutorial](https://alembic.sqlalchemy.org/en/latest/tutorial.html) for more details on and examples of its usage.
 
 ### add an admin
 
