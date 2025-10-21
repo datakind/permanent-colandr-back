@@ -1,3 +1,4 @@
+import functools
 import itertools
 import os
 import typing as t
@@ -402,13 +403,18 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
     lock = _get_redis_lock(f"train_study_ranker_model__review-{review_id}")
     lock.acquire()
 
-    study_ranker = StudyRanker(review_id, current_app.config["RANKER_MODELS_DIR"])
+    study_ranker = _get_study_ranker(review_id, current_app.config["RANKER_MODELS_DIR"])
     if screening_id is None or not study_ranker.model_fpath.exists():
         _train_study_ranker_model_from_scratch(study_ranker, review_id)
     else:
         _train_study_ranker_model_from_screening(study_ranker, screening_id)
 
     lock.release()
+
+
+@functools.lru_cache(maxsize=25)
+def _get_study_ranker(review_id: int, dir_path: str):
+    return StudyRanker(review_id, dir_path)
 
 
 def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id: int):
@@ -471,7 +477,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
     # union outputs from both cases
     stmt = stmt1.union_all(stmt2)
     records = (row._asdict() for row in db.session.execute(stmt))
-    study_ranker.clone()
+    study_ranker.model = study_ranker.clone()  # ensure we're training a "fresh" model
     study_ranker.learn_many(records)
     study_ranker.save()
 
