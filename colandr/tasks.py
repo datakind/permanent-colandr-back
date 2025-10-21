@@ -476,7 +476,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
     )
     # union outputs from both cases
     stmt = stmt1.union_all(stmt2)
-    records = (row._asdict() for row in db.session.execute(stmt))
+    records = (dict(row) for row in db.session.execute(stmt).mappings())
     study_ranker.model = study_ranker.clone()  # ensure we're training a "fresh" model
     study_ranker.learn_many(records)
     study_ranker.save()
