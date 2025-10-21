@@ -502,7 +502,10 @@ def _train_study_ranker_model_from_screening(
         else study.citation_text_content
     )
     study_ranker.learn_one({"text": text, "target": target})
-    # TODO: decide if we want to save model after every single screening
-    # saving takes ~20x longer than learning, so it's not "cheap"
-    # maybe we could get away with saving only every ~10 screenings
-    study_ranker.save()
+    # saving takes ~20x longer than learning, i.e. it's not "cheap"
+    # so let's only save once every N screenings, relying on the cached getter func
+    # to maintain state from preceding, unsaved N-1 screenings
+    # there are db triggers to re-train from scratch once every 100 complete screenings
+    # so in the worst case, the ranker will catch up at those checkins
+    if study_ranker.model["featurizer"].n % 5 == 0:
+        study_ranker.save()
