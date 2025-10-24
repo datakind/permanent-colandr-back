@@ -1,4 +1,3 @@
-import functools
 import logging
 import pathlib
 import typing as t
@@ -6,16 +5,10 @@ from collections.abc import Iterable
 
 import joblib
 import pandas as pd
-import river.base
 import river.compose
-import river.datasets
-import river.evaluate
 import river.feature_extraction
 import river.linear_model
-import river.metrics
-import river.naive_bayes
 import river.optim
-import river.preprocessing
 import scipy.sparse
 
 
@@ -23,6 +16,11 @@ LOGGER = logging.getLogger(__name__)
 
 
 class ColandrTFIDF(river.feature_extraction.TFIDF):
+    """
+    Child of :class:`river.feature_extraction.TFIDF` that adds mini-batch functionality,
+    i.e. ``transform_many()`` and ``learn_many()`` methods.
+    """
+
     def learn_many(self, X: pd.Series) -> None:
         # increment global document counter
         self.n += X.shape[0]
@@ -80,28 +78,39 @@ class StudyRanker:
             / self._model_fname_tmpl.format(review_id=self.review_id)
         )
 
-    @functools.lru_cache(maxsize=25)
+    @property
     def model(self) -> river.compose.Pipeline:
         if self._model is None:
             model_fpath = self.model_fpath
             if model_fpath.exists():
-                with open(model_fpath, mode="rb") as f:
-                    self._model = joblib.load(f)
-                LOGGER.debug(
-                    "<Review(id=%s)>: study ranker model loaded from %s ...",
-                    self.review_id,
-                    model_fpath,
-                )
+                self._model = self.load()
             else:
                 self._model = _MODEL.clone()
-                LOGGER.debug(
-                    "<Review(id=%s)>: new study ranker model cloned ...", self.review_id
-                )
         return self._model
 
-    def clone(self):
+    @model.setter
+    def model(self, value: river.compose.Pipeline) -> None:
+        self._model = value
+
+    def clone(self) -> river.compose.Pipeline:
         """Make a fresh clone of :attr:`StudyRanker._model` ."""
-        self._model = _MODEL.clone()
+        _model = _MODEL.clone()
+        LOGGER.debug(
+            "<Review(id=%s)>: new study ranker model cloned ...", self.review_id
+        )
+        return _model
+
+    def load(self) -> river.compose.Pipeline:
+        """Load existing model from disk at :attr:`StudyRanker.model_fpath` ."""
+        model_fpath = self.model_fpath
+        with model_fpath.open(mode="rb") as f:
+            _model = joblib.load(f)
+        LOGGER.debug(
+            "<Review(id=%s)>: study ranker model loaded from %s ...",
+            self.review_id,
+            model_fpath,
+        )
+        return _model
 
     def save(self) -> None:
         """
@@ -109,9 +118,10 @@ class StudyRanker:
         to disk at :attr:`StudyRanker.model_fpath` .
         """
         model_fpath = self.model_fpath
+        _model = self.model
         model_fpath.parent.mkdir(parents=True, exist_ok=True)
         with model_fpath.open(mode="wb") as f:
-            joblib.dump(self.model(), f)
+            joblib.dump(_model, f)
         LOGGER.info(
             "<Review(id=%s)>: study ranker model saved to %s",
             self.review_id,
@@ -121,15 +131,18 @@ class StudyRanker:
     def learn_one(self, record: dict[str, t.Any]) -> None:
         x = record[self.feature_col]
         y = record[self.target_col]
-        self.model().learn_one(x, y)
+        self.model.learn_one(x, y)
 
     def learn_many(self, records: Iterable[dict[str, t.Any]]) -> None:
-        # HACK: this shit is broken in river v0.21!
-        # but if we use custom ColandrTFIDF ...
         df = pd.DataFrame(data=records)
+        if df.empty:
+            LOGGER.warning("no records in batch to learn from! skipping ...")
+            return
+
         X = df[self.feature_col].astype("string")
         y = df[self.target_col]
-        self.model().learn_many(X, y)
+        self.model.learn_many(X, y)
+        # sequential fallback in case minibatching isn't feasible
         # for record in records:
         #     self.learn_one(record)
 
@@ -138,26 +151,24 @@ class StudyRanker:
     ) -> bool | dict[bool, float]:
         x = record[self.feature_col]
         if not proba:
-            return self.model().predict_one(x)
+            return self.model.predict_one(x)
         else:
-            return self.model().predict_proba_one(x)
+            return self.model.predict_proba_one(x)
 
     def predict_many(
         self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
     ) -> pd.Series | pd.DataFrame:
         X = pd.DataFrame(data=records)[self.feature_col].astype("string")
         if not proba:
-            return self.model().predict_many(X)
+            return self.model.predict_many(X)
         else:
-            return self.model().predict_proba_many(X)
+            return self.model.predict_proba_many(X)
 
 
 _MODEL = river.compose.Pipeline(
     (
         "featurizer",
-        # river.feature_extraction.TFIDF(
-        #     normalize=True, strip_accents=False, ngram_range=(1, 1)
-        # ),
+        # TODO: use river.feature_extraction.TFIDF once mini-batch capabilities added
         ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 1)),
     ),
     (
