@@ -218,6 +218,18 @@ class FulltextSchema(Schema):
     screenings = fields.Nested(ScreeningSchema, many=True, dump_only=True)
 
 
+class MetadataSchema(Schema):
+    """Schema for metadata extracted from fulltext."""
+
+    record = fields.Int(required=True)
+    metadata = fields.Str(required=True)
+    value = fields.Str(required=True)
+    sentence = fields.Str(required=True)
+    sentence_location = fields.Int(required=True)
+    confidence = fields.Float(required=True, validate=Range(min=0.0, max=1.0))
+    confidence_level = fields.Int(dump_default=-1, validate=Range(min=-1, max=3))
+
+
 class ExtractedItem(Schema):
     label = fields.Str(required=True, validate=Length(max=50))
     # validation handled in API Resource based on values in DataExtractionFormItem

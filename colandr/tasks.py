@@ -1,3 +1,4 @@
+import functools
 import itertools
 import os
 import typing as t
@@ -15,7 +16,7 @@ from flask_mail import Message
 from . import models
 from .apis.schemas import ReviewPlanSuggestedKeyterms
 from .extensions import db, mail
-from .lib.models import Deduper, StudyRanker
+from .lib.models import Deduper, DeduperV2, StudyRanker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
 
@@ -32,6 +33,7 @@ def _get_redis_conn() -> redis.client.Redis:
     redis_conn = current_celery_app.backend.client  # type: ignore
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
+
 
 # TODO: Update sender email dynamically (previously used "sender=current_app.config["MAIL_DEFAULT_SENDER"]", but this failed)
 @shared_task
@@ -86,10 +88,6 @@ def deduplicate_citations(review_id: int):
         lock.release()
         return
 
-    deduper = Deduper.load(
-        current_app.config["DEDUPE_MODELS_DIR"], num_cores=1, in_memory=False
-    )
-
     # remove dedupe rows for this review
     # which we'll add back with the latest citations included
     stmt = sa.delete(models.Dedupe).where(models.Dedupe.review_id == review_id)
@@ -102,30 +100,57 @@ def deduplicate_citations(review_id: int):
         models.Dedupe.__tablename__,
     )
 
-    stmt = sa.select(
-        models.Study.id,
-        models.Study.citation["type_of_reference"].label("type_of_reference"),
-        models.Study.citation["title"].label("title"),
-        models.Study.citation["pub_year"].label("pub_year"),
-        models.Study.citation["authors"].label("authors"),
-        models.Study.citation["abstract"].label("abstract"),
-        models.Study.citation["doi"].label("doi"),
-    ).where(models.Study.review_id == review_id)
-    # results = db.session.execute(stmt).mappings() instead ?
-    results = (row._asdict() for row in db.session.execute(stmt))
-    preproc_data = deduper.preprocess_data(results, id_key="id")
-
+    # stmt = sa.select(
+    #     models.Study.id,
+    #     models.Study.citation["type_of_reference"].label("type_of_reference"),
+    #     models.Study.citation["title"].label("title"),
+    #     models.Study.citation["pub_year"].label("pub_year"),
+    #     models.Study.citation["authors"].label("authors"),
+    #     models.Study.citation["abstract"].label("abstract"),
+    #     models.Study.citation["doi"].label("doi"),
+    # ).where(models.Study.review_id == review_id)
+    # # results = db.session.execute(stmt).mappings() instead ?
+    # results = (row._asdict() for row in db.session.execute(stmt))
+    # deduper = Deduper.load(
+    #     current_app.config["DEDUPE_MODELS_DIR"], num_cores=1, in_memory=False
+    # )
+    # preproc_data = deduper.preprocess_data(results, id_key="id")
     # TODO: decide on suitable value for threshold; higher => higher precision
-    clustered_dupes = deduper.model.partition(preproc_data, threshold=0.5)
-    try:
-        LOGGER.info(
-            "<Review(id=%s)>: found %s duplicate clusters",
-            review_id,
-            len(clustered_dupes),  # type: ignore
-        )
-    # TODO: figure out if this is ever a generator instead
-    except TypeError:
-        LOGGER.info("<Review(id=%s)>: found duplicate clusters", review_id)
+    # clustered_dupes = deduper.predict(preproc_data, threshold=0.5)
+
+    stmt = sa.select(
+        models.Study.id.label("record_id"),
+        models.Study.citation["doi"].label("doi"),
+        models.Study.citation["title"].label("title"),
+        models.Study.citation["abstract"].label("abstract"),
+        models.Study.citation["authors"].label("author"),  # TBD: label "author" or no
+        models.Study.citation["issn"].label("issn"),
+        models.Study.citation["journal_name"].label("journal_name"),
+        models.Study.citation["volume"].label("journal_volume"),
+        models.Study.citation["issue_number"].label("journal_number"),
+        models.Study.citation["pub_year"].label("pub_year"),
+    ).where(models.Study.review_id == review_id)
+    results = (dict(row) for row in db.session.execute(stmt).mappings())
+
+    settings_fpath = os.path.join(
+        current_app.config["COLANDR_APP_DIR"],
+        "colandr_data",
+        "dedupe-v2",
+        "dedupe-splink-model.json",
+    )
+    deduper = DeduperV2.from_records(
+        results, id_col="record_id", settings=settings_fpath
+    )
+    current_app.logger.info("df = \n%s", deduper.df)
+    current_app.logger.info(
+        "initialized deduper model from settings at %s", settings_fpath
+    )
+    clustered_dupes = deduper.predict(threshold=0.99)
+    LOGGER.info(
+        "<Review(id=%s)>: found %s duplicate clusters",
+        review_id,
+        len(clustered_dupes),  # type: ignore
+    )
 
     # get *all* citation ids for this review, as well as included/excluded
     stmt = sa.select(models.Study.id).where(models.Study.review_id == review_id)
@@ -199,7 +224,8 @@ def deduplicate_citations(review_id: int):
     )
 
     db.session.execute(sa.update(models.Study), studies_to_update)
-    db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
+    if dedupes_to_insert:
+        db.session.execute(sa.insert(models.Dedupe), dedupes_to_insert)
     db.session.commit()
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate and %s non-duplicate citations",
@@ -222,7 +248,12 @@ def get_citations_text_content_vectors(review_id: int):
         .where(models.Study.citation_text_content_vector_rep == [])
         .order_by(models.Study.id)
     )
-    results = db.session.execute(stmt)
+    results = db.session.execute(stmt).all()
+    if not results:
+        LOGGER.warning("no citation text content found for <Review(id=%s)>", review_id)
+        lock.release()
+        return
+
     ids, texts = zip(*results)
     docs = nlp_utils.process_texts_into_docs(
         texts,
@@ -372,13 +403,18 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
     lock = _get_redis_lock(f"train_study_ranker_model__review-{review_id}")
     lock.acquire()
 
-    study_ranker = StudyRanker(review_id, current_app.config["RANKER_MODELS_DIR"])
+    study_ranker = _get_study_ranker(review_id, current_app.config["RANKER_MODELS_DIR"])
     if screening_id is None or not study_ranker.model_fpath.exists():
         _train_study_ranker_model_from_scratch(study_ranker, review_id)
     else:
         _train_study_ranker_model_from_screening(study_ranker, screening_id)
 
     lock.release()
+
+
+@functools.lru_cache(maxsize=25)
+def _get_study_ranker(review_id: int, dir_path: str):
+    return StudyRanker(review_id, dir_path)
 
 
 def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id: int):
@@ -440,8 +476,8 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
     )
     # union outputs from both cases
     stmt = stmt1.union_all(stmt2)
-    records = (row._asdict() for row in db.session.execute(stmt))
-    study_ranker.clone()
+    records = (dict(row) for row in db.session.execute(stmt).mappings())
+    study_ranker.model = study_ranker.clone()  # ensure we're training a "fresh" model
     study_ranker.learn_many(records)
     study_ranker.save()
 
@@ -466,7 +502,10 @@ def _train_study_ranker_model_from_screening(
         else study.citation_text_content
     )
     study_ranker.learn_one({"text": text, "target": target})
-    # TODO: decide if we want to save model after every single screening
-    # saving takes ~20x longer than learning, so it's not "cheap"
-    # maybe we could get away with saving only every ~10 screenings
-    study_ranker.save()
+    # saving takes ~20x longer than learning, i.e. it's not "cheap"
+    # so let's only save once every N screenings, relying on the cached getter func
+    # to maintain state from preceding, unsaved N-1 screenings
+    # there are db triggers to re-train from scratch once every 100 complete screenings
+    # so in the worst case, the ranker will catch up at those checkins
+    if study_ranker.model["featurizer"].n % 5 == 0:
+        study_ranker.save()

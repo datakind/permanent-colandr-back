@@ -12,7 +12,7 @@ load_dotenv(os.path.join(basedir, ".env"))
 # flask config
 TESTING = False
 SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
-MAX_CONTENT_LENGTH = 25 * 1024 * 1024  # 25MB file upload limit
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB file upload limit
 LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
 
 # sql database config
@@ -72,16 +72,35 @@ MAIL_DEFAULT_SENDER = f"colandr <{MAIL_USERNAME}>"
 MAIL_SUBJECT_PREFIX = "[colandr]"
 MAIL_ADMINS = ["burtdewilde@gmail.com"]
 
-# files-on-disk config
-# TODO: we really need a better system for file storage
+# file storage config
+FILESYSTEM_PROTOCOL = os.environ.get("COLANDR_FILESYSTEM_PROTOCOL", "file")
+FILESYSTEM_STORAGE_OPTIONS = {
+    "file": {"auto_mkdir": False},
+    "gcs": {
+        "project": os.environ.get("COLANDR_FILESYSTEM_GCS_PROJECT"),
+        "token": os.environ.get("COLANDR_FILESYSTEM_GCS_TOKEN"),
+        "endpoint_url": os.environ.get("COLANDR_FILESYSTEM_GCS_ENDPOINT_URL"),
+        "access": "read_write",
+        "cache_timeout": 3600,
+    },
+}
+FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/tmp")
+FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "colandr_data", "fulltexts")
+ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
+ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
+# TODO: figure out root dir vs app dir
 COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
 DEDUPE_MODELS_DIR = os.path.join(
     COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
 )
 RANKER_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranker_models")
 RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
-CITATIONS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "citations")
-FULLTEXT_UPLOADS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "fulltexts")
-ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
+
+# metadata extraction config
+METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
+METADATA_INCREASE_TO_RETRAIN = int(
+    os.environ.get("COLANDR_METADATA_INCREASE_TO_RETRAIN", "5")
+)
+METADATA_MIN_TO_TRAIN = int(os.environ.get("COLANDR_METADATA_MIN_TO_TRAIN", "40"))
 
 SERVER_NAME = os.environ.get("COLANDR_SERVER_NAME")

@@ -5,6 +5,14 @@ import river.compose
 from colandr.lib.models import StudyRanker
 
 
+TEST_RECORDS = (
+    {"text": "Mary had a little lamb.", "target": True},
+    {"text": "Its fleece was white as snow.", "target": False},
+    {"text": "And everywhere that Mary went...", "target": True},
+    {"text": "The lamb was sure to go.", "target": False},
+)
+
+
 @pytest.fixture(scope="class")
 def tmp_study_ranker_path(tmp_path_factory):
     tmp_path = tmp_path_factory.mktemp("ranker_models")
@@ -34,52 +42,49 @@ class TestStudyRanker:
     @pytest.mark.parametrize("review_id", [1, 2])
     def test_model(self, review_id, tmp_study_ranker_path):
         sranker = StudyRanker(review_id, tmp_study_ranker_path)
-        assert sranker.model() is not None
-        assert isinstance(sranker.model(), river.compose.Pipeline)
+        assert sranker.model is not None
+        assert isinstance(sranker.model, river.compose.Pipeline)
 
-    @pytest.mark.parametrize(
-        "record",
-        [
-            {"text": "Mary had a little lamb.", "target": True},
-            {"text": "Its fleece was white as snow.", "target": False},
-            {"text": "And everywhere that Mary went...", "target": True},
-            {"text": "The lamb was sure to go.", "target": False},
-        ],
-    )
-    def test_learn_one(self, record, tmp_study_ranker_path):
+    @pytest.mark.parametrize("records", [TEST_RECORDS])
+    def test_learn_one(self, records, tmp_study_ranker_path):
         sranker = StudyRanker(1, tmp_study_ranker_path)
-        sranker.learn_one(record)
-        model_ = sranker.model()
+        for record in records:
+            sranker.learn_one(record)
+        model_ = sranker.model
+        assert model_["featurizer"].n == 4
+        assert model_["featurizer"].dfs
+        assert all(value >= 1 for value in model_["featurizer"].dfs.values())
         assert model_["classifier"].weights
-        assert any(value > 0.0 for value in model_["classifier"].weights.values())
+        assert all(value != 0.0 for value in model_["classifier"].weights.values())
+        assert (
+            "mary" in model_["featurizer"].dfs and model_["featurizer"].dfs["mary"] == 2
+        )
         assert (
             "mary" in model_["classifier"].weights
-            and model_["classifier"].weights["mary"] > 0.0
+            and model_["classifier"].weights["mary"] != 0.0
         )
+        # persist trained model for use in subsequent tests
+        sranker.save()
 
-    @pytest.mark.parametrize(
-        "records",
-        [
-            (
-                {"text": "Mary had a little lamb.", "target": True},
-                {"text": "Its fleece was white as snow.", "target": False},
-            ),
-            (
-                {"text": "And everywhere that Mary went...", "target": True},
-                {"text": "The lamb was sure to go.", "target": False},
-            ),
-        ],
-    )
+    @pytest.mark.parametrize("records", [TEST_RECORDS])
     def test_learn_many(self, records, tmp_study_ranker_path):
         sranker = StudyRanker(2, tmp_study_ranker_path)
         sranker.learn_many(records)
-        model_ = sranker.model()
+        model_ = sranker.model
+        assert model_["featurizer"].n == 4
+        assert model_["featurizer"].dfs
+        assert all(value >= 1 for value in model_["featurizer"].dfs.values())
         assert model_["classifier"].weights
-        assert any(value > 0.0 for value in model_["classifier"].weights.values())
+        assert all(value != 0.0 for value in model_["classifier"].weights.values())
+        assert (
+            "mary" in model_["featurizer"].dfs and model_["featurizer"].dfs["mary"] == 2
+        )
         assert (
             "mary" in model_["classifier"].weights
-            and model_["classifier"].weights["mary"] > 0.0
+            and model_["classifier"].weights["mary"] != 0.0
         )
+        # persist trained model for use in subsequent tests
+        sranker.save()
 
     @pytest.mark.parametrize(
         ["record", "proba", "exp_pred"],
@@ -139,6 +144,6 @@ class TestStudyRanker:
         sranker1.save()
         sranker2 = StudyRanker(review_id, tmp_study_ranker_path)
         assert (
-            sranker1.model()["classifier"].weights
-            == sranker2.model()["classifier"].weights
+            sranker1.model["classifier"].weights == sranker2.model["classifier"].weights
         )
+        sranker1.model_fpath.unlink()

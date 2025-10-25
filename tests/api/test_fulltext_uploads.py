@@ -40,3 +40,10 @@ class TestFulltextUploadResource:
         data = response.json
         assert data
         assert data["id"] == id_
+
+    @pytest.mark.parametrize("id_", [1])
+    def test_delete(self, id_, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for("fulltext_uploads_fulltext_upload_resource", id=id_)
+        response = client.delete(url, headers=admin_headers)
+        assert response.status_code == 204

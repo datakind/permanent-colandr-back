@@ -3,6 +3,7 @@ References:
     - https://github.com/asreview/citation-file-formatting/tree/main
     - https://en.wikipedia.org/wiki/RIS_(file_format)
 """
+
 import logging
 import pathlib
 import typing as t
@@ -16,9 +17,11 @@ from . import utils
 
 LOGGER = logging.getLogger(__name__)
 
-TYPE_OF_REFERENCE_MAPPING = {
-    key: val.lower() for key, val in rispy.config.TYPE_OF_REFERENCE_MAPPING.items()
-}
+TYPE_OF_REFERENCE_MAPPING = (
+    {key: val.lower() for key, val in rispy.config.TYPE_OF_REFERENCE_MAPPING.items()}
+    # override "BOOK" => "whole book", which is silly
+    | {"BOOK": "book"}
+)
 
 REF_TYPE_TAG_OVERRIDES = {
     "journal": {
@@ -88,16 +91,15 @@ def parse(data: str) -> list[dict]:
     return rispy.loads(
         data,
         implementation=rispy.parser.RisParser,  # type: ignore
-        skip_missing_tags=False,
         skip_unknown_tags=False,
     )
 
 
 def sanitize(references: list[dict]) -> list[dict]:
     # convert reference types into human-readable equivalents
-    # override "BOOK" => "whole book", which is silly
-    type_map = TYPE_OF_REFERENCE_MAPPING | {"BOOK": "book"}
-    references = rispy.utils.convert_reference_types(references, type_map=type_map)
+    references = rispy.utils.convert_reference_types(
+        references, type_map=TYPE_OF_REFERENCE_MAPPING
+    )
     references = [_sanitize_reference(reference) for reference in references]
     return references
 
@@ -108,26 +110,19 @@ def _sanitize_reference(reference: dict) -> dict:
         tag_overrides = REF_TYPE_TAG_OVERRIDES[reference["type_of_reference"]]
         reference = {tag_overrides.get(k, k): v for k, v in reference.items()}
     # try to cast certain values to more specific dtypes
-    reference.update(
-        {
+    reference = (
+        reference
+        | {
             key: utils.try_to_dttm(reference[key])
             for key in DTTM_KEYS
             if key in reference
         }
+        | {
+            key: utils.try_to_int(reference[key])
+            for key in INT_KEYS
+            if key in reference
+        }
     )
-    reference.update(
-        {key: utils.try_to_int(reference[key]) for key in INT_KEYS if key in reference}
-    )
-    if reference["type_of_reference"] == "book":
-        if "start_page" in reference and "end_page" in reference:
-            try:
-                reference["number_of_pages"] = (
-                    reference["end_page"] - reference["start_page"]
-                )
-            except TypeError:
-                pass
-        elif "start_page" in reference:
-            reference["number_of_pages"] = reference.pop("start_page")
     # assign standardized fields in preferential key order
     for default_key, alt_keys in DEFAULT_TO_ALT_KEYS.items():
         if default_key not in reference:
@@ -142,7 +137,7 @@ def _sanitize_reference(reference: dict) -> dict:
     if "notes" in reference:
         reference["notes"] = _strip_tags_from_notes(reference["notes"])
     # split date key into year (if needed) and month
-    if "date" in reference:
+    if reference.get("date"):
         reference["pub_month"] = reference["date"].month
         if "pub_year" not in reference:
             reference["pub_year"] = reference["date"].year
@@ -151,9 +146,20 @@ def _sanitize_reference(reference: dict) -> dict:
         {
             key: reference[key].strftime("%Y-%m-%d")
             for key in DTTM_KEYS
-            if key in reference
+            if reference.get(key)
         }
     )
+    # add num pages field for books only
+    if reference["type_of_reference"] == "book":
+        if "start_page" in reference and "end_page" in reference:
+            try:
+                reference["number_of_pages"] = (
+                    reference["end_page"] - reference["start_page"]
+                )
+            except TypeError:
+                pass
+        elif "start_page" in reference:
+            reference["number_of_pages"] = reference.pop("start_page")
     return reference
 
 
