@@ -44,6 +44,7 @@ CACHE_TYPE = "SimpleCache"
 # CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
 # api auth keys config
+SERVER_NAME = os.environ.get("COLANDR_SERVER_NAME")
 JWT_SECRET_KEY = os.environ.get("COLANDR_JWT_SECRET_KEY")
 JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=3)
 JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=7)
@@ -102,5 +103,3 @@ METADATA_INCREASE_TO_RETRAIN = int(
     os.environ.get("COLANDR_METADATA_INCREASE_TO_RETRAIN", "5")
 )
 METADATA_MIN_TO_TRAIN = int(os.environ.get("COLANDR_METADATA_MIN_TO_TRAIN", "40"))
-
-SERVER_NAME = os.environ.get("COLANDR_SERVER_NAME")
