@@ -163,7 +163,7 @@ class RegisterResource(Resource):
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         confirm_url = (
-            f"{current_app.config['FE_APP_SITE']}/{ns.path}/register/confirm?token={access_token}"
+            f"{current_app.config['FE_APP_SITE']}{ns.path}/register/confirm?token={access_token}"
             if current_app.config["FE_APP_SITE"]
             else url_for(
                 "auth_confirm_registration_resource", token=access_token, _external=True
@@ -253,7 +253,7 @@ class ResetPasswordResource(Resource):
         else:
             access_token = jwtext.create_access_token(identity=user, fresh=False)
             confirm_url = (
-                f"{current_app.config['FE_APP_SITE']}/{ns.path}/reset?token={access_token}"
+                f"{current_app.config['FE_APP_SITE']}{ns.path}/reset?token={access_token}"
                 if current_app.config["FE_APP_SITE"]
                 else url_for(
                     "auth_confirm_reset_password_resource",
