@@ -12,6 +12,7 @@ class TestReviewExportPrismaResource:
             (
                 1,
                 {
+                    "num_studies": 3,
                     "num_studies_by_source": {"database": 2, "gray_literature": 1},
                     "num_unique_studies": 3,
                     "num_screened_citations": 3,
@@ -25,6 +26,7 @@ class TestReviewExportPrismaResource:
             (
                 2,
                 {
+                    "num_studies": 1,
                     "num_studies_by_source": {"database": 1},
                     "num_unique_studies": 1,
                     "num_screened_citations": 1,
