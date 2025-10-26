@@ -164,7 +164,25 @@ class RegisterResource(Resource):
         current_app.logger.info("%s successfully registered", user)
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        _send_confirm_registration_email(user, access_token)
+        # TODO: update function so it handles FE_APP_SITE config
+        # _send_confirm_registration_email(user, access_token)
+        confirm_url = (
+            f"{current_app.config['FE_APP_SITE']}{ns.path}/register/confirm?token={access_token}"
+            if current_app.config["FE_APP_SITE"]
+            else url_for(
+                "auth_confirm_registration_resource", token=access_token, _external=True
+            )
+        )
+        html = render_template(
+            "emails/user_registration.html",
+            url=confirm_url,
+            name=user.name,
+        )
+        if current_app.config["MAIL_SERVER"]:
+            tasks.send_email.apply_async(
+                args=[[user.email], "Confirm your registration", "", html]
+            )
+            current_app.logger.info("registration email sent to %s", user.email)
         current_app.logger.info("registration submitted for %s", user)
         return UserSchema().dump(user)
 
@@ -253,8 +271,6 @@ class ResetPasswordResource(Resource):
                 "required": True,
                 "description": "email of user whose password is to be reset",
             },
-            # 'server_name': {'in': 'query', 'type': 'string', 'default': None,
-            #                 'description': 'name of server used to build confirmation url, e.g. "http://www.colandrapp.com"'},
         },
         responses={
             200: "user was created (or would have been created if test had been False)",
@@ -262,10 +278,7 @@ class ResetPasswordResource(Resource):
         },
     )
     @use_kwargs(
-        {
-            "email": ma_fields.Str(required=True, validate=Email()),
-            # "server_name": ma_fields.Str(load_default=None),
-        },
+        {"email": ma_fields.Str(required=True, validate=Email())},
         location="query",
     )
     def post(self, email):
@@ -279,10 +292,14 @@ class ResetPasswordResource(Resource):
             )
         else:
             access_token = jwtext.create_access_token(identity=user, fresh=False)
-            confirm_url = url_for(
-                "auth_confirm_reset_password_resource",
-                token=access_token,
-                _external=True,
+            confirm_url = (
+                f"{current_app.config['FE_APP_SITE']}{ns.path}/reset?token={access_token}"
+                if current_app.config["FE_APP_SITE"]
+                else url_for(
+                    "auth_confirm_reset_password_resource",
+                    token=access_token,
+                    _external=True,
+                )
             )
             html = render_template(
                 "emails/password_reset.html",
