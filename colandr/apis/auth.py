@@ -164,25 +164,7 @@ class RegisterResource(Resource):
         current_app.logger.info("%s successfully registered", user)
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        # TODO: update function so it handles FE_APP_SITE config
-        # _send_confirm_registration_email(user, access_token)
-        confirm_url = (
-            f"{current_app.config['FE_APP_SITE']}{ns.path}/register/confirm?token={access_token}"
-            if current_app.config["FE_APP_SITE"]
-            else url_for(
-                "auth_confirm_registration_resource", token=access_token, _external=True
-            )
-        )
-        html = render_template(
-            "emails/user_registration.html",
-            url=confirm_url,
-            name=user.name,
-        )
-        if current_app.config["MAIL_SERVER"]:
-            tasks.send_email.apply_async(
-                args=[[user.email], "Confirm your registration", "", html]
-            )
-            current_app.logger.info("registration email sent to %s", user.email)
+        _send_confirm_registration_email(user, access_token)
         current_app.logger.info("registration submitted for %s", user)
         return UserSchema().dump(user)
 
@@ -209,14 +191,19 @@ class RegisterResendResource(Resource):
         _send_confirm_registration_email(current_user, access_token)
 
 
-def _send_confirm_registration_email(user, access_token):
-    confirm_url = url_for(
-        "auth_confirm_registration_resource", token=access_token, _external=True
+def _send_confirm_registration_email(user: t.Any, access_token: str) -> None:
+    app_cfg = current_app.config
+    confirm_url = (
+        f"{app_cfg['FE_APP_SITE']}{ns.path}/register/confirm?token={access_token}"
+        if app_cfg["FE_APP_SITE"]
+        else url_for(
+            "auth_confirm_registration_resource", token=access_token, _external=True
+        )
     )
     html = render_template(
         "emails/user_registration.html", url=confirm_url, name=user.name
     )
-    if current_app.config["MAIL_SERVER"]:
+    if app_cfg["MAIL_SERVER"]:
         tasks.send_email.apply_async(
             args=[[user.email], "Confirm your registration", "", html]
         )
