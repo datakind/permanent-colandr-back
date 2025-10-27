@@ -92,7 +92,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             return forbidden_error(f"{current_user} forbidden to delete this study")
         db.session.delete(study)
         db.session.commit()
@@ -123,7 +123,7 @@ class StudyResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             return forbidden_error(f"{current_user} forbidden to modify this study")
         for key, value in args.items():
             if key == "data_extraction_status":
@@ -511,15 +511,20 @@ class StudiesResource(Resource):
             )
 
 
-def _is_allowed(current_user: models.User, review_id: int) -> bool:
-    is_allowed = current_user.is_admin
+def _is_allowed(
+    current_user: models.User, review_id: int, not_if_frozen: bool = False
+) -> bool:
     is_allowed = (
-        is_allowed
+        current_user.is_admin is True
         or db.session.execute(
             sa.select(models.ReviewUserAssoc).filter_by(
                 user_id=current_user.id, review_id=review_id
             )
         ).scalar_one_or_none()
         is not None
+    )
+    is_allowed &= (
+        not_if_frozen is False
+        or db.session.get(models.Review, review_id).status != "frozen"  # type: ignore
     )
     return is_allowed

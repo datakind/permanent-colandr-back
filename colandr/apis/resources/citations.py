@@ -103,7 +103,7 @@ class CitationResource(Resource):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to delete this study.citation"
             )
@@ -149,7 +149,7 @@ class CitationResource(Resource):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(f"{current_user} forbidden to modify this study")
         citation = study.citation | {k: v for k, v in args.items() if k is not missing}
         study.citation = citation
@@ -237,7 +237,7 @@ class CitationsResource(Resource):
                 current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
-        ):
+        ) or review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to add citations to this review"
             )
