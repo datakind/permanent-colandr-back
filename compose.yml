@@ -114,6 +114,11 @@ services:
       - db
       - broker
     stop_signal: SIGINT
+    healthcheck:
+      test: ["CMD-SHELL", "celery", "--app=make_celery.celery_app", "inspect", "ping", "--destination celery@$$HOSTNAME"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
     ports:
       - "8000:8000"
     env_file: ".env"
