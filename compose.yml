@@ -103,8 +103,6 @@ services:
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
-    # volumes:
-    #   - .:/app
   worker:
     container_name: colandr-worker
     build:
@@ -136,8 +134,6 @@ services:
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
-    # volumes:
-    #   - .:/app
 
 networks:
   default:
