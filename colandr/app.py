@@ -37,7 +37,22 @@ def _configure_logging(app: flask.Flask) -> None:
     )
     handler.setLevel(app.config["LOG_LEVEL"])
     app.logger.addHandler(handler)
-    # app.logger.addFilter(logging.Filter("colandr"))
+
+    # filter logging for a particular endpoint
+    class EndpointFilter(logging.Filter):
+        def __init__(self, path: str, *args: t.Any, **kwargs: t.Any):
+            super().__init__(*args, **kwargs)
+            self._path = path
+
+        def filter(self, record: logging.LogRecord) -> bool:
+            return record.getMessage().find(self._path) == -1
+
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_logger.addFilter(EndpointFilter("/health"))
+    loggers = logging.root.manager.loggerDict
+    if "gunicorn.access" in loggers:
+        gunicorn_logger = logging.getLogger("gunicorn.access")
+        gunicorn_logger.addFilter(EndpointFilter("/health"))
 
 
 def _register_extensions(app: flask.Flask) -> None:
