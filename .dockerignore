@@ -7,6 +7,6 @@
 !uv.lock
 !README.md
 !restart_service.sh
-!gunicorn_config.py
+!gunicorn.conf.py
 !make_celery.py
 !migrations
