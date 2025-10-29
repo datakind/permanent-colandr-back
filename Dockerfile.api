@@ -74,6 +74,4 @@ WORKDIR ${COLANDR_APP_DIR}
 # expose app port
 EXPOSE 5000
 
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "colandr.app:create_app()"]
-# TODO: decide if we want to leverage gunicorn config file
-# CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
+CMD ["gunicorn", "--config", "./gunicorn.conf.py", "colandr.app:create_app()"]
