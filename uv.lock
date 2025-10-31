@@ -172,6 +172,35 @@ wheels = [
 ]
 
 [[package]]
+name = "apiflask"
+version = "2.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "apispec" },
+    { name = "flask" },
+    { name = "flask-httpauth" },
+    { name = "flask-marshmallow" },
+    { name = "marshmallow" },
+    { name = "webargs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a3/cb/7ae65a6710f9d944d30bb5833b14b35ff07feecf4019671a2488a16b4d0a/apiflask-2.4.0.tar.gz", hash = "sha256:b7894741cdea90013276873cdf635d5150e1deb3fe20d02d429866af960f275f", size = 86022, upload-time = "2025-03-25T23:48:35.447Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/6a/c5453b3d65f34481d18370d52551516683a849c4fed5f1c27374a3e5c516/apiflask-2.4.0-py3-none-any.whl", hash = "sha256:a2a3fc8d5563609f7a1de573144b4ff5a73ffe07d6e56ab7790e41a07b8d87d4", size = 42844, upload-time = "2025-03-25T23:48:34.133Z" },
+]
+
+[[package]]
+name = "apispec"
+version = "6.8.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/88/b94988c3f959836829db9a83dacb6a09809c7aea16ad962050c5ce78c8f3/apispec-6.8.4.tar.gz", hash = "sha256:fd0ed14af71a2949d9aeb96b72ce1517cb4a48a5c55667cd0483b7ed33156a2a", size = 77737, upload-time = "2025-09-22T20:01:17.51Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3e/b5/92b037889c7ae8a875f276c8b1e636b3ac76d10e57a82e90340efebcb8d1/apispec-6.8.4-py3-none-any.whl", hash = "sha256:18d6cfaf6a9742d4f9a8f364bfabb7e8884983e10b155ad13616e084f47164ef", size = 30633, upload-time = "2025-09-22T20:01:16.17Z" },
+]
+
+[[package]]
 name = "arrow"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -430,6 +459,7 @@ version = "1.1.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
+    { name = "apiflask" },
     { name = "arrow" },
     { name = "bibtexparser" },
     { name = "celery", extra = ["redis"] },
@@ -480,6 +510,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = "~=1.17.0" },
+    { name = "apiflask", specifier = "~=2.4.0" },
     { name = "arrow", specifier = "~=1.3.0" },
     { name = "bibtexparser", specifier = "~=1.4.0" },
     { name = "celery", extras = ["redis"], specifier = "~=5.5.0" },
@@ -718,6 +749,18 @@ wheels = [
 ]
 
 [[package]]
+name = "flask-httpauth"
+version = "4.8.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/22/21/0160aa217c4df74e44a04919213f9c8af7e68551c10267b055f1e09d421c/Flask-HTTPAuth-4.8.0.tar.gz", hash = "sha256:66568a05bc73942c65f1e2201ae746295816dc009edd84b482c44c758d75097a", size = 230314, upload-time = "2023-04-27T09:25:57.48Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/83/c4/e64ace124b927cd1f29270050ee0e0ef5faad75a512c5c8d733961dda9ca/Flask_HTTPAuth-4.8.0-py3-none-any.whl", hash = "sha256:a58fedd09989b9975448eef04806b096a3964a7feeebc0a78831ff55685b62b0", size = 6958, upload-time = "2023-04-27T09:25:55.803Z" },
+]
+
+[[package]]
 name = "flask-jwt-extended"
 version = "4.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -742,6 +785,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ba/29/e92dc84c675d1e8d260d5768eb3fb65c70cbd33addecf424187587bee862/flask_mail-0.10.0.tar.gz", hash = "sha256:44083e7b02bbcce792209c06252f8569dd5a325a7aaa76afe7330422bd97881d", size = 8152, upload-time = "2024-05-23T22:30:12.612Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e4/c0/a81083da779f482494d49195d8b6c9fde21072558253e4a9fb2ec969c3c1/flask_mail-0.10.0-py3-none-any.whl", hash = "sha256:a451e490931bb3441d9b11ebab6812a16bfa81855792ae1bf9c1e1e22c4e51e7", size = 8529, upload-time = "2024-05-23T22:30:10.962Z" },
+]
+
+[[package]]
+name = "flask-marshmallow"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+    { name = "marshmallow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/91/f3893613c3a388a643f8a96e1b08a17b863fcc03beb6f2a40bb224da7df7/flask_marshmallow-1.3.0.tar.gz", hash = "sha256:27a35d0ce5dcba161cc5f2f4764afbc2536c93fa439a793250b827835e3f3be6", size = 40852, upload-time = "2025-01-07T04:04:07.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/cd/5b3d4103460766eb834f6deaf26a87a4735a0c9687f24163e07d1f3d7791/flask_marshmallow-1.3.0-py3-none-any.whl", hash = "sha256:c0a0644b46406851873ab41c1e8a7de3ef27fa69b00b89bf630f1696ec0813a0", size = 12174, upload-time = "2025-01-07T04:04:06.326Z" },
 ]
 
 [[package]]
