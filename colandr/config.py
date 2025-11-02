@@ -46,10 +46,10 @@ CACHE_TYPE = "SimpleCache"
 # api auth keys config
 FE_APP_SITE = os.environ.get("COLANDR_FE_APP_SITE")
 JWT_SECRET_KEY = os.environ.get("COLANDR_JWT_SECRET_KEY")
-JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=3)
-JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=7)
+JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=4)
+JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=3)
 JWT_TOKEN_LOCATION = "headers"
-# configure auth header structure: "{JWT_HEADER_NAME}: {JWT_HEADER_TYPE} {JWT}"
+# configure auth header structure: "{JWT_HEADER_NAME}: {JWT_HEADER_TYPE} {JWT_TOKEN}"
 JWT_HEADER_NAME = "Authorization"
 JWT_HEADER_TYPE = "Bearer"
 PROPAGATE_EXCEPTIONS = True  # may be needed for error handlers to work
