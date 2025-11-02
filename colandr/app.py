@@ -27,7 +27,13 @@ def create_app(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.F
 
 
 def create_app_v1(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
-    app = af.APIFlask("colandr", title="Colandr API", version="1.1", docs_path="/docs")
+    app = af.APIFlask(
+        "colandr",
+        title="Colandr API",
+        version="1.1",
+        docs_ui="swagger-ui",
+        docs_path="/docs",
+    )
     app.config.from_object(config)
     if config_overrides:
         app.config.update(config_overrides)
@@ -37,6 +43,12 @@ def create_app_v1(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flas
     v1.register_api_blueprints(app)
     app.register_blueprint(cli.bp)
     app.register_blueprint(errors.bp)
+    app.security_schemes = {
+        "TokenAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    }
+    # TODO: authenticate for openapi interface when not in dev
+    # if app.config["BUILD_TARGET"] != "dev":
+    #     app.config["SPEC_DECORATORS"] = [app.auth_required(auth)]
 
     return app
 
