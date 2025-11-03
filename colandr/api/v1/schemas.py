@@ -1,11 +1,18 @@
 import apiflask as af
+import marshmallow as ma
 
 
-# TODO: someday, we should rename this from"fields" to "include"
-class FieldsInput(af.Schema):
+# TODO: someday, we should rename this from "fields" to "include"
+class FieldsSchema(af.Schema):
     fields_ = af.fields.DelimitedList(
-        af.fields.String, delimiter=",", load_default="", data_key="fields"
+        af.fields.String, required=False, delimiter=",", data_key="fields"
     )
+
+    @ma.post_load
+    def add_id_if_not_specified(self, data: dict, **kwargs) -> dict:
+        if data.get("fields_") and "id" not in data["fields_"]:
+            data["fields_"].append("id")
+        return data
 
 
 class TokenSchema(af.Schema):
