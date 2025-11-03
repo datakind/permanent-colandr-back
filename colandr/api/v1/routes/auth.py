@@ -1,5 +1,6 @@
 import functools
 import typing as t
+import urllib.parse
 
 import apiflask as af
 import celery
@@ -77,10 +78,12 @@ class LogoutAPI(MethodView):
         summary="log-out a user",
         description="Log a user out by revoking the given JWT access token",
         responses={
-            200: "successful token refresh",
-            401: "unsuccessful token refresh",
+            200: "successful logout",
+            401: "unsuccessful logout",
         },
+        security="TokenAuth",
     )
+    @bp.output({"message": af.fields.String()})
     @jwtext.jwt_required(verify_type=False)
     def delete(self):
         current_user = jwtext.get_current_user()
@@ -90,6 +93,7 @@ class LogoutAPI(MethodView):
         # _JWT_BLOCKLIST.set(token, "", ex=current_app.config["JWT_REFRESH_TOKEN_EXPIRES"])
         _JWT_BLOCKLIST.add(token)
         current_app.logger.info("%s logged out", current_user)
+        # TODO: do we *need* to return this message, or nah?
         return {"message": f"{current_user} logged out"}
 
 
@@ -101,10 +105,8 @@ class RefreshTokenAPI(MethodView):
             "Refresh an existing JWT access token by creating a new copy of the old one "
             "with a refreshed access expiration time"
         ),
-        responses={
-            200: "successful token refresh",
-            401: "unsuccessful token refresh",
-        },
+        responses={200: "successful token refresh"},
+        security="TokenAuth",
     )
     @bp.output(
         schemas.TokenSchema,
@@ -147,11 +149,12 @@ class RegisterAPI(MethodView):
             )
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = (
-            f"{current_app.config['FE_APP_SITE']}/api{bp.url_prefix}/register/confirm?token={access_token}"
-            if current_app.config["FE_APP_SITE"]
-            else url_for("auth.register_confirm", token=access_token, _external=True)
+        confirm_url = url_for(
+            "auth.register_confirm", token=access_token, _external=True
         )
+        if fe_app_site := current_app.config["FE_APP_SITE"]:
+            confirm_url = _replace_url_site(confirm_url, fe_app_site)
+
         html = render_template(
             "emails/user_registration.html", url=confirm_url, name=user.name
         )
@@ -160,7 +163,6 @@ class RegisterAPI(MethodView):
                 args=[[user.email], "Confirm your registration", "", html]
             )
             current_app.logger.info("registration email sent to %s", user.email)
-        current_app.logger.info("registration submitted for %s", user)
 
         return user
 
@@ -218,22 +220,22 @@ class ResetPasswordAPI(MethodView):
                 "password reset submitted with email='%s', but no such user exists",
                 email,
             )
-        else:
-            access_token = jwtext.create_access_token(identity=user, fresh=False)
-            confirm_url = (
-                f"{current_app.config['FE_APP_SITE']}/api{bp.url_prefix}/reset?token={access_token}"
-                if current_app.config["FE_APP_SITE"]
-                else url_for("auth.reset_confirm", token=access_token, _external=True)
+            return
+
+        access_token = jwtext.create_access_token(identity=user, fresh=False)
+        confirm_url = url_for("auth.reset_confirm", token=access_token, _external=True)
+        if fe_app_site := current_app.config["FE_APP_SITE"]:
+            confirm_url = _replace_url_site(confirm_url, fe_app_site)
+
+        html = render_template(
+            "emails/password_reset.html", url=confirm_url, name=user.name
+        )
+        if current_app.config["MAIL_SERVER"]:
+            tasks.send_email.apply_async(
+                args=[[user.email], "Reset your password", "", html]
             )
-            html = render_template(
-                "emails/password_reset.html", url=confirm_url, name=user.name
-            )
-            if current_app.config["MAIL_SERVER"]:
-                tasks.send_email.apply_async(
-                    args=[[user.email], "Reset your password", "", html]
-                )
-                current_app.logger.info("password reset email sent to %s", user.email)
-            current_app.logger.info("password reset submitted by %s", user)
+            current_app.logger.info("password reset email sent to %s", user.email)
+        current_app.logger.info("password reset submitted by %s", user)
 
 
 class ConfirmPasswordResetAPI(MethodView):
@@ -397,3 +399,10 @@ def jwt_admin_required():
         return decorator
 
     return wrapper
+
+
+def _replace_url_site(url: str, new_site: str) -> str:
+    url_parsed = urllib.parse.urlparse(url)
+    # strip out existing scheme and netloc, so we can replace them with new_site
+    url_parsed = urllib.parse.urlunparse(url_parsed._replace(scheme="", netloc=""))
+    return urllib.parse.urljoin(new_site, url_parsed)
