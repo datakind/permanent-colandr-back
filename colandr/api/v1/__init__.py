@@ -1,11 +1,12 @@
 import apiflask as af
 
-from .routes import auth, health
+from .routes import auth, health, users
 
 
 def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(auth.bp, url_prefix=_join_ups(url_prefix, auth.bp))
     app.register_blueprint(health.bp, url_prefix=_join_ups(url_prefix, health.bp))
+    app.register_blueprint(users.bp, url_prefix=_join_ups(url_prefix, users.bp))
 
 
 def _join_ups(base_url_prefix: str, bp: af.APIBlueprint) -> str:
