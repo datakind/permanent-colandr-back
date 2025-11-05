@@ -6,7 +6,6 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from ....lib import constants
 from .. import errors, schemas
 from . import auth
 
@@ -63,7 +62,6 @@ class UserAPI(MethodView):
     @bp.output({}, status_code=204)
     @jwtext.jwt_required(fresh=True)
     def delete(self, id):
-        """delete record for a single user by id"""
         current_user = jwtext.get_current_user()
         if not _is_allowed(current_user, id):
             raise errors.ForbiddenError(

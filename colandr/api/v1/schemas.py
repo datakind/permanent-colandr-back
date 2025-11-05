@@ -5,7 +5,11 @@ import marshmallow as ma
 # TODO: someday, we should rename this from "fields" to "include"
 class FieldsSchema(af.Schema):
     fields_ = af.fields.DelimitedList(
-        af.fields.String, required=False, delimiter=",", data_key="fields"
+        af.fields.String,
+        required=False,
+        delimiter=",",
+        data_key="fields",
+        description="comma-delimited list of entity fields to include in response",
     )
 
     @ma.post_load
