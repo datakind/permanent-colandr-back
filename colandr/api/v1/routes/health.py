@@ -24,6 +24,7 @@ class HealthAPI(MethodView):
             500: "API is unhealthy",
         },
     )
+    @bp.output({"message": af.fields.String()})
     def get(self):
         redis_conn = celery.current_app.backend.client  # type: ignore
         assert isinstance(redis_conn, redis.client.Redis)  # type guard
