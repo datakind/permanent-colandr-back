@@ -1,6 +1,8 @@
 import apiflask as af
 import marshmallow as ma
 
+from ...lib import constants
+
 
 # TODO: someday, we should rename this from "fields" to "include"
 class FieldsSchema(af.Schema):
@@ -41,5 +43,36 @@ class UserSchema(af.Schema):
     )
     is_confirmed = af.fields.Boolean()
     is_admin = af.fields.Boolean()
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+
+
+class ReviewSchema(af.Schema):
+    id = af.fields.Integer(required=True, dump_only=True)
+    name = af.fields.String(required=True, validate=af.validators.Length(max=500))
+    description = af.fields.String(load_default=None)
+    status = af.fields.String(validate=af.validators.OneOf(constants.REVIEW_STATUSES))
+    num_citation_screening_reviewers = af.fields.Integer(
+        validate=af.validators.Range(min=1, max=3)
+    )
+    num_fulltext_screening_reviewers = af.fields.Integer(
+        validate=af.validators.Range(min=1, max=3)
+    )
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+
+
+class ReviewerNumPct(af.Schema):
+    num = af.fields.Integer(required=True, validate=af.validators.Range(min=1, max=3))
+    pct = af.fields.Integer(required=True, validate=af.validators.Range(min=0, max=100))
+
+
+class ReviewV2Schema(af.Schema):
+    id = af.fields.Integer(required=True, dump_only=True)
+    name = af.fields.String(required=True, validate=af.validators.Length(max=500))
+    description = af.fields.String(load_default=None)
+    status = af.fields.String(validate=af.validators.OneOf(constants.REVIEW_STATUSES))
+    citation_reviewer_num_pcts = af.fields.List(af.fields.Nested(ReviewerNumPct))
+    fulltext_reviewer_num_pcts = af.fields.List(af.fields.Nested(ReviewerNumPct))
     created_at = af.fields.DateTime(dump_only=True, format="iso")
     updated_at = af.fields.DateTime(dump_only=True, format="iso")
