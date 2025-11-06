@@ -28,7 +28,6 @@ class UserAPI(MethodView):
     @jwtext.jwt_required()
     def get(self, id, query_data):
         fields = query_data.get("fields_")
-        current_app.logger.info("query_data = %s", query_data)
         current_user = jwtext.get_current_user()
         if not _is_allowed(current_user, id, collaborators=True):
             raise errors.ForbiddenError(
@@ -39,23 +38,14 @@ class UserAPI(MethodView):
         if not user:
             raise errors.NotFoundError(message=f"<User(id={id})> not found")
 
-        # TODO: figure out the best way to filter fields from returned user
-        return (
-            user
-            if fields is None
-            else {field: getattr(user, field, None) for field in fields}
-        )
-        # return schemas.UserSchema(only=fields).dump(user)
-        # return schemas.UserSchema(partial=True).load(
-        #     schemas.UserSchema(only=fields).dump(user)
-        # )
+        return models.model_to_dict(user, fields)
 
     @bp.doc(
         summary="delete a single user",
         responses={
             204: "successfully deleted user record",
             403: "current app user forbidden to delete user record",
-            404: "no user with matching id was found",
+            404: "no user record matching id was found",
         },
         security="TokenAuth",
     )
@@ -82,7 +72,7 @@ class UserAPI(MethodView):
         responses={
             200: "user data was modified",
             403: "current app user forbidden to modify user",
-            404: "no user with matching id was found",
+            404: "no user record matching id was found",
         },
         security="TokenAuth",
     )
@@ -90,8 +80,6 @@ class UserAPI(MethodView):
     @bp.output(schemas.UserSchema)
     @jwtext.jwt_required(fresh=True)
     def put(self, id, json_data):
-        current_app.logger.warning("json_data = %s", json_data)
-
         current_user = jwtext.get_current_user()
         if not _is_allowed(current_user, id):
             raise errors.ForbiddenError(
