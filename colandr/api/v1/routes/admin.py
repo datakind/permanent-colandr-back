@@ -13,6 +13,30 @@ from . import auth
 bp = af.APIBlueprint("admin", __name__, url_prefix="/admin")
 
 
+@bp.post("/users")
+@bp.doc(
+    summary="create new user",
+    responses={
+        200: "user was created",
+        403: "current app user forbidden to create user",
+    },
+    security="TokenAuth",
+)
+@bp.input(schemas.UserSchema, location="json")
+@bp.output(schemas.UserSchema)
+@auth.jwt_admin_required()
+def post(json_data):
+    current_user = jwtext.get_current_user()
+    user = models.User(**json_data)
+    if not user.is_confirmed:
+        user.is_confirmed = True
+        current_app.logger.warning("[ADMIN] setting %s is_confirmed to True", user)
+    db.session.add(user)
+    db.session.commit()
+    current_app.logger.info("[ADMIN] %s created %s", current_user, user)
+    return user
+
+
 @bp.get("/reviews")
 @bp.doc(
     summary="get one or multiple reviews",

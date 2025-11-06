@@ -7,7 +7,6 @@ from flask.views import MethodView
 from .... import models
 from ....extensions import db
 from .. import errors, schemas
-from . import auth
 
 
 bp = af.APIBlueprint("users", __name__, url_prefix="/users")
@@ -196,25 +195,6 @@ class UsersAPI(MethodView):
                 sa.select(models.User).filter_by(is_admin=True)
             ).scalars()
             return admins
-
-    @bp.doc(
-        summary="[ADMIN-ONLY] create new user",
-        responses={
-            200: "user was created",
-            403: "current app user forbidden to create user",
-        },
-        security="TokenAuth",
-    )
-    @bp.input(schemas.UserSchema, location="json")
-    @bp.output(schemas.UserSchema)
-    @auth.jwt_admin_required()
-    def post(self, json_data):
-        user = models.User(**json_data)
-        user.is_confirmed = True
-        db.session.add(user)
-        db.session.commit()
-        current_app.logger.info("inserted %s", user)
-        return user
 
 
 bp.add_url_rule("/<int:id>", view_func=UserAPI.as_view("user"))
