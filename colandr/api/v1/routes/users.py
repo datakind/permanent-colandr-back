@@ -94,7 +94,7 @@ class UserAPI(MethodView):
 
         user = db.session.get(models.User, id)
         if not user:
-            return errors.NotFoundError(message=f"<User(id={id})> not found")
+            raise errors.NotFoundError(message=f"<User(id={id})> not found")
 
         for key, value in json_data.items():
             if key == "email":

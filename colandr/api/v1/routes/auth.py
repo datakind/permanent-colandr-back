@@ -260,7 +260,7 @@ class ConfirmPasswordResetAPI(MethodView):
             raise errors.NotFoundError(message=f"no user found for token='{token}'")
 
         if user.is_confirmed is False:
-            return errors.ForbiddenError(
+            raise errors.ForbiddenError(
                 message="user not confirmed! please first confirm your email address."
             )
 
