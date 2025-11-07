@@ -1,6 +1,6 @@
 import apiflask as af
 
-from .routes import admin, auth, health, reviews, users
+from .routes import admin, auth, health, review_plans, reviews, users
 
 
 def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
@@ -8,6 +8,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(auth.bp, url_prefix=_join_ups(url_prefix, auth.bp))
     app.register_blueprint(health.bp, url_prefix=_join_ups(url_prefix, health.bp))
     app.register_blueprint(reviews.bp, url_prefix=_join_ups(url_prefix, reviews.bp))
+    app.register_blueprint(
+        review_plans.bp, url_prefix=_join_ups(url_prefix, review_plans.bp)
+    )
     app.register_blueprint(users.bp, url_prefix=_join_ups(url_prefix, users.bp))
 
 

@@ -76,3 +76,66 @@ class ReviewV2Schema(af.Schema):
     fulltext_reviewer_num_pcts = af.fields.List(af.fields.Nested(ReviewerNumPct))
     created_at = af.fields.DateTime(dump_only=True, format="iso")
     updated_at = af.fields.DateTime(dump_only=True, format="iso")
+
+
+class ReviewPlanPICO(af.Schema):
+    population = af.fields.String(validate=af.validators.Length(max=300))
+    intervention = af.fields.String(validate=af.validators.Length(max=300))
+    comparison = af.fields.String(validate=af.validators.Length(max=300))
+    outcome = af.fields.String(validate=af.validators.Length(max=300))
+
+
+class ReviewPlanKeyterm(af.Schema):
+    group = af.fields.String(required=True, validate=af.validators.Length(max=100))
+    term = af.fields.String(required=True, validate=af.validators.Length(max=100))
+    synonyms = af.fields.List(
+        af.fields.String(validate=af.validators.Length(max=100)), load_default=[]
+    )
+
+
+class ReviewPlanSelectionCriterion(af.Schema):
+    label = af.fields.String(required=True, validate=af.validators.Length(max=50))
+    description = af.fields.String(validate=af.validators.Length(max=300))
+
+
+class DataExtractionFormItem(af.Schema):
+    label = af.fields.String(required=True, validate=af.validators.Length(max=50))
+    description = af.fields.String(validate=af.validators.Length(max=300))
+    field_type = af.fields.String(
+        required=True,
+        validate=af.validators.OneOf(
+            [
+                "bool",
+                "date",
+                "int",
+                "float",
+                "str",
+                "select_one",
+                "select_many",
+                "country",
+            ]
+        ),
+    )
+    allowed_values = af.fields.List(af.fields.String())
+
+
+class ReviewPlanSuggestedKeyterms(af.Schema):
+    sample_size = af.fields.Integer(required=True, validate=af.validators.Range(min=1))
+    incl_keyterms = af.fields.List(af.fields.String(), required=True)
+    excl_keyterms = af.fields.List(af.fields.String(), required=True)
+
+
+class ReviewPlanSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    objective = af.fields.String()
+    research_questions = af.fields.List(
+        af.fields.String(validate=af.validators.Length(max=300))
+    )
+    pico = af.fields.Nested(ReviewPlanPICO)
+    keyterms = af.fields.Nested(ReviewPlanKeyterm, many=True)
+    selection_criteria = af.fields.Nested(ReviewPlanSelectionCriterion, many=True)
+    data_extraction_form = af.fields.Nested(DataExtractionFormItem, many=True)
+    suggested_keyterms = af.fields.Nested(ReviewPlanSuggestedKeyterms)
+    boolean_search_query = af.fields.String(dump_only=True)
