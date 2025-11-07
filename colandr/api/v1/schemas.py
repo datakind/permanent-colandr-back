@@ -139,3 +139,137 @@ class ReviewPlanSchema(af.Schema):
     data_extraction_form = af.fields.Nested(DataExtractionFormItem, many=True)
     suggested_keyterms = af.fields.Nested(ReviewPlanSuggestedKeyterms)
     boolean_search_query = af.fields.String(dump_only=True)
+
+
+class DataSourceSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    source_type = af.fields.String(
+        required=True, validate=af.validators.OneOf(["database", "gray literature"])
+    )
+    source_name = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=100)
+    )
+    source_url = af.fields.String(
+        load_default=None,
+        validate=[af.validators.URL(relative=False), af.validators.Length(max=500)],
+    )
+    source_type_and_name = af.fields.String(dump_only=True)
+
+
+class ImportSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    user_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    data_source_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
+    )
+    record_type = af.fields.String(
+        required=True, validate=af.validators.OneOf(["citation", "fulltext"])
+    )
+    num_records = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    status = af.fields.String(validate=af.validators.OneOf(constants.IMPORT_STATUSES))
+    data_source = af.fields.Nested(DataSourceSchema)
+    user = af.fields.Nested(UserSchema)
+
+
+class ScreeningSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    user_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    citation_id = af.fields.Integer(
+        load_default=None, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
+    )
+    fulltext_id = af.fields.Integer(
+        load_default=None, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
+    )
+    status = af.fields.String(
+        required=True, validate=af.validators.OneOf(["included", "excluded"])
+    )
+    exclude_reasons = af.fields.List(
+        af.fields.String(validate=af.validators.Length(max=64)), load_default=None
+    )
+
+
+class ScreeningV2Schema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    user_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    study_id = af.fields.Integer(
+        load_default=None, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
+    )
+    stage = af.fields.String(
+        validate=af.validators.OneOf(["citation", "fulltext"])
+    )  # TODO: required=True
+    status = af.fields.String(
+        required=True, validate=af.validators.OneOf(["included", "excluded"])
+    )
+    exclude_reasons = af.fields.List(
+        af.fields.String(validate=af.validators.Length(max=64)), load_default=None
+    )
+
+
+class CitationSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    type_of_work = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=25)
+    )
+    title = af.fields.String(validate=af.validators.Length(max=300))
+    secondary_title = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=300)
+    )
+    abstract = af.fields.String(load_default=None)
+    pub_year = af.fields.Integer(
+        load_default=None,
+        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
+    )
+    pub_month = af.fields.Integer(
+        load_default=None,
+        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
+    )
+    authors = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
+    keywords = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
+    type_of_reference = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=50)
+    )
+    journal_name = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=100)
+    )
+    volume = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
+    issue_number = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=20)
+    )
+    doi = af.fields.String(load_default=None, validate=af.validators.Length(max=100))
+    issn = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
+    publisher = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=100)
+    )
+    language = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=50)
+    )
+    other_fields = af.fields.Dict()
+    screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
