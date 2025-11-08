@@ -4,6 +4,7 @@ from .routes import (
     admin,
     auth,
     citation_imports,
+    citation_screenings,
     citations,
     health,
     review_plans,
@@ -17,6 +18,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(auth.bp, url_prefix=_join_ups(url_prefix, auth.bp))
     app.register_blueprint(
         citation_imports.bp, url_prefix=_join_ups(url_prefix, citation_imports.bp)
+    )
+    app.register_blueprint(
+        citation_screenings.bp, url_prefix=_join_ups(url_prefix, citation_screenings.bp)
     )
     app.register_blueprint(citations.bp, url_prefix=_join_ups(url_prefix, citations.bp))
     app.register_blueprint(health.bp, url_prefix=_join_ups(url_prefix, health.bp))
