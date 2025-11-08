@@ -145,14 +145,19 @@ class DataSourceSchema(af.Schema):
     id = af.fields.Integer(dump_only=True)
     created_at = af.fields.DateTime(dump_only=True, format="iso")
     source_type = af.fields.String(
-        required=True, validate=af.validators.OneOf(["database", "gray literature"])
+        required=True,
+        validate=af.validators.OneOf(["database", "gray literature"]),
+        description="type of source through which citation/s was/were found",
     )
     source_name = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=100)
+        load_default=None,
+        validate=af.validators.Length(max=100),
+        description="name of source through which citation/s was/were found",
     )
     source_url = af.fields.String(
         load_default=None,
         validate=[af.validators.URL(relative=False), af.validators.Length(max=500)],
+        description="url of source through which citation/s was/were found",
     )
     source_type_and_name = af.fields.String(dump_only=True)
 
