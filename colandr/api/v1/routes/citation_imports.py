@@ -97,40 +97,6 @@ class CitationImportsAPI(MethodView):
         },
         security="TokenAuth",
     )
-    # @bp.input(
-    #     {
-    #         "review_id": af.fields.Integer(
-    #             required=True,
-    #             validate=af.validators.Range(min=1),
-    #             description="unique identifier for review for which citations will be imported",
-    #         ),
-    #         "source_type": af.fields.String(
-    #             required=True,
-    #             validate=af.validators.OneOf(["database", "gray literature"]),
-    #             description="type of source through which citations were found",
-    #         ),
-    #         "source_name": af.fields.String(
-    #             validate=af.validators.Length(max=100),
-    #             description="name of source through which citations were found",
-    #         ),
-    #         "source_url": af.fields.String(
-    #             validate=[
-    #                 af.validators.URL(relative=False),
-    #                 af.validators.Length(max=500),
-    #             ],
-    #             description="url of source through which citations were found",
-    #         ),
-    #         "status": af.fields.String(
-    #             validate=af.validators.OneOf(["not_screened", "included", "excluded"]),
-    #             description="known screening status of citations, if anything",
-    #         ),
-    #         "dedupe": af.fields.Boolean(
-    #             load_default=True,
-    #             description="if True, all review citations will be (re-)deduped",
-    #         ),
-    #     },
-    #     location="query",
-    # )
     @bp.input(
         {
             "uploaded_file": af.fields.File(
@@ -167,18 +133,6 @@ class CitationImportsAPI(MethodView):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to add citations to this review"
             )
-
-        # upsert the data source
-        # try:
-        #     schemas.DataSourceSchema().validate(
-        #         {
-        #             "source_type": source_type,
-        #             "source_name": source_name,
-        #             "source_url": source_url,
-        #         }
-        #     )
-        # except ValidationError as e:
-        #     raise errors.BadRequestError(message=e.messages)
 
         data_source = db.session.execute(
             sa.select(models.DataSource).filter_by(
@@ -250,7 +204,11 @@ class CitationImportsAPI(MethodView):
         db.session.add(citations_import)
         db.session.commit()
         current_app.logger.info(
-            'imported %s citations from file "%s" into %s', n_citations, fname, review
+            '%s imported %s citations from file "%s" into %s',
+            current_user,
+            n_citations,
+            fname,
+            review,
         )
         # lastly, don't forget to deduplicate the citations and get their word2vecs
         tasks.get_citations_text_content_vectors.apply_async(
