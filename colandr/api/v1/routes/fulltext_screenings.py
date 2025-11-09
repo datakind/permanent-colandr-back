@@ -1,4 +1,5 @@
 import datetime
+import random
 import typing as t
 
 import apiflask as af
@@ -9,19 +10,20 @@ from flask.views import MethodView
 
 from .... import models, tasks
 from ....extensions import db
+from ....utils import assign_status
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("citation screenings", __name__, url_prefix="/citations")
+bp = af.APIBlueprint("fulltext screenings", __name__, url_prefix="/fulltexts")
 
 
-class CitationScreeningAPI(MethodView):
+class FulltextScreeningAPI(MethodView):
     @bp.doc(
-        summary="get screenings for a single citation",
+        summary="get screenings for a single fulltext",
         responses={
-            200: "successfully got citation screening(s)",
-            403: "current app user forbidden to get citation screening(s)",
-            404: "no citation matching id was found",
+            200: "successfully got fulltext screening(s)",
+            403: "current app user forbidden to get fulltext screening(s)",
+            404: "no fulltext matching id was found",
         },
         security="TokenAuth",
     )
@@ -36,13 +38,21 @@ class CitationScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if (
+            current_user.is_admin is False
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
+            ).one_or_none()
+            is None
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get citation screenings for this review"
+                message=f"{current_user} forbidden to get fulltext screenings for this review"
             )
 
         screenings = db.session.execute(
-            study.screenings.select().filter_by(stage="citation")
+            study.screenings.select().filter_by(stage="fulltext")
         ).scalars()
         if not screenings:
             raise errors.NotFoundError(
@@ -50,9 +60,9 @@ class CitationScreeningAPI(MethodView):
             )
 
         # HACK: hide the consolidated (v2) screening schema from this api
-        if fields and "citation_id" in fields:
+        if fields and "fulltext_id" in fields:
             fields.append("study_id")
-            fields.remove("citation_id")
+            fields.remove("fulltext_id")
         results = [
             _convert_screening_v2_into_v1(screening, fields) for screening in screenings
         ]
@@ -62,13 +72,12 @@ class CitationScreeningAPI(MethodView):
         return results
 
     @bp.doc(
-        summary="create a screening for a single citation",
+        summary="create a screening for a single fulltext",
         responses={
-            200: "citation screening record was created",
-            400: "citation screening was invalid",
-            403: "current app user forbidden to create citation screening",
-            404: "no citation with matching id was found",
-            422: "invalid citation screening record",
+            200: "fulltext screening was created",
+            403: "current app user forbidden to create fulltext screening; has already created a screening for this fulltext, or no screening can be created because the full-text has not yet been uploaded",
+            404: "no fulltext matching id was found",
+            422: "invalid fulltext screening record",
         },
         security="TokenAuth",
     )
@@ -82,11 +91,24 @@ class CitationScreeningAPI(MethodView):
         study = db.session.get(models.Study, id)
 
         if not study:
-            raise errors.NotFoundError(message=f"<Study(id={id})> not found")
+            raise errors.NotFoundError(message=f"<Fulltext(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if (
+            current_user.is_admin is False
+            and db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
+            ).one_or_none()
+            is None
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to screen citations for this review"
+                message=f"{current_user} forbidden to screen fulltexts for this review"
+            )
+
+        if not study.fulltext:
+            raise errors.ForbiddenError(
+                message=f"user can't screen {study} fulltext without it being uploaded"
             )
 
         # validate and add screening
@@ -98,7 +120,7 @@ class CitationScreeningAPI(MethodView):
         if current_user.is_admin:
             if "user_id" not in json_data:
                 raise errors.BadRequestError(
-                    message="admins must specify 'user_id' when creating a citation screening"
+                    message="admins must specify 'user_id' when creating a fulltext screening"
                 )
             else:
                 user_id = json_data["user_id"]
@@ -107,7 +129,7 @@ class CitationScreeningAPI(MethodView):
 
         if db.session.execute(
             study.screenings.select().filter_by(
-                stage="citation", user_id=current_user.id
+                stage="fulltext", user_id=current_user.id
             )
         ).one_or_none():
             raise errors.ForbiddenError(
@@ -118,7 +140,7 @@ class CitationScreeningAPI(MethodView):
             user_id=user_id,
             review_id=study.review_id,
             study_id=id,
-            stage="citation",
+            stage="fulltext",
             status=json_data["status"],
             exclude_reasons=json_data["exclude_reasons"],
         )  # type: ignore
@@ -130,12 +152,12 @@ class CitationScreeningAPI(MethodView):
         return _convert_screening_v2_into_v1(screening)
 
     @bp.doc(
-        summary="modify a screening for a single citation",
+        summary="modify a screening for a single fulltext",
         responses={
-            200: "citation screening data was modified",
-            401: "current app user not authorized to modify citation screening",
-            404: "no citation matching id was found, or no citation screening exists for current app user",
-            422: "invalid modified citation screening data",
+            200: "fulltext screening data was modified",
+            403: "current app user forbidden to modify fulltext screening",
+            404: "no fulltext matching id was found, or no fulltext screening exists for current app user",
+            422: "invalid modified fulltext screening data",
         },
         security="TokenAuth",
     )
@@ -158,21 +180,21 @@ class CitationScreeningAPI(MethodView):
         if current_user.is_admin is True and "user_id" in json_data:
             screening = db.session.execute(
                 study.screenings.select().filter_by(
-                    stage="citation", user_id=json_data["user_id"]
+                    stage="fulltext", user_id=json_data["user_id"]
                 )
             ).scalar_one_or_none()
         else:
             screening = db.session.execute(
                 study.screenings.select().filter_by(
-                    stage="citation", user_id=current_user.id
+                    stage="fulltext", user_id=current_user.id
                 )
             ).scalar_one_or_none()
         if not screening:
             raise errors.NotFoundError(
-                message=f"{current_user} has not screened this citation"
+                message=f"{current_user} has not screened this fulltext"
             )
 
-        if json_data["status"] == "excluded" and not json_data.get("exclude_reasons"):
+        if json_data["status"] == "excluded" and not json_data["exclude_reasons"]:
             raise errors.BadRequestError(
                 message="screenings that exclude must provide a reason"
             )
@@ -185,30 +207,37 @@ class CitationScreeningAPI(MethodView):
         return _convert_screening_v2_into_v1(screening)
 
     @bp.doc(
-        summary="delete current app user's screening for a single citation",
+        summary="delete current app user's screening for a single fulltext",
         responses={
-            204: "successfully deleted citation screening record",
-            403: "current app user forbidden to delete citation screening record",
-            404: "no citation with matching id was found",
+            204: "successfully deleted fulltext screening",
+            403: "current app user forbidden to delete fulltext screening; has not screened fulltext, so nothing to delete",
+            404: "no fulltext matching id was found",
         },
-        security="TokenAuth",
     )
     @bp.output({}, 204)
     @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
+
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if (
+            db.session.execute(
+                current_user.review_user_assoc.select().filter_by(
+                    review_id=study.review_id
+                )
+            ).one_or_none()
+            is None
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to delete citation screening for this review"
+                message=f"{current_user} forbidden to delete fulltext screening for this review"
             )
 
         screening = db.session.execute(
             study.screenings.select().filter_by(
-                stage="citation", user_id=current_user.id
+                stage="fulltext", user_id=current_user.id
             )
         ).scalar_one_or_none()
         if not screening:
@@ -222,30 +251,30 @@ class CitationScreeningAPI(MethodView):
         return ""
 
 
-class CitationScreeningsAPI(MethodView):
+class FulltextScreeningsAPI(MethodView):
     @bp.doc(
-        summary="get citation screenings by citation, user, or review id",
+        summary="get all fulltext screenings by citation, user, or review id",
         responses={
-            200: "successfully got citation screening record(s)",
-            400: "bad request: citation_id, user_id, or review_id required",
-            403: "current app user forbidden to get citation screening record(s)",
-            404: "no citation with matching id was found",
+            200: "successfully got fulltext screening record(s)",
+            400: "bad request: fulltext_id, user_id, or review_id required",
+            403: "current app user forbidden to get fulltext screening record(s)",
+            404: "no fulltext with matching id was found",
         },
         security="TokenAuth",
     )
     @bp.input(
         {
-            "citation_id": af.fields.Integer(
+            "fulltext_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of citation for which to get all citation screenings",
+                description="unique identifier of fulltext for which to get all fulltext screenings",
             ),
             "user_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of user for which to get all citation screenings",
+                description="unique identifier of user for which to get all fulltext screenings",
             ),
             "review_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of review for which to get citation screenings",
+                description="unique identifier of review for which to get fulltext screenings",
             ),
             "status_counts": af.fields.Boolean(
                 load_default=False,
@@ -262,15 +291,15 @@ class CitationScreeningsAPI(MethodView):
     # because we can't do both with one schema -- nor should we
     @jwtext.jwt_required()
     def get(self, query_data):
-        citation_id = query_data.get("citation_id")
+        fulltext_id = query_data.get("fulltext_id")
         user_id = query_data.get("user_id")
         review_id = query_data.get("review_id")
         status_counts = query_data.get("status_counts")
         current_user = jwtext.get_current_user()
 
-        if not any([citation_id, user_id, review_id]):
+        if not any([fulltext_id, user_id, review_id]):
             raise errors.BadRequestError(
-                message="citation, user, and/or review id must be specified"
+                message="fulltext, user, and/or review id must be specified"
             )
 
         stmt = (
@@ -278,19 +307,25 @@ class CitationScreeningsAPI(MethodView):
             if status_counts is False
             else sa.select(models.Screening.status, db.func.count(1))
         )
-        stmt = stmt.where(models.Screening.stage == "citation")
-        if citation_id is not None:
+        stmt = stmt.where(models.Screening.stage == "fulltext")
+        if fulltext_id is not None:
             # check user authorization
-            study = db.session.get(models.Study, citation_id)
+            study = db.session.get(models.Study, fulltext_id)
             if not study:
                 raise errors.NotFoundError(
-                    message=f"<Study(id={citation_id})> not found"
+                    message=f"<Study(id={fulltext_id})> not found"
                 )
-            if not _is_allowed(current_user, study.review_id):
+            if (
+                current_user.is_admin is False
+                and study.review.review_user_assoc.filter_by(
+                    user_id=current_user.id
+                ).one_or_none()
+                is None
+            ):
                 raise errors.ForbiddenError(
                     message=f"{current_user} forbidden to get screenings for {study}"
                 )
-            stmt = stmt.where(models.Screening.study_id == citation_id)
+            stmt = stmt.where(models.Screening.study_id == fulltext_id)
         if user_id is not None:
             # check user authorization
             user = db.session.get(models.User, user_id)
@@ -314,8 +349,8 @@ class CitationScreeningsAPI(MethodView):
                 )
             if (
                 current_user.is_admin is False
-                and db.session.execute(
-                    review.review_user_assoc.select().filter_by(user_id=current_user.id)
+                and review.review_user_assoc.filter_by(
+                    user_id=current_user.id
                 ).one_or_none()
                 is None
             ):
@@ -332,14 +367,6 @@ class CitationScreeningsAPI(MethodView):
             return [_convert_screening_v2_into_v1(record) for record in results]
 
 
-bp.add_url_rule(
-    "/<int:id>/screenings", view_func=CitationScreeningAPI.as_view("citation_screening")
-)
-bp.add_url_rule(
-    "/screenings", view_func=CitationScreeningsAPI.as_view("citation_screenings")
-)
-
-
 def _convert_screening_v2_into_v1(
     screening: models.Screening, fields: t.Optional[list[str]] = None
 ) -> dict:
@@ -347,9 +374,9 @@ def _convert_screening_v2_into_v1(
     assert isinstance(record, dict)  # type guard
     # remove stage field, if present
     record.pop("stage", None)
-    # rename study_id field to citation_id
+    # rename study_id field
     if "study_id" in record:
-        record["citation_id"] = record.pop("study_id")
+        record["fulltext_id"] = record.pop("study_id")
     # parse dttm values back into python objects
     for field in ("created_at", "updated_at"):
         if field in record:
@@ -357,14 +384,9 @@ def _convert_screening_v2_into_v1(
     return record
 
 
-def _is_allowed(current_user: models.User, review_id: int) -> bool:
-    is_allowed = current_user.is_admin
-    is_allowed |= (
-        db.session.execute(
-            sa.select(models.ReviewUserAssoc).filter_by(
-                user_id=current_user.id, review_id=review_id
-            )
-        ).scalar_one_or_none()
-        is not None
-    )
-    return is_allowed
+bp.add_url_rule(
+    "/<int:id>/screenings", view_func=FulltextScreeningAPI.as_view("fulltext_screening")
+)
+bp.add_url_rule(
+    "/screenings", view_func=FulltextScreeningsAPI.as_view("fulltext_screenings")
+)
