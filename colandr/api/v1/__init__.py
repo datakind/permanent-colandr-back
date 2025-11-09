@@ -8,6 +8,7 @@ from .routes import (
     citations,
     dedupe,
     exports,
+    fulltext_uploads,
     fulltexts,
     health,
     review_plans,
@@ -28,6 +29,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(citations.bp, url_prefix=_join_ups(url_prefix, citations.bp))
     app.register_blueprint(dedupe.bp, url_prefix=_join_ups(url_prefix, dedupe.bp))
     app.register_blueprint(exports.bp, url_prefix=_join_ups(url_prefix, exports.bp))
+    app.register_blueprint(
+        fulltext_uploads.bp, url_prefix=_join_ups(url_prefix, fulltext_uploads.bp)
+    )
     app.register_blueprint(fulltexts.bp, url_prefix=_join_ups(url_prefix, fulltexts.bp))
     app.register_blueprint(health.bp, url_prefix=_join_ups(url_prefix, health.bp))
     app.register_blueprint(reviews.bp, url_prefix=_join_ups(url_prefix, reviews.bp))
