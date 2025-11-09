@@ -196,6 +196,7 @@ def post_citation_screenings(json_data, query_data):
 
 @bp.post("/fulltexts/screenings")
 @bp.doc(
+    summary="create one or multiple fulltext screenings",
     responses={
         200: "successfully created fulltext screening record(s)",
         403: "current app user forbidden to create fulltext screening records",
