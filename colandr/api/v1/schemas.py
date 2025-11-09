@@ -278,3 +278,14 @@ class CitationSchema(af.Schema):
     )
     other_fields = af.fields.Dict()
     screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
+
+
+class FulltextSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    review_id = af.fields.Integer(required=True, validate=af.validators.Range(min=1))
+    filename = af.fields.String(validate=af.validators.Length(max=30))
+    original_filename = af.fields.String(dump_only=True)
+    text_content = af.fields.String(dump_only=True)
+    screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")

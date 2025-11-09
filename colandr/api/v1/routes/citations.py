@@ -1,7 +1,6 @@
 import apiflask as af
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
-import webargs
 from flask import current_app
 from flask.views import MethodView
 
