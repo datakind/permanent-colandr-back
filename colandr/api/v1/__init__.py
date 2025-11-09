@@ -13,6 +13,7 @@ from .routes import (
     fulltexts,
     health,
     review_plans,
+    review_progress,
     reviews,
     study_tags,
     users,
@@ -42,6 +43,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(reviews.bp, url_prefix=_join_ups(url_prefix, reviews.bp))
     app.register_blueprint(
         review_plans.bp, url_prefix=_join_ups(url_prefix, review_plans.bp)
+    )
+    app.register_blueprint(
+        review_progress.bp, url_prefix=_join_ups(url_prefix, review_progress.bp)
     )
     app.register_blueprint(
         study_tags.bp, url_prefix=_join_ups(url_prefix, study_tags.bp)
