@@ -1,4 +1,6 @@
+import collections
 import csv
+import itertools
 import typing as t
 
 import apiflask as af
@@ -280,5 +282,141 @@ def _screening_to_row(screening: models.Screening) -> dict:
     return row
 
 
+# TODO: this endpoint doesn't _really_ make sense here; consider moving / refactoring?
+class ExportPrismaAPI(MethodView):
+    @bp.doc(
+        summary="export review PRISMA stats",
+        responses={
+            200: "successfully got review prisma data",
+            403: "current app user forbidden to export review prisma data",
+            404: "no review matching id was found",
+        },
+        security="TokenAuth",
+    )
+    @bp.input(
+        {
+            "review_id": af.fields.Integer(
+                required=True, validate=af.validators.Range(min=1)
+            )
+        },
+        location="query",
+    )
+    @bp.output(
+        {
+            "num_studies_by_source": af.fields.Dict(
+                keys=af.fields.String(), values=af.fields.Integer()
+            ),
+            "num_unique_studies": af.fields.Integer(),
+            "num_screened_citations": af.fields.Integer(),
+            "num_excluded_citations": af.fields.Integer(),
+            "num_screened_fulltexts": af.fields.Integer(),
+            "num_excluded_fulltexts": af.fields.Integer(),
+            "exclude_reason_counts": af.fields.Dict(
+                keys=af.fields.String(), values=af.fields.Integer()
+            ),
+            "num_studies_data_extracted": af.fields.Integer(),
+        }
+    )
+    @jwtext.jwt_required()
+    def get(self, query_data):
+        review_id = query_data["review_id"]
+        current_user = jwtext.get_current_user()
+        review = db.session.get(models.Review, review_id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
+
+        if (
+            current_user.is_admin is False
+            and review.review_user_assoc.filter_by(
+                user_id=current_user.id
+            ).one_or_none()
+            is None
+        ):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to get this review"
+            )
+
+        # get counts by step, i.e. prisma
+        n_studies_by_source_stmt = (
+            sa.select(
+                models.DataSource.source_type, db.func.sum(models.Import.num_records)
+            )
+            .filter(models.Import.data_source_id == models.DataSource.id)
+            .filter(models.Import.review_id == review_id)
+            .group_by(models.DataSource.source_type)
+        )
+        n_studies_by_source = {
+            row.source_type: row.sum
+            for row in db.session.execute(n_studies_by_source_stmt)
+        }
+
+        n_unique_studies = db.session.execute(
+            sa.select(sa.func.count()).select_from(
+                sa.select(models.Study)
+                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+                .subquery()
+            )
+        ).scalar_one()
+
+        n_citations_by_status_stmt = (
+            sa.select(models.Study.citation_status, sa.func.count())
+            .filter(models.Study.review_id == review_id)
+            .filter(models.Study.citation_status.in_(["included", "excluded"]))
+            .group_by(models.Study.citation_status)
+        )
+        n_citations_by_status = {
+            row.citation_status: row.count
+            for row in db.session.execute(n_citations_by_status_stmt)
+        }
+        n_citations_screened = sum(n_citations_by_status.values())  # type: ignore
+        n_citations_excluded = n_citations_by_status.get("excluded", 0)
+
+        n_fulltexts_by_status_stmt = (
+            sa.select(models.Study.fulltext_status, sa.func.count())
+            .filter(models.Study.review_id == review_id)
+            .filter(models.Study.fulltext_status.in_(["included", "excluded"]))
+            .group_by(models.Study.fulltext_status)
+        )
+        n_fulltexts_by_status = {
+            row.fulltext_status: row.count
+            for row in db.session.execute(n_fulltexts_by_status_stmt)
+        }
+        n_fulltexts_screened = sum(n_fulltexts_by_status.values())  # type: ignore
+        n_fulltexts_excluded = n_fulltexts_by_status.get("excluded", 0)
+
+        results = db.session.execute(
+            sa.select(models.Screening.exclude_reasons).filter_by(review_id=review_id)
+        ).all()
+        exclude_reason_counts = dict(
+            collections.Counter(
+                itertools.chain.from_iterable(
+                    [result[0] for result in results if result[0] is not None]
+                )
+            )
+        )
+        n_data_extractions = db.session.execute(
+            sa.select(sa.func.count()).select_from(
+                sa.select(models.Study)
+                .filter_by(review_id=review_id, data_extraction_status="finished")
+                .subquery()
+            )
+        ).scalar_one()
+
+        current_app.logger.debug(
+            "%s exported PRISMA stats for %s", current_user, review
+        )
+        return {
+            "num_studies_by_source": n_studies_by_source,
+            "num_unique_studies": n_unique_studies,
+            "num_screened_citations": n_citations_screened,
+            "num_excluded_citations": n_citations_excluded,
+            "num_screened_fulltexts": n_fulltexts_screened,
+            "num_excluded_fulltexts": n_fulltexts_excluded,
+            "exclude_reason_counts": exclude_reason_counts,
+            "num_studies_data_extracted": n_data_extractions,
+        }
+
+
 bp.add_url_rule("/studies", view_func=ExportStudiesAPI.as_view("studies"))
 bp.add_url_rule("/screenings", view_func=ExportScreeningsAPI.as_view("screenings"))
+bp.add_url_rule("/prisma", view_func=ExportPrismaAPI.as_view("prisma"))
