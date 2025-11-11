@@ -14,6 +14,7 @@ from .routes import (
     health,
     review_plans,
     review_progress,
+    review_teams,
     reviews,
     study_tags,
     users,
@@ -46,6 +47,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     )
     app.register_blueprint(
         review_progress.bp, url_prefix=_join_ups(url_prefix, review_progress.bp)
+    )
+    app.register_blueprint(
+        review_teams.bp, url_prefix=_join_ups(url_prefix, review_teams.bp)
     )
     app.register_blueprint(
         study_tags.bp, url_prefix=_join_ups(url_prefix, study_tags.bp)
