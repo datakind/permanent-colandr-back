@@ -289,3 +289,131 @@ class FulltextSchema(af.Schema):
     screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
     created_at = af.fields.DateTime(dump_only=True, format="iso")
     updated_at = af.fields.DateTime(dump_only=True, format="iso")
+
+
+class MetadataSchema(af.Schema):
+    record = af.fields.Integer(required=True)
+    metadata = af.fields.String(required=True)
+    value = af.fields.String(required=True)
+    sentence = af.fields.String(required=True)
+    sentence_location = af.fields.Integer(required=True)
+    confidence = af.fields.Float(
+        required=True, validate=af.validators.Range(min=0.0, max=1.0)
+    )
+    confidence_level = af.fields.Integer(
+        dump_default=-1, validate=af.validators.Range(min=-1, max=3)
+    )
+
+
+class DedupeSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    study_id = af.fields.Integer(required=True, validate=af.validators.Range(min=1))
+    review_id = af.fields.Integer(required=True, validate=af.validators.Range(min=1))
+    duplicate_of = af.fields.Integer(
+        load_default=None, validate=af.validators.Range(min=1)
+    )
+    # TODO: figure out if allow_nan parameter is required here
+    # https://marshmallow.readthedocs.io/en/stable/upgrading.html#float-field-takes-a-new-allow-nan-parameter
+    duplicate_score = af.fields.Float(
+        load_default=None, validate=af.validators.Range(min=0.0)
+    )
+
+
+class ExtractedItem(af.Schema):
+    label = af.fields.String(required=True, validate=af.validators.Length(max=50))
+    # validation handled in API Resource based on values in DataExtractionFormItem
+    value = af.fields.Raw(required=True)
+
+
+class DataExtractionSchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    study_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    extracted_items = af.fields.Nested(ExtractedItem, many=True)
+
+
+class StudyCitationSchema(af.Schema):
+    type_of_work = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=25)
+    )
+    title = af.fields.String(validate=af.validators.Length(max=300))
+    secondary_title = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=300)
+    )
+    abstract = af.fields.String(load_default=None)
+    pub_year = af.fields.Integer(
+        load_default=None,
+        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
+    )
+    pub_month = af.fields.Integer(
+        load_default=None,
+        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
+    )
+    authors = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
+    keywords = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
+    type_of_reference = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=50)
+    )
+    journal_name = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=100)
+    )
+    volume = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
+    issue_number = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=20)
+    )
+    doi = af.fields.String(load_default=None, validate=af.validators.Length(max=100))
+    issn = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
+    publisher = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=100)
+    )
+    language = af.fields.String(
+        load_default=None, validate=af.validators.Length(max=50)
+    )
+    other_fields = af.fields.Dict()
+
+
+class StudyFulltextSchema(af.Schema):
+    filename = af.fields.String(validate=af.validators.Length(max=30))
+    original_filename = af.fields.String(dump_only=True)
+    text_content = af.fields.String(dump_only=True)
+
+
+class StudySchema(af.Schema):
+    id = af.fields.Integer(dump_only=True)
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    citation = af.fields.Nested(StudyCitationSchema, dump_only=True)
+    fulltext = af.fields.Nested(StudyFulltextSchema, dump_only=True)
+    user_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    review_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
+    )
+    data_source_id = af.fields.Integer(
+        required=True, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
+    )
+    tags = af.fields.List(af.fields.String(validate=af.validators.Length(max=64)))
+    dedupe = af.fields.Nested(DedupeSchema, dump_only=True)
+    dedupe_status = af.fields.String(
+        dump_only=True, validate=af.validators.OneOf(constants.DEDUPE_STATUSES)
+    )
+    citation = af.fields.Nested(CitationSchema, dump_only=True)
+    citation_status = af.fields.String(
+        dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
+    )
+    fulltext = af.fields.Nested(FulltextSchema, dump_only=True)
+    fulltext_status = af.fields.String(
+        dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
+    )
+    data_extraction = af.fields.Nested(DataExtractionSchema, dump_only=True)
+    data_extraction_status = af.fields.String(
+        validate=af.validators.OneOf(constants.EXTRACTION_STATUSES)
+    )
