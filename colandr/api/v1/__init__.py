@@ -9,6 +9,7 @@ from .routes import (
     dedupe,
     exports,
     fulltext_locations,
+    fulltext_metadata,
     fulltext_screenings,
     fulltext_uploads,
     fulltexts,
@@ -37,6 +38,9 @@ def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
     app.register_blueprint(exports.bp, url_prefix=_join_ups(url_prefix, exports.bp))
     app.register_blueprint(
         fulltext_locations.bp, url_prefix=_join_ups(url_prefix, fulltext_locations.bp)
+    )
+    app.register_blueprint(
+        fulltext_metadata.bp, url_prefix=_join_ups(url_prefix, fulltext_metadata.bp)
     )
     app.register_blueprint(
         fulltext_screenings.bp, url_prefix=_join_ups(url_prefix, fulltext_screenings.bp)
