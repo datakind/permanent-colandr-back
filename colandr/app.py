@@ -11,7 +11,7 @@ from colandr.api import v1
 from colandr.apis import api_v1
 
 
-def create_app(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
+def create_app_v1(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
     app = flask.Flask("colandr")
     app.config.from_object(config)
     if config_overrides:
@@ -26,7 +26,9 @@ def create_app(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.F
     return app
 
 
-def create_app_v1(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
+def create_app_v1_1(
+    config_overrides: t.Optional[dict[str, t.Any]] = None,
+) -> flask.Flask:
     app = af.APIFlask(
         "colandr",
         title="Colandr API",

@@ -88,7 +88,7 @@ All tools' configurations live alongside package config in the root `pyproject.t
 colandr's back-end Flask application includes a CLI with a few useful commands. Full details are available via the `--help` flag:
 
 ```shell
-$ docker exec -it colandr-api flask --app "colandr.app.create_app()" --help
+$ docker exec -it colandr-api flask --app "colandr.app.create_app_v1()" --help
 ```
 
 ### initialize and modify the database
