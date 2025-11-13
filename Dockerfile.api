@@ -53,8 +53,7 @@ WORKDIR ${COLANDR_APP_DIR}
 # expose app port
 EXPOSE 5000
 
-# CMD ["flask", "--app", "colandr.app:create_app_v1()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
-CMD ["flask", "--app", "colandr.app:create_app_v1_1()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
+CMD ["flask", "--app", "colandr.app:create_app()", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]
 
 #################
 FROM base AS prod

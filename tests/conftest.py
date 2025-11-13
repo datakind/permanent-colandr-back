@@ -12,7 +12,7 @@ from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
 from colandr.apis import auth
-from colandr.app import create_app_v1, create_app_v1_1
+from colandr.app import create_app
 
 
 TEST_DBNAME = "colandr_test"
@@ -49,8 +49,7 @@ def app(tmp_path_factory):
         # "FILESYSTEM_ROOT_DIR": "test-bucket",
         # "FILESYSTEM_GCS_TOKEN": "anon",
     }
-    app = create_app_v1(config_overrides)
-    # app = create_app_v1_1(config_overrides)
+    app = create_app(config_overrides)
     return app
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from colandr.app import create_app_v1_1
+from colandr.app import create_app
 
 
-app = create_app_v1_1()
+app = create_app()
 celery_app = app.extensions["celery"]
