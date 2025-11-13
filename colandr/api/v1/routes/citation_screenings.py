@@ -237,22 +237,30 @@ class CitationScreeningsAPI(MethodView):
         {
             "citation_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of citation for which to get all citation screenings",
+                metadata={
+                    "description": "unique identifier of citation for which to get all citation screenings"
+                },
             ),
             "user_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of user for which to get all citation screenings",
+                metadata={
+                    "description": "unique identifier of user for which to get all citation screenings"
+                },
             ),
             "review_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of review for which to get citation screenings",
+                metadata={
+                    "description": "unique identifier of review for which to get citation screenings"
+                },
             ),
             "status_counts": af.fields.Boolean(
                 load_default=False,
-                description=(
-                    "if True, group screenings by status and return the counts; "
-                    "if False, return the screening records themselves"
-                ),
+                metadata={
+                    "description": (
+                        "if True, group screenings by status and return the counts; "
+                        "if False, return the screening records themselves"
+                    )
+                },
             ),
         },
         location="query",

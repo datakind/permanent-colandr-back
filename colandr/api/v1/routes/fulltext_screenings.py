@@ -1,5 +1,4 @@
 import datetime
-import random
 import typing as t
 
 import apiflask as af
@@ -14,7 +13,7 @@ from ....utils import assign_status
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("fulltext screenings", __name__, url_prefix="/fulltexts")
+bp = af.APIBlueprint("fulltext_screenings", __name__, url_prefix="/fulltexts")
 
 
 class FulltextScreeningAPI(MethodView):
@@ -266,22 +265,30 @@ class FulltextScreeningsAPI(MethodView):
         {
             "fulltext_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of fulltext for which to get all fulltext screenings",
+                metadata={
+                    "description": "unique identifier of fulltext for which to get all fulltext screenings"
+                },
             ),
             "user_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of user for which to get all fulltext screenings",
+                metadata={
+                    "description": "unique identifier of user for which to get all fulltext screenings"
+                },
             ),
             "review_id": af.fields.Integer(
                 validate=af.validators.Range(min=1),
-                description="unique identifier of review for which to get fulltext screenings",
+                metadata={
+                    "description": "unique identifier of review for which to get fulltext screenings"
+                },
             ),
             "status_counts": af.fields.Boolean(
                 load_default=False,
-                description=(
-                    "if True, group screenings by status and return the counts; "
-                    "if False, return the screening records themselves"
-                ),
+                metadata={
+                    "description": (
+                        "if True, group screenings by status and return the counts; "
+                        "if False, return the screening records themselves"
+                    )
+                },
             ),
         },
         location="query",

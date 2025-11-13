@@ -51,12 +51,16 @@ def post_users(json_data):
             af.fields.String(),
             required=False,
             delimiter=",",
-            description="comma-delimited list-as-string of review ids to return",
+            metadata={
+                "description": "comma-delimited list-as-string of review ids to return"
+            },
         ),
         "user_id": af.fields.Integer(
             required=False,
             delimiter=",",
-            description="id of user who's a member of the reviews to be returned",
+            metadata={
+                "description": "id of user who's a member of the reviews to be returned"
+            },
         ),
     },
     location="query",
@@ -120,11 +124,15 @@ def get_reviews(query_data):
         "review_id": af.fields.Integer(
             required=True,
             validate=af.validators.Range(min=1),
-            description="unique identifier of review for which to create citation screenings",
+            metadata={
+                "description": "unique identifier of review for which to create citation screenings"
+            },
         ),
         "user_id": af.fields.Integer(
             validate=af.validators.Range(min=1),
-            description="unique identifier of user screening citations, if not current app user",
+            metadata={
+                "description": "unique identifier of user screening citations, if not current app user"
+            },
         ),
     },
     location="query",
@@ -213,12 +221,16 @@ def post_citation_screenings(json_data, query_data):
         "review_id": af.fields.Integer(
             required=True,
             validate=af.validators.Range(min=1),
-            description="unique identifier of review for which to create fulltext screenings",
+            metadata={
+                "description": "unique identifier of review for which to create fulltext screenings"
+            },
         ),
         "user_id": af.fields.Integer(
             load_default=None,
             validate=af.validators.Range(min=1),
-            description="unique identifier of user screening fulltexts, if not current app user",
+            metadata={
+                "description": "unique identifier of user screening fulltexts, if not current app user"
+            },
         ),
     },
     location="query",

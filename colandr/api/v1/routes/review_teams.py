@@ -27,19 +27,21 @@ class ReviewTeamPutSchema(af.Schema):
         validate=af.validators.OneOf(
             ["add", "invite", "remove", "make_owner", "set_role"]
         ),
-        description="add, invite, remove, or set the role for a particular user",
+        metadata={
+            "description": "add, invite, remove, or set the role for a particular user"
+        },
     )
     user_id = af.fields.Integer(
         validate=af.validators.Range(min=1),
-        description="unique id of the user on which to act",
+        metadata={"description": "unique id of the user on which to act"},
     )
     user_email = af.fields.String(
         validate=af.validators.Email(),
-        description="unique email address of the user on which to act",
+        metadata={"description": "unique email address of the user on which to act"},
     )
     user_role = af.fields.String(
         validate=af.validators.OneOf(["member", "owner"]),
-        description="type of role to set for user on review",
+        metadata={"description": "type of role to set for user on review"},
     )
 
     @ma.post_load
@@ -222,7 +224,9 @@ class ReviewTeamConfirmationAPI(MethodView):
         {
             "token": af.fields.String(
                 required=True,
-                description="unique, expiring token included in emailed confirmation url",
+                metadata={
+                    "description": "unique, expiring token included in emailed confirmation url"
+                },
             )
         },
         location="query",

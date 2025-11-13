@@ -11,7 +11,9 @@ class FieldsSchema(af.Schema):
         required=False,
         delimiter=",",
         data_key="fields",
-        description="comma-delimited list of entity fields to include in response",
+        metadata={
+            "description": "comma-delimited list of entity fields to include in response"
+        },
     )
 
     @ma.post_load
@@ -147,17 +149,23 @@ class DataSourceSchema(af.Schema):
     source_type = af.fields.String(
         required=True,
         validate=af.validators.OneOf(["database", "gray literature"]),
-        description="type of source through which citation/s was/were found",
+        metadata={
+            "description": "type of source through which citation/s was/were found"
+        },
     )
     source_name = af.fields.String(
         load_default=None,
         validate=af.validators.Length(max=100),
-        description="name of source through which citation/s was/were found",
+        metadata={
+            "description": "name of source through which citation/s was/were found"
+        },
     )
     source_url = af.fields.String(
         load_default=None,
         validate=[af.validators.URL(relative=False), af.validators.Length(max=500)],
-        description="url of source through which citation/s was/were found",
+        metadata={
+            "description": "url of source through which citation/s was/were found"
+        },
     )
     source_type_and_name = af.fields.String(dump_only=True)
 

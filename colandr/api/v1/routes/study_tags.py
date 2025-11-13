@@ -10,7 +10,7 @@ from ....extensions import db
 from .. import errors
 
 
-bp = af.APIBlueprint("study tags", __name__, url_prefix="/studies/tags")
+bp = af.APIBlueprint("study_tags", __name__, url_prefix="/studies/tags")
 
 
 class StudyTagsAPI(MethodView):
@@ -28,7 +28,9 @@ class StudyTagsAPI(MethodView):
             "review_id": af.fields.Integer(
                 required=True,
                 validate=af.validators.Range(min=1),
-                description="unique identifier for review whose studies are to be deduplicated",
+                metadata={
+                    "description": "unique identifier for review whose studies are to be deduplicated"
+                },
             )
         },
         location="query",

@@ -10,7 +10,7 @@ from ....lib import constants
 from .. import errors
 
 
-bp = af.APIBlueprint("review progress", __name__, url_prefix="/reviews/<int:id>")
+bp = af.APIBlueprint("review_progress", __name__, url_prefix="/reviews/<int:id>")
 
 
 class ReviewProgressAPI(MethodView):
@@ -36,14 +36,18 @@ class ReviewProgressAPI(MethodView):
                     ]
                 ),
                 load_default="all",
-                description="name of review particular step for which to get progress, or 'all' steps",
+                metadata={
+                    "description": "name of review particular step for which to get progress, or 'all' steps"
+                },
             ),
             "user_view": af.fields.Boolean(
                 load_default=False,
-                description=(
-                    "if True, return progress from the current app user's perspective; "
-                    "otherwise, use review-oriented progress numbers"
-                ),
+                metadata={
+                    "description": (
+                        "if True, return progress from the current app user's perspective; "
+                        "otherwise, use review-oriented progress numbers"
+                    )
+                },
             ),
         },
         location="query",

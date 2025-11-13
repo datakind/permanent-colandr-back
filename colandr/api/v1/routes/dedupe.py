@@ -25,7 +25,9 @@ class DedupeAPI(MethodView):
             "review_id": af.fields.Integer(
                 required=True,
                 validate=af.validators.Range(min=1),
-                description="unique identifier for review whose studies are to be deduplicated",
+                metadata={
+                    "description": "unique identifier for review whose studies are to be deduplicated"
+                },
             )
         },
         location="query",

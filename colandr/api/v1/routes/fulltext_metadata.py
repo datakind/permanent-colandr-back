@@ -32,7 +32,8 @@ class FulltextMetadataAPI(MethodView):
     @bp.input(
         {
             "meta": af.fields.String(
-                required=False, description="optional metadata type to filter results"
+                required=False,
+                metadata={"description": "optional metadata type to filter results"},
             )
         },
         location="query",

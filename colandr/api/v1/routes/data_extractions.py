@@ -207,7 +207,9 @@ class DataExtractionAPI(MethodView):
             "labels": af.fields.DelimitedList(
                 af.fields.String,
                 delimiter=",",
-                description="comma-delimited list-as-string of data extraction labels to delete",
+                metadata={
+                    "description": "comma-delimited list-as-string of data extraction labels to delete"
+                },
             ),
         },
         location="query",

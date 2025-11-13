@@ -22,15 +22,17 @@ class CitationImportsPostSchema(schemas.DataSourceSchema):
     review_id = af.fields.Integer(
         required=True,
         validate=af.validators.Range(min=1),
-        description="unique identifier for review for which citations will be imported",
+        metadata={
+            "description": "unique identifier for review for which citations will be imported"
+        },
     )
     status = af.fields.String(
         validate=af.validators.OneOf(["not_screened", "included", "excluded"]),
-        description="known screening status of citations, if anything",
+        metadata={"description": "known screening status of citations, if anything"},
     )
     dedupe = af.fields.Boolean(
         load_default=True,
-        description="if True, all review citations will be (re-)deduped",
+        metadata={"description": "if True, all review citations will be (re-)deduped"},
     )
 
 
@@ -49,7 +51,9 @@ class CitationImportsAPI(MethodView):
             "review_id": af.fields.Integer(
                 required=True,
                 validate=af.validators.Range(min=1),
-                description="unique identifier of review for which citations were imported",
+                metadata={
+                    "description": "unique identifier of review for which citations were imported"
+                },
             )
         },
         location="query",
@@ -101,7 +105,9 @@ class CitationImportsAPI(MethodView):
         {
             "uploaded_file": af.fields.File(
                 required=True,
-                description="file containing one or many citations in a standard format (.ris or .bib)",
+                metadata={
+                    "description": "file containing one or many citations in a standard format (.ris or .bib)"
+                },
             )
         },
         location="files",

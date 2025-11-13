@@ -22,59 +22,83 @@ class StudiesGetSchema(schemas.FieldsSchema):
     review_id = af.fields.Integer(
         required=True,
         validate=af.validators.Range(min=1, max=constants.MAX_INT),
-        description="unique identifier for review whose studies are to be fetched",
+        metadata={
+            "description": "unique identifier for review whose studies are to be fetched"
+        },
     )
     dedupe_status = af.fields.String(
         validate=af.validators.OneOf(constants.DEDUPE_STATUSES),
-        description="filter studies to only those with matching deduplication statuses",
+        metadata={
+            "description": "filter studies to only those with matching deduplication statuses"
+        },
     )
     citation_status = af.fields.String(
         validate=af.validators.OneOf(constants.USER_SCREENING_STATUSES),
-        description="filter studies to only those with matching citation statuses",
+        metadata={
+            "description": "filter studies to only those with matching citation statuses"
+        },
     )
     fulltext_status = af.fields.String(
         validate=af.validators.OneOf(constants.USER_SCREENING_STATUSES),
-        description="filter studies to only those with matching fulltext statuses",
+        metadata={
+            "description": "filter studies to only those with matching fulltext statuses"
+        },
     )
     data_extraction_status = af.fields.String(
         validate=af.validators.OneOf(constants.EXTRACTION_STATUSES),
-        description="filter studies to only those with matching data extraction statuses",
+        metadata={
+            "description": "filter studies to only those with matching data extraction statuses"
+        },
     )
     num_citation_reviewers = af.fields.Integer(
         validate=af.validators.Range(min=1, max=3),
-        description="filter studies to only those with a matching number of citation reviewers",
+        metadata={
+            "description": "filter studies to only those with a matching number of citation reviewers"
+        },
     )
     num_fulltext_reviewers = af.fields.Integer(
         validate=af.validators.Range(min=1, max=3),
-        description="filter studies to only those with a matching number of fulltext reviewers",
+        metadata={
+            "description": "filter studies to only those with a matching number of fulltext reviewers"
+        },
     )
     tag = af.fields.String(
         validate=af.validators.Length(max=25),
-        description="filter studies to only those with a matching (user-assigned) tag",
+        metadata={
+            "description": "filter studies to only those with a matching (user-assigned) tag"
+        },
     )
     tsquery = af.fields.String(
         validate=af.validators.Length(max=50),
-        description="filter studies to only those whose text content contains this word or phrase",
+        metadata={
+            "description": "filter studies to only those whose text content contains this word or phrase"
+        },
     )
     order_by = af.fields.String(
         load_default="relevance",
         validate=af.validators.OneOf(["recency", "relevance"]),
-        description="order matching studies by either date imported or expected relevance (default: 'relevance')",
+        metadata={
+            "description": "order matching studies by either date imported or expected relevance (default: 'relevance')"
+        },
     )
     order_dir = af.fields.String(
         load_default="DESC",
         validate=af.validators.OneOf(["ASC", "DESC"]),
-        description="direction of ordering, either in ascending or descending order (default: 'DESC')",
+        metadata={
+            "description": "direction of ordering, either in ascending or descending order (default: 'DESC')"
+        },
     )
     page = af.fields.Integer(
         load_default=0,
         validate=af.validators.Range(min=0),
-        description="page number of the collection of ordered, matching studies, starting at 0",
+        metadata={
+            "description": "page number of the collection of ordered, matching studies, starting at 0"
+        },
     )
     per_page = af.fields.Integer(
         load_default=25,
         validate=af.validators.OneOf([1, 10, 25, 50, 100, 5000]),
-        description="number of studies to include per page (default: 25)",
+        metadata={"description": "number of studies to include per page (default: 25)"},
     )
 
 

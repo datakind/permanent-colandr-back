@@ -16,7 +16,7 @@ from .. import errors, schemas
 
 # TODO: "fulltext upload" is a weird name, and inconsistent with "citations import"
 # in a v2 API, naming / routing should be made more consistent and sensible
-bp = af.APIBlueprint("fulltext uploads", __name__, url_prefix="/fulltexts")
+bp = af.APIBlueprint("fulltext_uploads", __name__, url_prefix="/fulltexts")
 
 
 class FulltextUploadAPI(MethodView):
@@ -33,7 +33,9 @@ class FulltextUploadAPI(MethodView):
             "review_id": af.fields.Integer(
                 required=True,
                 validate=af.validators.Range(min=1),
-                description="unique identifier for review whose fulltext upload is to be fetched",
+                metadata={
+                    "description": "unique identifier for review whose fulltext upload is to be fetched"
+                },
             )
         },
         location="query",
@@ -111,7 +113,9 @@ class FulltextUploadAPI(MethodView):
         {
             "uploaded_file": af.fields.File(
                 required=True,
-                description="full-text content file in a standard format (.pdf or .txt)",
+                metadata={
+                    "description": "full-text content file in a standard format (.pdf or .txt)"
+                },
             )
         },
         location="files",

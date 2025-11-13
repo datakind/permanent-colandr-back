@@ -128,19 +128,18 @@ class UsersAPI(MethodView):
     @bp.input(
         {
             "email": af.fields.Email(
-                load_default=None,
                 validate=af.validators.Email(),
-                description="email address of user to get",
+                metadata={"description": "email address of user to get"},
             ),
             "review_id": af.fields.Integer(
-                load_default=None,
                 validate=af.validators.Range(min=1),
-                description="unique id of review on which users are collaborators",
+                metadata={
+                    "description": "unique id of review on which users are collaborators"
+                },
             ),
             "admins": af.fields.Boolean(
-                load_default=None,
                 validate=af.validators.OneOf([True]),
-                description="if True, get all admin users in the system",
+                metadata={"description": "if True, get all admin users in the system"},
             ),
         },
         location="query",

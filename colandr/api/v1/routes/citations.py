@@ -137,11 +137,13 @@ class CitationsPostSchema(schemas.DataSourceSchema):
     review_id = af.fields.Integer(
         required=True,
         validate=af.validators.Range(min=1),
-        description="unique identifier for review for which citation will be created",
+        metadata={
+            "description": "unique identifier for review for which citation will be created"
+        },
     )
     status = af.fields.String(
         validate=af.validators.OneOf(["not_screened", "included", "excluded"]),
-        description="known screening status of citation, if anything",
+        metadata={"description": "known screening status of citation, if anything"},
     )
 
 
