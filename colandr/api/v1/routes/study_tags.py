@@ -44,7 +44,7 @@ class StudyTagsAPI(MethodView):
         review = db.session.get(models.Review, review_id)
 
         if not review:
-            return errors.NotFoundError(message=f"<Review(id={review_id})> not found")
+            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
         if (
             current_user.is_admin is False
@@ -53,7 +53,7 @@ class StudyTagsAPI(MethodView):
             ).one_or_none()
             is None
         ):
-            return errors.ForbiddenError(
+            raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get study tags for this review"
             )
 
