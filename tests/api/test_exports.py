@@ -4,8 +4,17 @@ import pytest
 from colandr.lib.fileio import tabular
 
 
+# app v1
+# EXPORT_STUDIES_API_ENDPOINT = "citation_imports_citations_imports_resource"
+# EXPORT_SCREENINGS_API_ENDPOINT = "exports_export_screenings_resource"
+# app v1.1
+EXPORT_STUDIES_API_ENDPOINT = "exports.studies"
+EXPORT_SCREENINGS_API_ENDPOINT = "exports.screenings"
+EXPORT_PRISMA_API_ENDPOINT = "exports.prisma"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestExportStudiesResource:
+class TestExportStudiesAPI:
     @pytest.mark.parametrize(
         ["review_id", "content_type", "num_rows_exp", "num_cols_exp"],
         [
@@ -25,7 +34,7 @@ class TestExportStudiesResource:
     ):
         with app.test_request_context():
             url = flask.url_for(
-                "exports_export_studies_resource",
+                EXPORT_STUDIES_API_ENDPOINT,
                 review_id=review_id,
                 content_type=content_type,
             )
@@ -40,7 +49,7 @@ class TestExportStudiesResource:
 
 
 @pytest.mark.usefixtures("db_session")
-class TestExportScreeningsResource:
+class TestExportScreeningsAPI:
     @pytest.mark.parametrize(
         ["review_id", "content_type", "exp_data"],
         [
@@ -99,7 +108,7 @@ class TestExportScreeningsResource:
     def test_get(self, review_id, content_type, exp_data, app, client, admin_headers):
         with app.test_request_context():
             url = flask.url_for(
-                "exports_export_screenings_resource",
+                EXPORT_SCREENINGS_API_ENDPOINT,
                 review_id=review_id,
                 content_type=content_type,
             )
@@ -110,3 +119,47 @@ class TestExportScreeningsResource:
         if content_type == "text/csv":
             rows = list(tabular.read(data))
             assert rows == exp_data
+
+
+@pytest.mark.usefixtures("db_session")
+class TestReviewExportPrismaAPI:
+    @pytest.mark.parametrize(
+        ["review_id", "exp_data"],
+        [
+            (
+                1,
+                {
+                    "num_studies_by_source": {"database": 2, "gray_literature": 1},
+                    "num_unique_studies": 3,
+                    "num_screened_citations": 3,
+                    "num_excluded_citations": 1,
+                    "num_screened_fulltexts": 2,
+                    "num_excluded_fulltexts": 1,
+                    "exclude_reason_counts": {"REASON1": 2, "REASON2": 2},
+                    "num_studies_data_extracted": 0,
+                },
+            ),
+            (
+                2,
+                {
+                    "num_studies_by_source": {"database": 1},
+                    "num_unique_studies": 1,
+                    "num_screened_citations": 1,
+                    "num_excluded_citations": 0,
+                    "num_screened_fulltexts": 0,
+                    "num_excluded_fulltexts": 0,
+                    "exclude_reason_counts": {},
+                    "num_studies_data_extracted": 0,
+                },
+            ),
+        ],
+    )
+    def test_get(self, review_id, exp_data, app, client, admin_headers):
+        with app.test_request_context():
+            url = flask.url_for(EXPORT_PRISMA_API_ENDPOINT, review_id=review_id)
+        response = client.get(url, headers=admin_headers)
+        # breakpoint()
+        assert response.status_code == 200
+        data = response.json
+        assert data
+        assert data == exp_data

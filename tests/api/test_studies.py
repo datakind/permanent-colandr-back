@@ -6,8 +6,16 @@ from colandr.apis import auth
 from .. import helpers
 
 
+# app v1
+# STUDY_API_ENDPOINT = "studies_study_resource"
+# STUDIES_API_ENDPOINT = "studies_studies_resource"
+# app v1.1
+STUDY_API_ENDPOINT = "studies.study"
+STUDIES_API_ENDPOINT = "studies.studies"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestStudyResource:
+class TestStudyAPI:
     @pytest.mark.parametrize(
         ["current_user_id", "study_id", "params", "exp_data"],
         [
@@ -41,7 +49,7 @@ class TestStudyResource:
         self, current_user_id, study_id, params, exp_data, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id, **(params or {}))
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -62,7 +70,7 @@ class TestStudyResource:
         self, current_user_id, study_id, params, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id, **(params or {}))
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.get(
@@ -79,7 +87,7 @@ class TestStudyResource:
     )
     def test_put(self, current_user_id, study_id, data, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id)
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
@@ -103,7 +111,7 @@ class TestStudyResource:
         self, current_user_id, study_id, data, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id)
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
@@ -120,7 +128,7 @@ class TestStudyResource:
     )
     def test_delete(self, current_user_id, study_id, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id)
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -139,7 +147,7 @@ class TestStudyResource:
         self, current_user_id, study_id, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("studies_study_resource", id=study_id)
+            url = flask.url_for(STUDY_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -177,7 +185,7 @@ class TestStudiesResource:
     )
     def test_get(self, current_user_id, params, study_ids, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for("studies_studies_resource", **params)
+            url = flask.url_for(STUDIES_API_ENDPOINT, **params)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -198,7 +206,7 @@ class TestStudiesResource:
         self, current_user_id, params, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("studies_studies_resource", **params)
+            url = flask.url_for(STUDIES_API_ENDPOINT, **params)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)

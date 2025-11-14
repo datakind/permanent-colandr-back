@@ -8,9 +8,16 @@ from .. import helpers
 
 # TODO: figure out why cli seed command errors when screening records have "id" fields
 
+# app v1
+# CITATION_SCREENING_API_ENDPOINT = "citation_screenings_citation_screenings_resource"
+# CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings_citations_screenings_resource"
+# app v1.1
+CITATION_SCREENING_API_ENDPOINT = "citation_screenings.citation_screening"
+CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings.citation_screenings"
+
 
 @pytest.mark.usefixtures("db_session")
-class TestCitationScreeningsResource:
+class TestCitationScreeningAPI:
     @pytest.mark.parametrize(
         ["current_user_id", "study_id", "params", "exp_data"],
         [
@@ -59,9 +66,7 @@ class TestCitationScreeningsResource:
     ):
         with app.test_request_context():
             url = flask.url_for(
-                "citation_screenings_citation_screenings_resource",
-                id=study_id,
-                **(params or {}),
+                CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
             )
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
@@ -86,9 +91,7 @@ class TestCitationScreeningsResource:
     ):
         with app.test_request_context():
             url = flask.url_for(
-                "citation_screenings_citation_screenings_resource",
-                id=study_id,
-                **(params or {}),
+                CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
             )
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
@@ -110,9 +113,7 @@ class TestCitationScreeningsResource:
     )
     def test_put(self, current_user_id, study_id, data, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citation_screenings_resource", id=study_id
-            )
+            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -134,9 +135,7 @@ class TestCitationScreeningsResource:
         self, current_user_id, study_id, data, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citation_screenings_resource", id=study_id
-            )
+            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
@@ -153,9 +152,7 @@ class TestCitationScreeningsResource:
     )
     def test_delete(self, current_user_id, study_id, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citation_screenings_resource", id=study_id
-            )
+            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -177,9 +174,7 @@ class TestCitationScreeningsResource:
         self, current_user_id, study_id, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citation_screenings_resource", id=study_id
-            )
+            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -204,9 +199,7 @@ class TestCitationScreeningsResource:
     )
     def test_post(self, citation_id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citation_screenings_resource", id=citation_id
-            )
+            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=citation_id)
         response = client.post(url, json=data, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -216,7 +209,7 @@ class TestCitationScreeningsResource:
 
 
 @pytest.mark.usefixtures("db_session")
-class TestCitationsScreeningsResource:
+class TestCitationScreeningsResource:
     @pytest.mark.parametrize(
         ["params", "num_exp"],
         [
@@ -228,9 +221,7 @@ class TestCitationsScreeningsResource:
     )
     def test_get(self, params, num_exp, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citations_screenings_resource", **params
-            )
+            url = flask.url_for(CITATION_SCREENINGS_API_ENDPOINT, **params)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json
@@ -251,9 +242,7 @@ class TestCitationsScreeningsResource:
     )
     def test_get_status_counts(self, params, exp_data, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_screenings_citations_screenings_resource", **params
-            )
+            url = flask.url_for(CITATION_SCREENINGS_API_ENDPOINT, **params)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json

@@ -2,8 +2,14 @@ import flask
 import pytest
 
 
+# app v1
+# FULLTEXT_API_ENDPOINT = "fulltexts_fulltext_resource"
+# app v1.1
+FULLTEXT_API_ENDPOINT = "fulltexts.fulltext"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestFulltextResource:
+class TestFulltextAPI:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -16,7 +22,7 @@ class TestFulltextResource:
     )
     def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
         with app.test_request_context():
-            url = flask.url_for("fulltexts_fulltext_resource", id=id_, **(params or {}))
+            url = flask.url_for(FULLTEXT_API_ENDPOINT, id=id_, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -32,7 +38,7 @@ class TestFulltextResource:
     @pytest.mark.parametrize("id_", [1, 2])
     def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("fulltexts_fulltext_resource", id=id_)
+            url = flask.url_for(FULLTEXT_API_ENDPOINT, id=id_)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
         # TODO: decide on delete behavior for study.fulltext

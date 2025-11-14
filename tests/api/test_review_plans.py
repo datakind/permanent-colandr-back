@@ -2,6 +2,12 @@ import flask
 import pytest
 
 
+# app v1
+# REVIEW_PLAN_API_ENDPOINT = "review_plans_review_plan_resource"
+# app v1.1
+REVIEW_PLAN_API_ENDPOINT = "review_plans.review_plan"
+
+
 @pytest.mark.usefixtures("db_session")
 class TestReviewPlanResource:
     @pytest.mark.parametrize(
@@ -14,9 +20,7 @@ class TestReviewPlanResource:
     )
     def test_get(self, id, params, status_code, app, client, admin_headers, seed_data):
         with app.test_request_context():
-            url = flask.url_for(
-                "review_plans_review_plan_resource", id=id, **(params or {})
-            )
+            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -53,7 +57,7 @@ class TestReviewPlanResource:
     )
     def test_put(self, id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("review_plans_review_plan_resource", id=id)
+            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id)
         response = client.put(url, json=data, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -64,7 +68,7 @@ class TestReviewPlanResource:
     @pytest.mark.parametrize("id", [1])
     def test_delete(self, id, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("review_plans_review_plan_resource", id=id)
+            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
         get_response = client.get(url, headers=admin_headers)

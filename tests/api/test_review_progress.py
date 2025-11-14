@@ -2,8 +2,14 @@ import flask
 import pytest
 
 
+# app v1
+# REVIEW_PROGRESS_API_ENDPOINT = "review_progress_review_progress_resource"
+# app v1.1
+REVIEW_PROGRESS_API_ENDPOINT = "review_progress.review_progress"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestReviewProgressResource:
+class TestReviewProgressAPI:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -16,9 +22,7 @@ class TestReviewProgressResource:
     )
     def test_get(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "review_progress_review_progress_resource", id=id_, **params
-            )
+            url = flask.url_for(REVIEW_PROGRESS_API_ENDPOINT, id=id_, **params)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -103,7 +107,7 @@ class TestReviewProgressResource:
     )
     def test_exp_result(self, id_, exp_data, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("review_progress_review_progress_resource", id=id_)
+            url = flask.url_for(REVIEW_PROGRESS_API_ENDPOINT, id=id_)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         data = response.json

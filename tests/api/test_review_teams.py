@@ -2,8 +2,14 @@ import flask
 import pytest
 
 
+# app v1
+# REVIEW_TEAM_API_ENDPOINT = "review_teams_review_team_resource"
+# app v1.1
+REVIEW_TEAM_API_ENDPOINT = "review_teams.review_team"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestReviewTeamResource:
+class TestReviewTeamAPI:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -16,9 +22,7 @@ class TestReviewTeamResource:
     )
     def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
         with app.test_request_context():
-            url = flask.url_for(
-                "review_teams_review_team_resource", id=id_, **(params or {})
-            )
+            url = flask.url_for(REVIEW_TEAM_API_ENDPOINT, id=id_, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -59,7 +63,7 @@ class TestReviewTeamResource:
     )
     def test_put(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("review_teams_review_team_resource", id=id_, **params)
+            url = flask.url_for(REVIEW_TEAM_API_ENDPOINT, id=id_, **params)
         response = client.put(url, json=params, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:

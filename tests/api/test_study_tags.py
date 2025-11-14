@@ -2,8 +2,14 @@ import flask
 import pytest
 
 
+# app v1
+# STUDY_TAGS_API_ENDPOINT = "study_tags_study_tags_resource"
+# app v1.1
+STUDY_TAGS_API_ENDPOINT = "study_tags.study_tags"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestStudyTagsResource:
+class TestStudyTagsAPI:
     @pytest.mark.parametrize(
         ["params", "status_code", "exp_result"],
         [
@@ -14,7 +20,7 @@ class TestStudyTagsResource:
     )
     def test_get(self, params, status_code, exp_result, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("study_tags_study_tags_resource", **params)
+            url = flask.url_for(STUDY_TAGS_API_ENDPOINT, **params)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:

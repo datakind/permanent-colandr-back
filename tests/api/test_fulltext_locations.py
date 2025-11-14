@@ -6,8 +6,16 @@ import pytest
 from colandr.lib.extractors.metadata import Metadata
 
 
+# app v1
+# FULLTEXT_LOCATIONS_API_ENDPOINT = "fulltext_locations_fulltext_locations_resource"
+# PATCH_FUNC_PATH = "colandr.apis.resources.fulltext_locations"
+# app v1.1
+FULLTEXT_LOCATIONS_API_ENDPOINT = "fulltext_locations.fulltext_locations"
+PATCH_FUNC_PATH = "colandr.api.v1.routes.fulltext_locations"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestFulltextLocationsResource:
+class TestFulltextLocationsAPI:
     @pytest.mark.parametrize(
         ["id_", "status_code"],
         [
@@ -17,9 +25,7 @@ class TestFulltextLocationsResource:
     )
     def test_get(self, id_, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "fulltext_locations_fulltext_locations_resource", id=id_
-            )
+            url = flask.url_for(FULLTEXT_LOCATIONS_API_ENDPOINT, id=id_)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -34,7 +40,7 @@ class TestFulltextLocationsResource:
                 assert "confidence" in location
                 assert "confidence_level" in location
 
-    @patch("colandr.apis.resources.fulltext_locations.get_locations")
+    @patch(f"{PATCH_FUNC_PATH}.get_locations")
     def test_get_with_mock(self, mock_get_locations, app, client, admin_headers):
         """Test getting locations with mocked extraction."""
         mock_locations = [
@@ -58,7 +64,7 @@ class TestFulltextLocationsResource:
         mock_get_locations.return_value = mock_locations
 
         with app.test_request_context():
-            url = flask.url_for("fulltext_locations_fulltext_locations_resource", id=1)
+            url = flask.url_for(FULLTEXT_LOCATIONS_API_ENDPOINT, id=1)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
 
