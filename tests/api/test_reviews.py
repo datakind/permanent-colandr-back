@@ -148,23 +148,6 @@ class TestReviewAPI:
                 response = client.delete(url, headers=headers)
                 assert response.status_code == status_code
 
-
-@pytest.mark.usefixtures("db_session")
-class TestReviewsAPI:
-    # TODO: move this test into admin api tests
-    # @pytest.mark.parametrize(
-    #     ["_review_ids", "num_exp"],
-    #     [("1", 1), ("1,2", 2), ("1,2,99", 2)],
-    # )
-    # def test_get(self, _review_ids, num_exp, app, client, admin_headers):
-    #     with app.test_request_context():
-    #         url = flask.url_for(REVIEWS_API_ENDPOINT, _review_ids=_review_ids)
-    #     response = client.get(url, headers=admin_headers)
-    #     assert response.status_code == 200
-    #     data = response.json
-    #     assert data
-    #     assert len(data) == num_exp
-
     @pytest.mark.parametrize(
         "data",
         [
