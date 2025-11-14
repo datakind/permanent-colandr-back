@@ -12,7 +12,7 @@ from ....extensions import db
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("citation screenings", __name__, url_prefix="/citations")
+bp = af.APIBlueprint("citation_screenings", __name__, url_prefix="/citations")
 
 
 class CitationScreeningAPI(MethodView):

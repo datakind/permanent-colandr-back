@@ -8,7 +8,7 @@ from ....lib.extractors.locations import get_locations
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("fulltext locations", __name__, url_prefix="/fulltexts")
+bp = af.APIBlueprint("fulltext_locations", __name__, url_prefix="/fulltexts")
 
 
 class FulltextLocationsAPI(MethodView):

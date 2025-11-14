@@ -15,7 +15,7 @@ from ....lib import fileio
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("citation imports", __name__, url_prefix="/citations/imports")
+bp = af.APIBlueprint("citation_imports", __name__, url_prefix="/citations/imports")
 
 
 class CitationImportsPostSchema(schemas.DataSourceSchema):

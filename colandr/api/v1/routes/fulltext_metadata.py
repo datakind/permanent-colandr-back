@@ -16,7 +16,7 @@ from ....lib.extractors.review_model import (
 from .. import errors, schemas
 
 
-bp = af.APIBlueprint("fulltext metadata", __name__, url_prefix="/fulltexts")
+bp = af.APIBlueprint("fulltext_metadata", __name__, url_prefix="/fulltexts")
 
 
 class FulltextMetadataAPI(MethodView):
