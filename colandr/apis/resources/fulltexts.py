@@ -98,7 +98,7 @@ class FulltextResource(Resource):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to delete this study.fulltext"
             )
