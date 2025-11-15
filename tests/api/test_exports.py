@@ -129,6 +129,7 @@ class TestReviewExportPrismaAPI:
             (
                 1,
                 {
+                    "num_studies": 3,
                     "num_studies_by_source": {"database": 2, "gray_literature": 1},
                     "num_unique_studies": 3,
                     "num_screened_citations": 3,
@@ -142,6 +143,7 @@ class TestReviewExportPrismaAPI:
             (
                 2,
                 {
+                    "num_studies": 1,
                     "num_studies_by_source": {"database": 1},
                     "num_unique_studies": 1,
                     "num_screened_citations": 1,
@@ -158,7 +160,6 @@ class TestReviewExportPrismaAPI:
         with app.test_request_context():
             url = flask.url_for(EXPORT_PRISMA_API_ENDPOINT, review_id=review_id)
         response = client.get(url, headers=admin_headers)
-        # breakpoint()
         assert response.status_code == 200
         data = response.json
         assert data
