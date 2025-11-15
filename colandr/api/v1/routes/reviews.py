@@ -11,7 +11,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("reviews", __name__, url_prefix="/reviews")
@@ -33,7 +33,7 @@ class ReviewAPI(MethodView):
     def get(self, id, query_data):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id):
+        if not authz.user_is_allowed_for_review(current_user, id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this review"
             )
@@ -58,7 +58,7 @@ class ReviewAPI(MethodView):
     @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id, members=False):
+        if not authz.user_is_allowed_for_review(current_user, id, for_roles=["owner"]):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this review"
             )
@@ -93,7 +93,7 @@ class ReviewAPI(MethodView):
     @jwtext.jwt_required()
     def put(self, id, json_data):
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id, members=False):
+        if not authz.user_is_allowed_for_review(current_user, id, for_roles=["owner"]):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this review"
             )
@@ -183,23 +183,6 @@ class ReviewsAPI(MethodView):
 
 bp.add_url_rule("/<int:id>", view_func=ReviewAPI.as_view("review"))
 bp.add_url_rule("/", view_func=ReviewsAPI.as_view("reviews"))
-
-
-def _is_allowed(
-    current_user: models.User, review_id: int, *, members: bool = True
-) -> bool:
-    is_allowed = current_user.is_admin
-    user_roles = ["owner", "member"] if members else ["owner"]
-    is_allowed = (
-        is_allowed
-        or db.session.execute(
-            sa.select(models.ReviewUserAssoc)
-            .filter_by(user_id=current_user.id, review_id=review_id)
-            .where(models.ReviewUserAssoc.user_role == sa.any_(user_roles))
-        ).scalar_one_or_none()
-        is not None
-    )
-    return is_allowed
 
 
 def _convert_review_v2_into_v1(

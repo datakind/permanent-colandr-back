@@ -12,7 +12,7 @@ from ....extensions import db
 from ....lib import constants
 from ....lib.models import StudyRanker
 from ....lib.nlp import reviewer_terms
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("studies", __name__, url_prefix="/studies")
@@ -123,7 +123,7 @@ class StudyAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if not authz.user_is_allowed_for_review(current_user, study.review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this study"
             )
@@ -151,7 +151,9 @@ class StudyAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
+        if not authz.user_is_allowed_for_review(
+            current_user, study.review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to modify this study"
             )
@@ -188,7 +190,9 @@ class StudyAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
+        if not authz.user_is_allowed_for_review(
+            current_user, study.review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this study"
             )
@@ -233,7 +237,7 @@ class StudiesAPI(MethodView):
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
-        if not _is_allowed(current_user, review_id):
+        if not authz.user_is_allowed_for_review(current_user, review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get studies from this review"
             )
@@ -460,25 +464,6 @@ class StudiesAPI(MethodView):
             return [
                 models.model_to_dict(result, fields=fields) for result in sorted_results
             ]
-
-
-def _is_allowed(
-    current_user: models.User, review_id: int, not_if_frozen: bool = False
-) -> bool:
-    is_allowed = (
-        current_user.is_admin
-        or db.session.execute(
-            sa.select(models.ReviewUserAssoc).filter_by(
-                user_id=current_user.id, review_id=review_id
-            )
-        ).scalar_one_or_none()
-        is not None
-    )
-    is_allowed &= (
-        not_if_frozen is False
-        or db.session.get(models.Review, review_id).status != "frozen"  # type: ignore
-    )
-    return is_allowed
 
 
 bp.add_url_rule("/<int:id>", view_func=StudyAPI.as_view("study"))
