@@ -6,7 +6,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("users", __name__, url_prefix="/users")
@@ -28,7 +28,8 @@ class UserAPI(MethodView):
     def get(self, id, query_data):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id, collaborators=True):
+
+        if not authz.user_is_allowed_for_user(current_user, id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this user"
             )
@@ -52,7 +53,8 @@ class UserAPI(MethodView):
     @jwtext.jwt_required(fresh=True)
     def delete(self, id):
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id):
+
+        if not authz.user_is_allowed_for_user(current_user, id, if_collaborator=False):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this user"
             )
@@ -80,7 +82,8 @@ class UserAPI(MethodView):
     @jwtext.jwt_required(fresh=True)
     def put(self, id, json_data):
         current_user = jwtext.get_current_user()
-        if not _is_allowed(current_user, id):
+
+        if not authz.user_is_allowed_for_user(current_user, id, if_collaborator=False):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to update this user"
             )
@@ -155,7 +158,7 @@ class UsersAPI(MethodView):
             user = db.session.execute(
                 sa.select(models.User).filter_by(email=email)
             ).scalar_one_or_none()
-            if user and not _is_allowed(current_user, user.id, collaborators=True):
+            if user and not authz.user_is_allowed_for_user(current_user, user.id):
                 raise errors.ForbiddenError(
                     message=f"{current_user} forbidden to get this user"
                 )
@@ -198,18 +201,3 @@ class UsersAPI(MethodView):
 
 bp.add_url_rule("/<int:id>", view_func=UserAPI.as_view("user"))
 bp.add_url_rule("/", view_func=UsersAPI.as_view("users"))
-
-
-def _is_allowed(
-    current_user: models.User,
-    user_id: int,
-    *,
-    admins: bool = True,
-    collaborators: bool = False,
-) -> bool:
-    is_allowed = user_id == current_user.id
-    if admins:
-        is_allowed |= current_user.is_admin
-    if collaborators:
-        is_allowed |= any(user.id == user_id for user in current_user.collaborators)
-    return is_allowed
