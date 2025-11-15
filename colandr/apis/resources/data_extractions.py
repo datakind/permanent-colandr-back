@@ -113,13 +113,14 @@ class DataExtractionResource(Resource):
         if not extracted_data:
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         if (
-            db.session.execute(
+            current_user.is_admin is False
+            and db.session.execute(
                 current_user.review_user_assoc.select().filter_by(
                     review_id=extracted_data.review_id
                 )
             ).one_or_none()
             is None
-        ):
+        ) or extracted_data.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to get extracted data for this study"
             )
@@ -169,11 +170,12 @@ class DataExtractionResource(Resource):
             return not_found_error(f"<DataExtraction(study_id={id})> not found")
         review_id = extracted_data.review_id
         if (
-            db.session.execute(
+            current_user.is_admin is False
+            and db.session.execute(
                 current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
-        ):
+        ) or extracted_data.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to modify extracted data for this study"
             )

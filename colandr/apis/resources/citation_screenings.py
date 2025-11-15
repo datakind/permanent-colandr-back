@@ -112,7 +112,7 @@ class CitationScreeningsResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             return forbidden_error(
                 f"{current_user} forbidden to delete citation screening for this review"
             )
@@ -157,7 +157,7 @@ class CitationScreeningsResource(Resource):
         study = db.session.get(models.Study, id)
         if not study:
             return not_found_error(f"<Study(id={id})> not found")
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             return forbidden_error(
                 f"{current_user} forbidden to screen citations for this review"
             )
@@ -474,15 +474,20 @@ def _convert_screening_v2_into_v1(record) -> dict:
     return record
 
 
-def _is_allowed(current_user: models.User, review_id: int) -> bool:
-    is_allowed = current_user.is_admin
+def _is_allowed(
+    current_user: models.User, review_id: int, not_if_frozen: bool = False
+) -> bool:
     is_allowed = (
-        is_allowed
+        current_user.is_admin is True
         or db.session.execute(
             sa.select(models.ReviewUserAssoc).filter_by(
                 user_id=current_user.id, review_id=review_id
             )
         ).scalar_one_or_none()
         is not None
+    )
+    is_allowed &= (
+        not_if_frozen is False
+        or db.session.get(models.Review, review_id).status != "frozen"  # type: ignore
     )
     return is_allowed

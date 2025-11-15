@@ -121,7 +121,7 @@ class FulltextScreeningsResource(Resource):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to delete fulltext screening for this review"
             )
@@ -173,7 +173,7 @@ class FulltextScreeningsResource(Resource):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to screen fulltexts for this review"
             )

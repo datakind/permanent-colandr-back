@@ -154,7 +154,7 @@ class FulltextUploadResource(Resource):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to upload fulltext files to this review"
             )
@@ -234,7 +234,7 @@ class FulltextUploadResource(Resource):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             return forbidden_error(
                 f"{current_user} forbidden to upload fulltext files to this review"
             )

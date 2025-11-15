@@ -60,6 +60,7 @@ class ReviewExportPrismaResource(Resource):
             is None
         ):
             return forbidden_error(f"{current_user} forbidden to get this review")
+
         # get counts by step, i.e. prisma
         n_studies_by_source_stmt = (
             sa.select(
@@ -69,11 +70,11 @@ class ReviewExportPrismaResource(Resource):
             .filter(models.Import.review_id == id)
             .group_by(models.DataSource.source_type)
         )
-
         n_studies_by_source = {
             row.source_type: row.sum
             for row in db.session.execute(n_studies_by_source_stmt)
         }
+        n_studies = sum(n_studies_by_source.values())
 
         n_unique_studies = db.session.execute(
             sa.select(sa.func.count()).select_from(
@@ -131,6 +132,7 @@ class ReviewExportPrismaResource(Resource):
         current_app.logger.debug("prisma counts exported for %s", review)
 
         return {
+            "num_studies": n_studies,
             "num_studies_by_source": n_studies_by_source,
             "num_unique_studies": n_unique_studies,
             "num_screened_citations": n_citations_screened,
