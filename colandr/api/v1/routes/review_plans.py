@@ -66,7 +66,9 @@ class ReviewPlanAPI(MethodView):
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={id})> not found")
 
-        if current_user.is_admin is False and current_user not in review.owners:
+        if (
+            current_user.is_admin is False and current_user not in review.owners
+        ) or review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this review plan"
             )
@@ -119,7 +121,9 @@ class ReviewPlanAPI(MethodView):
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={id})> not found")
 
-        if current_user.is_admin is False and current_user not in review.owners:
+        if (
+            current_user.is_admin is False and current_user not in review.owners
+        ) or review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to create this review plan"
             )

@@ -48,7 +48,7 @@ class DedupeAPI(MethodView):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to dedupe studies for this review"
             )

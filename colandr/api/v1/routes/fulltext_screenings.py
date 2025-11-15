@@ -100,7 +100,7 @@ class FulltextScreeningAPI(MethodView):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to screen fulltexts for this review"
             )
@@ -229,7 +229,7 @@ class FulltextScreeningAPI(MethodView):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete fulltext screening for this review"
             )

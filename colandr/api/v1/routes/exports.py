@@ -303,6 +303,7 @@ class ExportPrismaAPI(MethodView):
     )
     @bp.output(
         {
+            "num_studies": af.fields.Integer(),
             "num_studies_by_source": af.fields.Dict(
                 keys=af.fields.String(), values=af.fields.Integer()
             ),
@@ -349,6 +350,7 @@ class ExportPrismaAPI(MethodView):
             row.source_type: row.sum
             for row in db.session.execute(n_studies_by_source_stmt)
         }
+        n_studies = sum(n_studies_by_source.values())
 
         n_unique_studies = db.session.execute(
             sa.select(sa.func.count()).select_from(
@@ -406,6 +408,7 @@ class ExportPrismaAPI(MethodView):
             "%s exported PRISMA stats for %s", current_user, review
         )
         return {
+            "num_studies": n_studies,
             "num_studies_by_source": n_studies_by_source,
             "num_unique_studies": n_unique_studies,
             "num_screened_citations": n_citations_screened,

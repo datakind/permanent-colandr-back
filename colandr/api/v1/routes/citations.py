@@ -77,7 +77,7 @@ class CitationAPI(MethodView):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to modify this study"
             )
@@ -114,7 +114,7 @@ class CitationAPI(MethodView):
                 user_id=current_user.id
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this study.citation"
             )
@@ -180,7 +180,7 @@ class CitationsAPI(MethodView):
                 current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
-        ):
+        ) or review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to add citations to this review"
             )
