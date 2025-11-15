@@ -3,6 +3,12 @@ import pytest
 import sqlalchemy as sa
 
 
+# app v1
+# CITATION_IMPORTS_API_ENDPOINT = "citation_imports_citations_imports_resource"
+# app v1.1
+CITATION_IMPORTS_API_ENDPOINT = "citation_imports.citation_imports"
+
+
 @pytest.mark.usefixtures("db_session")
 class TestCitationsImportsResource:
     @pytest.mark.parametrize(
@@ -30,9 +36,7 @@ class TestCitationsImportsResource:
         self, params, file_name, app, client, db_session, admin_headers, request
     ):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_imports_citations_imports_resource", **(params or {})
-            )
+            url = flask.url_for(CITATION_IMPORTS_API_ENDPOINT, **(params or {}))
         dir_path = request.config.rootpath
         file_path = dir_path / "tests" / "fixtures" / "citations" / file_name
         files = {"uploaded_file": (open(file_path, mode="rb"), file_path)}
@@ -47,9 +51,7 @@ class TestCitationsImportsResource:
     )
     def test_get(self, params, num_exp, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "citation_imports_citations_imports_resource", **(params or {})
-            )
+            url = flask.url_for(CITATION_IMPORTS_API_ENDPOINT, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         data = response.json

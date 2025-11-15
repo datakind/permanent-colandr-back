@@ -930,3 +930,19 @@ def update_study_status(mapper, connection, target):
             # once every 100 fully screened fulltexts, (re-)train a study ranker model
             if n_incl_excl > 0 and n_incl_excl % 100 == 0:
                 tasks.train_study_ranker_model.apply_async(args=[review_id])
+
+
+def model_to_dict(model, fields: t.Optional[list[str]] = None) -> dict[str, object]:
+    """
+    Convert a db model into a dictionary, optionally filtered to only certain fields.
+
+    Args:
+        model
+        fields
+    """
+    fields = (
+        fields
+        if fields is not None
+        else [col.key for col in sa.inspect(model).mapper.column_attrs]
+    )
+    return {field: getattr(model, field) for field in fields}

@@ -2,8 +2,16 @@ import flask
 import pytest
 
 
+# app v1
+# CITATION_API_ENDPOINT = "citations_citation_resource"
+# CITATIONS_API_ENDPOINT = "citations_citations_resource"
+# app v1.1
+CITATION_API_ENDPOINT = "citations.citation"
+CITATIONS_API_ENDPOINT = "citations.citations"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestCitationResource:
+class TestCitationAPI:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code"],
         [
@@ -16,7 +24,7 @@ class TestCitationResource:
     )
     def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
         with app.test_request_context():
-            url = flask.url_for("citations_citation_resource", id=id_, **(params or {}))
+            url = flask.url_for(CITATION_API_ENDPOINT, id=id_, **(params or {}))
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -44,7 +52,7 @@ class TestCitationResource:
     )
     def test_put(self, id_, params, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("citations_citation_resource", id=id_)
+            url = flask.url_for(CITATION_API_ENDPOINT, id=id_)
         response = client.put(url, json=params, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -55,7 +63,7 @@ class TestCitationResource:
     @pytest.mark.parametrize("id_", [1, 2])
     def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("citations_citation_resource", id=id_)
+            url = flask.url_for(CITATION_API_ENDPOINT, id=id_)
         response = client.delete(url, headers=admin_headers)
         assert response.status_code == 204
         # TODO: decide on delete behavior for study.citation
@@ -67,7 +75,7 @@ class TestCitationResource:
 
 @pytest.mark.skip(reason="doesn't play nicely with other resource tests")
 @pytest.mark.usefixtures("db_session")
-class TestCitationsResource:
+class TestCitationsAPI:
     @pytest.mark.parametrize(
         ["params", "data"],
         [
@@ -84,7 +92,7 @@ class TestCitationsResource:
     )
     def test_post(self, params, data, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for("citations_citations_resource", **params)
+            url = flask.url_for(CITATIONS_API_ENDPOINT, **params)
         response = client.post(url, json=data, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json

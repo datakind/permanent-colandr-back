@@ -1,0 +1,79 @@
+import apiflask as af
+
+from .routes import (
+    admin,
+    auth,
+    citation_imports,
+    citation_screenings,
+    citations,
+    data_extractions,
+    dedupe,
+    exports,
+    fulltext_locations,
+    fulltext_metadata,
+    fulltext_screenings,
+    fulltext_uploads,
+    fulltexts,
+    health,
+    review_plans,
+    review_progress,
+    review_teams,
+    reviews,
+    studies,
+    study_tags,
+    users,
+)
+
+
+def register_api_blueprints(app: af.APIFlask, url_prefix: str = "/api") -> None:
+    app.register_blueprint(admin.bp, url_prefix=_join_ups(url_prefix, admin.bp))
+    app.register_blueprint(auth.bp, url_prefix=_join_ups(url_prefix, auth.bp))
+    app.register_blueprint(
+        citation_imports.bp, url_prefix=_join_ups(url_prefix, citation_imports.bp)
+    )
+    app.register_blueprint(
+        citation_screenings.bp, url_prefix=_join_ups(url_prefix, citation_screenings.bp)
+    )
+    app.register_blueprint(citations.bp, url_prefix=_join_ups(url_prefix, citations.bp))
+    app.register_blueprint(
+        data_extractions.bp, url_prefix=_join_ups(url_prefix, data_extractions.bp)
+    )
+    app.register_blueprint(dedupe.bp, url_prefix=_join_ups(url_prefix, dedupe.bp))
+    app.register_blueprint(exports.bp, url_prefix=_join_ups(url_prefix, exports.bp))
+    app.register_blueprint(
+        fulltext_locations.bp, url_prefix=_join_ups(url_prefix, fulltext_locations.bp)
+    )
+    app.register_blueprint(
+        fulltext_metadata.bp, url_prefix=_join_ups(url_prefix, fulltext_metadata.bp)
+    )
+    app.register_blueprint(
+        fulltext_screenings.bp, url_prefix=_join_ups(url_prefix, fulltext_screenings.bp)
+    )
+    app.register_blueprint(
+        fulltext_uploads.bp, url_prefix=_join_ups(url_prefix, fulltext_uploads.bp)
+    )
+    app.register_blueprint(fulltexts.bp, url_prefix=_join_ups(url_prefix, fulltexts.bp))
+    app.register_blueprint(health.bp, url_prefix=_join_ups(url_prefix, health.bp))
+    app.register_blueprint(reviews.bp, url_prefix=_join_ups(url_prefix, reviews.bp))
+    app.register_blueprint(
+        review_plans.bp, url_prefix=_join_ups(url_prefix, review_plans.bp)
+    )
+    app.register_blueprint(
+        review_progress.bp, url_prefix=_join_ups(url_prefix, review_progress.bp)
+    )
+    app.register_blueprint(
+        review_teams.bp, url_prefix=_join_ups(url_prefix, review_teams.bp)
+    )
+    app.register_blueprint(studies.bp, url_prefix=_join_ups(url_prefix, studies.bp))
+    app.register_blueprint(
+        study_tags.bp, url_prefix=_join_ups(url_prefix, study_tags.bp)
+    )
+    app.register_blueprint(users.bp, url_prefix=_join_ups(url_prefix, users.bp))
+
+
+def _join_ups(base_url_prefix: str, bp: af.APIBlueprint) -> str:
+    return (
+        f"{base_url_prefix.rstrip('/')}/{bp.url_prefix.lstrip('/')}"
+        if bp.url_prefix is not None
+        else base_url_prefix
+    )

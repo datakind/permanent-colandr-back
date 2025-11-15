@@ -7,8 +7,16 @@ from colandr.apis import auth
 from .. import helpers
 
 
+# app v1
+# REVIEW_API_ENDPOINT = "reviews_review_resource"
+# REVIEWS_API_ENDPOINT = "reviews_reviews_resource"
+# app v1.1
+REVIEW_API_ENDPOINT = "reviews.review"
+REVIEWS_API_ENDPOINT = "reviews.reviews"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestReviewResource:
+class TestReviewAPI:
     @pytest.mark.parametrize(
         ["current_user_id", "review_id", "params", "exp_data"],
         [
@@ -33,9 +41,7 @@ class TestReviewResource:
         self, current_user_id, review_id, params, exp_data, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for(
-                "reviews_review_resource", id=review_id, **(params or {})
-            )
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -56,9 +62,7 @@ class TestReviewResource:
         self, current_user_id, review_id, params, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for(
-                "reviews_review_resource", id=review_id, **(params or {})
-            )
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -77,7 +81,7 @@ class TestReviewResource:
     )
     def test_put(self, current_user_id, review_id, data, app, client, db_session):
         with app.test_request_context():
-            url = flask.url_for("reviews_review_resource", id=review_id)
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
@@ -99,7 +103,7 @@ class TestReviewResource:
         self, current_user_id, review_id, data, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("reviews_review_resource", id=review_id)
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
@@ -118,7 +122,7 @@ class TestReviewResource:
         self, current_user_id, review_id, app, client, db_session, admin_headers
     ):
         with app.test_request_context():
-            url = flask.url_for("reviews_review_resource", id=review_id)
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
@@ -137,28 +141,12 @@ class TestReviewResource:
         self, current_user_id, review_id, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("reviews_review_resource", id=review_id)
+            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 headers = auth.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == status_code
-
-
-@pytest.mark.usefixtures("db_session")
-class TestReviewsResource:
-    @pytest.mark.parametrize(
-        ["_review_ids", "num_exp"],
-        [("1", 1), ("1,2", 2), ("1,2,99", 2)],
-    )
-    def test_get(self, _review_ids, num_exp, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for("reviews_reviews_resource", _review_ids=_review_ids)
-        response = client.get(url, headers=admin_headers)
-        assert response.status_code == 200
-        data = response.json
-        assert data
-        assert len(data) == num_exp
 
     @pytest.mark.parametrize(
         "data",
@@ -179,7 +167,7 @@ class TestReviewsResource:
         # and so violates a unique constraint
         db_session.execute(sa.text("ALTER SEQUENCE reviews_id_seq RESTART WITH 4"))
         with app.test_request_context():
-            url = flask.url_for("reviews_reviews_resource")
+            url = flask.url_for(REVIEWS_API_ENDPOINT)
         response = client.post(url, json=data, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json
@@ -196,7 +184,7 @@ class TestReviewsResource:
         self, current_user_id, data, status_code, app, client, db_session
     ):
         with app.test_request_context():
-            url = flask.url_for("reviews_reviews_resource")
+            url = flask.url_for(REVIEWS_API_ENDPOINT)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.post(

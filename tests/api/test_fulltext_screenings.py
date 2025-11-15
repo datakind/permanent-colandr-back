@@ -2,8 +2,16 @@ import flask
 import pytest
 
 
+# app v1
+# FULLTEXT_SCREENING_API_ENDPOINT = "fulltext_screenings_fulltext_screenings_resource"
+# FULLTEXT_SCREENINGS_API_ENDPOINT = "fulltext_screenings_fulltexts_screenings_resource"
+# app v1.1
+FULLTEXT_SCREENING_API_ENDPOINT = "fulltext_screenings.fulltext_screening"
+FULLTEXT_SCREENINGS_API_ENDPOINT = "fulltext_screenings.fulltext_screenings"
+
+
 @pytest.mark.usefixtures("db_session")
-class TestFulltextScreeningsResource:
+class TestFulltextScreeningAPI:
     @pytest.mark.parametrize(
         ["id_", "params", "status_code", "num_exp"],
         [
@@ -19,20 +27,21 @@ class TestFulltextScreeningsResource:
     ):
         with app.test_request_context():
             url = flask.url_for(
-                "fulltext_screenings_fulltext_screenings_resource",
-                id=id_,
-                **(params or {}),
+                FULLTEXT_SCREENING_API_ENDPOINT, id=id_, **(params or {})
             )
         response = client.get(url, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             records = response.json
             fields = None if params is None else params["fields"].split(",")
+            if fields and "id" not in fields:
+                fields.append("id")
             assert isinstance(records, list) and len(records) == num_exp
             for record in records:
                 if "fulltext_id" in record:
                     assert record["fulltext_id"] == id_
                 if fields:
+                    assert "id" in record
                     assert sorted(record.keys()) == sorted(fields)
 
     @pytest.mark.parametrize(
@@ -53,9 +62,7 @@ class TestFulltextScreeningsResource:
     )
     def test_put(self, id_, data, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "fulltext_screenings_fulltext_screenings_resource", id=id_
-            )
+            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=id_)
         response = client.put(url, json=data, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -66,9 +73,7 @@ class TestFulltextScreeningsResource:
     @pytest.mark.parametrize("id_", [1, 2])
     def test_delete(self, id_, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "fulltext_screenings_fulltext_screenings_resource", id=id_
-            )
+            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=id_)
         response = client.delete(url, headers=admin_headers)
         # NOTE: this operation is currently only allowed for the screener themself
         assert response.status_code == 403
@@ -84,9 +89,7 @@ class TestFulltextScreeningsResource:
     )
     def test_post(self, fulltext_id, data, status_code, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "fulltext_screenings_fulltext_screenings_resource", id=fulltext_id
-            )
+            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=fulltext_id)
         response = client.post(url, json=data, headers=admin_headers)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
@@ -96,7 +99,7 @@ class TestFulltextScreeningsResource:
 
 
 @pytest.mark.usefixtures("db_session")
-class TestFulltextsScreeningsResource:
+class TestFulltextScreeningsAPI:
     @pytest.mark.parametrize(
         ["params", "num_exp"],
         [
@@ -108,9 +111,7 @@ class TestFulltextsScreeningsResource:
     )
     def test_get(self, params, num_exp, app, client, admin_headers):
         with app.test_request_context():
-            url = flask.url_for(
-                "fulltext_screenings_fulltexts_screenings_resource", **params
-            )
+            url = flask.url_for(FULLTEXT_SCREENINGS_API_ENDPOINT, **params)
         response = client.get(url, headers=admin_headers)
         assert response.status_code == 200
         response_data = response.json
