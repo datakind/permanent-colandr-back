@@ -84,7 +84,7 @@ class CitationScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to screen citations for this review"
             )
@@ -201,7 +201,7 @@ class CitationScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if not _is_allowed(current_user, study.review_id):
+        if not _is_allowed(current_user, study.review_id, not_if_frozen=True):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete citation screening for this review"
             )
@@ -365,14 +365,20 @@ def _convert_screening_v2_into_v1(
     return record
 
 
-def _is_allowed(current_user: models.User, review_id: int) -> bool:
-    is_allowed = current_user.is_admin
-    is_allowed |= (
-        db.session.execute(
+def _is_allowed(
+    current_user: models.User, review_id: int, not_if_frozen: bool = False
+) -> bool:
+    is_allowed = (
+        current_user.is_admin
+        or db.session.execute(
             sa.select(models.ReviewUserAssoc).filter_by(
                 user_id=current_user.id, review_id=review_id
             )
         ).scalar_one_or_none()
         is not None
+    )
+    is_allowed &= (
+        not_if_frozen is False
+        or db.session.get(models.Review, review_id).status != "frozen"  # type: ignore
     )
     return is_allowed

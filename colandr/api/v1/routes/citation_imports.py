@@ -135,7 +135,7 @@ class CitationImportsAPI(MethodView):
                 current_user.review_user_assoc.select().filter_by(review_id=review_id)
             ).one_or_none()
             is None
-        ):
+        ) or review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to add citations to this review"
             )

@@ -138,7 +138,7 @@ class FulltextUploadAPI(MethodView):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to upload fulltext files to this review"
             )
@@ -218,7 +218,7 @@ class FulltextUploadAPI(MethodView):
                 )
             ).one_or_none()
             is None
-        ):
+        ) or study.review.status == "frozen":
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to upload fulltext files to this review"
             )
