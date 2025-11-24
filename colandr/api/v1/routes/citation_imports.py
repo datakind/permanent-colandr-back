@@ -10,7 +10,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
 from .... import models, tasks
-from ....extensions import db
+from ....extensions import db, limiter
 from ....lib import fileio
 from .. import errors, schemas
 
@@ -37,6 +37,8 @@ class CitationImportsPostSchema(schemas.DataSourceSchema):
 
 
 class CitationImportsAPI(MethodView):
+    decorators = [limiter.limit("1 per 10 seconds", methods=["POST"])]
+
     @bp.doc(
         summary="get citation import history for a review",
         responses={

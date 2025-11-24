@@ -10,7 +10,7 @@ from flask import current_app, make_response
 from flask.views import MethodView
 
 from .... import models
-from ....extensions import db
+from ....extensions import db, limiter
 from ....lib import fileio
 from .. import errors
 
@@ -423,3 +423,4 @@ class ExportPrismaAPI(MethodView):
 bp.add_url_rule("/studies", view_func=ExportStudiesAPI.as_view("studies"))
 bp.add_url_rule("/screenings", view_func=ExportScreeningsAPI.as_view("screenings"))
 bp.add_url_rule("/prisma", view_func=ExportPrismaAPI.as_view("prisma"))
+limiter.limit("1 per 10 seconds")(bp)

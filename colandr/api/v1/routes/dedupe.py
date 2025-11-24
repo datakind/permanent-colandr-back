@@ -4,7 +4,7 @@ from flask import current_app
 from flask.views import MethodView
 
 from .... import models, tasks
-from ....extensions import db
+from ....extensions import db, limiter
 from .. import errors
 
 
@@ -12,6 +12,8 @@ bp = af.APIBlueprint("deduplicate studies", __name__, url_prefix="/dedupe")
 
 
 class DedupeAPI(MethodView):
+    decorators = [limiter.limit("1 per 10 seconds")]
+
     @bp.doc(
         summary="deduplicate studies for a review",
         responses={
