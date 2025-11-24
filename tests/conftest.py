@@ -48,6 +48,8 @@ def app(tmp_path_factory):
         # "FILESYSTEM_GCS_PROJECT": "test-project",
         # "FILESYSTEM_ROOT_DIR": "test-bucket",
         # "FILESYSTEM_GCS_TOKEN": "anon",
+        # disable rate-limiting, so we can test at high speed
+        "RATELIMIT_ENABLED": False,
     }
     app = create_app(config_overrides)
     return app
