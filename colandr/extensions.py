@@ -1,4 +1,5 @@
 import celery
+import flask
 import flask_caching
 import flask_jwt_extended
 import flask_limiter
@@ -55,3 +56,8 @@ def init_celery_app(app):
         app.extensions = {}
     app.extensions["celery"] = celery_app
     return celery_app
+
+
+@limiter.request_filter
+def header_whitelist():
+    return flask.request.endpoint == "/docs"
