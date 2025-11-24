@@ -1,6 +1,8 @@
 import celery
 import flask_caching
 import flask_jwt_extended
+import flask_limiter
+import flask_limiter.util
 import flask_mail
 import flask_migrate
 import flask_sqlalchemy
@@ -16,6 +18,13 @@ class _BaseModel(sqlalchemy.orm.DeclarativeBase):
 
 cache = flask_caching.Cache()
 db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
+limiter = flask_limiter.Limiter(
+    flask_limiter.util.get_remote_address,
+    default_limits=["1/second"],
+    meta_limits=["1/minute", "10/hour"],
+    strategy="fixed-window",
+    storage_uri="memory://",  # TODO: use redis for storage?
+)
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
 migrate = flask_migrate.Migrate()
