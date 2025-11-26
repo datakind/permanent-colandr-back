@@ -4,7 +4,6 @@ import redis.client
 import redis.exceptions
 import sqlalchemy as sa
 import sqlalchemy.exc
-from flask import current_app
 from flask.views import MethodView
 
 from ....extensions import db
@@ -13,8 +12,6 @@ from ....extensions import db
 bp = af.APIBlueprint("health", __name__, url_prefix="/health")
 
 
-# TODO: figure out if decorator approach is possible
-# @bp.route("/", endpoint="health")
 class HealthAPI(MethodView):
     @bp.doc(
         summary="check health of API",
@@ -29,8 +26,7 @@ class HealthAPI(MethodView):
         redis_conn = celery.current_app.backend.client  # type: ignore
         assert isinstance(redis_conn, redis.client.Redis)  # type guard
         try:
-            redis_resp = redis_conn.ping()
-            current_app.logger.error("redis_resp = %s", redis_resp)
+            _ = redis_conn.ping()
         except redis.exceptions.ConnectionError:
             af.abort(500, message="message broker is unavailable")
         try:
