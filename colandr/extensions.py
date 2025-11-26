@@ -59,5 +59,5 @@ def init_celery_app(app):
 
 
 @limiter.request_filter
-def header_whitelist():
-    return flask.request.endpoint == "/docs"
+def header_whitelist() -> bool:
+    return flask.request.endpoint in {"openapi.docs", "openapi.spec"}
