@@ -423,4 +423,4 @@ class ExportPrismaAPI(MethodView):
 bp.add_url_rule("/studies", view_func=ExportStudiesAPI.as_view("studies"))
 bp.add_url_rule("/screenings", view_func=ExportScreeningsAPI.as_view("screenings"))
 bp.add_url_rule("/prisma", view_func=ExportPrismaAPI.as_view("prisma"))
-limiter.limit("1 per 10 seconds")(bp)
+limiter.limit("1 per 5 seconds")(bp)

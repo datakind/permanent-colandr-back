@@ -12,8 +12,6 @@ bp = af.APIBlueprint("deduplicate studies", __name__, url_prefix="/dedupe")
 
 
 class DedupeAPI(MethodView):
-    decorators = [limiter.limit("1 per 10 seconds")]
-
     @bp.doc(
         summary="deduplicate studies for a review",
         responses={
@@ -61,4 +59,8 @@ class DedupeAPI(MethodView):
         tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)
 
 
-bp.add_url_rule("/", view_func=DedupeAPI.as_view("dedupe"))
+# NOTE: flask-limiter doesn't behave when applied to routes via MethodView.decorators
+# this is an ugly but serviceable work-around
+dedupe_api_view_func = DedupeAPI.as_view("dedupe")
+dedupe_api_view_func = limiter.limit("1 per 5 seconds")(dedupe_api_view_func)
+bp.add_url_rule("/", view_func=dedupe_api_view_func)
