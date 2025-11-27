@@ -21,7 +21,7 @@ cache = flask_caching.Cache()
 db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 limiter = flask_limiter.Limiter(
     flask_limiter.util.get_remote_address,
-    default_limits=["1/second"],
+    default_limits=["2/second"],
     meta_limits=["1/minute", "10/hour"],
     strategy="fixed-window",
     storage_uri="memory://",  # TODO: use redis for storage?
