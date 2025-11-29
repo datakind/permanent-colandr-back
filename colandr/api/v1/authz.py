@@ -1,13 +1,13 @@
-import typing as t
 from collections.abc import Collection
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
 
 from ... import models
-from ...extensions import db
+from ...extensions import cache, db
 
 
+@cache.memoize()
 def user_is_allowed_for_review(
     user: models.User,
     review_id: int,
@@ -45,6 +45,7 @@ def user_is_allowed_for_review(
     )
 
 
+@cache.memoize()
 def user_is_allowed_for_user(
     user: models.User, user_id: int, *, if_collaborator: bool = True
 ) -> bool:
