@@ -9,8 +9,8 @@ from flask import current_app
 from flask.views import MethodView
 
 from .... import models, tasks
-from ....extensions import db
-from .. import errors, schemas
+from ....extensions import cache, db
+from .. import authz, errors, schemas
 from . import auth
 
 
@@ -202,6 +202,7 @@ class ReviewTeamAPI(MethodView):
                 db.session.delete(rua)
 
         db.session.commit()
+        authz.clear_cache(current_user, review_id=review.id)
         current_app.logger.info(
             "for %s, %s invoked the '%s' action on %s",
             review,
@@ -250,6 +251,7 @@ class ReviewTeamConfirmationAPI(MethodView):
 
         db.session.add(models.ReviewUserAssoc(review, user))
         db.session.commit()
+        authz.clear_cache(user, review_id=review.id)
 
         current_app.logger.info("invitation to %s confirmed by %s", review, user.email)
         team = _get_review_team(review, fields=None)
