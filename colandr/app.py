@@ -6,7 +6,7 @@ import apiflask as af
 import flask
 import flask.logging
 
-from colandr import cli, config, errors, extensions
+from colandr import cli, config, extensions
 from colandr.api import v1
 
 
@@ -33,7 +33,7 @@ def _create_app_v1_1(
     _register_extensions(app)
     v1.register_api_blueprints(app)
     app.register_blueprint(cli.bp)
-    app.register_blueprint(errors.bp)
+    # app.register_blueprint(errors.bp)
     app.security_schemes = {
         "TokenAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     }
