@@ -14,9 +14,9 @@ from flask import current_app
 from flask_mail import Message
 
 from . import models
-from .apis.schemas import ReviewPlanSuggestedKeyterms
+from .api.v1 import schemas
 from .extensions import db, mail
-from .lib.models import Deduper, DeduperV2, StudyRanker
+from .lib.models import DeduperV2, StudyRanker
 from .lib.nlp import hack
 from .lib.nlp import utils as nlp_utils
 
@@ -379,7 +379,7 @@ def suggest_keyterms(review_id: int, sample_size: int):
         "incl_keyterms": incl_keyterms,
         "excl_keyterms": excl_keyterms,
     }
-    errors = ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
+    errors = schemas.ReviewPlanSuggestedKeyterms().validate(suggested_keyterms)
     if errors:
         lock.release()
         raise Exception
