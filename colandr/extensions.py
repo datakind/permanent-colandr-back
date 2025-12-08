@@ -14,7 +14,13 @@ class _BaseModel(sqlalchemy.orm.DeclarativeBase):
     pass
 
 
-cache = flask_caching.Cache()
+cache = flask_caching.Cache(
+    config={
+        "CACHE_TYPE": "SimpleCache",
+        "CACHE_THRESHOLD": 50,
+        "CACHE_DEFAULT_TIMEOUT": 300,
+    }
+)
 db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()

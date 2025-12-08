@@ -65,6 +65,7 @@ class UserAPI(MethodView):
 
         db.session.delete(user)
         db.session.commit()
+        authz.clear_cache(user)  # user's authorization has changed -- clear the cache!
         current_app.logger.info("%s deleted %s", current_user, user)
         return ""
 
@@ -109,6 +110,7 @@ class UserAPI(MethodView):
                 )
             setattr(user, key, value)
         db.session.commit()
+        authz.clear_cache(user)  # user's authorization has changed -- clear the cache!
         current_app.logger.info(
             "%s modified %s, attributes=%s",
             current_user,
