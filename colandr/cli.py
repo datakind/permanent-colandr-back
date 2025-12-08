@@ -11,7 +11,6 @@ from flask import Blueprint, current_app
 
 from colandr import models
 from colandr.extensions import db
-from colandr.models import User
 
 
 bp = Blueprint("cli", __name__, cli_group=None)
@@ -118,7 +117,7 @@ def add_admin(name, email, password):
     Add an admin account to the database, with both `is_admin` and `is_confirmed`
     values already set to True.
     """
-    user = User(**{"name": name, "email": email, "password": password})
+    user = models.User(**{"name": name, "email": email, "password": password})
     user.is_confirmed = True
     user.is_admin = True
     db.session.add(user)
