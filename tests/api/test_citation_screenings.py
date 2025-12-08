@@ -1,7 +1,7 @@
 import flask
 import pytest
 
-from colandr.apis import auth
+from colandr.api.v1 import auth
 
 from .. import helpers
 

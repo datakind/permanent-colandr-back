@@ -4,7 +4,7 @@ import flask_jwt_extended as jwtext
 import pytest
 
 from colandr import models
-from colandr.apis import auth
+from colandr.api.v1 import auth
 
 
 @pytest.mark.parametrize("user_id", [2, 3])

@@ -11,7 +11,7 @@ import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
-from colandr.apis import auth
+from colandr.api.v1 import auth
 from colandr.app import create_app
 
 

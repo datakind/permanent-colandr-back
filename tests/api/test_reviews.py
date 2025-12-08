@@ -2,7 +2,7 @@ import flask
 import pytest
 import sqlalchemy as sa
 
-from colandr.apis import auth
+from colandr.api.v1 import auth
 
 from .. import helpers
 
