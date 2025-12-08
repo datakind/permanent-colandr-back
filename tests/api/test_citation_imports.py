@@ -1,11 +1,7 @@
 import flask
 import pytest
-import sqlalchemy as sa
 
 
-# app v1
-# CITATION_IMPORTS_API_ENDPOINT = "citation_imports_citations_imports_resource"
-# app v1.1
 CITATION_IMPORTS_API_ENDPOINT = "citation_imports.citation_imports"
 
 

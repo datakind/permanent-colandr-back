@@ -2,9 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# STUDY_TAGS_API_ENDPOINT = "study_tags_study_tags_resource"
-# app v1.1
 STUDY_TAGS_API_ENDPOINT = "study_tags.study_tags"
 
 

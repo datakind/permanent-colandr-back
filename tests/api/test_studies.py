@@ -6,10 +6,6 @@ from colandr.api.v1 import auth
 from .. import helpers
 
 
-# app v1
-# STUDY_API_ENDPOINT = "studies_study_resource"
-# STUDIES_API_ENDPOINT = "studies_studies_resource"
-# app v1.1
 STUDY_API_ENDPOINT = "studies.study"
 STUDIES_API_ENDPOINT = "studies.studies"
 

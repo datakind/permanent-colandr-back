@@ -7,10 +7,6 @@ from colandr.api.v1 import auth
 from .. import helpers
 
 
-# app v1
-# REVIEW_API_ENDPOINT = "reviews_review_resource"
-# REVIEWS_API_ENDPOINT = "reviews_reviews_resource"
-# app v1.1
 REVIEW_API_ENDPOINT = "reviews.review"
 REVIEWS_API_ENDPOINT = "reviews.reviews"
 

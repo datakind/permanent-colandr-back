@@ -8,10 +8,6 @@ from .. import helpers
 
 # TODO: figure out why cli seed command errors when screening records have "id" fields
 
-# app v1
-# CITATION_SCREENING_API_ENDPOINT = "citation_screenings_citation_screenings_resource"
-# CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings_citations_screenings_resource"
-# app v1.1
 CITATION_SCREENING_API_ENDPOINT = "citation_screenings.citation_screening"
 CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings.citation_screenings"
 

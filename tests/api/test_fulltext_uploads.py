@@ -2,9 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# FULLTEXT_UPLOAD_API_ENDPOINT = "fulltext_uploads_fulltext_upload_resource"
-# app v1.1
 FULLTEXT_UPLOAD_API_ENDPOINT = "fulltext_uploads.fulltext_upload"
 
 

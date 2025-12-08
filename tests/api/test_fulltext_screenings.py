@@ -2,10 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# FULLTEXT_SCREENING_API_ENDPOINT = "fulltext_screenings_fulltext_screenings_resource"
-# FULLTEXT_SCREENINGS_API_ENDPOINT = "fulltext_screenings_fulltexts_screenings_resource"
-# app v1.1
 FULLTEXT_SCREENING_API_ENDPOINT = "fulltext_screenings.fulltext_screening"
 FULLTEXT_SCREENINGS_API_ENDPOINT = "fulltext_screenings.fulltext_screenings"
 

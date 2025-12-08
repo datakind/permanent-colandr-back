@@ -2,9 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# FULLTEXT_API_ENDPOINT = "fulltexts_fulltext_resource"
-# app v1.1
 FULLTEXT_API_ENDPOINT = "fulltexts.fulltext"
 
 
