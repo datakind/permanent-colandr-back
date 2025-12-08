@@ -5,9 +5,10 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql as pg
 
 from ... import models
-from ...extensions import db
+from ...extensions import cache, db
 
 
+@cache.memoize()
 def user_is_allowed_for_review(
     user: models.User,
     review_id: int,
@@ -45,6 +46,7 @@ def user_is_allowed_for_review(
     )
 
 
+@cache.memoize()
 def user_is_allowed_for_user(
     user: models.User, user_id: int, *, if_collaborator: bool = True
 ) -> bool:
@@ -68,3 +70,38 @@ def user_is_allowed_for_user(
             and any(collab.id == user_id for collab in user.collaborators)
         )
     )
+
+
+def clear_cache(
+    user: models.User,
+    review_id: t.Optional[int] = None,
+    user_id: t.Optional[int] = None,
+) -> None:
+    """
+    Clear cached authz funcs when results are expected to change, e.g. a user's role
+    is changed or they're added to a review team.
+
+    Args:
+        user: app user for which authorization has changed
+        review_id: if specified, only clear cache for corresponding user-review authz
+        user_id: if specified, only clear cache for corresponding user-user authz
+    """
+    if review_id is None:
+        cache.delete_memoized(user_is_allowed_for_review)
+    else:
+        for for_roles in [["member"], ["owner"], ("owner", "member")]:
+            for if_frozen in [True, False]:
+                cache.delete_memoized(
+                    user_is_allowed_for_review,
+                    user,
+                    review_id,
+                    for_roles=for_roles,
+                    if_frozen=if_frozen,
+                )
+    if user_id is None:
+        cache.delete_memoized(user_is_allowed_for_user)
+    else:
+        for if_collaborator in [True, False]:
+            cache.delete_memoized(
+                user_is_allowed_for_user, user, user_id, if_collaborator=if_collaborator
+            )
