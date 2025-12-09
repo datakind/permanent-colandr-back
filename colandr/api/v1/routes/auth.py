@@ -64,9 +64,10 @@ class LoginAPI(MethodView):
                 message="no user found matching given email and password"
             )
         if not user.is_confirmed:
-            raise errors.UnauthorizedError(
-                message="user has been created but is not yet confirmed"
-            )
+            current_app.logger.warning("login by %s, who is not yet confirmed", user)
+            # raise errors.UnauthorizedError(
+            #     message="user has been created but is not yet confirmed"
+            # )
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
         current_app.logger.info("%s logged in", user)
@@ -149,22 +150,21 @@ class RegisterAPI(MethodView):
             )
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = url_for(
-            "auth.register_confirm", token=access_token, _external=True
-        )
-        if fe_app_site := current_app.config["FE_APP_SITE"]:
-            confirm_url = _replace_url_site(confirm_url, fe_app_site)
-
-        html = render_template(
-            "emails/user_registration.html", url=confirm_url, name=user.name
-        )
-        if current_app.config["MAIL_SERVER"]:
-            tasks.send_email.apply_async(
-                args=[[user.email], "Confirm your registration", "", html]
-            )
-            current_app.logger.info("registration email sent to %s", user.email)
-
+        _send_confirm_registration_email(user, access_token)
         return user
+
+
+class RegisterResendAPI(MethodView):
+    @bp.doc(
+        summary="re-send a registration confirmation email to an uncomfirmed user",
+        responses={200: "successfully re-sent confirmation email"},
+    )
+    @bp.output({})
+    @jwtext.jwt_required()
+    def post(self):
+        current_user = jwtext.get_current_user()
+        access_token = jwtext.create_access_token(identity=current_user, fresh=True)
+        _send_confirm_registration_email(current_user, access_token)
 
 
 class ConfirmRegistrationAPI(MethodView):
@@ -274,6 +274,9 @@ bp.add_url_rule("/login", view_func=LoginAPI.as_view("login"))
 bp.add_url_rule("/logout", view_func=LogoutAPI.as_view("logout"))
 bp.add_url_rule("/refresh", view_func=RefreshTokenAPI.as_view("refresh"))
 bp.add_url_rule("/register", view_func=RegisterAPI.as_view("register"))
+bp.add_url_rule(
+    "/register/resend", view_func=RegisterResendAPI.as_view("register_resend")
+)
 bp.add_url_rule(
     "/register/confirm", view_func=ConfirmRegistrationAPI.as_view("register_confirm")
 )
@@ -406,3 +409,19 @@ def _replace_url_site(url: str, new_site: str) -> str:
     # strip out existing scheme and netloc, so we can replace them with new_site
     url_parsed = urllib.parse.urlunparse(url_parsed._replace(scheme="", netloc=""))
     return urllib.parse.urljoin(new_site, url_parsed)
+
+
+def _send_confirm_registration_email(user: object, access_token: str) -> None:
+    assert isinstance(user, models.User)  # type guard
+    confirm_url = url_for("auth.register_confirm", token=access_token, _external=True)
+    if fe_app_site := current_app.config["FE_APP_SITE"]:
+        confirm_url = _replace_url_site(confirm_url, fe_app_site)
+
+    html = render_template(
+        "emails/user_registration.html", url=confirm_url, name=user.name
+    )
+    if current_app.config["MAIL_SERVER"]:
+        tasks.send_email.apply_async(
+            args=[[user.email], "Confirm your registration", "", html]
+        )
+        current_app.logger.info("registration email sent to %s", user.email)
