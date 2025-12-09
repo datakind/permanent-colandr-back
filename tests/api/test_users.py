@@ -1,15 +1,11 @@
 import flask
 import pytest
 
-from colandr.apis import auth
+from colandr.api.v1 import auth
 
 from .. import helpers
 
 
-# app v1
-# USER_API_ENDPOINT = "users_user_resource"
-# USERS_API_ENDPOINT = "users_users_resource"
-# app v1.1
 USER_API_ENDPOINT = "users.user"
 USERS_API_ENDPOINT = "users.users"
 

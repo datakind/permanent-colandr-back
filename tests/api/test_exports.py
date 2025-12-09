@@ -4,10 +4,6 @@ import pytest
 from colandr.lib.fileio import tabular
 
 
-# app v1
-# EXPORT_STUDIES_API_ENDPOINT = "citation_imports_citations_imports_resource"
-# EXPORT_SCREENINGS_API_ENDPOINT = "exports_export_screenings_resource"
-# app v1.1
 EXPORT_STUDIES_API_ENDPOINT = "exports.studies"
 EXPORT_SCREENINGS_API_ENDPOINT = "exports.screenings"
 EXPORT_PRISMA_API_ENDPOINT = "exports.prisma"

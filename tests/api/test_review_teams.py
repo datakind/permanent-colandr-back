@@ -2,9 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# REVIEW_TEAM_API_ENDPOINT = "review_teams_review_team_resource"
-# app v1.1
 REVIEW_TEAM_API_ENDPOINT = "review_teams.review_team"
 
 

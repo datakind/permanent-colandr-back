@@ -2,9 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# REVIEW_PROGRESS_API_ENDPOINT = "review_progress_review_progress_resource"
-# app v1.1
 REVIEW_PROGRESS_API_ENDPOINT = "review_progress.review_progress"
 
 

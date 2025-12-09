@@ -6,31 +6,12 @@ import apiflask as af
 import flask
 import flask.logging
 
-from colandr import cli, config, errors, extensions
+from colandr import cli, config, extensions
 from colandr.api import v1
-from colandr.apis import api_v1
 
 
 def create_app(config_overrides: t.Optional[dict[str, t.Any]] = None) -> flask.Flask:
-    # app = _create_app_v1(config_overrides)
     app = _create_app_v1_1(config_overrides)
-    return app
-
-
-def _create_app_v1(
-    config_overrides: t.Optional[dict[str, t.Any]] = None,
-) -> flask.Flask:
-    app = flask.Flask("colandr")
-    app.config.from_object(config)
-    if config_overrides:
-        app.config.update(config_overrides)
-
-    _configure_logging(app)
-    _register_extensions(app)
-    api_v1.init_app(app)
-    app.register_blueprint(cli.bp)
-    app.register_blueprint(errors.bp)
-
     return app
 
 
@@ -52,7 +33,7 @@ def _create_app_v1_1(
     _register_extensions(app)
     v1.register_api_blueprints(app)
     app.register_blueprint(cli.bp)
-    app.register_blueprint(errors.bp)
+    # app.register_blueprint(errors.bp)
     app.security_schemes = {
         "TokenAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     }

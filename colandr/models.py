@@ -16,7 +16,7 @@ from sqlalchemy.orm import Mapped as M
 from sqlalchemy.orm import WriteOnlyMapped as WOM
 from sqlalchemy.orm import mapped_column as mapcol
 
-from . import tasks, utils
+from . import utils
 from .extensions import db
 
 
@@ -893,11 +893,15 @@ def update_study_status(mapper, connection, target):
         # and only once every 25 included citations
         # (re-)compute the suggested keyterms
         if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
+            from . import tasks
+
             sample_size = min(n_included, n_excluded)
             tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
         # once every 100 fully screened citations, (re-)train a study ranker model
         n_incl_excl = n_included + n_excluded
         if n_incl_excl > 0 and n_incl_excl % 100 == 0:
+            from . import tasks
+
             tasks.train_study_ranker_model.apply_async(args=[review_id])
     elif stage == "fulltext":
         # we may have to insert or delete a corresponding data extraction record
@@ -929,6 +933,8 @@ def update_study_status(mapper, connection, target):
             )
             # once every 100 fully screened fulltexts, (re-)train a study ranker model
             if n_incl_excl > 0 and n_incl_excl % 100 == 0:
+                from . import tasks
+
                 tasks.train_study_ranker_model.apply_async(args=[review_id])
 
 

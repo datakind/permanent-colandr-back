@@ -2,10 +2,6 @@ import flask
 import pytest
 
 
-# app v1
-# CITATION_API_ENDPOINT = "citations_citation_resource"
-# CITATIONS_API_ENDPOINT = "citations_citations_resource"
-# app v1.1
 CITATION_API_ENDPOINT = "citations.citation"
 CITATIONS_API_ENDPOINT = "citations.citations"
 
