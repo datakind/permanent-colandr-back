@@ -9,8 +9,7 @@ from sqlalchemy.dialects import postgresql as pg
 from .... import models, tasks
 from ....extensions import db
 from ....utils import assign_status
-from .. import errors, schemas
-from . import auth
+from .. import authn, errors, schemas
 
 
 bp = af.APIBlueprint("admin", __name__, url_prefix="/admin")
@@ -27,7 +26,7 @@ bp = af.APIBlueprint("admin", __name__, url_prefix="/admin")
 )
 @bp.input(schemas.UserSchema, location="json")
 @bp.output(schemas.UserSchema)
-@auth.jwt_admin_required()
+@authn.jwt_admin_required()
 def post_users(json_data):
     current_user = jwtext.get_current_user()
     user = models.User(**json_data)
@@ -66,7 +65,7 @@ def post_users(json_data):
     location="query",
 )
 @bp.output(schemas.ReviewV2Schema(many=True))
-@auth.jwt_admin_required()
+@authn.jwt_admin_required()
 def get_reviews(query_data):
     review_ids = (
         [int(review_id) for review_id in query_data["review_ids"]]
@@ -138,7 +137,7 @@ def get_reviews(query_data):
     location="query",
 )
 @bp.output({}, 200)
-@auth.jwt_admin_required()
+@authn.jwt_admin_required()
 def post_citation_screenings(json_data, query_data):
     review_id = query_data["review_id"]
     user_id = query_data.get("user_id")
@@ -236,7 +235,7 @@ def post_citation_screenings(json_data, query_data):
     location="query",
 )
 @bp.output({}, 200)
-@auth.jwt_admin_required()
+@authn.jwt_admin_required()
 def post_fulltext_screenings(json_data, query_data):
     review_id = query_data["review_id"]
     user_id = query_data.get("user_id")

@@ -35,7 +35,9 @@ def user_is_allowed_for_review(
         .where(models.ReviewUserAssoc.user_role == sa.any_(pg.array(for_roles)))
     )
     return (
-        (
+        # only confirmed users are allowed
+        user.is_confirmed
+        and (
             # admin users are allowed
             user.is_admin is True
             # users associated with review having specified role(s) are allowed
@@ -60,14 +62,18 @@ def user_is_allowed_for_user(
         True if user is allowed to access user; False otherwise
     """
     return (
-        # current user same as user is allowed
-        user.id == user_id
-        # admin users are allowed
-        or user.is_admin is True
-        # users who are collaborators with specified user may be allowed
-        or (
-            if_collaborator is True
-            and any(collab.id == user_id for collab in user.collaborators)
+        # only confirmed users are allowed
+        user.is_confirmed
+        and (
+            # current user same as user is allowed
+            user.id == user_id
+            # admin users are allowed
+            or user.is_admin is True
+            # users who are collaborators with specified user may be allowed
+            or (
+                if_collaborator is True
+                and any(collab.id == user_id for collab in user.collaborators)
+            )
         )
     )
 

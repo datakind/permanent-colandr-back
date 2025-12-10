@@ -10,7 +10,7 @@ from flask.views import MethodView
 
 from .... import models, tasks
 from ....extensions import cache, db
-from .. import authz, errors, schemas
+from .. import authn, authz, errors, schemas
 from . import auth
 
 
@@ -237,7 +237,7 @@ class ReviewTeamConfirmationAPI(MethodView):
     @bp.output(UserSchemaPlusOwner(many=True))
     def get(self, id, query_data):
         token: str = query_data["token"]
-        user = auth.get_user_from_token(token)
+        user = authn.get_user_from_token(token)
         review = db.session.get(models.Review, id)
 
         if not review:
