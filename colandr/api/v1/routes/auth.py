@@ -150,6 +150,7 @@ class RegisterResendAPI(MethodView):
     @bp.doc(
         summary="re-send a registration confirmation email to an uncomfirmed user",
         responses={200: "successfully re-sent confirmation email"},
+        security="TokenAuth",
     )
     @bp.output({})
     @jwtext.jwt_required()
