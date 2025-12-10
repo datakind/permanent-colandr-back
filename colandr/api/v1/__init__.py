@@ -1,5 +1,6 @@
 import apiflask as af
 
+from . import authn, authz
 from .routes import (
     admin,
     auth,
