@@ -1,13 +1,6 @@
-- [ ] Confirm that all email interactions (e.g. password reset) actually work
 - [ ] Better handle uploaded fulltext files (really, all data artifacts saved on disk, not in the db)
-- [x] Allow for multiple review owners
 - [ ] Allow for assigning studies to reviewers for screening?
-- [x] Integrate caching and rate limiting into API
-- [ ] Add extra fields in users table, e.g. affiliation
+- [ ] Add extra fields in users table, e.g. affiliation?
 - [ ] Improve and extend NLP functionality, just across the board
 - [ ] Enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
-- [x] Only run dedupe jobs upon request (requires a "deduplicate" button to front-end interface)
-- [x] Allow for requiring multiple screeners on a configurable percentage of studies (for "rapid review" style projects)
-- [x] Add filtering studies by number of citation/fulltext reviewers
-- [s] Investigate migrating from flask-restx to apiflask
 - [ ] Consider removing async tasks (and db columns?) for text content vectors
