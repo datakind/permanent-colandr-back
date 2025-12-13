@@ -82,6 +82,7 @@ def _register_extensions(app: flask.Flask) -> None:
     with app.app_context():
         extensions.cache.clear()
     extensions.db.init_app(app)
+    extensions.limiter.init_app(app)
     extensions.jwt.init_app(app)
     extensions.mail.init_app(app)
     extensions.migrate.init_app(app, extensions.db)

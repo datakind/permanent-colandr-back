@@ -10,7 +10,7 @@ from flask.views import MethodView
 from werkzeug.utils import secure_filename
 
 from .... import models, tasks
-from ....extensions import db
+from ....extensions import db, limiter
 from ....lib import fileio
 from .. import errors, schemas
 
@@ -224,6 +224,15 @@ class CitationImportsAPI(MethodView):
             tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)
 
 
+# NOTE: flask-limiter doesn't behave when applied to routes via MethodView.decorators
+# this is an ugly but serviceable work-around
+# citation_imports_api_view_func = CitationImportsAPI.as_view("citation_imports")
+# citation_imports_api_view_func = limiter.limit("1 per 5 seconds", methods=["POST"])(
+#     citation_imports_api_view_func
+# )
+# bp.add_url_rule("/", view_func=citation_imports_api_view_func)
+# NOTE: flask-limiter actually just doesn't work with this API for some reason
+# let's not rate-limit it, and instead kick the can down the road
 bp.add_url_rule("/", view_func=CitationImportsAPI.as_view("citation_imports"))
 
 
