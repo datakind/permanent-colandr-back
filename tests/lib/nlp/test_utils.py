@@ -48,8 +48,8 @@ from colandr.lib.nlp import utils
         ),
     ],
 )
-def test_detect_language_of(text, exp_lang):
-    obs_lang = utils.detect_language_of(text)
+def test_detect_language(text, exp_lang):
+    obs_lang = utils.detect_language(text)
     assert obs_lang == exp_lang
 
 
@@ -73,8 +73,8 @@ def test_detect_language_of(text, exp_lang):
         ),
     ],
 )
-def test_detect_languages_of(texts, exp_langs):
-    obs_langs = utils.detect_languages_of(texts)
+def test_detect_languages(texts, exp_langs):
+    obs_langs = utils.detect_languages(texts)
     assert obs_langs == exp_langs
 
 

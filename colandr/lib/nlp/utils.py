@@ -24,7 +24,7 @@ LANG_DETECTOR = (
 )
 
 
-def detect_language_of(text: str) -> t.Optional[str]:
+def detect_language(text: str) -> t.Optional[str]:
     """
     Detect language of input text, and return it as a ISO-639-1 short code
     if sufficiently confident or None otherwise.
@@ -33,7 +33,7 @@ def detect_language_of(text: str) -> t.Optional[str]:
     return lang.iso_code_639_1.name.lower() if lang is not None else None
 
 
-def detect_languages_of(texts: Iterable[str]) -> list[t.Optional[str]]:
+def detect_languages(texts: Iterable[str]) -> list[t.Optional[str]]:
     """
     Detect languages of input texts, and return them as ISO-639-1 short codes
     if sufficiently confident or None otherwise, in the same order as inputs.
