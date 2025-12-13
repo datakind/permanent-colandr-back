@@ -93,7 +93,6 @@ def process_texts_into_docs(
     texts: Iterable[str],
     *,
     max_len: t.Optional[int] = 1000,
-    min_prob: t.Optional[float] = 0.5,
     fallback_lang: t.Optional[str] = "en",
     **kwargs,
 ) -> Iterable[t.Optional[SpacyDoc]]:
@@ -102,9 +101,7 @@ def process_texts_into_docs(
         texts
         max_len: Maximum number of chars (code points) in each text to include
             when identifying its language and processing into a spacy document.
-        min_prob: Minimum probability of language prediction for it to be used;
-            if prob < min_prob, ``fallback_lang`` is used instead.
-        fallback_lang: Fallback language used in place of low-probability predictions.
+        fallback_lang: Fallback language used in place of low-confidence predictions.
         **kwargs: Passed as-is into :func:`textacy.load_spacy_lang()` .
     """
     # clean up whitespace, to make it easier on lang detector
