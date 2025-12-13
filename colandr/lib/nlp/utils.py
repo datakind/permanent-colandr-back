@@ -1,4 +1,5 @@
 import collections
+import functools
 import itertools
 import logging
 import typing as t
@@ -7,8 +8,8 @@ from operator import itemgetter
 
 import lingua
 import spacy
-import textacy
-from spacy.tokens import Doc
+from spacy.language import Language as SpacyLang
+from spacy.tokens import Doc as SpacyDoc
 
 
 LOGGER = logging.getLogger(__name__)
@@ -58,6 +59,36 @@ def get_lang_to_models() -> dict[str, list[str]]:
     return dict(lang_to_models)
 
 
+@functools.lru_cache(maxsize=10)
+def load_spacy_lang(name: str, **kwargs) -> SpacyLang:
+    """
+    Load a spaCy ``Language`` — a shared vocabulary and language-specific data
+    for tokenizing text, and (if available) model data and a processing pipeline
+    containing a sequence of components for annotating a document — and cache results,
+    for quick reloading as needed.
+
+    .. code-block:: pycon
+
+        >>> en_nlp = load_spacy_lang("en_core_web_sm")
+        >>> en_nlp = load_spacy_lang("en_core_web_sm", disable=("parser",))
+        >>> load_spacy_lang("ar")
+        ...
+        OSError: [E050] Can't find model 'ar'. It doesn't seem to be a Python package or a valid path to a data directory.
+
+    Note:
+        Although spaCy's API specifies some kwargs as ``list[str]``, here we require
+        ``tuple[str, ...]`` equivalents. Language pipelines are stored in an LRU cache
+        with unique identifiers generated from the hash of the function name and args —
+        and lists aren't hashable.
+
+    See Also:
+        https://spacy.io/api/top-level#spacy.load
+    """
+    spacy_lang = spacy.load(name, **kwargs)
+    LOGGER.info("loaded '%s' spaCy language pipeline", name)
+    return spacy_lang
+
+
 def process_texts_into_docs(
     texts: Iterable[str],
     *,
@@ -65,7 +96,7 @@ def process_texts_into_docs(
     min_prob: t.Optional[float] = 0.5,
     fallback_lang: t.Optional[str] = "en",
     **kwargs,
-) -> Iterable[t.Optional[Doc]]:
+) -> Iterable[t.Optional[SpacyDoc]]:
     """
     Args:
         texts
@@ -76,28 +107,23 @@ def process_texts_into_docs(
         fallback_lang: Fallback language used in place of low-probability predictions.
         **kwargs: Passed as-is into :func:`textacy.load_spacy_lang()` .
     """
-    identify_lang = textacy.identify_lang
-    # clean up whitespace, since lang identifier model is picky
+    # clean up whitespace, to make it easier on lang detector
     texts = (text.strip().replace("\n", " ") for text in texts)
     # truncate texts, optionally
     if max_len is not None:
         texts = (text[:max_len] for text in texts)
     # identify most probable language (w/ optional fallback) for texts
-    if min_prob is not None:
-        text_lang_probs = (
-            (text, identify_lang(text, with_probs=True)) for text in texts
-        )
-        text_langs = (
-            (text, lang) if prob >= min_prob else (text, fallback_lang)
-            for text, (lang, prob) in text_lang_probs
-        )
-    else:
-        text_langs = ((text, identify_lang(text, with_probs=False)) for text in texts)
+    texts = list(texts)
+    langs = detect_languages(texts)
+    text_langs = (
+        (text, lang) if lang is not None else (text, fallback_lang)
+        for text, lang in zip(texts, langs)
+    )
     # join texts to langs, then iterate over lang-groups for processing efficiency
     lang_models = get_lang_to_models()
     for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):
         if lang in lang_models:
-            spacy_lang = textacy.load_spacy_lang(lang_models[lang][0], **kwargs)
+            spacy_lang = load_spacy_lang(lang_models[lang][0], **kwargs)
             spacy_docs = spacy_lang.pipe((text for text, _ in tl_grp), n_process=1)
             for spacy_doc in spacy_docs:
                 yield spacy_doc
