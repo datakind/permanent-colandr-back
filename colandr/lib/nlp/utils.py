@@ -5,12 +5,43 @@ import typing as t
 from collections.abc import Iterable
 from operator import itemgetter
 
+import lingua
 import spacy
 import textacy
 from spacy.tokens import Doc
 
 
 LOGGER = logging.getLogger(__name__)
+
+LANG_DETECTOR = (
+    lingua.LanguageDetectorBuilder.from_all_languages()
+    .with_low_accuracy_mode()
+    # alternatively, we might try detecting only those languages for which we have models
+    # and run that in "high-accuracy" mode; unclear if this is worth the trade-off
+    # .from_languages(Language.CHINESE, Language.ENGLISH, Language.FRENCH, Language.JAPANESE, Language.SPANISH)
+    .with_minimum_relative_distance(0.8)
+    .build()
+)
+
+
+def detect_language_of(text: str) -> t.Optional[str]:
+    """
+    Detect language of input text, and return it as a ISO-639-1 short code
+    if sufficiently confident or None otherwise.
+    """
+    lang = LANG_DETECTOR.detect_language_of(text)
+    return lang.iso_code_639_1.name.lower() if lang is not None else None
+
+
+def detect_languages_of(texts: Iterable[str]) -> list[t.Optional[str]]:
+    """
+    Detect languages of input texts, and return them as ISO-639-1 short codes
+    if sufficiently confident or None otherwise, in the same order as inputs.
+    """
+    langs = LANG_DETECTOR.detect_languages_in_parallel_of(texts)  # type: ignore
+    return [
+        lang.iso_code_639_1.name.lower() if lang is not None else None for lang in langs
+    ]
 
 
 def get_lang_to_models() -> dict[str, list[str]]:
