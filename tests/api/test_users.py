@@ -1,15 +1,11 @@
 import flask
 import pytest
 
-from colandr.apis import auth
+from colandr.api.v1 import authn
 
 from .. import helpers
 
 
-# app v1
-# USER_API_ENDPOINT = "users_user_resource"
-# USERS_API_ENDPOINT = "users_users_resource"
-# app v1.1
 USER_API_ENDPOINT = "users.user"
 USERS_API_ENDPOINT = "users.users"
 
@@ -80,7 +76,7 @@ class TestUserAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.get(
-                    url, headers=auth.pack_header_for_user(current_user)
+                    url, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == 200
         data = response.json
@@ -103,7 +99,7 @@ class TestUserAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.get(
-                    url, headers=auth.pack_header_for_user(current_user)
+                    url, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -121,7 +117,7 @@ class TestUserAPI:
             url = flask.url_for(USER_API_ENDPOINT, id=user_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == 204
         assert client.get(url, headers=admin_headers).status_code == 404  # not found!
@@ -141,7 +137,7 @@ class TestUserAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.delete(
-                    url, headers=auth.pack_header_for_user(current_user)
+                    url, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -160,7 +156,7 @@ class TestUserAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == 200
         obs_data = response.json
@@ -187,7 +183,7 @@ class TestUserAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -250,6 +246,6 @@ class TestUsersAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.get(
-                    url, headers=auth.pack_header_for_user(current_user)
+                    url, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code

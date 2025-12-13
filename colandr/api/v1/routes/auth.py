@@ -1,29 +1,21 @@
-import functools
-import typing as t
 import urllib.parse
 
 import apiflask as af
-import celery
 import flask_jwt_extended as jwtext
-import redis.client
 import sqlalchemy as sa
 import sqlalchemy.exc
 from flask import current_app, render_template, url_for
 from flask.views import MethodView
 
 from .... import models, tasks
-from ....extensions import db, jwt
-from .. import errors, schemas
+from ....extensions import db
+from .. import authn, errors, schemas
 
 
 bp = af.APIBlueprint("auth", __name__, url_prefix="/auth")
 
 # TODO: can we bolt our system onto apiflask's built-in httptokenauth?
 # auth = af.HTTPTokenAuth(scheme="Bearer")
-
-# TODO: we should use redis for this
-# _JWT_BLOCKLIST = celery.current_app.backend.client  # type: ignore
-_JWT_BLOCKLIST = set()
 
 
 class LoginAPI(MethodView):
@@ -58,15 +50,16 @@ class LoginAPI(MethodView):
         email = json_data["email"]
         password = json_data["password"]
         try:
-            user = authenticate_user(email, password)
+            user = authn.authenticate_user(email, password)
         except ValueError:
             raise errors.NotFoundError(
                 message="no user found matching given email and password"
             )
         if not user.is_confirmed:
-            raise errors.UnauthorizedError(
-                message="user has been created but is not yet confirmed"
-            )
+            current_app.logger.warning("login by %s, who is not yet confirmed", user)
+            # raise errors.UnauthorizedError(
+            #     message="user has been created but is not yet confirmed"
+            # )
         access_token = jwtext.create_access_token(identity=user, fresh=True)
         refresh_token = jwtext.create_refresh_token(identity=user)
         current_app.logger.info("%s logged in", user)
@@ -90,8 +83,8 @@ class LogoutAPI(MethodView):
         jwt_data = jwtext.get_jwt()
         token = jwt_data["jti"]
         # TODO: we should use redis for this
-        # _JWT_BLOCKLIST.set(token, "", ex=current_app.config["JWT_REFRESH_TOKEN_EXPIRES"])
-        _JWT_BLOCKLIST.add(token)
+        # authn._JWT_BLOCKLIST.set(token, "", ex=current_app.config["JWT_REFRESH_TOKEN_EXPIRES"])
+        authn._JWT_BLOCKLIST.add(token)
         current_app.logger.info("%s logged out", current_user)
         # TODO: do we *need* to return this message, or nah?
         return {"message": f"{current_user} logged out"}
@@ -149,22 +142,22 @@ class RegisterAPI(MethodView):
             )
 
         access_token = jwtext.create_access_token(identity=user, fresh=True)
-        confirm_url = url_for(
-            "auth.register_confirm", token=access_token, _external=True
-        )
-        if fe_app_site := current_app.config["FE_APP_SITE"]:
-            confirm_url = _replace_url_site(confirm_url, fe_app_site)
-
-        html = render_template(
-            "emails/user_registration.html", url=confirm_url, name=user.name
-        )
-        if current_app.config["MAIL_SERVER"]:
-            tasks.send_email.apply_async(
-                args=[[user.email], "Confirm your registration", "", html]
-            )
-            current_app.logger.info("registration email sent to %s", user.email)
-
+        _send_confirm_registration_email(user, access_token)
         return user
+
+
+class RegisterResendAPI(MethodView):
+    @bp.doc(
+        summary="re-send a registration confirmation email to an uncomfirmed user",
+        responses={200: "successfully re-sent confirmation email"},
+        security="TokenAuth",
+    )
+    @bp.output({})
+    @jwtext.jwt_required()
+    def post(self):
+        current_user = jwtext.get_current_user()
+        access_token = jwtext.create_access_token(identity=current_user, fresh=True)
+        _send_confirm_registration_email(current_user, access_token)
 
 
 class ConfirmRegistrationAPI(MethodView):
@@ -188,7 +181,7 @@ class ConfirmRegistrationAPI(MethodView):
     )
     def get(self, query_data):
         token: str = query_data["token"]
-        user = get_user_from_token(token)
+        user = authn.get_user_from_token(token)
         if user is None:
             raise errors.NotFoundError(message=f"no user found for token='{token}'")
 
@@ -255,7 +248,7 @@ class ConfirmPasswordResetAPI(MethodView):
     def put(self, query_data, json_data):
         token = query_data["token"]
         password = json_data["password"]
-        user = get_user_from_token(token)
+        user = authn.get_user_from_token(token)
         if user is None:
             raise errors.NotFoundError(message=f"no user found for token='{token}'")
 
@@ -275,6 +268,9 @@ bp.add_url_rule("/logout", view_func=LogoutAPI.as_view("logout"))
 bp.add_url_rule("/refresh", view_func=RefreshTokenAPI.as_view("refresh"))
 bp.add_url_rule("/register", view_func=RegisterAPI.as_view("register"))
 bp.add_url_rule(
+    "/register/resend", view_func=RegisterResendAPI.as_view("register_resend")
+)
+bp.add_url_rule(
     "/register/confirm", view_func=ConfirmRegistrationAPI.as_view("register_confirm")
 )
 bp.add_url_rule("/reset", view_func=ResetPasswordAPI.as_view("reset"))
@@ -283,126 +279,24 @@ bp.add_url_rule(
 )
 
 
-#######################################
-
-
-@jwt.user_identity_loader
-def user_identity_loader(user: models.User | str) -> str:
-    """
-    Callback function that takes the ``User`` passed in as the "identity"
-    when creating JWTs and returns it as a string, either as a stringified ``User.id``
-    or as the email associated with the user.
-    """
-    if isinstance(user, models.User):
-        user_identity = str(user.id)
-    elif isinstance(user, str):
-        user_identity = af.validators.Email()(user)  # validate as email
-    else:
-        raise ValueError(f"user={user} is invalid")
-    return user_identity
-
-
-@jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data: dict) -> t.Optional[models.User]:
-    """
-    Callback function that loads a user from the database by its identity (id)
-    whenever a protected API route is accessed.
-    """
-    user_identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    if user_identity.isdigit():
-        user = db.session.get(models.User, int(user_identity))
-    elif isinstance(user_identity, str):
-        af.validators.Email()(user_identity)  # validate as email
-        user = db.session.execute(
-            sa.select(models.User).filter_by(email=user_identity)
-        ).scalar_one_or_none()
-    else:
-        raise ValueError(f"user identity={user_identity} is invalid")
-    return user
-
-
-@jwt.additional_claims_loader
-def additional_claims_loader(user: models.User | str) -> dict[str, object]:
-    """Callback function that adds additional claims to the JWT token."""
-    if isinstance(user, models.User):
-        return {"is_admin": user.is_admin}
-    else:
-        return {}
-
-
-@jwt.token_in_blocklist_loader
-def token_in_blocklist_loader(jwt_header, jwt_data: dict) -> bool:
-    """
-    Callback function that checks if a JWT is in the blocklist, i.e. has been revoked.
-    """
-    token = jwt_data["jti"]
-    # TODO: we should use redis for this
-    # token_in_blocklist = _JWT_BLOCKLIST.get(token)
-    token_in_blocklist = token in _JWT_BLOCKLIST
-    return token_in_blocklist
-
-
-def authenticate_user(email: str, password: str) -> models.User:
-    """
-    Verify that password matches the stored password for specified user email;
-    if credentials are valid, the corresponding user instance is returned.
-    """
-    user = db.session.execute(
-        sa.select(models.User).filter_by(email=email)
-    ).scalar_one_or_none()
-    if user is None or user.check_password(password) is False:
-        raise ValueError("invalid user email or password")
-    return user
-
-
-def get_user_from_token(token: str) -> t.Optional[models.User]:
-    """
-    Get a ``User`` from the identity stored in an encoded, unexpired JWT token,
-    if it exists in the database; otherwise, return None.
-    """
-    jwt_data = jwtext.decode_token(token, allow_expired=False)
-    identity = jwt_data[current_app.config["JWT_IDENTITY_CLAIM"]]
-    if identity.isdigit():
-        user = db.session.get(models.User, int(identity))
-    elif isinstance(identity, str):
-        af.validators.Email()(identity)  # validate as email
-        user = db.session.execute(
-            sa.select(models.User).filter_by(email=identity)
-        ).scalar_one_or_none()
-    else:
-        raise TypeError(f"user identity={identity} is invalid")
-    return user
-
-
-def pack_header_for_user(user) -> dict[str, str]:
-    """
-    Create an access token for ``user`` and pack it into a suitable header dict.
-    """
-    token = jwtext.create_access_token(identity=user, fresh=True)
-    header_key = f"{current_app.config['JWT_HEADER_TYPE']} {token}"
-    return {current_app.config["JWT_HEADER_NAME"]: header_key}
-
-
-def jwt_admin_required():
-    def wrapper(fn):
-        @functools.wraps(fn)
-        def decorator(*args, **kwargs):
-            jwtext.verify_jwt_in_request()
-            jwt_data = jwtext.get_jwt()
-            if jwt_data["is_admin"]:
-                return fn(*args, **kwargs)
-            else:
-                raise errors.ForbiddenError(
-                    message="this endpoint is for admin users only"
-                )
-
-        return decorator
-
-    return wrapper
-
-
 def _replace_url_site(url: str, new_site: str) -> str:
     url_parsed = urllib.parse.urlparse(url)
     # strip out existing scheme and netloc, so we can replace them with new_site
     url_parsed = urllib.parse.urlunparse(url_parsed._replace(scheme="", netloc=""))
     return urllib.parse.urljoin(new_site, url_parsed)
+
+
+def _send_confirm_registration_email(user: object, access_token: str) -> None:
+    assert isinstance(user, models.User)  # type guard
+    confirm_url = url_for("auth.register_confirm", token=access_token, _external=True)
+    if fe_app_site := current_app.config["FE_APP_SITE"]:
+        confirm_url = _replace_url_site(confirm_url, fe_app_site)
+
+    html = render_template(
+        "emails/user_registration.html", url=confirm_url, name=user.name
+    )
+    if current_app.config["MAIL_SERVER"]:
+        tasks.send_email.apply_async(
+            args=[[user.email], "Confirm your registration", "", html]
+        )
+        current_app.logger.info("registration email sent to %s", user.email)

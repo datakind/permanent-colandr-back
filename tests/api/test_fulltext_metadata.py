@@ -6,10 +6,6 @@ import pytest
 from colandr.lib.extractors.metadata import Metadata
 
 
-# app v1
-# FULLTEXT_METADATA_API_ENDPOINT = "fulltext_metadata_fulltext_metadata_resource"
-# PATCH_FUNC_PATH = "colandr.apis.resources.fulltext_metadata"
-# app v1.1
 FULLTEXT_METADATA_API_ENDPOINT = "fulltext_metadata.fulltext_metadata"
 PATCH_FUNC_PATH = "colandr.api.v1.routes.fulltext_metadata"
 

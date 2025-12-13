@@ -11,7 +11,7 @@ import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
 
 from colandr import cli, extensions, models
-from colandr.apis import auth
+from colandr.api.v1 import authn
 from colandr.app import create_app
 
 
@@ -171,4 +171,4 @@ def admin_user(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
 
 @pytest.fixture(scope="session")
 def admin_headers(admin_user: models.User, app_ctx):
-    return auth.pack_header_for_user(admin_user)
+    return authn.pack_header_for_user(admin_user)

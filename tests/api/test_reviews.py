@@ -2,15 +2,11 @@ import flask
 import pytest
 import sqlalchemy as sa
 
-from colandr.apis import auth
+from colandr.api.v1 import authn
 
 from .. import helpers
 
 
-# app v1
-# REVIEW_API_ENDPOINT = "reviews_review_resource"
-# REVIEWS_API_ENDPOINT = "reviews_reviews_resource"
-# app v1.1
 REVIEW_API_ENDPOINT = "reviews.review"
 REVIEWS_API_ENDPOINT = "reviews.reviews"
 
@@ -44,7 +40,7 @@ class TestReviewAPI:
             url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.get(url, headers=headers)
         assert response.status_code == 200
         data = response.json
@@ -65,7 +61,7 @@ class TestReviewAPI:
             url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.get(url, headers=headers)
         assert response.status_code == status_code
 
@@ -85,7 +81,7 @@ class TestReviewAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == 200
         obs_data = response.json
@@ -107,7 +103,7 @@ class TestReviewAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -125,7 +121,7 @@ class TestReviewAPI:
             url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == 204
         assert client.get(url, headers=admin_headers).status_code == 404  # not found!
@@ -144,7 +140,7 @@ class TestReviewAPI:
             url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == status_code
 
@@ -188,6 +184,6 @@ class TestReviewAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.post(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code

@@ -2,7 +2,7 @@ import flask
 import pytest
 import sqlalchemy as sa
 
-from colandr.apis import auth
+from colandr.api.v1 import authn
 
 from .. import helpers
 
@@ -77,6 +77,6 @@ class TestPostUsersAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.post(
-                    url, data=data, headers=auth.pack_header_for_user(current_user)
+                    url, data=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code

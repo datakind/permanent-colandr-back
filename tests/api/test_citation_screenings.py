@@ -1,17 +1,13 @@
 import flask
 import pytest
 
-from colandr.apis import auth
+from colandr.api.v1 import authn
 
 from .. import helpers
 
 
 # TODO: figure out why cli seed command errors when screening records have "id" fields
 
-# app v1
-# CITATION_SCREENING_API_ENDPOINT = "citation_screenings_citation_screenings_resource"
-# CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings_citations_screenings_resource"
-# app v1.1
 CITATION_SCREENING_API_ENDPOINT = "citation_screenings.citation_screening"
 CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings.citation_screenings"
 
@@ -70,7 +66,7 @@ class TestCitationScreeningAPI:
             )
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.get(url, headers=headers)
         assert response.status_code == 200
         data = response.json
@@ -96,7 +92,7 @@ class TestCitationScreeningAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.get(
-                    url, headers=auth.pack_header_for_user(current_user)
+                    url, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -116,7 +112,7 @@ class TestCitationScreeningAPI:
             url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.put(url, json=data, headers=headers)
         assert response.status_code == 200
         obs_data = response.json
@@ -139,7 +135,7 @@ class TestCitationScreeningAPI:
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
                 response = client.put(
-                    url, json=data, headers=auth.pack_header_for_user(current_user)
+                    url, json=data, headers=authn.pack_header_for_user(current_user)
                 )
         assert response.status_code == status_code
 
@@ -155,7 +151,7 @@ class TestCitationScreeningAPI:
             url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == 204
                 assert not any(
@@ -177,7 +173,7 @@ class TestCitationScreeningAPI:
             url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
         with app.app_context():
             with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = auth.pack_header_for_user(current_user)
+                headers = authn.pack_header_for_user(current_user)
                 response = client.delete(url, headers=headers)
                 assert response.status_code == status_code
 

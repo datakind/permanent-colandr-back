@@ -6,10 +6,6 @@ import pytest
 from colandr.lib.extractors.metadata import Metadata
 
 
-# app v1
-# FULLTEXT_LOCATIONS_API_ENDPOINT = "fulltext_locations_fulltext_locations_resource"
-# PATCH_FUNC_PATH = "colandr.apis.resources.fulltext_locations"
-# app v1.1
 FULLTEXT_LOCATIONS_API_ENDPOINT = "fulltext_locations.fulltext_locations"
 PATCH_FUNC_PATH = "colandr.api.v1.routes.fulltext_locations"
 
