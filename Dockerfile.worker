@@ -24,8 +24,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project
-# download language data
-RUN uv run python -m textacy download lang_identifier --version 3.0
 # copy and install project
 COPY . ${COLANDR_APP_DIR}
 RUN --mount=type=cache,target=/root/.cache/uv \
