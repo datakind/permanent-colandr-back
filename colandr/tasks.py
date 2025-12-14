@@ -347,7 +347,7 @@ def suggest_keyterms(review_id: int, sample_size: int):
     )
     excluded = db.session.execute(stmt).all()
 
-    # munge the results into the form needed by textacy
+    # munge the results into the form needed
     included_vec = [
         status == "included" for status, _ in itertools.chain(included, excluded)
     ]
