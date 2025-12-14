@@ -102,7 +102,7 @@ def process_texts_into_docs(
         max_len: Maximum number of chars (code points) in each text to include
             when identifying its language and processing into a spacy document.
         fallback_lang: Fallback language used in place of low-confidence predictions.
-        **kwargs: Passed as-is into :func:`textacy.load_spacy_lang()` .
+        **kwargs: Passed as-is into :func:`load_spacy_lang()` .
     """
     # clean up whitespace, to make it easier on lang detector
     texts = (text.strip().replace("\n", " ") for text in texts)
