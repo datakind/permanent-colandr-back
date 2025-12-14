@@ -13,9 +13,9 @@ import pandas as pd
 import splink
 from splink import comparison_level_library as cll
 from splink import comparison_library as cl
-from textacy import preprocessing
 
 from .. import utils
+from ..nlp import preprocessing
 
 
 LOGGER = logging.getLogger(__name__)
@@ -483,7 +483,7 @@ def _standardize_journal_name(
         value = " ".join(
             abbrevs_map.get(tok, tok) for tok in RE_SPACE_OR_DOT.split(value.lower())
         )
-    return preprocessing.remove.brackets(
+    return preprocessing.remove_brackets(
         _standardize_str(value),
         only="round",
     )
@@ -496,14 +496,14 @@ def _compute_authors_initials(authors: list[str]) -> list[str]:
 def _compute_journal_name_initials(journal_name: str) -> str:
     return "".join(
         token[:2]
-        for token in preprocessing.remove.punctuation(journal_name).split()
+        for token in preprocessing.remove_punctuation(journal_name).split()
         if len(token) >= 2
     )
 
 
-_standardize_str = preprocessing.make_pipeline(
-    ft.partial(preprocessing.remove.punctuation, only=[".", "?", "!", ",", ";", "—"]),
-    preprocessing.normalize.quotation_marks,
-    preprocessing.normalize.whitespace,
-    str.lower,
-)
+def _standardize_str(text: str) -> str:
+    text = preprocessing.remove_punctuation(text, only=[".", "?", "!", ",", ";", "—"])
+    text = preprocessing.normalize_quotation_marks(text)
+    text = preprocessing.normalize_whitespace(text)
+    text = text.lower()
+    return text
