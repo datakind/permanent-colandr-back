@@ -256,11 +256,7 @@ def get_citations_text_content_vectors(review_id: int):
 
     ids, texts = zip(*results)
     docs = nlp_utils.process_texts_into_docs(
-        texts,
-        max_len=1000,
-        min_prob=0.75,
-        fallback_lang="en",
-        exclude=("parser", "ner"),
+        texts, max_len=1000, fallback_lang="en", exclude=("parser", "ner")
     )
     cvs = (doc.vector.tolist() if doc is not None else None for doc in docs)
     citations_to_update = [
@@ -300,7 +296,6 @@ def get_fulltext_text_content_vector(fulltext_id: int):
     docs = nlp_utils.process_texts_into_docs(
         [fulltext["text_content"]],
         max_len=3000,
-        min_prob=0.75,
         fallback_lang=None,
         exclude=("parser", "ner"),
     )
@@ -352,14 +347,13 @@ def suggest_keyterms(review_id: int, sample_size: int):
     )
     excluded = db.session.execute(stmt).all()
 
-    # munge the results into the form needed by textacy
+    # munge the results into the form needed
     included_vec = [
         status == "included" for status, _ in itertools.chain(included, excluded)
     ]
     docs = nlp_utils.process_texts_into_docs(
         (text for _, text in itertools.chain(included, excluded)),
         max_len=3000,
-        min_prob=0.75,
         fallback_lang=None,
         exclude=("parser", "ner"),
     )

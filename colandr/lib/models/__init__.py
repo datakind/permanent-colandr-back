@@ -1,4 +1,3 @@
-from .deduper import Deduper
 from .deduper_v2 import DeduperV2
 from .ranker import Ranker
 from .study_ranker import StudyRanker

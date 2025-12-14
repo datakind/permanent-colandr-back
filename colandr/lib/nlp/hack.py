@@ -4,7 +4,8 @@ from decimal import Decimal
 from operator import itemgetter
 
 import numpy as np
-from textacy import representations
+
+from . import representations
 
 
 def most_discriminating_terms(

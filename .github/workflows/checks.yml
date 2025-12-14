@@ -75,9 +75,6 @@ jobs:
         uses: ./.github/actions/setup-python-env
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Download language data
-        run: |
-          uv run python -m textacy download lang_identifier --version 3.0
       - name: Test with pytest
         run: |
           uv run python -m pytest tests --verbose
