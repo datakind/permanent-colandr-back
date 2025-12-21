@@ -40,6 +40,10 @@ class FulltextUploadAPI(MethodView):
         },
         location="query",
     )
+    @bp.output(
+        af.schemas.FileSchema(type="string", format="binary"),
+        content_type="application/pdf",
+    )
     @jwtext.jwt_required()
     def get(self, id, query_data):
         review_id = query_data["review_id"]
@@ -96,6 +100,8 @@ class FulltextUploadAPI(MethodView):
             file_contents = f.read()
         return send_file(
             io.BytesIO(file_contents),
+            mimetype="application/pdf",
+            as_attachment=False,
             download_name=os.path.basename(filepath),
         )
 
