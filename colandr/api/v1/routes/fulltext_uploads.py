@@ -180,7 +180,10 @@ class FulltextUploadAPI(MethodView):
         db.session.commit()
 
         current_app.logger.info(
-            'uploaded "%s" for %s', fulltext["original_filename"], study
+            'uploaded "%s" for %s to "%s"',
+            fulltext["original_filename"],
+            study,
+            filepath,
         )
 
         # parse the fulltext text content and get its word2vec vector
