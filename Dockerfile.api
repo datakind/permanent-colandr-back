@@ -10,7 +10,7 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/* /usr/share/doc /usr/share/man
 
 # install uv binary from official distro-less image
-COPY --from=ghcr.io/astral-sh/uv:0.8.17 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.9.18 /uv /uvx /bin/
 
 # set working directory for colandr
 ENV COLANDR_APP_DIR=/app
