@@ -63,7 +63,7 @@ Repository = "https://github.com/datakind/permanent-colandr-back"
 dev = [
   "httpx~=0.28.0",
   "mypy~=1.0",
-  "pytest~=8.0",
+  "pytest~=9.0",
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
   "ruff~=0.14.0",
@@ -89,8 +89,9 @@ allow_redefinition = true
 ignore_missing_imports = true
 follow_imports = "silent"
 
-[tool.pytest.ini_options]
-addopts = "--verbose"
+[tool.pytest]
+minversion = "9.0"
+addopts = ["--verbose"]
 testpaths = ["tests"]
 
 [tool.ruff]
