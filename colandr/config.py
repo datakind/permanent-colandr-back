@@ -95,7 +95,6 @@ DEDUPE_MODELS_DIR = os.path.join(
     COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
 )
 RANKER_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranker_models")
-RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
 
 # metadata extraction config
 METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
