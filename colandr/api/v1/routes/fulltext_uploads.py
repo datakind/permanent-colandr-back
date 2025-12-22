@@ -40,6 +40,10 @@ class FulltextUploadAPI(MethodView):
         },
         location="query",
     )
+    @bp.output(
+        af.schemas.FileSchema(type="string", format="binary"),
+        content_type="application/pdf",
+    )
     @jwtext.jwt_required()
     def get(self, id, query_data):
         review_id = query_data["review_id"]
@@ -96,6 +100,8 @@ class FulltextUploadAPI(MethodView):
             file_contents = f.read()
         return send_file(
             io.BytesIO(file_contents),
+            mimetype="application/pdf",
+            as_attachment=False,
             download_name=os.path.basename(filepath),
         )
 
@@ -180,7 +186,10 @@ class FulltextUploadAPI(MethodView):
         db.session.commit()
 
         current_app.logger.info(
-            'uploaded "%s" for %s', fulltext["original_filename"], study
+            'uploaded "%s" for %s to "%s"',
+            fulltext["original_filename"],
+            study,
+            filepath,
         )
 
         # parse the fulltext text content and get its word2vec vector
