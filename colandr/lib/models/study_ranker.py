@@ -169,8 +169,11 @@ _MODEL = river.compose.Pipeline(
     (
         "featurizer",
         # TODO: use river.feature_extraction.TFIDF once mini-batch capabilities added
+        # TODO: use ngram_range=(1, 2) for unigrams and bigrams?
         ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 1)),
     ),
+    # TODO: do we need an l2 normalizer...?
+    # ("normalizer", preprocessing.Normalizer(order=2))
     (
         "classifier",
         river.linear_model.LogisticRegression(
