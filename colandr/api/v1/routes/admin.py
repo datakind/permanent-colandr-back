@@ -56,7 +56,6 @@ def post_users(json_data):
         ),
         "user_id": af.fields.Integer(
             required=False,
-            delimiter=",",
             metadata={
                 "description": "id of user who's a member of the reviews to be returned"
             },

@@ -141,7 +141,6 @@ def deduplicate_citations(review_id: int):
     deduper = DeduperV2.from_records(
         results, id_col="record_id", settings=settings_fpath
     )
-    current_app.logger.info("df = \n%s", deduper.df)
     current_app.logger.info(
         "initialized deduper model from settings at %s", settings_fpath
     )
