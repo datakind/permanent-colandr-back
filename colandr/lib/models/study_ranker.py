@@ -15,42 +15,6 @@ import scipy.sparse
 LOGGER = logging.getLogger(__name__)
 
 
-class ColandrTFIDF(river.feature_extraction.TFIDF):
-    """
-    Child of :class:`river.feature_extraction.TFIDF` that adds mini-batch functionality,
-    i.e. ``transform_many()`` and ``learn_many()`` methods.
-    """
-
-    def learn_many(self, X: pd.Series) -> None:
-        # increment global document counter
-        self.n += X.shape[0]
-        # update document counts
-        doc_counts = (
-            X.map(lambda x: set(self.process_text(x)))
-            .explode()
-            .value_counts()
-            .to_dict()
-        )
-        self.dfs.update(doc_counts)
-
-    def transform_many(self, X: pd.Series) -> pd.DataFrame:
-        """Transform pandas series of string into tf-idf pandas sparse dataframe."""
-        indptr, indices, data = [0], [], []
-        index: dict[int, int] = {}
-        for doc in X:
-            term_weights: dict[int, float] = self.transform_one(doc)
-            for term, weight in term_weights.items():
-                indices.append(index.setdefault(term, len(index)))
-                data.append(weight)
-            indptr.append(len(data))
-
-        return pd.DataFrame.sparse.from_spmatrix(
-            scipy.sparse.csr_matrix((data, indices, indptr)),
-            index=X.index,
-            columns=index.keys(),
-        )
-
-
 class StudyRanker:
     _model_fname_tmpl: str = "study_ranker__review_{review_id:06}.pkl"
     feature_col: str = "text"
@@ -163,6 +127,42 @@ class StudyRanker:
             return self.model.predict_many(X)
         else:
             return self.model.predict_proba_many(X)
+
+
+class ColandrTFIDF(river.feature_extraction.TFIDF):
+    """
+    Child of :class:`river.feature_extraction.TFIDF` that adds mini-batch functionality,
+    i.e. ``transform_many()`` and ``learn_many()`` methods.
+    """
+
+    def learn_many(self, X: pd.Series) -> None:
+        # increment global document counter
+        self.n += X.shape[0]
+        # update document counts
+        doc_counts = (
+            X.map(lambda x: set(self.process_text(x)))
+            .explode()
+            .value_counts()
+            .to_dict()
+        )
+        self.dfs.update(doc_counts)
+
+    def transform_many(self, X: pd.Series) -> pd.DataFrame:
+        """Transform pandas series of string into tf-idf pandas sparse dataframe."""
+        indptr, indices, data = [0], [], []
+        index: dict[int, int] = {}
+        for doc in X:
+            term_weights: dict[int, float] = self.transform_one(doc)
+            for term, weight in term_weights.items():
+                indices.append(index.setdefault(term, len(index)))
+                data.append(weight)
+            indptr.append(len(data))
+
+        return pd.DataFrame.sparse.from_spmatrix(
+            scipy.sparse.csr_matrix((data, indices, indptr)),
+            index=X.index,
+            columns=index.keys(),
+        )
 
 
 _MODEL = river.compose.Pipeline(
