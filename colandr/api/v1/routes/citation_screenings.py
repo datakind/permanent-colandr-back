@@ -327,7 +327,7 @@ class CitationScreeningsAPI(MethodView):
             if (
                 current_user.is_admin is False
                 and db.session.execute(
-                    review.review_user_assoc.select().filter_by(user_id=current_user.id)
+                    review.review_user_assoc.filter_by(user_id=current_user.id)
                 ).one_or_none()
                 is None
             ):
