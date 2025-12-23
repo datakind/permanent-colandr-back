@@ -175,8 +175,7 @@ _MODEL = river.compose.Pipeline(
     (
         "featurizer",
         # TODO: use river.feature_extraction.TFIDF once mini-batch capabilities added
-        # TODO: use ngram_range=(1, 2) for unigrams and bigrams?
-        ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 1)),
+        ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 2)),
     ),
     (
         "classifier",
