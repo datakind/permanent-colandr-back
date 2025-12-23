@@ -399,7 +399,7 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
     study_ranker = _get_study_ranker(review_id, current_app.config["RANKER_MODELS_DIR"])
     if (
         screening_id is None
-        or not study_ranker.model_fpath.exists()
+        or not study_ranker.model_exists
         # re-train from scratch every 100 examples
         or study_ranker._num_texts_learned % 100 == 0
     ):

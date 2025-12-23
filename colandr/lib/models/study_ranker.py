@@ -1,5 +1,5 @@
 import logging
-import pathlib
+import os
 import typing as t
 from collections.abc import Iterable
 
@@ -21,12 +21,12 @@ class StudyRanker:
     def __init__(
         self,
         review_id: int,
-        dir_path: str | pathlib.Path,
+        dir_path: str,
         text_col: str = "text",
         target_col: str = "target",
     ):
         self.review_id = review_id
-        self.dir_path = pathlib.Path(dir_path)
+        self.dir_path = dir_path
         self.text_col = text_col
         self.target_col = target_col
         self._model = None
@@ -41,18 +41,9 @@ class StudyRanker:
         return hash((self.review_id, self.dir_path))
 
     @property
-    def model_fpath(self) -> pathlib.Path:
-        return (
-            self.dir_path
-            / f"review_{self.review_id:08}"
-            / self._model_fname_tmpl.format(review_id=self.review_id)
-        )
-
-    @property
     def model(self) -> river.compose.Pipeline:
         if self._model is None:
-            model_fpath = self.model_fpath
-            if model_fpath.exists():
+            if self.model_exists:
                 self._model = self.load()
             else:
                 self._model = self.clone()
@@ -61,6 +52,18 @@ class StudyRanker:
     @model.setter
     def model(self, value: river.compose.Pipeline) -> None:
         self._model = value
+
+    @property
+    def model_fpath(self) -> str:
+        return os.path.join(
+            self.dir_path,
+            f"review_{self.review_id:08}",
+            self._model_fname_tmpl.format(review_id=self.review_id),
+        )
+
+    @property
+    def model_exists(self) -> bool:
+        return os.path.exists(self.model_fpath)
 
     def clone(self) -> river.compose.Pipeline:
         """Make a fresh clone of :attr:`StudyRanker._model` ."""
@@ -73,7 +76,7 @@ class StudyRanker:
     def load(self) -> river.compose.Pipeline:
         """Load existing model from disk at :attr:`StudyRanker.model_fpath` ."""
         model_fpath = self.model_fpath
-        with model_fpath.open(mode="rb") as f:
+        with open(model_fpath, mode="rb") as f:
             _model = joblib.load(f)
         LOGGER.info(
             "<Review(id=%s)>: study ranker model loaded from %s ...",
@@ -89,8 +92,8 @@ class StudyRanker:
         """
         model_fpath = self.model_fpath
         _model = self.model
-        model_fpath.parent.mkdir(parents=True, exist_ok=True)
-        with model_fpath.open(mode="wb") as f:
+        os.makedirs(os.path.dirname(model_fpath), exist_ok=True)
+        with open(model_fpath, mode="wb") as f:
             joblib.dump(_model, f)
         LOGGER.info(
             "<Review(id=%s)>: study ranker model saved to %s",

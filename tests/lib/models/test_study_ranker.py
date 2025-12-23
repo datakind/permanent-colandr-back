@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import pytest
 import river.compose
@@ -30,8 +32,8 @@ class TestStudyRanker:
     @pytest.mark.parametrize("review_id", [1, 2])
     def test_model_fpath(self, review_id, tmp_study_ranker_path):
         sranker = StudyRanker(review_id, tmp_study_ranker_path)
-        assert tmp_study_ranker_path in sranker.model_fpath.parents
-        assert f"review_{review_id:08}" in sranker.model_fpath.name
+        assert str(tmp_study_ranker_path) in sranker.model_fpath
+        assert f"review_{review_id:08}" in os.path.basename(sranker.model_fpath)
 
     @pytest.mark.parametrize("review_id", [1, 2])
     def test_dunders(self, review_id, tmp_study_ranker_path):
@@ -148,4 +150,4 @@ class TestStudyRanker:
         assert (
             sranker1.model["classifier"].weights == sranker2.model["classifier"].weights
         )
-        sranker1.model_fpath.unlink()
+        os.unlink(sranker1.model_fpath)

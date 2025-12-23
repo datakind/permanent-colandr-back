@@ -397,7 +397,7 @@ class StudiesAPI(MethodView):
             study_ranker = StudyRanker(
                 review_id, current_app.config["RANKER_MODELS_DIR"]
             )
-            if study_ranker.model_fpath.exists():
+            if study_ranker.model_exists:
                 records = (
                     {
                         "text": (
