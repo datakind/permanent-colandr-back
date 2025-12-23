@@ -412,6 +412,8 @@ def _get_study_ranker(review_id: int, dir_path: str):
 
 def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id: int):
     LOGGER.info("<Review(id=%s)>: training study ranker model from scratch", review_id)
+    text_col = study_ranker.text_col
+    target_col = study_ranker.target_col
     # get target+text for studies that have been fully screened at either stage
     # preferring fulltext- over citation-stage screening since it's based on more info
     stmt1 = sa.select(
@@ -424,7 +426,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
                 else_=models.Study.citation_status,
             )
             == "included"
-        ).label("target"),
+        ).label(target_col),
         sa.case(
             (
                 models.Study.fulltext_status.in_(["included", "excluded"]),
@@ -433,7 +435,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
                 ),
             ),
             else_=models.Study.citation_text_content,
-        ).label("text"),
+        ).label(text_col),
     ).where(
         models.Study.review_id == review_id,
         models.Study.dedupe_status == "not_duplicate",
@@ -444,7 +446,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
     # leveraging study text corresponding to the screening's stage
     stmt2 = (
         sa.select(
-            (models.Screening.status == "included").label("target"),
+            (models.Screening.status == "included").label(target_col),
             sa.case(
                 (
                     models.Screening.stage == "fulltext",
@@ -453,7 +455,7 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
                     ),
                 ),
                 else_=models.Study.citation_text_content,
-            ).label("text"),
+            ).label(text_col),
         )
         .select_from(models.Study)
         .join(models.Screening, models.Study.id == models.Screening.study_id)
@@ -494,7 +496,9 @@ def _train_study_ranker_model_from_screening(
         if screening.stage == "fulltext"
         else study.citation_text_content
     )
-    study_ranker.learn_one({"text": text, "target": target})
+    study_ranker.learn_one(
+        {study_ranker.text_col: text, study_ranker.target_col: target}
+    )
     # saving takes ~20x longer than learning, i.e. it's not "cheap"
     # so let's only save once every N screenings, relying on the cached getter func
     # to maintain state from preceding, unsaved N-1 screenings

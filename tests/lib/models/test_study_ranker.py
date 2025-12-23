@@ -31,7 +31,7 @@ class TestStudyRanker:
     def test_model_fpath(self, review_id, tmp_study_ranker_path):
         sranker = StudyRanker(review_id, tmp_study_ranker_path)
         assert tmp_study_ranker_path in sranker.model_fpath.parents
-        assert f"review_{review_id:06}" in sranker.model_fpath.name
+        assert f"review_{review_id:08}" in sranker.model_fpath.name
 
     @pytest.mark.parametrize("review_id", [1, 2])
     def test_dunders(self, review_id, tmp_study_ranker_path):

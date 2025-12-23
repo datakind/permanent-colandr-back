@@ -16,13 +16,19 @@ LOGGER = logging.getLogger(__name__)
 
 
 class StudyRanker:
-    _model_fname_tmpl: str = "study_ranker__review_{review_id:06}.pkl"
-    feature_col: str = "text"
-    target_col: str = "target"
+    _model_fname_tmpl: str = "study_ranker__review_{review_id:08}.pkl"
 
-    def __init__(self, review_id: int, dir_path: str | pathlib.Path):
+    def __init__(
+        self,
+        review_id: int,
+        dir_path: str | pathlib.Path,
+        text_col: str = "text",
+        target_col: str = "target",
+    ):
         self.review_id = review_id
         self.dir_path = pathlib.Path(dir_path)
+        self.text_col = text_col
+        self.target_col = target_col
         self._model = None
 
     def __str__(self) -> str:
@@ -38,7 +44,7 @@ class StudyRanker:
     def model_fpath(self) -> pathlib.Path:
         return (
             self.dir_path
-            / f"review_{self.review_id:06}"
+            / f"review_{self.review_id:08}"
             / self._model_fname_tmpl.format(review_id=self.review_id)
         )
 
@@ -49,7 +55,7 @@ class StudyRanker:
             if model_fpath.exists():
                 self._model = self.load()
             else:
-                self._model = _MODEL.clone()
+                self._model = self.clone()
         return self._model
 
     @model.setter
@@ -59,7 +65,7 @@ class StudyRanker:
     def clone(self) -> river.compose.Pipeline:
         """Make a fresh clone of :attr:`StudyRanker._model` ."""
         _model = _MODEL.clone()
-        LOGGER.debug(
+        LOGGER.info(
             "<Review(id=%s)>: new study ranker model cloned ...", self.review_id
         )
         return _model
@@ -69,7 +75,7 @@ class StudyRanker:
         model_fpath = self.model_fpath
         with model_fpath.open(mode="rb") as f:
             _model = joblib.load(f)
-        LOGGER.debug(
+        LOGGER.info(
             "<Review(id=%s)>: study ranker model loaded from %s ...",
             self.review_id,
             model_fpath,
@@ -93,7 +99,7 @@ class StudyRanker:
         )
 
     def learn_one(self, record: dict[str, t.Any]) -> None:
-        x = record[self.feature_col]
+        x = record[self.text_col]
         y = record[self.target_col]
         self.model.learn_one(x, y)
 
@@ -103,7 +109,7 @@ class StudyRanker:
             LOGGER.warning("no records in batch to learn from! skipping ...")
             return
 
-        X = df[self.feature_col].astype("string")
+        X = df[self.text_col].astype("string")
         y = df[self.target_col]
         self.model.learn_many(X, y)
         # sequential fallback in case minibatching isn't feasible
@@ -113,7 +119,7 @@ class StudyRanker:
     def predict_one(
         self, record: dict[str, t.Any], *, proba: bool = False
     ) -> bool | dict[bool, float]:
-        x = record[self.feature_col]
+        x = record[self.text_col]
         if not proba:
             return self.model.predict_one(x)
         else:
@@ -122,7 +128,7 @@ class StudyRanker:
     def predict_many(
         self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
     ) -> pd.Series | pd.DataFrame:
-        X = pd.DataFrame(data=records)[self.feature_col].astype("string")
+        X = pd.DataFrame(data=records)[self.text_col].astype("string")
         if not proba:
             return self.model.predict_many(X)
         else:
@@ -172,8 +178,6 @@ _MODEL = river.compose.Pipeline(
         # TODO: use ngram_range=(1, 2) for unigrams and bigrams?
         ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 1)),
     ),
-    # TODO: do we need an l2 normalizer...?
-    # ("normalizer", preprocessing.Normalizer(order=2))
     (
         "classifier",
         river.linear_model.LogisticRegression(
