@@ -155,6 +155,7 @@ class FulltextUploadAPI(MethodView):
                 message=f'invalid fulltext upload file type: "{ext}"'
             )
 
+        fs = current_app.extensions["filesystem"]
         # assign filename based an id, and full path
         filename = f"{id}{ext}"
         filepath = os.path.join(
@@ -162,7 +163,6 @@ class FulltextUploadAPI(MethodView):
             str(study.review_id),
             filename,
         )
-        fs = current_app.extensions["filesystem"]
         # make review directory if doesn't already exist
         fs.makedirs(os.path.dirname(filepath), exist_ok=True)
         # save content to file on filesystem

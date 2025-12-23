@@ -1,3 +1,4 @@
+import io
 import os
 import pathlib
 import typing as t
@@ -163,9 +164,13 @@ class CitationImportsAPI(MethodView):
                 message=f"received invalid file type for citation import: '{fext}'"
             )
 
+        # unfortunately, we need to read the full file into memory rather than streaming
+        # so we can preprocess the citations and later save the raw file to disk
+        uploaded_data = uploaded_file.stream.read()
+
         try:
             citations_to_insert = _preprocess_citations(
-                uploaded_file.stream, fname, review_id
+                io.BytesIO(uploaded_data), fname, review_id
             )
         except ValueError as e:
             current_app.logger.exception(str(e))
@@ -216,6 +221,22 @@ class CitationImportsAPI(MethodView):
             fname,
             review,
         )
+
+        fs = current_app.extensions["filesystem"]
+        # assign filename based an id, and full path
+        filename = f"{citations_import.id}{fext}"
+        filepath = os.path.join(
+            current_app.config["CITATION_UPLOADS_DIR"],
+            f"review_{review_id:08}",
+            filename,
+        )
+        # make review directory if doesn't already exist
+        fs.makedirs(os.path.dirname(filepath), exist_ok=True)
+        # save content to file on filesystem
+        with fs.open(filepath, mode="wb") as f:
+            # uploaded_file.save(f) may also work well
+            f.write(uploaded_data)
+
         # lastly, don't forget to deduplicate the citations and get their word2vecs
         tasks.get_citations_text_content_vectors.apply_async(
             args=[review_id], countdown=3
