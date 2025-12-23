@@ -412,7 +412,8 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
 
 @functools.lru_cache(maxsize=25)
 def _get_study_ranker(review_id: int, dir_path: str):
-    return StudyRanker(review_id, dir_path)
+    fs = current_app.extensions["filesystem"]
+    return StudyRanker(review_id, dir_path, fs)
 
 
 def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id: int):

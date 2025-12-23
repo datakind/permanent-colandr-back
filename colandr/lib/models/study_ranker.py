@@ -3,6 +3,7 @@ import os
 import typing as t
 from collections.abc import Iterable
 
+import fsspec
 import joblib
 import pandas as pd
 import river.compose
@@ -22,11 +23,13 @@ class StudyRanker:
         self,
         review_id: int,
         dir_path: str,
+        fs: fsspec.AbstractFileSystem,
         text_col: str = "text",
         target_col: str = "target",
     ):
         self.review_id = review_id
         self.dir_path = dir_path
+        self.fs = fs
         self.text_col = text_col
         self.target_col = target_col
         self._model = None
@@ -63,7 +66,7 @@ class StudyRanker:
 
     @property
     def model_exists(self) -> bool:
-        return os.path.exists(self.model_fpath)
+        return self.fs.exists(self.model_fpath)
 
     def clone(self) -> river.compose.Pipeline:
         """Make a fresh clone of :attr:`StudyRanker._model` ."""
@@ -76,7 +79,7 @@ class StudyRanker:
     def load(self) -> river.compose.Pipeline:
         """Load existing model from disk at :attr:`StudyRanker.model_fpath` ."""
         model_fpath = self.model_fpath
-        with open(model_fpath, mode="rb") as f:
+        with self.fs.open(model_fpath, mode="rb") as f:
             _model = joblib.load(f)
         LOGGER.info(
             "<Review(id=%s)>: study ranker model loaded from %s ...",
@@ -92,8 +95,8 @@ class StudyRanker:
         """
         model_fpath = self.model_fpath
         _model = self.model
-        os.makedirs(os.path.dirname(model_fpath), exist_ok=True)
-        with open(model_fpath, mode="wb") as f:
+        self.fs.makedirs(os.path.dirname(model_fpath), exist_ok=True)
+        with self.fs.open(model_fpath, mode="wb") as f:
             joblib.dump(_model, f)
         LOGGER.info(
             "<Review(id=%s)>: study ranker model saved to %s",
