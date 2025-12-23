@@ -395,9 +395,11 @@ class StudiesAPI(MethodView):
 
             # best option: we have a trained study ranker model
             study_ranker = StudyRanker(
-                review_id, current_app.config["RANKER_MODELS_DIR"]
+                review_id,
+                current_app.config["RANKER_MODELS_DIR"],
+                current_app.extensions["filesystem"],
             )
-            if study_ranker.model_fpath.exists():
+            if study_ranker.model_exists:
                 records = (
                     {
                         "text": (

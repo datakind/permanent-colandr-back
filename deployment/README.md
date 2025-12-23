@@ -1,3 +1,5 @@
+**NOTE:** As of 2025-12, these instructions are for a system we never finished and don't currently use. Please don't follow these instructions for deployment of the current system.
+
 # Quick start
 
 Install Azure CLI and Kubernetes CLI, as instructed [here](https://learn.microsoft.com/en-us/azure/aks/tutorial-kubernetes-deploy-cluster?tabs=azure-cli).
@@ -10,12 +12,12 @@ Then log into [the cluster](https://portal.azure.com/#@DataKindO365.onmicrosoft.
 
 `az aks get-credentials --resource-group DK-DS-Prototypes --name dkprototypesaks`
 
-Then all  the commands mentioned the useful commands section below should work. 
+Then all  the commands mentioned the useful commands section below should work.
 
 So a workflow would look like ...
 
 1. Replace `./deployment/env-configmap.yaml` with the one configured for your host
-2. `git checkout matt-azure-kubernetes-service-deployment` 
+2. `git checkout matt-azure-kubernetes-service-deployment`
 3. Do some work, change some code, or adjust the Kubernetes configuration files in `./deployment`
 4. Run deployment script to push to container registry: `python3 deploy_azure.py`
 5. Go to the URL, to find it click under "Services and Ingresses" in the Azure portal
@@ -59,7 +61,7 @@ kubectl describe configmap env -n colandr-api
 Test a pushed image ...
 
 ```
-docker compose -f docker-compose-deploy.yml up -d --build 
+docker compose -f docker-compose-deploy.yml up -d --build
 docker exec -it colandr-worker /bin/bash
 docker tag colandr-back-worker dkdsprototypesreg01.azurecr.io/colandr-api:worker
 docker exec -it dkdsprototypesreg01.azurecr.io/colandr-api:worker /bin/bash

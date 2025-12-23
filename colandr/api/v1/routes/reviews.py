@@ -73,7 +73,8 @@ class ReviewAPI(MethodView):
         # remove directories on disk for review data
         dirnames = [
             os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], str(id)),
-            os.path.join(current_app.config["RANKING_MODELS_DIR"], str(id)),
+            os.path.join(current_app.config["CITATION_UPLOADS_DIR"], f"review_{id:08}"),
+            os.path.join(current_app.config["RANKER_MODELS_DIR"], f"review_{id:08}"),
         ]
         for dirname in dirnames:
             shutil.rmtree(dirname, ignore_errors=True)
@@ -171,7 +172,12 @@ class ReviewsAPI(MethodView):
         # create directories on disk for review data
         dirnames = [
             os.path.join(current_app.config["FULLTEXT_UPLOADS_DIR"], str(review.id)),
-            os.path.join(current_app.config["RANKING_MODELS_DIR"], str(review.id)),
+            os.path.join(
+                current_app.config["CITATION_UPLOADS_DIR"], f"review_{review.id:08}"
+            ),
+            os.path.join(
+                current_app.config["RANKER_MODELS_DIR"], f"review_{review.id:08}"
+            ),
         ]
         for dirname in dirnames:
             try:

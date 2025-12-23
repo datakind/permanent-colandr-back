@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import pytest
 import river.compose
@@ -21,36 +23,44 @@ def tmp_study_ranker_path(tmp_path_factory):
 
 class TestStudyRanker:
     @pytest.mark.parametrize("review_id", [1, 2])
-    def test_init(self, review_id, tmp_study_ranker_path):
-        sranker = StudyRanker(review_id, tmp_study_ranker_path)
+    def test_init(self, review_id, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(review_id, tmp_study_ranker_path, fs)
         assert sranker.review_id == review_id
         assert sranker.dir_path == tmp_study_ranker_path
         assert sranker._model is None
 
     @pytest.mark.parametrize("review_id", [1, 2])
-    def test_model_fpath(self, review_id, tmp_study_ranker_path):
-        sranker = StudyRanker(review_id, tmp_study_ranker_path)
-        assert tmp_study_ranker_path in sranker.model_fpath.parents
-        assert f"review_{review_id:06}" in sranker.model_fpath.name
+    def test_model_fpath(self, review_id, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(review_id, tmp_study_ranker_path, fs)
+        assert str(tmp_study_ranker_path) in sranker.model_fpath
+        assert f"review_{review_id:08}" in os.path.basename(sranker.model_fpath)
 
     @pytest.mark.parametrize("review_id", [1, 2])
-    def test_dunders(self, review_id, tmp_study_ranker_path):
-        sranker = StudyRanker(review_id, tmp_study_ranker_path)
-        assert sranker == StudyRanker(review_id, tmp_study_ranker_path)  # __eq__
-        assert sranker in {StudyRanker(review_id, tmp_study_ranker_path)}  # __hash__
+    def test_dunders(self, review_id, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(review_id, tmp_study_ranker_path, fs)
+        assert sranker == StudyRanker(review_id, tmp_study_ranker_path, fs)  # __eq__
+        assert sranker in {
+            StudyRanker(review_id, tmp_study_ranker_path, fs)
+        }  # __hash__
 
     @pytest.mark.parametrize("review_id", [1, 2])
-    def test_model(self, review_id, tmp_study_ranker_path):
-        sranker = StudyRanker(review_id, tmp_study_ranker_path)
+    def test_model(self, review_id, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(review_id, tmp_study_ranker_path, fs)
         assert sranker.model is not None
         assert isinstance(sranker.model, river.compose.Pipeline)
 
     @pytest.mark.parametrize("records", [TEST_RECORDS])
-    def test_learn_one(self, records, tmp_study_ranker_path):
-        sranker = StudyRanker(1, tmp_study_ranker_path)
+    def test_learn_one(self, records, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(1, tmp_study_ranker_path, fs)
         for record in records:
             sranker.learn_one(record)
         model_ = sranker.model
+        assert sranker._num_texts_learned == 4
         assert model_["featurizer"].n == 4
         assert model_["featurizer"].dfs
         assert all(value >= 1 for value in model_["featurizer"].dfs.values())
@@ -67,10 +77,12 @@ class TestStudyRanker:
         sranker.save()
 
     @pytest.mark.parametrize("records", [TEST_RECORDS])
-    def test_learn_many(self, records, tmp_study_ranker_path):
-        sranker = StudyRanker(2, tmp_study_ranker_path)
+    def test_learn_many(self, records, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(2, tmp_study_ranker_path, fs)
         sranker.learn_many(records)
         model_ = sranker.model
+        assert sranker._num_texts_learned == 4
         assert model_["featurizer"].n == 4
         assert model_["featurizer"].dfs
         assert all(value >= 1 for value in model_["featurizer"].dfs.values())
@@ -95,8 +107,9 @@ class TestStudyRanker:
             ({"text": "Fleece is soft and fluffy like snow."}, False, False),
         ],
     )
-    def test_predict_one(self, record, proba, exp_pred, tmp_study_ranker_path):
-        sranker = StudyRanker(1, tmp_study_ranker_path)
+    def test_predict_one(self, record, proba, exp_pred, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(1, tmp_study_ranker_path, fs)
         pred = sranker.predict_one(record, proba=proba)
         if proba:
             assert pred and isinstance(pred, dict)
@@ -127,8 +140,9 @@ class TestStudyRanker:
             ),
         ],
     )
-    def test_predict_many(self, records, proba, exp_preds, tmp_study_ranker_path):
-        sranker = StudyRanker(2, tmp_study_ranker_path)
+    def test_predict_many(self, records, proba, exp_preds, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker = StudyRanker(2, tmp_study_ranker_path, fs)
         preds = sranker.predict_many(records, proba=proba)
         if proba:
             assert isinstance(preds, pd.DataFrame)
@@ -139,11 +153,12 @@ class TestStudyRanker:
             assert preds.equals(exp_preds)
 
     @pytest.mark.parametrize("review_id", [1, 2])
-    def test_save(self, review_id, tmp_study_ranker_path):
-        sranker1 = StudyRanker(review_id, tmp_study_ranker_path)
+    def test_save(self, review_id, app, tmp_study_ranker_path):
+        fs = app.extensions["filesystem"]
+        sranker1 = StudyRanker(review_id, tmp_study_ranker_path, fs)
         sranker1.save()
-        sranker2 = StudyRanker(review_id, tmp_study_ranker_path)
+        sranker2 = StudyRanker(review_id, tmp_study_ranker_path, fs)
         assert (
             sranker1.model["classifier"].weights == sranker2.model["classifier"].weights
         )
-        sranker1.model_fpath.unlink()
+        os.unlink(sranker1.model_fpath)

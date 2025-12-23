@@ -1,8 +1,9 @@
 import logging
-import pathlib
+import os
 import typing as t
 from collections.abc import Iterable
 
+import fsspec
 import joblib
 import pandas as pd
 import river.compose
@@ -13,6 +14,135 @@ import scipy.sparse
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+class StudyRanker:
+    _model_fname_tmpl: str = "study_ranker__review_{review_id:08}.pkl"
+
+    def __init__(
+        self,
+        review_id: int,
+        dir_path: str,
+        fs: fsspec.AbstractFileSystem,
+        text_col: str = "text",
+        target_col: str = "target",
+    ):
+        self.review_id = review_id
+        self.dir_path = dir_path
+        self.fs = fs
+        self.text_col = text_col
+        self.target_col = target_col
+        self._model = None
+
+    def __str__(self) -> str:
+        return f"StudyRanker(review_id={self.review_id}, dir_path='{self.dir_path}')"
+
+    def __eq__(self, other):
+        return self.review_id == other.review_id and self.dir_path == other.dir_path
+
+    def __hash__(self):
+        return hash((self.review_id, self.dir_path))
+
+    @property
+    def model(self) -> river.compose.Pipeline:
+        if self._model is None:
+            if self.model_exists:
+                self._model = self.load()
+            else:
+                self._model = self.clone()
+        return self._model
+
+    @model.setter
+    def model(self, value: river.compose.Pipeline) -> None:
+        self._model = value
+
+    @property
+    def model_fpath(self) -> str:
+        return os.path.join(
+            self.dir_path,
+            f"review_{self.review_id:08}",
+            self._model_fname_tmpl.format(review_id=self.review_id),
+        )
+
+    @property
+    def model_exists(self) -> bool:
+        return self.fs.exists(self.model_fpath)
+
+    def clone(self) -> river.compose.Pipeline:
+        """Make a fresh clone of :attr:`StudyRanker._model` ."""
+        _model = _MODEL.clone()
+        LOGGER.info(
+            "<Review(id=%s)>: new study ranker model cloned ...", self.review_id
+        )
+        return _model
+
+    def load(self) -> river.compose.Pipeline:
+        """Load existing model from disk at :attr:`StudyRanker.model_fpath` ."""
+        model_fpath = self.model_fpath
+        with self.fs.open(model_fpath, mode="rb") as f:
+            _model = joblib.load(f)
+        LOGGER.info(
+            "<Review(id=%s)>: study ranker model loaded from %s ...",
+            self.review_id,
+            model_fpath,
+        )
+        return _model
+
+    def save(self) -> None:
+        """
+        Save instance of :attr:`StudyRanker._model`
+        to disk at :attr:`StudyRanker.model_fpath` .
+        """
+        model_fpath = self.model_fpath
+        _model = self.model
+        self.fs.makedirs(os.path.dirname(model_fpath), exist_ok=True)
+        with self.fs.open(model_fpath, mode="wb") as f:
+            joblib.dump(_model, f)
+        LOGGER.info(
+            "<Review(id=%s)>: study ranker model saved to %s",
+            self.review_id,
+            model_fpath,
+        )
+
+    def learn_one(self, record: dict[str, t.Any]) -> None:
+        x = record[self.text_col]
+        y = record[self.target_col]
+        self.model.learn_one(x, y)
+
+    def learn_many(self, records: Iterable[dict[str, t.Any]]) -> None:
+        df = pd.DataFrame(data=records)
+        if df.empty:
+            LOGGER.warning("no records in batch to learn from! skipping ...")
+            return
+
+        X = df[self.text_col].astype("string")
+        y = df[self.target_col]
+        self.model.learn_many(X, y)
+        # sequential fallback in case minibatching isn't feasible
+        # for record in records:
+        #     self.learn_one(record)
+
+    def predict_one(
+        self, record: dict[str, t.Any], *, proba: bool = False
+    ) -> bool | dict[bool, float]:
+        x = record[self.text_col]
+        if not proba:
+            return self.model.predict_one(x)
+        else:
+            return self.model.predict_proba_one(x)
+
+    def predict_many(
+        self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
+    ) -> pd.Series | pd.DataFrame:
+        X = pd.DataFrame(data=records)[self.text_col].astype("string")
+        if not proba:
+            return self.model.predict_many(X)
+        else:
+            return self.model.predict_proba_many(X)
+
+    @property
+    def _num_texts_learned(self) -> int:
+        return self.model["featurizer"].n
 
 
 class ColandrTFIDF(river.feature_extraction.TFIDF):
@@ -51,125 +181,11 @@ class ColandrTFIDF(river.feature_extraction.TFIDF):
         )
 
 
-class StudyRanker:
-    _model_fname_tmpl: str = "study_ranker__review_{review_id:06}.pkl"
-    feature_col: str = "text"
-    target_col: str = "target"
-
-    def __init__(self, review_id: int, dir_path: str | pathlib.Path):
-        self.review_id = review_id
-        self.dir_path = pathlib.Path(dir_path)
-        self._model = None
-
-    def __str__(self) -> str:
-        return f"StudyRanker(review_id={self.review_id}, dir_path='{self.dir_path}')"
-
-    def __eq__(self, other):
-        return self.review_id == other.review_id and self.dir_path == other.dir_path
-
-    def __hash__(self):
-        return hash((self.review_id, self.dir_path))
-
-    @property
-    def model_fpath(self) -> pathlib.Path:
-        return (
-            self.dir_path
-            / f"review_{self.review_id:06}"
-            / self._model_fname_tmpl.format(review_id=self.review_id)
-        )
-
-    @property
-    def model(self) -> river.compose.Pipeline:
-        if self._model is None:
-            model_fpath = self.model_fpath
-            if model_fpath.exists():
-                self._model = self.load()
-            else:
-                self._model = _MODEL.clone()
-        return self._model
-
-    @model.setter
-    def model(self, value: river.compose.Pipeline) -> None:
-        self._model = value
-
-    def clone(self) -> river.compose.Pipeline:
-        """Make a fresh clone of :attr:`StudyRanker._model` ."""
-        _model = _MODEL.clone()
-        LOGGER.debug(
-            "<Review(id=%s)>: new study ranker model cloned ...", self.review_id
-        )
-        return _model
-
-    def load(self) -> river.compose.Pipeline:
-        """Load existing model from disk at :attr:`StudyRanker.model_fpath` ."""
-        model_fpath = self.model_fpath
-        with model_fpath.open(mode="rb") as f:
-            _model = joblib.load(f)
-        LOGGER.debug(
-            "<Review(id=%s)>: study ranker model loaded from %s ...",
-            self.review_id,
-            model_fpath,
-        )
-        return _model
-
-    def save(self) -> None:
-        """
-        Save instance of :attr:`StudyRanker._model`
-        to disk at :attr:`StudyRanker.model_fpath` .
-        """
-        model_fpath = self.model_fpath
-        _model = self.model
-        model_fpath.parent.mkdir(parents=True, exist_ok=True)
-        with model_fpath.open(mode="wb") as f:
-            joblib.dump(_model, f)
-        LOGGER.info(
-            "<Review(id=%s)>: study ranker model saved to %s",
-            self.review_id,
-            model_fpath,
-        )
-
-    def learn_one(self, record: dict[str, t.Any]) -> None:
-        x = record[self.feature_col]
-        y = record[self.target_col]
-        self.model.learn_one(x, y)
-
-    def learn_many(self, records: Iterable[dict[str, t.Any]]) -> None:
-        df = pd.DataFrame(data=records)
-        if df.empty:
-            LOGGER.warning("no records in batch to learn from! skipping ...")
-            return
-
-        X = df[self.feature_col].astype("string")
-        y = df[self.target_col]
-        self.model.learn_many(X, y)
-        # sequential fallback in case minibatching isn't feasible
-        # for record in records:
-        #     self.learn_one(record)
-
-    def predict_one(
-        self, record: dict[str, t.Any], *, proba: bool = False
-    ) -> bool | dict[bool, float]:
-        x = record[self.feature_col]
-        if not proba:
-            return self.model.predict_one(x)
-        else:
-            return self.model.predict_proba_one(x)
-
-    def predict_many(
-        self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
-    ) -> pd.Series | pd.DataFrame:
-        X = pd.DataFrame(data=records)[self.feature_col].astype("string")
-        if not proba:
-            return self.model.predict_many(X)
-        else:
-            return self.model.predict_proba_many(X)
-
-
 _MODEL = river.compose.Pipeline(
     (
         "featurizer",
         # TODO: use river.feature_extraction.TFIDF once mini-batch capabilities added
-        ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 1)),
+        ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 2)),
     ),
     (
         "classifier",

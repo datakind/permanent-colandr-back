@@ -85,17 +85,17 @@ FILESYSTEM_STORAGE_OPTIONS = {
         "cache_timeout": 3600,
     },
 }
-FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/tmp")
-FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "colandr_data", "fulltexts")
+FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/app/data")
+RANKER_MODELS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "ranker_models")
+CITATION_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "citations")
+FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "fulltexts")
 ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
 ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
-# TODO: figure out root dir vs app dir
-COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/tmp")
+
+COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/app")
 DEDUPE_MODELS_DIR = os.path.join(
     COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
 )
-RANKER_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranker_models")
-RANKING_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "ranking_models")
 
 # metadata extraction config
 METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))

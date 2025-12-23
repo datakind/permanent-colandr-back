@@ -91,6 +91,8 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
+    volumes:
+      - file-data:/app/data
     develop:
       watch:
         # sync working directory with container's `/app` directory
@@ -127,6 +129,8 @@ services:
       - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
       - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
       - COLANDR_REDIS_HOST=colandr-broker
+    volumes:
+      - file-data:/app/data
     develop:
       watch:
         # sync working directory with container's `/app` directory
@@ -146,5 +150,6 @@ networks:
 
 volumes:
   db-data: {}
+  file-data: {}
   gcs-data: {}
   broker-data: {}

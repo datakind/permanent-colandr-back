@@ -4,3 +4,5 @@
 - [ ] Improve and extend NLP functionality, just across the board
 - [ ] Enable https everywhere (via [let's encrypt](https://letsencrypt.org/)?)
 - [ ] Consider removing async tasks (and db columns?) for text content vectors
+- [ ] Add script to train a v2 (splink-based) deduper model
+- [ ] Add notebook demonstrating functionality of various NLP models
