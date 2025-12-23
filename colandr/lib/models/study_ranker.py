@@ -134,6 +134,10 @@ class StudyRanker:
         else:
             return self.model.predict_proba_many(X)
 
+    @property
+    def _num_texts_learned(self) -> int:
+        return self.model["featurizer"].n
+
 
 class ColandrTFIDF(river.feature_extraction.TFIDF):
     """

@@ -397,7 +397,12 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
     lock.acquire()
 
     study_ranker = _get_study_ranker(review_id, current_app.config["RANKER_MODELS_DIR"])
-    if screening_id is None or not study_ranker.model_fpath.exists():
+    if (
+        screening_id is None
+        or not study_ranker.model_fpath.exists()
+        # re-train from scratch every 100 examples
+        or study_ranker._num_texts_learned % 100 == 0
+    ):
         _train_study_ranker_model_from_scratch(study_ranker, review_id)
     else:
         _train_study_ranker_model_from_screening(study_ranker, screening_id)
@@ -504,5 +509,5 @@ def _train_study_ranker_model_from_screening(
     # to maintain state from preceding, unsaved N-1 screenings
     # there are db triggers to re-train from scratch once every 100 complete screenings
     # so in the worst case, the ranker will catch up at those checkins
-    if study_ranker.model["featurizer"].n % 5 == 0:
+    if study_ranker._num_texts_learned % 5 == 0:
         study_ranker.save()

@@ -51,6 +51,7 @@ class TestStudyRanker:
         for record in records:
             sranker.learn_one(record)
         model_ = sranker.model
+        assert sranker._num_texts_learned == 4
         assert model_["featurizer"].n == 4
         assert model_["featurizer"].dfs
         assert all(value >= 1 for value in model_["featurizer"].dfs.values())
@@ -71,6 +72,7 @@ class TestStudyRanker:
         sranker = StudyRanker(2, tmp_study_ranker_path)
         sranker.learn_many(records)
         model_ = sranker.model
+        assert sranker._num_texts_learned == 4
         assert model_["featurizer"].n == 4
         assert model_["featurizer"].dfs
         assert all(value >= 1 for value in model_["featurizer"].dfs.values())
