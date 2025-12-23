@@ -42,7 +42,9 @@ def app(tmp_path_factory):
         "SQLALCHEMY_RECORD_QUERIES": True,
         # local filesystem
         "FILESYSTEM_PROTOCOL": "file",
+        "RANKER_MODELS_DIR": str(tmp_path_factory.mktemp("colandr_ranker_models")),
         "FULLTEXT_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_fulltexts")),
+        "CITATION_UPLOADS_DIR": str(tmp_path_factory.mktemp("colandr_citations")),
         # (fake-)gcs filesystem
         # "FILESYSTEM_PROTOCOL": "gcs",
         # "FILESYSTEM_GCS_PROJECT": "test-project",
