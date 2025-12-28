@@ -66,6 +66,8 @@ dev = [
   "pytest~=9.0",
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
+  # TODO: update ty once officially out of beta
+  "ty~=0.0.7",
   "ruff~=0.14.0",
 ]
 
