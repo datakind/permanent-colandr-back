@@ -135,7 +135,7 @@ root = ["./colandr"]
 unresolved-import = "ignore"
 
 [tool.ty.src]
-exclude = ["migrations", "tests"]
+exclude = ["migrations", "notebooks", "tests"]
 
 [tool.ty.terminal]
 output-format = "full"
