@@ -148,8 +148,8 @@ class Vectorizer:
         self._avg_doc_length = None
 
     def _validate_vocabulary(
-        self, vocabulary: dict[str, int] | Iterable[str]
-    ) -> tuple[dict[str, int], bool]:
+        self, vocabulary: t.Optional[dict[str, int] | Iterable[str]]
+    ) -> tuple[dict[str, int] | None, bool]:
         """
         Validate an input vocabulary. If it's a mapping, ensure that term ids
         are unique and compact (i.e. without any gaps between 0 and the number
@@ -191,7 +191,7 @@ class Vectorizer:
             is_fixed = True
         else:
             is_fixed = False
-        return (vocabulary, is_fixed)
+        return (vocabulary, is_fixed)  # ty: ignore[invalid-return-type]
 
     def _check_vocabulary(self):
         """
@@ -211,9 +211,11 @@ class Vectorizer:
         generated if needed, and it is automatically kept in sync with the
         corresponding vocabulary.
         """
+        self._check_vocabulary()
         if len(self.id_to_term_) != self.vocabulary_terms:
             self.id_to_term_ = {
-                term_id: term_str for term_str, term_id in self.vocabulary_terms.items()
+                term_id: term_str
+                for term_str, term_id in self.vocabulary_terms.items()  # ty: ignore[possibly-missing-attribute]
             }
         return self.id_to_term_
 
@@ -235,7 +237,8 @@ class Vectorizer:
         return [
             term_str
             for term_str, _ in sorted(
-                self.vocabulary_terms.items(), key=operator.itemgetter(1)
+                self.vocabulary_terms.items(),  # ty: ignore[possibly-missing-attribute]
+                key=operator.itemgetter(1),
             )
         ]
 
@@ -389,6 +392,7 @@ class Vectorizer:
             vocabulary.default_factory = vocabulary.__len__
         else:
             vocabulary = self.vocabulary_terms
+            assert vocabulary is not None
 
         indices = array(str("i"))
         indptr = array(str("i"), [0])
@@ -421,7 +425,7 @@ class Vectorizer:
         # pretty sure this is a good thing to do... o_O
         doc_term_matrix.sort_indices()
 
-        return doc_term_matrix, vocabulary
+        return (doc_term_matrix, vocabulary)
 
     def _filter_terms(
         self, doc_term_matrix: sp.csr_matrix, vocabulary: dict[str, int]

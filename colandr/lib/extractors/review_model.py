@@ -80,7 +80,7 @@ class VectorReshaper(BaseEstimator, TransformerMixin):
         Returns:
             A 2D NumPy array of shape (n_samples, n_features).
         """
-        return np.vstack(x)
+        return np.vstack(x.tolist())
 
 
 class ReviewModel:
@@ -447,8 +447,7 @@ class ReviewModel:
         processed_docs_iter = process_texts_into_docs(
             [main_content], max_len=None, exclude=("ner",)
         )
-        doc = next(processed_docs_iter, None)
-
+        doc = next(iter(processed_docs_iter), None)
         return self._extract_features_from_doc(doc)
 
     def _is_valid_sentence(self, sent: Optional[Span]) -> bool:

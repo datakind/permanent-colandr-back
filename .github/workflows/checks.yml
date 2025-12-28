@@ -103,6 +103,6 @@ jobs:
         uses: ./.github/actions/setup-python-env
         with:
           python-version: "3.11"
-      - name: Check types with mypy
+      - name: Check types with ty
         run: |
-          uv run python -m mypy --install-types --non-interactive colandr
+          uv run python -m ty check

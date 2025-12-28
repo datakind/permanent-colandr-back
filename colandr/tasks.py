@@ -12,6 +12,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_mail import Message
+from sqlalchemy.dialects import postgresql as pg
 
 from . import models
 from .api.v1 import schemas
@@ -158,7 +159,9 @@ def deduplicate_citations(review_id: int):
         sa.select(models.Study.id)
         .where(models.Study.review_id == review_id)
         # .where(models.Study.citation_status.in_(["included", "excluded"]))
-        .where(models.Study.citation_status == sa.any_(["included", "excluded"]))
+        .where(
+            models.Study.citation_status == sa.any_(pg.array(["included", "excluded"]))
+        )
     )
     incl_excl_sids = set(db.session.execute(stmt).scalars().all())
 
@@ -197,7 +200,7 @@ def deduplicate_citations(review_id: int):
                 )
                 .where(models.Study.review_id == review_id)
                 # .where(models.Study.id.in_(int_sids))
-                .where(models.Study.id == sa.any_(int_sids))
+                .where(models.Study.id == sa.any_(pg.array(int_sids)))
                 .order_by(sa.text("n_null_cols ASC"))
                 .limit(1)
             )
