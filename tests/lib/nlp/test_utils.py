@@ -1,4 +1,5 @@
 import pytest
+from spacy.language import Language
 from spacy.tokens import Doc
 
 from colandr.lib.nlp import utils
@@ -125,4 +126,6 @@ def test_process_texts_into_docs(texts, max_len, fallback_lang, app):
     spacy_lang = utils.load_spacy_lang(
         utils.get_lang_to_models()["en"][0], exclude=("parser", "ner")
     )
-    assert spacy_lang(texts[0]).to_bytes() == docs[0].to_bytes()
+    doc = docs[0]
+    assert isinstance(spacy_lang, Language) and isinstance(doc, Doc)  # type guards
+    assert spacy_lang(texts[0]).to_bytes() == doc.to_bytes()
