@@ -126,3 +126,16 @@ ignore = ["E501", "E711", "F401", "PLW2901"]
 lines-after-imports = 2
 known-first-party = ["colandr"]
 known-third-party = ["alembic"]
+
+[tool.ty.environment]
+root = ["./colandr"]
+
+[tool.ty.rules]
+# ty appears to be struggling with relative imports :shrug:
+unresolved-import = "ignore"
+
+[tool.ty.src]
+exclude = ["migrations", "tests"]
+
+[tool.ty.terminal]
+output-format = "full"
