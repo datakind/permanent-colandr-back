@@ -62,7 +62,6 @@ Repository = "https://github.com/datakind/permanent-colandr-back"
 [dependency-groups]
 dev = [
   "httpx~=0.28.0",
-  "mypy~=1.0",
   "pytest~=9.0",
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
@@ -81,15 +80,6 @@ required-version = ">=0.8.0,<0.10.0"
 [tool.uv.build-backend]
 module-name = "colandr"
 module-root = ""
-
-[tool.mypy]
-files = ["colandr/**/*.py"]
-python_version = "3.12"
-pretty = true
-ignore_errors = true
-allow_redefinition = true
-ignore_missing_imports = true
-follow_imports = "silent"
 
 [tool.pytest]
 minversion = "9.0"
