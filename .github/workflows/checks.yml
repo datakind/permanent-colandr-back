@@ -108,4 +108,4 @@ jobs:
           uv run python -m mypy --install-types --non-interactive colandr
       - name: Check types with ty
         run: |
-          uv run python -m ty
+          uv run python -m ty check
