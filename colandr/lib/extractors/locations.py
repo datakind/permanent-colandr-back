@@ -2,6 +2,7 @@
 
 import collections
 import logging
+import typing as t
 
 from spacy.tokens import Span
 
@@ -50,7 +51,9 @@ class LocationExtractor:
             return []
 
         processed_docs_iter = process_texts_into_docs([text], max_len=None)
-        doc = next(processed_docs_iter, None)
+        doc = next(iter(processed_docs_iter), None)
+        if doc is None:
+            return []
 
         # Get all sentences
         sentences = list(doc.sents)
@@ -90,7 +93,7 @@ class LocationExtractor:
         return self._group_locations(record_id, locations)
 
     def _group_locations(
-        self, record_id: int, locations: list[Metadata]
+        self, record_id: int, locations: list[dict[str, t.Any]]
     ) -> list[Metadata]:
         """
         Group locations by name and sort by frequency.
