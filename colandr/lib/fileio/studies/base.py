@@ -112,7 +112,7 @@ class BaseReader:
         # ).read()
         return data
 
-    def _standardize_field_names(self, record: dict[str, object]) -> dict[str, object]:
+    def _standardize_field_names(self, record: dict[str, t.Any]) -> dict[str, t.Any]:
         record = {key.lower().replace(" ", "_"): value for key, value in record.items()}
         if self.field_alt_names:
             # only one alt name per field? take this faster path
@@ -127,7 +127,7 @@ class BaseReader:
                                 break
         return record
 
-    def _sanitize_field_values(self, record: dict[str, object]) -> dict[str, object]:
+    def _sanitize_field_values(self, record: dict[str, t.Any]) -> dict[str, t.Any]:
         if self.field_sanitizers:
             for field, sanitizers in self.field_sanitizers.items():
                 if field in record:
