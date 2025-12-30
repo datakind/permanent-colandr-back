@@ -90,6 +90,41 @@ def load_spacy_lang(name: str, **kwargs) -> SpacyLang:
     return spacy_lang
 
 
+def process_text_into_doc(
+    text: str,
+    *,
+    max_len: t.Optional[int] = 1000,
+    fallback_lang: t.Optional[str] = "en",
+    **kwargs,
+) -> t.Optional[SpacyDoc]:
+    """
+    Args:
+        text
+        max_len: Maximum number of chars (code points) in text to include
+            when identifying its language and processing into a spacy document.
+        fallback_lang: Fallback language used in place of low-confidence predictions.
+        **kwargs: Passed as-is into :func:`load_spacy_lang()` .
+    """
+    # clean up whitespace, to make it easier on lang detector
+    text = text.strip().replace("\n", " ")
+    # truncate texts, optionally
+    if max_len is not None:
+        text = text[:max_len]
+    # identify most probable language (w/ optional fallback) for text
+    lang = detect_language(text) or fallback_lang
+    lang_models = get_lang_to_models()
+    if lang in lang_models:
+        spacy_lang: SpacyLang = load_spacy_lang(lang_models[lang], **kwargs)
+        spacy_doc = spacy_lang(text)
+        return spacy_doc
+    else:
+        LOGGER.info(
+            "unable to load spacy model for text with lang='%s'; doc set to null ...",
+            lang,
+        )
+        return None
+
+
 def process_texts_into_docs(
     texts: Iterable[str],
     *,
