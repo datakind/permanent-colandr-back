@@ -6,7 +6,7 @@ import typing as t
 
 from spacy.tokens import Span
 
-from ..nlp.utils import process_texts_into_docs
+from ..nlp.utils import process_text_into_doc
 from .metadata import Metadata
 
 
@@ -50,8 +50,7 @@ class LocationExtractor:
         if not text or not text.strip():
             return []
 
-        processed_docs_iter = process_texts_into_docs([text], max_len=None)
-        doc = next(iter(processed_docs_iter), None)
+        doc = process_text_into_doc(text, max_len=None)
         if doc is None:
             return []
 

@@ -295,13 +295,12 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         )
         return
 
-    docs = nlp_utils.process_texts_into_docs(
-        [fulltext["text_content"]],
+    doc = nlp_utils.process_text_into_doc(
+        fulltext["text_content"],
         max_len=3000,
         fallback_lang=None,
         exclude=("parser", "ner"),
     )
-    doc = next(iter(docs))
     text_content_vector_rep = doc.vector.tolist() if doc is not None else None
     if text_content_vector_rep is None:
         LOGGER.warning(
@@ -310,12 +309,12 @@ def get_fulltext_text_content_vector(fulltext_id: int):
         return
 
     fulltext["text_content_vector_rep"] = text_content_vector_rep
-    stmt = (
+    update_stmt = (
         sa.update(models.Study)
         .where(models.Study.id == fulltext_id)
         .values(fulltext=fulltext)
     )
-    db.session.execute(stmt)
+    db.session.execute(update_stmt)
     db.session.commit()
 
 
