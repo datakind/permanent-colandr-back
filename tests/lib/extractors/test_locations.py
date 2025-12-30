@@ -48,8 +48,8 @@ class TestLocationExtractor:
 
             assert extractor.is_in_reference(mock_ent) is False
 
-    @patch("colandr.lib.extractors.locations.process_texts_into_docs")
-    def test_extract_locations(self, mock_process_texts):
+    @patch("colandr.lib.extractors.locations.process_text_into_doc")
+    def test_extract_locations(self, mock_process_text):
         """Test extract_locations function."""
         extractor = LocationExtractor()
 
@@ -80,7 +80,7 @@ class TestLocationExtractor:
 
         mock_doc.ents = [mock_ent1, mock_ent2]
 
-        mock_process_texts.return_value = iter([mock_doc])
+        mock_process_text.return_value = mock_doc
 
         extractor.is_in_reference = MagicMock(return_value=False)
 

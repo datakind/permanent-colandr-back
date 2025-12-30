@@ -45,18 +45,19 @@ def detect_languages(texts: Iterable[str]) -> list[t.Optional[str]]:
     ]
 
 
-def get_lang_to_models() -> dict[str, list[str]]:
+@functools.cache
+def get_lang_to_models() -> dict[str, str]:
     """Get a mapping of ISO language code to installed spacy language models."""
-    lang_to_models = collections.defaultdict(list)
+    lang_to_models = {}
     models = spacy.util.get_installed_models()
     for model in models:
         if "_" in model:
             lang, _ = model.split("_", 1)
-            lang_to_models[lang].append(model)
+            lang_to_models[lang] = model
         else:
             LOGGER.warning("found unexpected spacy model name: %s", model)
 
-    return dict(lang_to_models)
+    return lang_to_models
 
 
 @functools.lru_cache(maxsize=10)
@@ -87,6 +88,41 @@ def load_spacy_lang(name: str, **kwargs) -> SpacyLang:
     spacy_lang = spacy.load(name, **kwargs)
     LOGGER.info("loaded '%s' spaCy language pipeline", name)
     return spacy_lang
+
+
+def process_text_into_doc(
+    text: str,
+    *,
+    max_len: t.Optional[int] = 1000,
+    fallback_lang: t.Optional[str] = "en",
+    **kwargs,
+) -> t.Optional[SpacyDoc]:
+    """
+    Args:
+        text
+        max_len: Maximum number of chars (code points) in text to include
+            when identifying its language and processing into a spacy document.
+        fallback_lang: Fallback language used in place of low-confidence predictions.
+        **kwargs: Passed as-is into :func:`load_spacy_lang()` .
+    """
+    # clean up whitespace, to make it easier on lang detector
+    text = text.strip().replace("\n", " ")
+    # truncate texts, optionally
+    if max_len is not None:
+        text = text[:max_len]
+    # identify most probable language (w/ optional fallback) for text
+    lang = detect_language(text) or fallback_lang
+    lang_models = get_lang_to_models()
+    if lang in lang_models:
+        spacy_lang: SpacyLang = load_spacy_lang(lang_models[lang], **kwargs)
+        spacy_doc = spacy_lang(text)
+        return spacy_doc
+    else:
+        LOGGER.info(
+            "unable to load spacy model for text with lang='%s'; doc set to null ...",
+            lang,
+        )
+        return None
 
 
 def process_texts_into_docs(
@@ -120,7 +156,7 @@ def process_texts_into_docs(
     lang_models = get_lang_to_models()
     for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):
         if lang in lang_models:
-            spacy_lang = load_spacy_lang(lang_models[lang][0], **kwargs)
+            spacy_lang = load_spacy_lang(lang_models[lang], **kwargs)
             spacy_docs = spacy_lang.pipe((text for text, _ in tl_grp), n_process=1)
             for spacy_doc in spacy_docs:
                 yield spacy_doc

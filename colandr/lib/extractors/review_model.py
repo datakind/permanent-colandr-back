@@ -17,7 +17,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 from spacy.tokens import Doc, Span
 
-from ..nlp.utils import process_texts_into_docs
+from ..nlp.utils import process_text_into_doc, process_texts_into_docs
 from .metadata import Metadata
 
 
@@ -444,10 +444,7 @@ class ReviewModel:
             Tuple containing the feature DataFrame and original sentences list.
         """
         main_content, _ = self._split_references(text_content)
-        processed_docs_iter = process_texts_into_docs(
-            [main_content], max_len=None, exclude=("ner",)
-        )
-        doc = next(iter(processed_docs_iter), None)
+        doc = process_text_into_doc(main_content, max_len=None, exclude=("ner",))
         return self._extract_features_from_doc(doc)
 
     def _is_valid_sentence(self, sent: Optional[Span]) -> bool:

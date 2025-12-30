@@ -79,6 +79,34 @@ def test_detect_languages(texts, exp_langs):
 
 
 @pytest.mark.parametrize(
+    ["text", "max_len", "fallback_lang"],
+    [
+        (
+            "This is a short -- but not too short -- example English sentence.",
+            1000,
+            None,
+        ),
+        ("And this is another short example English sentence.", 100, "en"),
+        ("Esta es una frase corta de ejemplo en español.", None, None),
+    ],
+)
+def test_process_text_into_doc(text, max_len, fallback_lang, app):
+    doc = utils.process_text_into_doc(
+        text,
+        max_len=max_len,
+        fallback_lang=fallback_lang,
+        exclude=("parser", "ner"),
+    )
+    assert isinstance(doc, Doc) or doc is None
+    if doc.lang_ == "en":
+        spacy_lang = utils.load_spacy_lang(
+            utils.get_lang_to_models()["en"], exclude=("parser", "ner")
+        )
+        assert isinstance(spacy_lang, Language) and isinstance(doc, Doc)  # type guards
+        assert spacy_lang(text).to_bytes() == doc.to_bytes()
+
+
+@pytest.mark.parametrize(
     ["texts", "max_len", "fallback_lang"],
     [
         (
@@ -124,7 +152,7 @@ def test_process_texts_into_docs(texts, max_len, fallback_lang, app):
     assert any(isinstance(doc, Doc) for doc in docs)
     # sanity-check vector value for first text only
     spacy_lang = utils.load_spacy_lang(
-        utils.get_lang_to_models()["en"][0], exclude=("parser", "ner")
+        utils.get_lang_to_models()["en"], exclude=("parser", "ner")
     )
     doc = docs[0]
     assert isinstance(spacy_lang, Language) and isinstance(doc, Doc)  # type guards

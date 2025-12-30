@@ -120,8 +120,8 @@ class TestReviewModel:
             assert retrained is False
             mock_train.assert_not_called()
 
-    @patch("colandr.lib.extractors.review_model.process_texts_into_docs")
-    def test_extract_metadata(self, mock_process_texts):
+    @patch("colandr.lib.extractors.review_model.process_text_into_doc")
+    def test_extract_metadata(self, mock_process_text):
         """Test the full metadata extraction integration."""
         model = ReviewModel()
 
@@ -141,11 +141,11 @@ class TestReviewModel:
         mock_sent = self._create_mock_sentence(sent_text, has_verb=True)
         mock_doc = MagicMock()
         mock_doc.sents = [mock_sent]
-        mock_process_texts.return_value = iter([mock_doc])
+        mock_process_text.return_value = mock_doc
 
         results = model.extract_metadata(123, "some input text", threshold=0.5)
 
-        mock_process_texts.assert_called_once()
+        mock_process_text.assert_called_once()
         assert len(results) == 1
         result = results[0]
         assert result.record == 123
