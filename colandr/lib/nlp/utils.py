@@ -45,18 +45,18 @@ def detect_languages(texts: Iterable[str]) -> list[t.Optional[str]]:
     ]
 
 
-def get_lang_to_models() -> dict[str, list[str]]:
+def get_lang_to_models() -> dict[str, str]:
     """Get a mapping of ISO language code to installed spacy language models."""
-    lang_to_models = collections.defaultdict(list)
+    lang_to_models = {}
     models = spacy.util.get_installed_models()
     for model in models:
         if "_" in model:
             lang, _ = model.split("_", 1)
-            lang_to_models[lang].append(model)
+            lang_to_models[lang] = model
         else:
             LOGGER.warning("found unexpected spacy model name: %s", model)
 
-    return dict(lang_to_models)
+    return lang_to_models
 
 
 @functools.lru_cache(maxsize=10)
@@ -120,7 +120,7 @@ def process_texts_into_docs(
     lang_models = get_lang_to_models()
     for lang, tl_grp in itertools.groupby(text_langs, key=itemgetter(1)):
         if lang in lang_models:
-            spacy_lang = load_spacy_lang(lang_models[lang][0], **kwargs)
+            spacy_lang = load_spacy_lang(lang_models[lang], **kwargs)
             spacy_docs = spacy_lang.pipe((text for text, _ in tl_grp), n_process=1)
             for spacy_doc in spacy_docs:
                 yield spacy_doc

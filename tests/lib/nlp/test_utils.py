@@ -124,7 +124,7 @@ def test_process_texts_into_docs(texts, max_len, fallback_lang, app):
     assert any(isinstance(doc, Doc) for doc in docs)
     # sanity-check vector value for first text only
     spacy_lang = utils.load_spacy_lang(
-        utils.get_lang_to_models()["en"][0], exclude=("parser", "ner")
+        utils.get_lang_to_models()["en"], exclude=("parser", "ner")
     )
     doc = docs[0]
     assert isinstance(spacy_lang, Language) and isinstance(doc, Doc)  # type guards
