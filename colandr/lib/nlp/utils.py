@@ -45,6 +45,7 @@ def detect_languages(texts: Iterable[str]) -> list[t.Optional[str]]:
     ]
 
 
+@functools.cache
 def get_lang_to_models() -> dict[str, str]:
     """Get a mapping of ISO language code to installed spacy language models."""
     lang_to_models = {}
