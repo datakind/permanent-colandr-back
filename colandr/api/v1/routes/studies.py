@@ -411,7 +411,10 @@ class StudiesAPI(MethodView):
                     for result in results
                 )
                 try:
-                    scores = study_ranker.predict_many(records, proba=True)[True]
+                    scores = [
+                        study_ranker.predict_one(record, proba=True)[True]
+                        for record in records
+                    ]
                 except KeyError:  # no records, apparently
                     pass
 

@@ -111,19 +111,6 @@ class StudyRanker:
         y = record[self.target_col]
         self.model.learn_one(x, y)
 
-    def learn_many(self, records: Iterable[dict[str, t.Any]]) -> None:
-        df = pd.DataFrame(data=records)
-        if df.empty:
-            LOGGER.warning("no records in batch to learn from! skipping ...")
-            return
-
-        X = df[self.text_col].astype("string")
-        y = df[self.target_col]
-        self.model.learn_many(X, y)
-        # sequential fallback in case minibatching isn't feasible
-        # for record in records:
-        #     self.learn_one(record)
-
     def predict_one(
         self, record: dict[str, t.Any], *, proba: bool = False
     ) -> bool | dict[bool, float]:
@@ -132,15 +119,6 @@ class StudyRanker:
             return self.model.predict_one(x)
         else:
             return self.model.predict_proba_one(x)
-
-    def predict_many(
-        self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
-    ) -> pd.Series | pd.DataFrame:
-        X = pd.DataFrame(data=records)[self.text_col].astype("string")
-        if not proba:
-            return self.model.predict_many(X)
-        else:
-            return self.model.predict_proba_many(X)
 
     @property
     def _num_texts_learned(self) -> int:
