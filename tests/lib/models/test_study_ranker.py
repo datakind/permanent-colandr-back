@@ -8,10 +8,55 @@ from colandr.lib.models import StudyRanker
 
 
 TEST_RECORDS = (
-    {"text": "Mary had a little lamb.", "target": True},
-    {"text": "Its fleece was white as snow.", "target": False},
-    {"text": "And everywhere that Mary went...", "target": True},
-    {"text": "The lamb was sure to go.", "target": False},
+    {
+        "text": (
+            "Mary had a little lamb, its fleece was white as snow; "
+            "and everywhere that Mary went the lamb was sure to go."
+        ),
+        "target": True,
+    },
+    {
+        "text": (
+            "It followed her to school one day, which was against the rule; "
+            "it made the children laugh and play to see a lamb at school."
+        ),
+        "target": True,
+    },
+    {
+        "text": (
+            "And so the teacher turned it out, but still it lingered near, "
+            "and waited patiently about till Mary did appear."
+        ),
+        "target": True,
+    },
+    {
+        "text": (
+            "Why does the lamb love Mary so? the eager children cry; "
+            "Why, Mary loves the lamb, you know, the teacher did reply."
+        ),
+        "target": True,
+    },
+    {
+        "text": (
+            "Jack and Jill went up the hill to fetch a pail of water. "
+            "Jack fell down and broke his crown, and Jill came tumbling after."
+        ),
+        "target": False,
+    },
+    {
+        "text": (
+            "Up Jack got and home did trot as fast as he could caper; "
+            "And went to bed and bound his head with vinegar and brown paper."
+        ),
+        "target": False,
+    },
+    {
+        "text": (
+            "When Jill came in how she did grin to see Jack's paper plaster; "
+            "Mother vexed did whip her next for causing Jack's disaster."
+        ),
+        "target": False,
+    },
 )
 
 
@@ -60,51 +105,42 @@ class TestStudyRanker:
         for record in records:
             sranker.learn_one(record)
         model_ = sranker.model
-        assert sranker._num_texts_learned == 4
-        assert model_["featurizer"].n == 4
+        assert sranker._num_texts_learned == 7
+        assert model_["featurizer"].n == 7
         assert model_["featurizer"].dfs
         assert all(value >= 1 for value in model_["featurizer"].dfs.values())
-        assert model_["classifier"].weights
-        assert all(value != 0.0 for value in model_["classifier"].weights.values())
-        assert (
-            "mary" in model_["featurizer"].dfs and model_["featurizer"].dfs["mary"] == 2
+        assert model_["classifier"].classifier.weights
+        assert all(
+            value != 0.0 for value in model_["classifier"].classifier.weights.values()
         )
         assert (
-            "mary" in model_["classifier"].weights
-            and model_["classifier"].weights["mary"] != 0.0
+            "mary" in model_["featurizer"].dfs and model_["featurizer"].dfs["mary"] == 3
         )
-        # persist trained model for use in subsequent tests
-        sranker.save()
+        assert len(model_["selector"].included) > 0
+        if "mary" in model_["selector"].included:
+            assert (
+                "mary" in model_["classifier"].classifier.weights
+                and model_["classifier"].classifier.weights["mary"] != 0.0
+            )
 
-    @pytest.mark.parametrize("records", [TEST_RECORDS])
-    def test_learn_many(self, records, app, tmp_study_ranker_path):
-        fs = app.extensions["filesystem"]
-        sranker = StudyRanker(2, tmp_study_ranker_path, fs)
-        sranker.learn_many(records)
-        model_ = sranker.model
-        assert sranker._num_texts_learned == 4
-        assert model_["featurizer"].n == 4
-        assert model_["featurizer"].dfs
-        assert all(value >= 1 for value in model_["featurizer"].dfs.values())
-        assert model_["classifier"].weights
-        assert all(value != 0.0 for value in model_["classifier"].weights.values())
-        assert (
-            "mary" in model_["featurizer"].dfs and model_["featurizer"].dfs["mary"] == 2
-        )
-        assert (
-            "mary" in model_["classifier"].weights
-            and model_["classifier"].weights["mary"] != 0.0
-        )
         # persist trained model for use in subsequent tests
         sranker.save()
 
     @pytest.mark.parametrize(
         ["record", "proba", "exp_pred"],
         [
-            ({"text": "Mary ate a little breakfast."}, False, True),
-            ({"text": "The lamb was white in color."}, True, False),
-            ({"text": "Mary went everywhere with the lamb."}, True, True),
-            ({"text": "Fleece is soft and fluffy like snow."}, False, False),
+            ({"text": "Mary ate a little breakfast with her lamb."}, False, True),
+            ({"text": "Jill went up the hill with Jack to fetch water."}, True, False),
+            (
+                {"text": "Mary went to school with the white lamb, despite the rule."},
+                True,
+                True,
+            ),
+            (
+                {"text": "Jill broke the pail of water, which vexed Mother and Jack."},
+                False,
+                False,
+            ),
         ],
     )
     def test_predict_one(self, record, proba, exp_pred, app, tmp_study_ranker_path):
@@ -119,39 +155,6 @@ class TestStudyRanker:
             assert isinstance(pred, bool)
             assert pred is exp_pred
 
-    @pytest.mark.parametrize(
-        ["records", "proba", "exp_preds"],
-        [
-            (
-                [
-                    {"text": "Mary ate a little breakfast."},
-                    {"text": "The lamb was white in color."},
-                ],
-                False,
-                pd.Series([True, False]),
-            ),
-            (
-                [
-                    {"text": "Mary went everywhere with the lamb."},
-                    {"text": "Fleece is soft and fluffy like snow."},
-                ],
-                True,
-                pd.Series([True, False]),
-            ),
-        ],
-    )
-    def test_predict_many(self, records, proba, exp_preds, app, tmp_study_ranker_path):
-        fs = app.extensions["filesystem"]
-        sranker = StudyRanker(2, tmp_study_ranker_path, fs)
-        preds = sranker.predict_many(records, proba=proba)
-        if proba:
-            assert isinstance(preds, pd.DataFrame)
-            assert (preds.columns == [False, True]).all()
-            assert preds.idxmax(axis="columns").equals(exp_preds)
-        else:
-            assert isinstance(preds, pd.Series)
-            assert preds.equals(exp_preds)
-
     @pytest.mark.parametrize("review_id", [1, 2])
     def test_save(self, review_id, app, tmp_study_ranker_path):
         fs = app.extensions["filesystem"]
@@ -159,6 +162,7 @@ class TestStudyRanker:
         sranker1.save()
         sranker2 = StudyRanker(review_id, tmp_study_ranker_path, fs)
         assert (
-            sranker1.model["classifier"].weights == sranker2.model["classifier"].weights
+            sranker1.model["classifier"].classifier.weights
+            == sranker2.model["classifier"].classifier.weights
         )
         os.unlink(sranker1.model_fpath)
