@@ -26,6 +26,7 @@ class StudyRanker:
         review_id: int,
         dir_path: str,
         fs: fsspec.AbstractFileSystem,
+        *,
         text_col: str = "text",
         target_col: str = "target",
     ):
@@ -34,7 +35,7 @@ class StudyRanker:
         self.fs = fs
         self.text_col = text_col
         self.target_col = target_col
-        self._model = None
+        self._model: t.Optional[river.compose.Pipeline] = None
 
     def __str__(self) -> str:
         return f"StudyRanker(review_id={self.review_id}, dir_path='{self.dir_path}')"
@@ -49,7 +50,11 @@ class StudyRanker:
     def model(self) -> river.compose.Pipeline:
         if self._model is None:
             if self.model_exists:
-                self._model = self.load()
+                try:
+                    self._model = self.load()
+                except AttributeError:
+                    LOGGER.exception("unable to load existing model; cloning instead")
+                    self._model = self.clone()
             else:
                 self._model = self.clone()
         return self._model
