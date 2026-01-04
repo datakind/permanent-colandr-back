@@ -189,13 +189,18 @@ _MODEL = river.compose.Pipeline(
         ),
     ),
     # chop off the long tail of rare vocabulary words
-    ("selector", river.feature_selection.PoissonInclusion(p=0.2, seed=0)),
+    ("selector", river.feature_selection.PoissonInclusion(p=0.25, seed=0)),
     (
         "classifier",
         # re-learning from hard examples should help with expected class imbalance
         river.imblearn.HardSamplingClassifier(
             classifier=river.linear_model.LogisticRegression(
-                optimizer=river.optim.SGD(lr=0.5),
+                optimizer=river.optim.SGD(
+                    lr=river.optim.schedulers.Optimal(
+                        loss=river.optim.losses.BinaryFocalLoss(),
+                        alpha=0.001,
+                    ),
+                ),
                 # this loss func also helps with expected class imbalance
                 loss=river.optim.losses.BinaryFocalLoss(),
                 initializer=river.optim.initializers.Zeros(),
