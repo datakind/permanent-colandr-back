@@ -8,6 +8,8 @@ import joblib
 import pandas as pd
 import river.compose
 import river.feature_extraction
+import river.feature_selection
+import river.imblearn
 import river.linear_model
 import river.optim
 import scipy.sparse
@@ -24,6 +26,7 @@ class StudyRanker:
         review_id: int,
         dir_path: str,
         fs: fsspec.AbstractFileSystem,
+        *,
         text_col: str = "text",
         target_col: str = "target",
     ):
@@ -32,7 +35,7 @@ class StudyRanker:
         self.fs = fs
         self.text_col = text_col
         self.target_col = target_col
-        self._model = None
+        self._model: t.Optional[river.compose.Pipeline] = None
 
     def __str__(self) -> str:
         return f"StudyRanker(review_id={self.review_id}, dir_path='{self.dir_path}')"
@@ -47,7 +50,11 @@ class StudyRanker:
     def model(self) -> river.compose.Pipeline:
         if self._model is None:
             if self.model_exists:
-                self._model = self.load()
+                try:
+                    self._model = self.load()
+                except AttributeError:
+                    LOGGER.exception("unable to load existing model; cloning instead")
+                    self._model = self.clone()
             else:
                 self._model = self.clone()
         return self._model
@@ -109,19 +116,6 @@ class StudyRanker:
         y = record[self.target_col]
         self.model.learn_one(x, y)
 
-    def learn_many(self, records: Iterable[dict[str, t.Any]]) -> None:
-        df = pd.DataFrame(data=records)
-        if df.empty:
-            LOGGER.warning("no records in batch to learn from! skipping ...")
-            return
-
-        X = df[self.text_col].astype("string")
-        y = df[self.target_col]
-        self.model.learn_many(X, y)
-        # sequential fallback in case minibatching isn't feasible
-        # for record in records:
-        #     self.learn_one(record)
-
     def predict_one(
         self, record: dict[str, t.Any], *, proba: bool = False
     ) -> bool | dict[bool, float]:
@@ -131,69 +125,90 @@ class StudyRanker:
         else:
             return self.model.predict_proba_one(x)
 
-    def predict_many(
-        self, records: Iterable[dict[str, t.Any]], *, proba: bool = False
-    ) -> pd.Series | pd.DataFrame:
-        X = pd.DataFrame(data=records)[self.text_col].astype("string")
-        if not proba:
-            return self.model.predict_many(X)
-        else:
-            return self.model.predict_proba_many(X)
-
     @property
     def _num_texts_learned(self) -> int:
         return self.model["featurizer"].n
 
 
-class ColandrTFIDF(river.feature_extraction.TFIDF):
-    """
-    Child of :class:`river.feature_extraction.TFIDF` that adds mini-batch functionality,
-    i.e. ``transform_many()`` and ``learn_many()`` methods.
-    """
+# NOTE: when the model has a feature selector included, we can't learn/transform many
+# so it's best just to skip this custom tfidf extractor
+# class ColandrTFIDF(river.feature_extraction.TFIDF):
+#     """
+#     Child of :class:`river.feature_extraction.TFIDF` that adds mini-batch functionality,
+#     i.e. ``transform_many()`` and ``learn_many()`` methods.
+#     """
 
-    def learn_many(self, X: pd.Series) -> None:
-        # increment global document counter
-        self.n += X.shape[0]
-        # update document counts
-        doc_counts = (
-            X.map(lambda x: set(self.process_text(x)))
-            .explode()
-            .value_counts()
-            .to_dict()
-        )
-        self.dfs.update(doc_counts)
+#     def learn_many(self, X: pd.Series) -> None:
+#         # increment global document counter
+#         self.n += X.shape[0]
+#         # update document counts
+#         doc_counts = (
+#             X.map(lambda x: set(self.process_text(x)))
+#             .explode()
+#             .value_counts()
+#             .to_dict()
+#         )
+#         self.dfs.update(doc_counts)
 
-    def transform_many(self, X: pd.Series) -> pd.DataFrame:
-        """Transform pandas series of string into tf-idf pandas sparse dataframe."""
-        indptr, indices, data = [0], [], []
-        index: dict[int, int] = {}
-        for doc in X:
-            term_weights: dict[int, float] = self.transform_one(doc)
-            for term, weight in term_weights.items():
-                indices.append(index.setdefault(term, len(index)))
-                data.append(weight)
-            indptr.append(len(data))
+#     def transform_many(self, X: pd.Series) -> pd.DataFrame:
+#         """Transform pandas series of string into tf-idf pandas sparse dataframe."""
+#         indptr, indices, data = [0], [], []
+#         index: dict[int, int] = {}
+#         for doc in X:
+#             term_weights: dict[int, float] = self.transform_one(doc)
+#             for term, weight in term_weights.items():
+#                 indices.append(index.setdefault(term, len(index)))
+#                 data.append(weight)
+#             indptr.append(len(data))
 
-        return pd.DataFrame.sparse.from_spmatrix(
-            scipy.sparse.csr_matrix((data, indices, indptr)),
-            index=X.index,
-            columns=index.keys(),
-        )
+#         return pd.DataFrame.sparse.from_spmatrix(
+#             scipy.sparse.csr_matrix((data, indices, indptr)),
+#             index=X.index,
+#             columns=index.keys(),
+#         )
+
+
+# NOTE: if we decide that we prefer to limit the tfidf vocabulary, add xxhash as a dep
+# and swap this in for the tfidf transformer's tokenizer
+# def hash_tokenizer(text: str, pattern: re.Pattern | str, vocab_size: int) -> t.Iterator[str]:
+#     tokens = river.feature_extraction.vectorize.tokenize_using_regex_pattern(text, pattern)
+#     for token in tokens:
+#         yield xxhash.xxh128_intdigest(bytes(token, encoding="utf-8")) % vocab_size
 
 
 _MODEL = river.compose.Pipeline(
     (
         "featurizer",
-        # TODO: use river.feature_extraction.TFIDF once mini-batch capabilities added
-        ColandrTFIDF(normalize=True, strip_accents=False, ngram_range=(1, 2)),
+        river.feature_extraction.TFIDF(
+            # this is handled via StudyRanker.text_col
+            on=None,
+            normalize=True,
+            strip_accents=False,
+            # tokenizer=ft.partial(hash_tokenizer, pattern=r"(?u)\b\w[\w\-]+\b", vocab_size=50_000),
+            ngram_range=(1, 2),
+        ),
     ),
+    # chop off the long tail of rare vocabulary words
+    ("selector", river.feature_selection.PoissonInclusion(p=0.25, seed=0)),
     (
         "classifier",
-        river.linear_model.LogisticRegression(
-            optimizer=river.optim.SGD(lr=0.5),
+        # re-learning from hard examples should help with expected class imbalance
+        river.imblearn.HardSamplingClassifier(
+            classifier=river.linear_model.LogisticRegression(
+                optimizer=river.optim.SGD(
+                    lr=river.optim.schedulers.Optimal(
+                        loss=river.optim.losses.BinaryFocalLoss(),
+                        alpha=0.001,
+                    ),
+                ),
+                # this loss func also helps with expected class imbalance
+                loss=river.optim.losses.BinaryFocalLoss(),
+                initializer=river.optim.initializers.Zeros(),
+                l2=0.001,
+            ),
+            size=25,
+            p=0.1,
             loss=river.optim.losses.BinaryFocalLoss(),
-            initializer=river.optim.initializers.Zeros(),
-            l2=0.001,
         ),
     ),
 )

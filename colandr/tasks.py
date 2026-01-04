@@ -402,8 +402,8 @@ def train_study_ranker_model(review_id: int, screening_id: t.Optional[int] = Non
     if (
         screening_id is None
         or not study_ranker.model_exists
-        # re-train from scratch every 100 examples
-        or study_ranker._num_texts_learned % 100 == 0
+        # re-train from scratch every 1000 examples
+        or study_ranker._num_texts_learned % 1000 == 0
     ):
         _train_study_ranker_model_from_scratch(study_ranker, review_id)
     else:
@@ -481,7 +481,8 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
     stmt = stmt1.union_all(stmt2)
     records = (dict(row) for row in db.session.execute(stmt).mappings())
     study_ranker.model = study_ranker.clone()  # ensure we're training a "fresh" model
-    study_ranker.learn_many(records)
+    for record in records:
+        study_ranker.learn_one(record)
     study_ranker.save()
 
 
