@@ -31,6 +31,7 @@ limiter = flask_limiter.Limiter(
     meta_limits=["1/minute", "10/hour"],
     strategy="fixed-window",
     storage_uri="memory://",  # TODO: use redis for storage?
+    enabled=False,  # HACK FIXME TODO
 )
 jwt = flask_jwt_extended.JWTManager()
 mail = flask_mail.Mail()
