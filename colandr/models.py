@@ -938,17 +938,29 @@ def update_study_status(mapper, connection, target):
                 tasks.train_study_ranker_model.apply_async(args=[review_id])
 
 
-def model_to_dict(model, fields: t.Optional[list[str]] = None) -> dict[str, object]:
+def model_to_dict(
+    model, fields: t.Optional[list[str]] = None, include_hybrid: bool = False
+) -> dict[str, object]:
     """
     Convert a db model into a dictionary, optionally filtered to only certain fields.
 
     Args:
         model
         fields
+        include_hybrid
     """
-    fields = (
-        fields
-        if fields is not None
-        else [col.key for col in sa.inspect(model).mapper.column_attrs]
-    )
+    if fields is None:
+        mapper = sa.inspect(model).mapper
+        # columns
+        fields = [col.key for col in mapper.column_attrs]
+        # hybrid properties?
+        if include_hybrid is True:
+            fields.extend(
+                [
+                    name
+                    for name, descriptor in mapper.all_orm_descriptors.items()
+                    if isinstance(descriptor, hybrid_property)
+                ]
+            )
+
     return {field: getattr(model, field) for field in fields}
