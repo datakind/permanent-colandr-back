@@ -28,6 +28,9 @@ def user_is_allowed_for_review(
         True if user is allowed to access review; False otherwise
     """
     review = db.session.get(models.Review, review_id)
+    if review is None:
+        return False
+
     review_user_assoc = (
         sa.select(models.ReviewUserAssoc)
         .where(models.ReviewUserAssoc.user_id == user.id)
@@ -44,7 +47,7 @@ def user_is_allowed_for_review(
             or db.session.execute(review_user_assoc).scalar_one_or_none() is not None
         )
         # allowed is conditional on review being frozen or not
-        and (if_frozen is True or review.status != "frozen")  # type: ignore
+        and (if_frozen is True or review.status != "frozen")
     )
 
 
