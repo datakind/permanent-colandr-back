@@ -149,7 +149,7 @@ class CitationImportsAPI(MethodView):
         if data_source is None:
             data_source = models.DataSource(
                 source_type=source_type, source_name=source_name, source_url=source_url
-            )  # type: ignore
+            )
             db.session.add(data_source)
         db.session.commit()
 
@@ -211,7 +211,7 @@ class CitationImportsAPI(MethodView):
             record_type="citation",
             num_records=n_citations,
             status=status,
-        )  # type: ignore
+        )
         db.session.add(citations_import)
         db.session.commit()
         current_app.logger.info(

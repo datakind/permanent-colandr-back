@@ -259,7 +259,7 @@ class Review(db.Model):
         )
         # ensure every status is in result, with default value (0)
         result = {status: 0 for status in statuses}
-        result |= {row.citation_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        result |= {row.citation_status: row.count for row in db.session.execute(stmt)}
         return result
 
     def num_fulltexts_by_status(self, statuses: str | list[str]) -> dict[str, int]:
@@ -273,7 +273,7 @@ class Review(db.Model):
         )
         # ensure every status is in result, with default value (0)
         result = {status: 0 for status in statuses}
-        result |= {row.fulltext_status: row.count for row in db.session.execute(stmt)}  # type: ignore
+        result |= {row.fulltext_status: row.count for row in db.session.execute(stmt)}
         return result
 
 
@@ -769,7 +769,7 @@ class DataExtraction(db.Model):
 
 @sa_event.listens_for(Review, "after_insert")
 def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(id=target.id)  # type: ignore
+    review_plan = ReviewPlan(id=target.id)
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
 
