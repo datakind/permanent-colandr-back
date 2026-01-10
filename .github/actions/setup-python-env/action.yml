@@ -1,4 +1,5 @@
 name: "Set Up Python Environment"
+description: "Set up a Python environment using uv"
 
 inputs:
   python-version:
@@ -15,8 +16,9 @@ runs:
     - name: Install uv
       uses: astral-sh/setup-uv@v7.2.0
       with:
+        python-version: ${{ inputs.python-version }}
         version-file: "pyproject.toml"
-        enable-cache: true
+        enable-cache: "auto"
         ignore-nothing-to-cache: true
     - name: Install project and dependencies
       run: uv sync --frozen --dev
