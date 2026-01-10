@@ -161,7 +161,7 @@ class ReviewsAPI(MethodView):
                     "pct": 100,
                 }
             ]
-        review = models.Review(name=name, **json_data)  # type: ignore
+        review = models.Review(name=name, **json_data)
         # TODO: do we want to allow admins to set other users as owners?
         review.review_user_assoc.append(
             models.ReviewUserAssoc(review, current_user, "owner")

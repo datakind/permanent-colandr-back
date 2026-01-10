@@ -14,7 +14,7 @@ from . import errors
 # TODO: we should use redis for this
 # import celery
 # import redis.client
-# _JWT_BLOCKLIST = celery.current_app.backend.client  # type: ignore
+# _JWT_BLOCKLIST = celery.current_app.backend.client
 _JWT_BLOCKLIST = set()
 
 

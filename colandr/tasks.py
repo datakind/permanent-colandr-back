@@ -31,7 +31,7 @@ def _get_redis_lock(lock_id: str, timeout: int = 120) -> redis.lock.Lock:
 
 
 def _get_redis_conn() -> redis.client.Redis:
-    redis_conn = current_celery_app.backend.client  # type: ignore
+    redis_conn = current_celery_app.backend.client
     assert isinstance(redis_conn, redis.client.Redis)  # type guard
     return redis_conn
 
@@ -149,7 +149,7 @@ def deduplicate_citations(review_id: int):
     LOGGER.info(
         "<Review(id=%s)>: found %s duplicate clusters",
         review_id,
-        len(clustered_dupes),  # type: ignore
+        len(clustered_dupes),
     )
 
     # get *all* citation ids for this review, as well as included/excluded

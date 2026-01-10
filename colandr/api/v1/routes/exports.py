@@ -370,7 +370,7 @@ class ExportPrismaAPI(MethodView):
             row.citation_status: row.count
             for row in db.session.execute(n_citations_by_status_stmt)
         }
-        n_citations_screened = sum(n_citations_by_status.values())  # type: ignore
+        n_citations_screened = sum(n_citations_by_status.values())
         n_citations_excluded = n_citations_by_status.get("excluded", 0)
 
         n_fulltexts_by_status_stmt = (
@@ -383,7 +383,7 @@ class ExportPrismaAPI(MethodView):
             row.fulltext_status: row.count
             for row in db.session.execute(n_fulltexts_by_status_stmt)
         }
-        n_fulltexts_screened = sum(n_fulltexts_by_status.values())  # type: ignore
+        n_fulltexts_screened = sum(n_fulltexts_by_status.values())
         n_fulltexts_excluded = n_fulltexts_by_status.get("excluded", 0)
 
         results = db.session.execute(

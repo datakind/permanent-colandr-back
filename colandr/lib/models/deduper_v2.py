@@ -332,7 +332,7 @@ class DeduperV2:
                 splink.block_on("title", "author"),
             ]
             self.model.training.estimate_probability_two_random_records_match(
-                deterministic_rules,  # type: ignore
+                deterministic_rules,
                 recall=0.7,
             )
 
@@ -341,7 +341,7 @@ class DeduperV2:
     ) -> None:
         self.model.training.estimate_u_using_random_sampling(
             max_pairs=max_pairs,
-            seed=seed,  # type: ignore
+            seed=seed,
         )
 
     def _estimate_m_parameters(self) -> None:
