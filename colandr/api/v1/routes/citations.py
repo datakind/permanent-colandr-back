@@ -193,7 +193,7 @@ class CitationsAPI(MethodView):
         if data_source is None:
             data_source = models.DataSource(
                 source_type=source_type, source_name=source_name, source_url=source_url
-            )  # type: ignore
+            )
             db.session.add(data_source)
         db.session.commit()
         current_app.logger.info("%s inserted %s", current_user, data_source)
@@ -206,7 +206,7 @@ class CitationsAPI(MethodView):
             data_source_id=data_source.id,
             # citation=citation,
             citation=json_data,
-        )  # type: ignore
+        )
         if status is not None:
             study.citation_status = status
         db.session.add(study)

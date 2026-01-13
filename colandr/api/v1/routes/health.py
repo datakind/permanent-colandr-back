@@ -23,7 +23,7 @@ class HealthAPI(MethodView):
     )
     @bp.output({"message": af.fields.String()})
     def get(self):
-        redis_conn = celery.current_app.backend.client  # type: ignore
+        redis_conn = celery.current_app.backend.client
         assert isinstance(redis_conn, redis.client.Redis)  # type guard
         try:
             _ = redis_conn.ping()

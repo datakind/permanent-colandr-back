@@ -108,7 +108,7 @@ class DataExtractionAPI(MethodView):
             )
 
         labels_map = {
-            item["label"]: (item["field_type"], set(item.get("allowed_values", [])))  # type: ignore
+            item["label"]: (item["field_type"], set(item.get("allowed_values", [])))
             for item in data_extraction_form[0]
         }
         # manually validate inputs, given data extraction form specification

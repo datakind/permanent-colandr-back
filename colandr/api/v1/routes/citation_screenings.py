@@ -123,7 +123,7 @@ class CitationScreeningAPI(MethodView):
             stage="citation",
             status=json_data["status"],
             exclude_reasons=json_data["exclude_reasons"],
-        )  # type: ignore
+        )
         study.screenings.add(screening)
         db.session.commit()
 

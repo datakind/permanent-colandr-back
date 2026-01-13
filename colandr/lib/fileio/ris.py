@@ -90,7 +90,7 @@ def read(path_or_stream: t.BinaryIO | pathlib.Path) -> list[dict]:
 def parse(data: str) -> list[dict]:
     return rispy.loads(
         data,
-        implementation=rispy.parser.RisParser,  # type: ignore
+        implementation=rispy.parser.RisParser,
         skip_unknown_tags=False,
     )
 
