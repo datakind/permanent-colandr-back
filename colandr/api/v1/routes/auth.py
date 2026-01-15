@@ -1,3 +1,4 @@
+import datetime
 import urllib.parse
 
 import apiflask as af
@@ -215,13 +216,21 @@ class ResetPasswordAPI(MethodView):
             )
             return
 
-        access_token = jwtext.create_access_token(identity=user, fresh=False)
+        token_expiration_minutes = 15
+        access_token = jwtext.create_access_token(
+            identity=user,
+            fresh=False,
+            expires_delta=datetime.timedelta(minutes=token_expiration_minutes),
+        )
         confirm_url = url_for("auth.reset_confirm", token=access_token, _external=True)
         if fe_app_site := current_app.config["FE_APP_SITE"]:
             confirm_url = _replace_url_site(confirm_url, fe_app_site)
 
         html = render_template(
-            "emails/password_reset.html", url=confirm_url, name=user.name
+            "emails/password_reset_v2.html",
+            url=confirm_url,
+            name=user.name,
+            expiration_minutes=token_expiration_minutes,
         )
         if current_app.config["MAIL_SERVER"]:
             tasks.send_email.apply_async(
