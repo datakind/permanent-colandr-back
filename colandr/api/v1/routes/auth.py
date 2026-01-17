@@ -302,7 +302,7 @@ def _send_confirm_registration_email(user: object, access_token: str) -> None:
         confirm_url = _replace_url_site(confirm_url, fe_app_site)
 
     html = render_template(
-        "emails/user_registration.html", url=confirm_url, name=user.name
+        "emails/user_registration_v2.html", url=confirm_url, name=user.name
     )
     if current_app.config["MAIL_SERVER"]:
         tasks.send_email.apply_async(
