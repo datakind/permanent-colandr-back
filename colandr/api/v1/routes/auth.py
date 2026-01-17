@@ -306,6 +306,8 @@ def _send_confirm_registration_email(user: object, access_token: str) -> None:
     )
     if current_app.config["MAIL_SERVER"]:
         tasks.send_email.apply_async(
-            args=[[user.email], "Confirm your registration", "", html]
+            args=[[user.email], "Confirm your email", "", html]
         )
-        current_app.logger.info("registration email sent to %s", user.email)
+        current_app.logger.info(
+            "registration confirmation email sent to %s", user.email
+        )
