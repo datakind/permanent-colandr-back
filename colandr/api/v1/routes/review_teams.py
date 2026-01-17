@@ -149,13 +149,22 @@ class ReviewTeamAPI(MethodView):
                 review.review_user_assoc.append(models.ReviewUserAssoc(review, user))
         # user is being *invited*, so send an invitation email
         elif action == "invite":
+            context = {"inviter_email": current_user.email, "review_name": review.name}
             if user is not None:
                 identity = user
                 user_email = user.email
-                template_name = "emails/invite_user_to_review.html"
+                context["name"] = user.name
+                template_name = "emails/invite_user_to_review_v2.html"
             else:
                 identity = user_email
-                template_name = "emails/invite_new_user_to_review.html"
+                context["fe_app_site"] = current_app.config["FE_APP_SITE"]
+                if not current_app.config["FE_APP_SITE"]:
+                    raise errors.ForbiddenError(
+                        message="new user invitation email can't be sent "
+                        "without a configured front-end site to link them to"
+                    )
+
+                template_name = "emails/invite_new_user_to_review_v2.html"
             token = jwtext.create_access_token(identity=identity)
             confirm_url = flask.url_for(
                 "review_teams.review_team_confirmation",
@@ -165,12 +174,7 @@ class ReviewTeamAPI(MethodView):
             )
             if fe_app_site := current_app.config["FE_APP_SITE"]:
                 confirm_url = auth._replace_url_site(confirm_url, fe_app_site)
-            html = flask.render_template(
-                template_name,
-                url=confirm_url,
-                inviter_email=current_user.email,
-                review_name=review.name,
-            )
+            html = flask.render_template(template_name, url=confirm_url, **context)
             if current_app.config["MAIL_SERVER"]:
                 tasks.send_email.apply_async(
                     args=[[user_email], "Let's collaborate!", "", html]
