@@ -44,7 +44,7 @@ class ReviewPlanAPI(MethodView):
                 message=f"{current_user} forbidden to get this review plan"
             )
 
-        return models.model_to_dict(review.review_plan, fields)
+        return models.model_to_dict(review.review_plan, fields, include_hybrid=True)
 
     @bp.doc(
         summary="delete a single review plan",

@@ -13,6 +13,7 @@ class TestReviewPlanResource:
             (1, None, 200),
             (1, {"fields": "id,objective"}, 200),
             (1, {"fields": "pico"}, 200),
+            (1, {"fields": "boolean_search_query"}, 200),
         ],
     )
     def test_get(self, id, params, status_code, app, client, admin_headers, seed_data):
@@ -31,6 +32,8 @@ class TestReviewPlanResource:
             for field in ["objective", "pico"]:
                 if fields is None or field in fields:
                     assert data[field] == seed_data.get(field)
+            if fields is None or "boolean_search_query" in fields:
+                assert data["boolean_search_query"] is not None
             if fields:
                 assert sorted(data.keys()) == sorted(fields)
 
