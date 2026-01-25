@@ -99,12 +99,21 @@ services:
         - action: sync
           path: .
           target: /app
-          # exclude project virtual environment
           ignore:
             - .venv/
+            - .git/
+            - .vscode/
+            - __pycache__/
+            - .mypy_cache/
+            - .pytest_cache/
+        # sync+restart if app config changes
+        - action: sync+restart
+          path: ./colandr/config.py
+          target: /app/colandr/config.py
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
+          target: /app/colandr/uv.lock
   worker:
     container_name: colandr-worker
     build:
@@ -137,12 +146,21 @@ services:
         - action: sync
           path: .
           target: /app
-          # exclude project virtual environment
           ignore:
             - .venv/
+            - .git/
+            - .vscode/
+            - __pycache__/
+            - .mypy_cache/
+            - .pytest_cache/
+        # sync+restart if app config changes
+        - action: sync+restart
+          path: ./colandr/config.py
+          target: /app/colandr/config.py
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
+          target: /app/colandr/uv.lock
 
 networks:
   default:
