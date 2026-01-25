@@ -1,3 +1,5 @@
+import collections
+
 import apiflask as af
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
@@ -90,6 +92,7 @@ class ReviewProgressAPI(MethodView):
             )
 
         response = {}
+        # these first two steps are the same, regardless of user_view
         if step in ("planning", "all"):
             review_plan = review.review_plan
             progress = {
@@ -101,120 +104,206 @@ class ReviewProgressAPI(MethodView):
                 "data_extraction_form": bool(review_plan.data_extraction_form),
             }
             response["planning"] = progress
-        if step in ("citation_screening", "all"):
-            if user_view is False:
-                progress = {status: 0 for status in constants.SCREENING_STATUSES}
-                progress_stmt = (
-                    sa.select(models.Study.citation_status, sa.func.count())
-                    .filter_by(review_id=id)
-                    .group_by(models.Study.citation_status)
-                )
-                progress |= {
-                    row.citation_status: row.count
-                    for row in db.session.execute(progress_stmt)
-                }
-            else:
-                # TODO: figure out how to ORM-ify this
-                query = """
-                    SELECT
-                        (CASE
-                             WHEN citation_status IN ('included', 'excluded', 'conflict') THEN citation_status
-                             WHEN citation_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
-                             WHEN citation_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
-                         END) AS user_status,
-                         COUNT(*)
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.dedupe_status,
-                            studies.citation_status,
-                            screenings_.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'citation'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                        WHERE review_id = {review_id}
-                    ) AS t
-                    WHERE dedupe_status = 'not_duplicate'  -- this is necessary!
-                    GROUP BY user_status;
-                    """.format(user_id=current_user.id, review_id=id)
-                progress = {
-                    row.user_status: row.count
-                    for row in db.session.execute(sa.text(query))
-                }
-                progress = {
-                    status: progress.get(status, 0)
-                    for status in constants.USER_SCREENING_STATUSES
-                }
-            response["citation_screening"] = progress
-        if step in ("fulltext_screening", "all"):
-            if user_view is False:
-                progress = {status: 0 for status in constants.SCREENING_STATUSES}
-                progress_stmt = (
-                    sa.select(models.Study.fulltext_status, sa.func.count())
-                    .filter_by(review_id=id, citation_status="included")
-                    .group_by(models.Study.fulltext_status)
-                )
-                progress |= {
-                    row.fulltext_status: row.count
-                    for row in db.session.execute(progress_stmt)
-                }
-            else:
-                # TODO: figure out how to ORM-ify this
-                query = """
-                    SELECT
-                        (CASE
-                             WHEN fulltext_status IN ('included', 'excluded', 'conflict') THEN fulltext_status
-                             WHEN fulltext_status = 'not_screened' OR NOT {user_id} = ANY(user_ids) THEN 'pending'
-                             WHEN fulltext_status = 'screened_once' AND {user_id} = ANY(user_ids) THEN 'awaiting_coscreener'
-                         END) AS user_status,
-                         COUNT(*)
-                    FROM (
-                        SELECT
-                            studies.id,
-                            studies.citation_status,
-                            studies.fulltext_status,
-                            screenings_.user_ids
-                        FROM studies
-                        LEFT JOIN (
-                            SELECT
-                                study_id,
-                                ARRAY_AGG(user_id) AS user_ids
-                            FROM screenings
-                            WHERE stage = 'fulltext'
-                            GROUP BY study_id
-                        ) AS screenings_ ON studies.id = screenings_.study_id
-                        WHERE review_id = {review_id}
-                    ) AS t
-                    WHERE citation_status = 'included'  -- this is necessary!
-                    GROUP BY user_status;
-                    """.format(user_id=current_user.id, review_id=id)
-                progress = {
-                    row.user_status: row.count
-                    for row in db.session.execute(sa.text(query))
-                }
-                progress = {
-                    status: progress.get(status, 0)
-                    for status in constants.USER_SCREENING_STATUSES
-                }
-            response["fulltext_screening"] = progress
         if step in ("data_extraction", "all"):
-            progress = {status: 0 for status in constants.EXTRACTION_STATUSES}
-            progress_stmt = (
+            stmt = (
                 sa.select(models.Study.data_extraction_status, sa.func.count())
                 .filter_by(review_id=id, fulltext_status="included")
                 .group_by(models.Study.data_extraction_status)
             )
-            progress |= {
-                row.data_extraction_status: row.count
-                for row in db.session.execute(progress_stmt)
-            }
+            progress = (
+                # set default values for all statuses
+                {status: 0 for status in constants.EXTRACTION_STATUSES}
+                # override actual values for occurring statuses
+                | {
+                    row.data_extraction_status: row.count
+                    for row in db.session.execute(stmt)
+                }
+            )
             response["data_extraction"] = progress
+        if user_view is False:
+            # compute all screening status counts using a single query, for perf reasons
+            if step == "all":
+                # get all screening steps' statuses for review studies
+                stmt = sa.select(
+                    models.Study.citation_status,
+                    models.Study.fulltext_status,
+                ).filter_by(review_id=id)
+                rows = db.session.execute(stmt).mappings().all()
+                # ensure every status is included, i.e. 0 count instead of null/missing
+                progress = {
+                    "citation_screening": {
+                        ss: 0 for ss in constants.SCREENING_STATUSES
+                    },
+                    "fulltext_screening": {
+                        ss: 0 for ss in constants.SCREENING_STATUSES
+                    },
+                }
+                # compute the counts in python rather than sql, for convenience
+                progress["citation_screening"] |= dict(
+                    collections.Counter(row["citation_status"] for row in rows)
+                    # TODO: do we want to filter to dedupe_status == "not_duplicate" ?
+                )
+                progress["fulltext_screening"] |= dict(
+                    collections.Counter(
+                        row["fulltext_status"]
+                        for row in rows
+                        if row["citation_status"] == "included"
+                    )
+                )
+                response |= progress
+            elif step == "citation_screening":
+                stmt = (
+                    sa.select(models.Study.citation_status, sa.func.count())
+                    .filter_by(review_id=id)
+                    .group_by(models.Study.citation_status)
+                )
+                progress = (
+                    # set default values for all statuses
+                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    # override actual values for occurring statuses
+                    | {
+                        row.citation_status: row.count
+                        for row in db.session.execute(stmt)
+                    }
+                )
+                response["citation_screening"] = progress
+            elif step == "fulltext_screening":
+                stmt = (
+                    sa.select(models.Study.fulltext_status, sa.func.count())
+                    .filter_by(review_id=id, citation_status="included")
+                    .group_by(models.Study.fulltext_status)
+                )
+                progress = (
+                    # set default values for all statuses
+                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    # override actual values for occurring statuses
+                    | {
+                        row.fulltext_status: row.count
+                        for row in db.session.execute(stmt)
+                    }
+                )
+                response["fulltext_screening"] = progress
+        else:
+            if step in ("citation_screening", "all"):
+                user_id = current_user.id
+                screenings_cte = (
+                    sa.select(
+                        models.Screening.study_id,
+                        sa.func.array_agg(models.Screening.user_id).label("user_ids"),
+                    )
+                    .filter_by(review_id=id, stage="citation")
+                    .group_by(models.Screening.study_id)
+                    .cte("screenings_")
+                )
+                studies_cte = (
+                    sa.select(
+                        models.Study.id,
+                        models.Study.citation_status,
+                        screenings_cte.c.user_ids,
+                    )
+                    .outerjoin(
+                        screenings_cte, models.Study.id == screenings_cte.c.study_id
+                    )
+                    .where(
+                        models.Study.review_id == id,
+                        models.Study.dedupe_status == "not_duplicate",
+                    )
+                    .cte("studies_")
+                )
+                user_status = sa.case(
+                    (
+                        studies_cte.c.citation_status.in_(
+                            ["included", "excluded", "conflict"]
+                        ),
+                        studies_cte.c.citation_status,
+                    ),
+                    (
+                        sa.and_(
+                            studies_cte.c.citation_status == "screened_once",
+                            user_id == sa.any_(studies_cte.c.user_ids),
+                        ),
+                        "awaiting_coscreener",
+                    ),
+                    (
+                        sa.or_(
+                            studies_cte.c.citation_status == "not_screened",
+                            user_id != sa.any_(studies_cte.c.user_ids),
+                        ),
+                        "pending",
+                    ),
+                ).label("user_status")
+                stmt = (
+                    sa.select(user_status, sa.func.count().label("count"))
+                    .select_from(studies_cte)
+                    .group_by(user_status)
+                )
+                progress = (
+                    # set default values for all statuses
+                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    # override actual values for occurring statuses
+                    | {row.user_status: row.count for row in db.session.execute(stmt)}
+                )
+                response["citation_screening"] = progress
+            if step in ("fulltext_screening", "all"):
+                user_id = current_user.id
+                screenings_cte = (
+                    sa.select(
+                        models.Screening.study_id,
+                        sa.func.array_agg(models.Screening.user_id).label("user_ids"),
+                    )
+                    .filter_by(review_id=id, stage="fulltext")
+                    .group_by(models.Screening.study_id)
+                    .cte("screenings_")
+                )
+                studies_cte = (
+                    sa.select(
+                        models.Study.id,
+                        models.Study.fulltext_status,
+                        screenings_cte.c.user_ids,
+                    )
+                    .outerjoin(
+                        screenings_cte, models.Study.id == screenings_cte.c.study_id
+                    )
+                    .where(
+                        models.Study.review_id == id,
+                        models.Study.citation_status == "included",
+                    )
+                    .cte("studies_")
+                )
+                user_status = sa.case(
+                    (
+                        studies_cte.c.fulltext_status.in_(
+                            ["included", "excluded", "conflict"]
+                        ),
+                        studies_cte.c.fulltext_status,
+                    ),
+                    (
+                        sa.and_(
+                            studies_cte.c.fulltext_status == "screened_once",
+                            user_id == sa.any_(studies_cte.c.user_ids),
+                        ),
+                        "awaiting_coscreener",
+                    ),
+                    (
+                        sa.or_(
+                            studies_cte.c.fulltext_status == "not_screened",
+                            user_id != sa.any_(studies_cte.c.user_ids),
+                        ),
+                        "pending",
+                    ),
+                ).label("user_status")
+                stmt = (
+                    sa.select(user_status, sa.func.count().label("count"))
+                    .select_from(studies_cte)
+                    .group_by(user_status)
+                )
+                progress = (
+                    # set default values for all statuses
+                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    # override actual values for occurring statuses
+                    | {row.user_status: row.count for row in db.session.execute(stmt)}
+                )
+                response["fulltext_screening"] = progress
 
         current_app.logger.debug("%s got progress for %s", current_user, review)
         return response
