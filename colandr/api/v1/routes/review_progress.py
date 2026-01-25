@@ -1,5 +1,3 @@
-import collections
-
 import apiflask as af
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
