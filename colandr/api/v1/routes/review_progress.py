@@ -208,7 +208,7 @@ class ReviewProgressAPI(MethodView):
             elif step == "citation_screening":
                 stmt = (
                     sa.select(models.Study.citation_status, sa.func.count())
-                    .filter_by(review_id=id)
+                    .filter_by(review_id=id, dedupe_status="not_duplicate")
                     .group_by(models.Study.citation_status)
                 )
                 progress = (
