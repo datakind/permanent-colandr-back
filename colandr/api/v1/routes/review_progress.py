@@ -281,7 +281,7 @@ class ReviewProgressAPI(MethodView):
                     (
                         sa.or_(
                             studies_cte.c.citation_status == "not_screened",
-                            user_id != sa.any_(studies_cte.c.user_ids),
+                            ~(user_id == sa.any_(studies_cte.c.user_ids)),
                         ),
                         "pending",
                     ),
@@ -341,7 +341,7 @@ class ReviewProgressAPI(MethodView):
                     (
                         sa.or_(
                             studies_cte.c.fulltext_status == "not_screened",
-                            user_id != sa.any_(studies_cte.c.user_ids),
+                            ~(user_id == sa.any_(studies_cte.c.user_ids)),
                         ),
                         "pending",
                     ),
