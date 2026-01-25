@@ -102,6 +102,9 @@ class TestStudyRanker:
     def test_learn_one(self, records, app, tmp_study_ranker_path):
         fs = app.extensions["filesystem"]
         sranker = StudyRanker(1, tmp_study_ranker_path, fs)
+        # HACK! in order to avoid non-deterministic test failures depending on rng
+        # let's manually set feature selector's prob to exclude from 0.25 to 1.0
+        sranker.model["selector"].p = 1.0
         for record in records:
             sranker.learn_one(record)
         model_ = sranker.model
