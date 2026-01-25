@@ -293,7 +293,7 @@ class ReviewProgressAPI(MethodView):
                 )
                 progress = (
                     # set default values for all statuses
-                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    {status: 0 for status in constants.USER_SCREENING_STATUSES}
                     # override actual values for occurring statuses
                     | {row.user_status: row.count for row in db.session.execute(stmt)}
                 )
@@ -353,7 +353,7 @@ class ReviewProgressAPI(MethodView):
                 )
                 progress = (
                     # set default values for all statuses
-                    {status: 0 for status in constants.SCREENING_STATUSES}
+                    {status: 0 for status in constants.USER_SCREENING_STATUSES}
                     # override actual values for occurring statuses
                     | {row.user_status: row.count for row in db.session.execute(stmt)}
                 )
