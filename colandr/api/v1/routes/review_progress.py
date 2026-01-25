@@ -104,7 +104,12 @@ class ReviewProgressAPI(MethodView):
                 "data_extraction_form": bool(review_plan.data_extraction_form),
             }
             response["planning"] = progress
-        if step in ("data_extraction", "all"):
+        if (
+            # there's a fast-track path for user_view=False and step == "all"
+            (step == "data_extraction" and user_view is False)
+            # but no such path for user_view=True
+            or (step in ("data_extraction", "all") and user_view is True)
+        ):
             stmt = (
                 sa.select(models.Study.data_extraction_status, sa.func.count())
                 .filter_by(review_id=id, fulltext_status="included")
@@ -123,33 +128,84 @@ class ReviewProgressAPI(MethodView):
         if user_view is False:
             # compute all screening status counts using a single query, for perf reasons
             if step == "all":
-                # get all screening steps' statuses for review studies
-                stmt = sa.select(
-                    models.Study.citation_status,
-                    models.Study.fulltext_status,
-                ).filter_by(review_id=id)
-                rows = db.session.execute(stmt).mappings().all()
-                # ensure every status is included, i.e. 0 count instead of null/missing
-                progress = {
-                    "citation_screening": {
-                        ss: 0 for ss in constants.SCREENING_STATUSES
-                    },
-                    "fulltext_screening": {
-                        ss: 0 for ss in constants.SCREENING_STATUSES
-                    },
-                }
-                # compute the counts in python rather than sql, for convenience
-                progress["citation_screening"] |= dict(
-                    collections.Counter(row["citation_status"] for row in rows)
-                    # TODO: do we want to filter to dedupe_status == "not_duplicate" ?
-                )
-                progress["fulltext_screening"] |= dict(
-                    collections.Counter(
-                        row["fulltext_status"]
-                        for row in rows
-                        if row["citation_status"] == "included"
+                # get all steps' statuses for review studies
+                statuses_cte = (
+                    sa.select(
+                        models.Study.dedupe_status,
+                        models.Study.citation_status,
+                        models.Study.fulltext_status,
+                        models.Study.data_extraction_status,
                     )
+                    .filter_by(review_id=id)
+                    .cte("statuses")
                 )
+                # aggregate counts of each step's statuses
+                cs_counts_cte = (
+                    sa.select(
+                        statuses_cte.c.citation_status.label("status"),
+                        sa.func.count().label("cnt"),
+                    )
+                    .where(statuses_cte.c.dedupe_status == "not_duplicate")
+                    .group_by(statuses_cte.c.citation_status)
+                    .cte("cs_counts")
+                )
+                fs_counts_cte = (
+                    sa.select(
+                        statuses_cte.c.fulltext_status.label("status"),
+                        sa.func.count().label("cnt"),
+                    )
+                    .where(statuses_cte.c.citation_status == "included")
+                    .group_by(statuses_cte.c.fulltext_status)
+                    .cte("fs_counts")
+                )
+                des_counts_cte = (
+                    sa.select(
+                        statuses_cte.c.data_extraction_status.label("status"),
+                        sa.func.count().label("cnt"),
+                    )
+                    .where(statuses_cte.c.fulltext_status == "included")
+                    .group_by(statuses_cte.c.data_extraction_status)
+                    .cte("des_counts")
+                )
+                # aggregate each step's status counts into a json blob, taking care
+                # to fall back to an empty json blob in case step is missing data
+                cs_json_cte = sa.select(
+                    sa.func.coalesce(
+                        sa.func.json_object_agg(
+                            cs_counts_cte.c.status, cs_counts_cte.c.cnt
+                        ),
+                        sa.text("'{}'::json"),
+                    ).label("citation_screening"),
+                ).cte("cs_json")
+                fs_json_cte = sa.select(
+                    sa.func.coalesce(
+                        sa.func.json_object_agg(
+                            fs_counts_cte.c.status, fs_counts_cte.c.cnt
+                        ),
+                        sa.text("'{}'::json"),
+                    ).label("fulltext_screening"),
+                ).cte("fs_json")
+                des_json_cte = sa.select(
+                    sa.func.coalesce(
+                        sa.func.json_object_agg(
+                            des_counts_cte.c.status, des_counts_cte.c.cnt
+                        ),
+                        sa.text("'{}'::json"),
+                    ).label("data_extraction"),
+                ).cte("des_json")
+                # cross join all together into a single row
+                stmt = sa.select(cs_json_cte, fs_json_cte, des_json_cte)
+                row = db.session.execute(stmt).mappings().one()
+                # set default values for all statuses
+                # then override actual values for occurring statuses
+                progress = {
+                    "citation_screening": {ss: 0 for ss in constants.SCREENING_STATUSES}
+                    | row["citation_screening"],
+                    "fulltext_screening": {ss: 0 for ss in constants.SCREENING_STATUSES}
+                    | row["fulltext_screening"],
+                    "data_extraction": {es: 0 for es in constants.EXTRACTION_STATUSES}
+                    | row["data_extraction"],
+                }
                 response |= progress
             elif step == "citation_screening":
                 stmt = (
