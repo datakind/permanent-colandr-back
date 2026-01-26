@@ -113,7 +113,7 @@ services:
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
-          target: /app/colandr/uv.lock
+          target: /app/uv.lock
   worker:
     container_name: colandr-worker
     build:
@@ -160,7 +160,7 @@ services:
         # rebuild image if dependencies change in uv.lock
         - action: rebuild
           path: ./uv.lock
-          target: /app/colandr/uv.lock
+          target: /app/uv.lock
 
 networks:
   default:
