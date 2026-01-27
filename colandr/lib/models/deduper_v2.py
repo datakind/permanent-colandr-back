@@ -341,7 +341,7 @@ class DeduperV2:
     ) -> None:
         self.model.training.estimate_u_using_random_sampling(
             max_pairs=max_pairs,
-            seed=seed,
+            seed=seed,  # ty: ignore[invalid-argument-type]
         )
 
     def _estimate_m_parameters(self) -> None:
