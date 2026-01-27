@@ -571,7 +571,7 @@ requires-dist = [
     { name = "river", specifier = "~=0.23.0" },
     { name = "scikit-learn", specifier = "~=1.8.0" },
     { name = "spacy", specifier = "~=3.8.0" },
-    { name = "splink", specifier = "~=4.0.8" },
+    { name = "splink", specifier = "~=4.0.12" },
     { name = "sqlalchemy", specifier = "~=2.0.0" },
     { name = "webargs", specifier = "~=8.7.0" },
     { name = "werkzeug" },
@@ -2670,21 +2670,20 @@ wheels = [
 
 [[package]]
 name = "splink"
-version = "4.0.8"
+version = "4.0.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "altair" },
     { name = "duckdb" },
     { name = "igraph" },
     { name = "jinja2" },
-    { name = "jsonschema" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "sqlglot" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/21/2a82f219baa28152c2277e548fba045de599fdb0ec1e651a7e5296fbfe74/splink-4.0.8.tar.gz", hash = "sha256:84f4ad5a1d86c42837de60b662904c74ba27b1a8c6dde2042551dcc57ade5f25", size = 4830864, upload-time = "2025-06-04T13:50:06.387Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/19/5f/99942822c76a5672cef2a43bbff2bcf1dab3cf4b0721245670ff4417ed15/splink-4.0.12.tar.gz", hash = "sha256:66a7a08e354d174cc9f126a74f3811080804fbc774506952fe618dad80f1900a", size = 2079637, upload-time = "2025-12-22T17:09:03.101Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3e/fe/a73dba7b3d7850bdaa3e2e997c55981c9e2f87b1091685f5a20d83d41ed3/splink-4.0.8-py3-none-any.whl", hash = "sha256:fbba32b8065d523e8ab56b46009dcd3d1d627a7641e8b06f14aadd381aaa9f0e", size = 4900528, upload-time = "2025-06-04T13:50:04.022Z" },
+    { url = "https://files.pythonhosted.org/packages/30/b3/131726f43cbbc563fc592096f2625565db8247117e03e7b64e63e206804b/splink-4.0.12-py3-none-any.whl", hash = "sha256:7d415e532596e5a696b7b622701e86a6ec6cc3b8d406b725c0aefc9479a7b118", size = 2150504, upload-time = "2025-12-22T17:09:01.507Z" },
 ]
 
 [[package]]
