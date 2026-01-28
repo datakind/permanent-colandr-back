@@ -6,7 +6,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("citations", __name__, url_prefix="/citations")
@@ -29,17 +29,11 @@ class CitationAPI(MethodView):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(current_user, review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this citation"
             )
@@ -67,19 +61,15 @@ class CitationAPI(MethodView):
     def put(self, id, json_data):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to modify this study"
+                message=f"{current_user} forbidden to modify this citation"
             )
 
         citation = study.citation | json_data
@@ -104,19 +94,15 @@ class CitationAPI(MethodView):
     def delete(self, id):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to delete this study.citation"
+                message=f"{current_user} forbidden to delete this citation"
             )
 
         study.citation = {}
@@ -167,23 +153,16 @@ class CitationsAPI(MethodView):
         source_url = query_data.get("source_url")
         status = query_data["status"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
-
-        current_app.logger.warning("json_data = %s", json_data)
-
-        if not review:
-            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ) or review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to add citations to this review"
             )
+
+        review = db.session.get(models.Review, review_id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
         data_source = db.session.execute(
             sa.select(models.DataSource).filter_by(
