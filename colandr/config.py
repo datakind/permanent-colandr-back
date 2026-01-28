@@ -16,6 +16,9 @@ MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB file upload limit
 LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
 # PROPAGATE_EXCEPTIONS = True  # may be needed for error handlers to work
 
+# Force HTTPS for URL generation (Swagger/OpenAPI)
+PREFERRED_URL_SCHEME = "https"
+
 # sql database config
 SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
 SQLALCHEMY_ENGINE_OPTIONS = {}

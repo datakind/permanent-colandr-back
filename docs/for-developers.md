@@ -1,6 +1,6 @@
 # for developers
 
-Colandr's back-end system consists of multiple services defined and configured in `compose.yml` and two `Dockerfile`s, including a PostgreSQL database, Flask API server, and Redis broker+worker.
+Colandr's back-end system consists of multiple services defined and configured in `compose.yaml` and two `Dockerfile`s, including a PostgreSQL database, Flask API server, and Redis broker+worker.
 
 ## local setup
 

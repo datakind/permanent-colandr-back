@@ -106,7 +106,6 @@ def upgrade():
                 exclude_reasons
             FROM fulltext_screenings
         )
-        ORDER BY created_at ASC
         """
     )
 
@@ -135,58 +134,91 @@ def upgrade():
             )
         )
 
-    op.execute(
-        """
-        UPDATE studies
-        SET
-            citation = c.citation,
-            citation_text_content_vector_rep = c.citation_text_content_vector_rep
-        FROM (
-            SELECT
-                id,
-                json_build_object(
-                    'type_of_work', type_of_work,
-                    'title', title,
-                    'secondary_title', secondary_title,
-                    'abstract', abstract,
-                    'pub_year', pub_year,
-                    'pub_month', pub_month,
-                    'authors', authors,
-                    'keywords', keywords,
-                    'type_of_reference', type_of_reference,
-                    'journal_name', journal_name,
-                    'volume', volume,
-                    'issue_number', issue_number,
-                    'doi', doi,
-                    'issn', issn,
-                    'publisher', publisher,
-                    'language', "language",
-                    'other_fields', other_fields
-                ) AS citation,
-                text_content_vector_rep AS citation_text_content_vector_rep
-            FROM citations
-        ) AS c
-        WHERE studies.id = c.id
-        """
-    )
-    op.execute(
-        """
-        UPDATE studies
-        SET fulltext = f.fulltext
-        FROM (
-            SELECT
-                id,
-                json_build_object(
-                    'filename', filename,
-                    'original_filename', original_filename,
-                    'text_content', text_content,
-                    'text_content_vector_rep', text_content_vector_rep
-                ) AS fulltext
-            FROM fulltexts
-        ) AS f
-        WHERE studies.id = f.id
-        """
-    )
+    # Update citations in batches to avoid long-running single UPDATE
+    # Process 50k rows at a time using simple ID range batching (no OFFSET)
+    batch_size = 50000
+    conn = op.get_bind()
+    
+    # Get the max citation ID once at the start
+    max_citation_id = conn.execute(
+        sa.text("SELECT MAX(id) FROM citations")
+    ).scalar()
+    
+    if max_citation_id is not None:
+        last_id = 0
+        while last_id < max_citation_id:
+            # Simple range: process IDs from last_id+1 to last_id+batch_size
+            batch_max = min(last_id + batch_size, max_citation_id)
+            
+            # Update only citations in this ID range
+            result = conn.execute(
+                sa.text(f"""
+                    UPDATE studies s
+                    SET
+                        citation = c.citation,
+                        citation_text_content_vector_rep = c.citation_text_content_vector_rep
+                    FROM (
+                        SELECT
+                            id,
+                            json_build_object(
+                                'type_of_work', type_of_work,
+                                'title', title,
+                                'secondary_title', secondary_title,
+                                'abstract', abstract,
+                                'pub_year', pub_year,
+                                'pub_month', pub_month,
+                                'authors', authors,
+                                'keywords', keywords,
+                                'type_of_reference', type_of_reference,
+                                'journal_name', journal_name,
+                                'volume', volume,
+                                'issue_number', issue_number,
+                                'doi', doi,
+                                'issn', issn,
+                                'publisher', publisher,
+                                'language', "language",
+                                'other_fields', other_fields
+                            ) AS citation,
+                            text_content_vector_rep AS citation_text_content_vector_rep
+                        FROM citations
+                        WHERE id > :last_id AND id <= :batch_max
+                    ) AS c
+                    WHERE s.id = c.id
+                """),
+                {"last_id": last_id, "batch_max": batch_max}
+            )
+            last_id = batch_max
+    # Update fulltexts in batches using simple ID range batching (no OFFSET)
+    max_fulltext_id = conn.execute(
+        sa.text("SELECT MAX(id) FROM fulltexts")
+    ).scalar()
+    
+    if max_fulltext_id is not None:
+        last_id = 0
+        while last_id < max_fulltext_id:
+            batch_max = min(last_id + batch_size, max_fulltext_id)
+            
+            result = conn.execute(
+                sa.text(f"""
+                    UPDATE studies s
+                    SET fulltext = f.fulltext
+                    FROM (
+                        SELECT
+                            id,
+                            json_build_object(
+                                'filename', filename,
+                                'original_filename', original_filename,
+                                'text_content', text_content,
+                                'text_content_vector_rep', text_content_vector_rep
+                            ) AS fulltext
+                        FROM fulltexts
+                        WHERE id > :last_id AND id <= :batch_max
+                    ) AS f
+                    WHERE s.id = f.id
+                """),
+                {"last_id": last_id, "batch_max": batch_max}
+            )
+            last_id = batch_max
 
     # drop unnecessary tables
     with op.batch_alter_table("citation_screenings", schema=None) as batch_op:

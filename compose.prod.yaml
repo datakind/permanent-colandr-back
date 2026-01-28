@@ -1,0 +1,101 @@
+# compose.prod.yaml
+#
+# Standalone production Docker Compose file
+# Only includes services needed for production: api, worker, broker
+#
+# Usage:
+#   docker compose -f compose.prod.yaml up -d
+
+services:
+  # API service
+  api:
+    container_name: colandr-api
+    build:
+      context: "."
+      dockerfile: Dockerfile.api
+      target: prod
+    platform: linux/amd64
+    depends_on:
+      - broker
+      - worker
+    stop_signal: SIGINT
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
+      interval: "30s"
+      timeout: "5s"
+      start_period: "15s"
+      retries: 3
+    env_file: ".env"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
+      - BUILD_TARGET=prod
+      - FLASK_ENV=production
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    volumes:
+      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ./scripts:/app/scripts
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Worker service
+  worker:
+    container_name: colandr-worker
+    build:
+      context: "."
+      dockerfile: Dockerfile.worker
+      target: prod
+    platform: linux/amd64
+    depends_on:
+      - broker
+    stop_signal: SIGINT
+    healthcheck:
+      test: [ "CMD-SHELL", "celery", "--app=make_celery.celery_app", "inspect", "ping", "--destination celery@$$HOSTNAME" ]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+    env_file: ".env"
+    environment:
+      - BUILD_TARGET=prod
+      - FLASK_ENV=production
+    restart: unless-stopped
+    volumes:
+      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Broker (Redis)
+  broker:
+    container_name: colandr-broker
+    image: "redis:8.0"
+    restart: unless-stopped
+    stop_grace_period: 5s
+    volumes:
+      - broker-data:/data
+    healthcheck:
+      test: "redis-cli ping"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  broker-data:
+    driver: local
+  frontend-storage:
+    driver: local
+
+networks:
+  default:
+    name: "colandr-back"
