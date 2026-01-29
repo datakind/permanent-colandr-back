@@ -5,7 +5,7 @@ from flask.views import MethodView
 
 from .... import models, tasks
 from ....extensions import db, limiter
-from .. import errors
+from .. import authz, errors
 
 
 bp = af.APIBlueprint("deduplicate studies", __name__, url_prefix="/dedupe")
@@ -37,21 +37,16 @@ class DedupeAPI(MethodView):
     def post(self, query_data):
         review_id = query_data["review_id"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
-
-        if not review:
-            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ) or review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to dedupe studies for this review"
             )
+
+        review = db.session.get(models.Review, review_id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
         current_app.logger.info(
             "%s submitting deduplicate citations job for %s", current_user, review

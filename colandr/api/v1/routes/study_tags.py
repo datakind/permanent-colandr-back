@@ -7,7 +7,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors
+from .. import authz, errors
 
 
 bp = af.APIBlueprint("study_tags", __name__, url_prefix="/studies/tags")
@@ -41,21 +41,14 @@ class StudyTagsAPI(MethodView):
     def get(self, query_data):
         review_id = query_data["review_id"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to get study tags this review"
+            )
 
+        review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get study tags for this review"
-            )
 
         studies = db.session.execute(
             review.studies.select()

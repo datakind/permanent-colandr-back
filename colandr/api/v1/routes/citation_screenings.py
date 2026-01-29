@@ -32,7 +32,6 @@ class CitationScreeningAPI(MethodView):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
@@ -80,7 +79,6 @@ class CitationScreeningAPI(MethodView):
     def post(self, id, json_data):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
@@ -153,7 +151,6 @@ class CitationScreeningAPI(MethodView):
     def put(self, id, json_data):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 

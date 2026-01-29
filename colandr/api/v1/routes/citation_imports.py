@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from .... import models, tasks
 from ....extensions import db, limiter
 from ....lib import fileio
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("citation_imports", __name__, url_prefix="/citations/imports")
@@ -64,21 +64,14 @@ class CitationImportsAPI(MethodView):
     def get(self, query_data):
         review_id = query_data["review_id"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to get citation imports for this review"
+            )
 
+        review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to add citations to this review"
-            )
 
         result = db.session.execute(
             review.imports.select().filter_by(record_type="citation")
@@ -125,21 +118,16 @@ class CitationImportsAPI(MethodView):
         status = query_data.get("status")
         dedupe = query_data["dedupe"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
-
-        if not review:
-            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ) or review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to add citations to this review"
             )
+
+        review = db.session.get(models.Review, review_id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
         data_source = db.session.execute(
             sa.select(models.DataSource).filter_by(
