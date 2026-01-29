@@ -12,7 +12,7 @@ from flask.views import MethodView
 from .... import models
 from ....extensions import db, limiter
 from ....lib import fileio
-from .. import errors
+from .. import authz, errors
 
 
 bp = af.APIBlueprint("exports", __name__, url_prefix="/export")
@@ -44,21 +44,14 @@ class ExportStudiesAPI(MethodView):
         review_id = query_data["review_id"]
         content_type = query_data["content_type"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to export data for this review"
+            )
 
+        review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get this review"
-            )
 
         fieldnames = [
             "study_id",
@@ -217,21 +210,14 @@ class ExportScreeningsAPI(MethodView):
         review_id = query_data["review_id"]
         content_type = query_data["content_type"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, review_id)
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to export data for this review"
+            )
 
+        review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get this review"
-            )
 
         screenings = db.session.execute(
             sa.select(models.Screening)
@@ -322,20 +308,14 @@ class ExportPrismaAPI(MethodView):
     def get(self, query_data):
         review_id = query_data["review_id"]
         current_user = jwtext.get_current_user()
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to export data for this review"
+            )
+
         review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get this review"
-            )
 
         # get counts by step, i.e. prisma
         n_studies_by_source_stmt = (
