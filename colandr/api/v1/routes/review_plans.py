@@ -5,7 +5,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 # TODO: improve this routing for v2 API
@@ -28,21 +28,14 @@ class ReviewPlanAPI(MethodView):
     def get(self, id, query_data):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, id)
-
-        if not review:
-            raise errors.NotFoundError(message=f"<Review(id={id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        if not authz.user_is_allowed_for_review(current_user, id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this review plan"
             )
+
+        review = db.session.get(models.Review, id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={id})> not found")
 
         return models.model_to_dict(review.review_plan, fields, include_hybrid=True)
 
@@ -61,17 +54,16 @@ class ReviewPlanAPI(MethodView):
     def delete(self, id, query_data):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, id)
-
-        if not review:
-            raise errors.NotFoundError(message=f"<Review(id={id})> not found")
-
-        if (
-            current_user.is_admin is False and current_user not in review.owners
-        ) or review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, id, for_roles=["owner"], if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete this review plan"
             )
+
+        review = db.session.get(models.Review, id)
+        if not review:
+            raise errors.NotFoundError(message=f"<Review(id={id})> not found")
 
         review_plan = review.review_plan
         if fields:
@@ -116,17 +108,16 @@ class ReviewPlanAPI(MethodView):
     @jwtext.jwt_required()
     def put(self, id, json_data):
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, id)
+        if not authz.user_is_allowed_for_review(
+            current_user, id, for_roles=["owner"], if_frozen=False
+        ):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to modify this review plan"
+            )
 
+        review = db.session.get(models.Review, id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={id})> not found")
-
-        if (
-            current_user.is_admin is False and current_user not in review.owners
-        ) or review.status == "frozen":
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to create this review plan"
-            )
 
         review_plan = review.review_plan
         if not review_plan:

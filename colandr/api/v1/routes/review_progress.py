@@ -7,7 +7,7 @@ from flask.views import MethodView
 from .... import models
 from ....extensions import db
 from ....lib import constants
-from .. import errors
+from .. import authz, errors
 
 
 bp = af.APIBlueprint("review_progress", __name__, url_prefix="/reviews/<int:id>")
@@ -73,21 +73,14 @@ class ReviewProgressAPI(MethodView):
         step = query_data["step"]
         user_view = query_data["user_view"]
         current_user = jwtext.get_current_user()
-        review = db.session.get(models.Review, id)
+        if not authz.user_is_allowed_for_review(current_user, id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to get this review"
+            )
 
+        review = db.session.get(models.Review, id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get review progress"
-            )
 
         response = {}
         # these first two steps are the same, regardless of user_view

@@ -8,7 +8,7 @@ from flask.views import MethodView
 from .... import models
 from ....extensions import db
 from ....lib import sanitizers
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("data extractions", __name__, url_prefix="/data_extractions")
@@ -31,25 +31,13 @@ class DataExtractionAPI(MethodView):
         extracted_data = db.session.execute(
             sa.select(models.DataExtraction).filter_by(study_id=id)
         ).scalar_one_or_none()
-
         if not extracted_data:
             raise errors.NotFoundError(
                 message=f"<DataExtraction(study_id={id})> not found"
             )
 
-        # TODO: figure out if this is "better" approach
-        # if current_user.is_admin is False and not any(
-        #     review.id == extracted_data.review_id for review in current_user.reviews
-        # ):
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=extracted_data.review_id
-                )
-            ).one_or_none()
-            is None
-        ):
+        review_id = extracted_data.review_id
+        if not authz.user_is_allowed_for_review(current_user, review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get extracted data for this study"
             )
@@ -74,20 +62,13 @@ class DataExtractionAPI(MethodView):
         extracted_data = db.session.execute(
             sa.select(models.DataExtraction).filter_by(study_id=id)
         ).scalar_one_or_none()
-
         if not extracted_data:
             raise errors.NotFoundError(
                 message=f"<DataExtraction(study_id={id})> not found"
             )
 
         review_id = extracted_data.review_id
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(review_id=review_id)
-            ).one_or_none()
-            is None
-        ) or extracted_data.review.status == "frozen":
+        if not authz.user_is_allowed_for_review(current_user, id, if_frozen=False):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to modify extracted data for this study"
             )
@@ -223,23 +204,17 @@ class DataExtractionAPI(MethodView):
         extracted_data = db.session.execute(
             sa.select(models.DataExtraction).filter_by(study_id=id)
         ).scalar_one_or_none()
-
         if not extracted_data:
             raise errors.NotFoundError(
                 message=f"<DataExtraction(study_id={id})> not found"
             )
 
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=extracted_data.review_id
-                )
-            ).one_or_none()
-            is None
-        ) or extracted_data.review.status == "frozen":
+        review_id = extracted_data.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get extracted data for this study"
+                message=f"{current_user} forbidden to delete extracted data for this study"
             )
 
         if labels:

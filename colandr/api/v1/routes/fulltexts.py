@@ -6,7 +6,7 @@ from flask.views import MethodView
 
 from .... import models
 from ....extensions import db
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("fulltexts", __name__, url_prefix="/fulltexts")
@@ -29,17 +29,11 @@ class FulltextAPI(MethodView):
         fields = query_data.get("fields_")
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(current_user, review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get this fulltext"
             )
@@ -66,19 +60,15 @@ class FulltextAPI(MethodView):
     def delete(self, id):
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and study.review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to delete this study.fulltext"
+                message=f"{current_user} forbidden to delete this fulltext"
             )
 
         study.fulltext = {}

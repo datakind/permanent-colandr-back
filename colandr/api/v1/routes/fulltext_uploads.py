@@ -11,7 +11,7 @@ from werkzeug.utils import secure_filename
 from .... import models, tasks
 from ....extensions import db
 from ....lib import fileio
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 # TODO: "fulltext upload" is a weird name, and inconsistent with "citations import"
@@ -46,11 +46,10 @@ class FulltextUploadAPI(MethodView):
     )
     @jwtext.jwt_required()
     def get(self, id, query_data):
+        fs = current_app.extensions["filesystem"]
+        filepath = None
         review_id = query_data["review_id"]
         current_user = jwtext.get_current_user()
-        fs = current_app.extensions["filesystem"]
-
-        filepath = None
         # TODO: if we need review_id to be optional, reenable this block
         # if review_id is None:
         #     allowed_exts = current_app.config["ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS"]
@@ -65,21 +64,15 @@ class FulltextUploadAPI(MethodView):
         #             filepath = fpath
         #             break
         # else:
-        # authenticate current user
+        # authorize current user
+        if not authz.user_is_allowed_for_review(current_user, review_id):
+            raise errors.ForbiddenError(
+                message=f"{current_user} forbidden to get fulltext file for this study"
+            )
+
         review = db.session.get(models.Review, review_id)
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
-
-        if (
-            current_user.is_admin is False
-            and review.review_user_assoc.filter_by(
-                user_id=current_user.id
-            ).one_or_none()
-            is None
-        ):
-            raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to get this review's fulltexts"
-            )
 
         upload_dir = os.path.join(
             current_app.config["FULLTEXT_UPLOADS_DIR"], str(review_id)
@@ -132,21 +125,15 @@ class FulltextUploadAPI(MethodView):
         uploaded_file = files_data["uploaded_file"]
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to upload fulltext files to this review"
+                message=f"{current_user} forbidden to upload fulltext file for this study"
             )
 
         _, ext = os.path.splitext(uploaded_file.filename)
@@ -215,21 +202,15 @@ class FulltextUploadAPI(MethodView):
         """delete fulltext content file for a single fulltext by id"""
         current_user = jwtext.get_current_user()
         study = db.session.get(models.Study, id)
-
         if not study:
             raise errors.NotFoundError(message=f"<Fulltext(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        review_id = study.review_id
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
-                message=f"{current_user} forbidden to upload fulltext files to this review"
+                message=f"{current_user} forbidden to delete fulltext file for this study"
             )
 
         fulltext = study.fulltext

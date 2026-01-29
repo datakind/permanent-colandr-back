@@ -21,19 +21,18 @@ def user_is_allowed_for_review(
         user: current app user trying to access review
         review_id: unique identifier for review to be accessed
         for_roles: user roles for which access is authorized
-        if_frozen: if True, no access allowed for reviews with "frozen" status;
-            otherwise, access is allowed for eligible users
+        if_frozen: if True, access is allowed for eligible users;
+            otherwise, no access is allowed for reviews with "frozen" status
 
     Returns:
         True if user is allowed to access review; False otherwise
     """
     review = db.session.get(models.Review, review_id)
 
-    review_user_assoc = (
-        sa.select(models.ReviewUserAssoc)
-        .where(models.ReviewUserAssoc.user_id == user.id)
-        .where(models.ReviewUserAssoc.review_id == review_id)
-        .where(models.ReviewUserAssoc.user_role == sa.any_(pg.array(for_roles)))
+    review_user_assoc = sa.select(models.ReviewUserAssoc).where(
+        models.ReviewUserAssoc.user_id == user.id,
+        models.ReviewUserAssoc.review_id == review_id,
+        models.ReviewUserAssoc.user_role == sa.any_(pg.array(for_roles)),
     )
     return (
         # only confirmed users are allowed
