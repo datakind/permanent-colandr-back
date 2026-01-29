@@ -29,11 +29,10 @@ def user_is_allowed_for_review(
     """
     review = db.session.get(models.Review, review_id)
 
-    review_user_assoc = (
-        sa.select(models.ReviewUserAssoc)
-        .where(models.ReviewUserAssoc.user_id == user.id)
-        .where(models.ReviewUserAssoc.review_id == review_id)
-        .where(models.ReviewUserAssoc.user_role == sa.any_(pg.array(for_roles)))
+    review_user_assoc = sa.select(models.ReviewUserAssoc).where(
+        models.ReviewUserAssoc.user_id == user.id,
+        models.ReviewUserAssoc.review_id == review_id,
+        models.ReviewUserAssoc.user_role == sa.any_(pg.array(for_roles)),
     )
     return (
         # only confirmed users are allowed
