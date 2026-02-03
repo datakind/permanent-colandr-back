@@ -152,7 +152,8 @@ def upgrade():
             
             # Update only citations in this ID range
             result = conn.execute(
-                sa.text(f"""
+                sa.text(
+                    """
                     UPDATE studies s
                     SET
                         citation = c.citation,
@@ -199,7 +200,8 @@ def upgrade():
             batch_max = min(last_id + batch_size, max_fulltext_id)
             
             result = conn.execute(
-                sa.text(f"""
+                sa.text(
+                    """
                     UPDATE studies s
                     SET fulltext = f.fulltext
                     FROM (
