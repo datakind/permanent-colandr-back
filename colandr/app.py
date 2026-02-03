@@ -35,23 +35,15 @@ def _create_app_v1_1(
     # ProxyFix returns a WSGI middleware object; cast keeps type-checkers happy.
     app.wsgi_app = t.cast(t.Any, ProxyFix(app.wsgi_app, x_proto=1, x_host=1))
 
-    if app.config.get("PREFERRED_URL_SCHEME") == "https":
-        app.config["SERVERS"] = [
-            {"url": "https://api.colandrapp.com", "description": "Production API"}
-        ]
-
-        @app.before_request
-        def set_openapi_servers_https():
-            # Only update for docs/spec endpoints to use the actual request host
-            if flask.request.endpoint in ("openapi.docs", "openapi.spec"):
-                host = (
-                    flask.request.headers.get("X-Forwarded-Host") or flask.request.host
-                )
-                host = host.split(":")[0]
-                if host and host != "localhost" and not host.startswith("127.0.0.1"):
-                    app.config["SERVERS"] = [
-                        {"url": f"https://{host}", "description": "Production API"}
-                    ]
+    @app.before_request
+    def set_openapi_servers_from_request() -> None:
+        # Ensure Swagger "Try it out" uses the current host+scheme.
+        #
+        # In production behind nginx, ProxyFix (above) + X-Forwarded-* headers
+        # make `request.url_root` resolve to `https://api.colandrapp.com/`.
+        if flask.request.endpoint in ("openapi.docs", "openapi.spec"):
+            url_root = flask.request.url_root.rstrip("/")
+            app.config["SERVERS"] = [{"url": url_root, "description": "API"}]
 
     _configure_logging(app)
     _register_extensions(app)
