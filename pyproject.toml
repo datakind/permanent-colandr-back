@@ -67,7 +67,7 @@ dev = [
   "SQLAlchemy-Utils~=0.42.0",
   # TODO: update ty once officially out of beta
   "ty~=0.0.15",
-  "ruff~=0.14.0",
+  "ruff~=0.15.0",
 ]
 
 [build-system]
