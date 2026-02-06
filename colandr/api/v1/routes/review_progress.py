@@ -236,17 +236,17 @@ class ReviewProgressAPI(MethodView):
                 screenings_cte = (
                     sa.select(
                         models.Screening.study_id,
-                        sa.func.array_agg(models.Screening.user_id).label("user_ids"),
+                        models.Screening.id.label("screening_id"),
                     )
-                    .filter_by(review_id=id, stage="citation")
-                    .group_by(models.Screening.study_id)
+                    .filter_by(user_id=user_id, review_id=id, stage="citation")
+                    .order_by(models.Screening.study_id)
                     .cte("screenings_")
                 )
                 studies_cte = (
                     sa.select(
                         models.Study.id,
                         models.Study.citation_status,
-                        screenings_cte.c.user_ids,
+                        screenings_cte.c.screening_id,
                     )
                     .outerjoin(
                         screenings_cte, models.Study.id == screenings_cte.c.study_id
@@ -267,14 +267,14 @@ class ReviewProgressAPI(MethodView):
                     (
                         sa.and_(
                             studies_cte.c.citation_status == "screened_once",
-                            user_id == sa.any_(studies_cte.c.user_ids),
+                            studies_cte.c.screening_id.is_not(None),
                         ),
                         "awaiting_coscreener",
                     ),
                     (
                         sa.or_(
                             studies_cte.c.citation_status == "not_screened",
-                            ~(user_id == sa.any_(studies_cte.c.user_ids)),
+                            studies_cte.c.screening_id.is_(None),
                         ),
                         "pending",
                     ),
@@ -296,17 +296,17 @@ class ReviewProgressAPI(MethodView):
                 screenings_cte = (
                     sa.select(
                         models.Screening.study_id,
-                        sa.func.array_agg(models.Screening.user_id).label("user_ids"),
+                        models.Screening.id.label("screening_id"),
                     )
-                    .filter_by(review_id=id, stage="fulltext")
-                    .group_by(models.Screening.study_id)
+                    .filter_by(user_id=user_id, review_id=id, stage="fulltext")
+                    .order_by(models.Screening.study_id)
                     .cte("screenings_")
                 )
                 studies_cte = (
                     sa.select(
                         models.Study.id,
                         models.Study.fulltext_status,
-                        screenings_cte.c.user_ids,
+                        screenings_cte.c.screening_id,
                     )
                     .outerjoin(
                         screenings_cte, models.Study.id == screenings_cte.c.study_id
@@ -327,14 +327,14 @@ class ReviewProgressAPI(MethodView):
                     (
                         sa.and_(
                             studies_cte.c.fulltext_status == "screened_once",
-                            user_id == sa.any_(studies_cte.c.user_ids),
+                            studies_cte.c.screening_id.is_not(None),
                         ),
                         "awaiting_coscreener",
                     ),
                     (
                         sa.or_(
                             studies_cte.c.fulltext_status == "not_screened",
-                            ~(user_id == sa.any_(studies_cte.c.user_ids)),
+                            studies_cte.c.screening_id.is_(None),
                         ),
                         "pending",
                     ),
