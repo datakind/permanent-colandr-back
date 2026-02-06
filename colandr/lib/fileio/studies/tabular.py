@@ -12,6 +12,11 @@ from . import base
 LOGGER = logging.getLogger(__name__)
 
 
+def _split_concatenated_values(value: str, sep: str = ";") -> list[str]:
+    values = value.split(sep)
+    return [val.strip() for val in values]
+
+
 class TabularReader(base.BaseReader):
     file_extensions = {".csv", ".tsv"}
     field_alt_names = {
@@ -35,11 +40,11 @@ class TabularReader(base.BaseReader):
         "year": "pub_year",
     }
     field_sanitizers = {
-        "authors": [lambda x: _split_concatenated_values(x)],
+        "authors": [_split_concatenated_values],
         "date": [base.to_dttm],
-        "editors": [lambda x: _split_concatenated_values(x)],
+        "editors": [_split_concatenated_values],
         "end_page": [base.to_int],
-        "keywords": [lambda x: _split_concatenated_values(x)],
+        "keywords": [_split_concatenated_values],
         "number_of_pages": [base.to_int],
         "pub_year": [base.to_int],
         "start_page": [base.to_int],
@@ -72,8 +77,3 @@ class TabularReader(base.BaseReader):
                     record["pub_month"] = record["date"].month
                 record["date"] = record["date"].strftime("%Y-%m-%d")
             yield record
-
-
-def _split_concatenated_values(value: str, sep: str = ";") -> list[str]:
-    values = value.split(sep)
-    return [val.strip() for val in values]
