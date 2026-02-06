@@ -66,16 +66,16 @@ dev = [
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
   # TODO: update ty once officially out of beta
-  "ty~=0.0.14",
-  "ruff~=0.14.0",
+  "ty~=0.0.15",
+  "ruff~=0.15.0",
 ]
 
 [build-system]
-requires = ["uv_build>=0.8.0,<0.10.0"]
+requires = ["uv_build>=0.8.0,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv]
-required-version = ">=0.8.0,<0.10.0"
+required-version = ">=0.8.0,<0.11.0"
 
 [tool.uv.build-backend]
 module-name = "colandr"
