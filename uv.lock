@@ -481,7 +481,7 @@ wheels = [
 
 [[package]]
 name = "colandr"
-version = "1.1.0b1"
+version = "1.1.0rc1"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
