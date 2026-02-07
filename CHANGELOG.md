@@ -23,6 +23,7 @@
 - refactored, standardized, and upgraded user authentication and authorization systems, for better application security
 - increased study tags' and screening reasons' maximum lengths, from 25 to 64 characters, to allow for more descriptive values
 - moved several admin-only endpoints into a separate API path
+- improved styling and content of user emails
 
 ### fixed
 

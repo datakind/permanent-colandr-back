@@ -19,6 +19,22 @@ from . import base
 LOGGER = logging.getLogger(__name__)
 
 
+def _split_up_authors(authors: list[str]) -> list[str]:
+    if len(authors) == 1:
+        if authors[0].count(",") >= 2:
+            authors = [author.strip() for author in authors[0].split(",")]
+        elif authors[0].count(" ") >= 5:
+            # TODO: this is probably bad data (all authors in one field w/o delimiters)
+            # but how to reliably fix?
+            pass
+    return authors
+
+
+def _strip_tags_from_notes(notes: list[str]) -> list[str]:
+    notes = [markupsafe.Markup(note).striptags() for note in notes]
+    return [note for note in notes if note]
+
+
 class RisReader(base.BaseReader):
     file_extensions = {".ris", ".txt"}
     field_alt_names = {
@@ -74,10 +90,10 @@ class RisReader(base.BaseReader):
     )
     field_sanitizers = {
         "access_date": [base.to_dttm],
-        "authors": [lambda x: _split_up_authors(x)],
+        "authors": [_split_up_authors],
         "date": [base.to_dttm],
         "end_page": [base.to_int],
-        "notes": [base.to_list, lambda x: _strip_tags_from_notes(x)],
+        "notes": [base.to_list, _strip_tags_from_notes],
         "number_of_pages": [base.to_int],
         "number_of_volumes": [base.to_int],
         "pub_year": [base.to_int],
@@ -129,19 +145,3 @@ class RisReader(base.BaseReader):
             if record.get(key)
         }
         return record
-
-
-def _split_up_authors(authors: list[str]) -> list[str]:
-    if len(authors) == 1:
-        if authors[0].count(",") >= 2:
-            authors = [author.strip() for author in authors[0].split(",")]
-        elif authors[0].count(" ") >= 5:
-            # TODO: this is probably bad data (all authors in one field w/o delimiters)
-            # but how to reliably fix?
-            pass
-    return authors
-
-
-def _strip_tags_from_notes(notes: list[str]) -> list[str]:
-    notes = [markupsafe.Markup(note).striptags() for note in notes]
-    return [note for note in notes if note]
