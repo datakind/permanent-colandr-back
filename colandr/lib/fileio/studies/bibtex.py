@@ -38,6 +38,47 @@ MONTH_TO_INT = {
 }
 
 
+def _split_names(value: str) -> list[str]:
+    """
+    Split field into a list of "Name, Surname" values.
+    Modified from :func:`bibtexparser.customization.author()` .
+    """
+    value = value.replace("\n", " ")
+    return bibtexparser.customization.getnames(
+        [name.strip() for name in RE_NAME_SPLIT.split(value)]
+    )
+
+
+def _split_keywords(value: str, sep: str = ",|;") -> list[str]:
+    """
+    Split keyword into a list of values.
+    Modified from :func:`bibtexparser.customization.keyword()` .
+    """
+    return [kw.strip() for line in value.split("\n") for kw in re.split(sep, line)]
+
+
+def _sanitize_month(value: str) -> t.Optional[int]:
+    try:
+        return int(value)
+    except ValueError:
+        value = value.strip()[:3].lower()
+        try:
+            return MONTH_TO_INT[value]
+        except KeyError:
+            return None
+
+
+def _split_pages(value: str) -> t.Optional[tuple[t.Optional[int], t.Optional[int]]]:
+    if "--" in value:
+        pages = value.split("--")
+        if len(pages) == 2:
+            start_page, end_page = pages
+            return (base.to_int(start_page), base.to_int(end_page))
+
+    LOGGER.warning("unable to sanitize pages='%s' value", value)
+    return None
+
+
 class BibTexReader(base.BaseReader):
     file_extensions = {".bib"}
     field_alt_names = {
@@ -53,13 +94,13 @@ class BibTexReader(base.BaseReader):
         "year": "pub_year",
     }
     field_sanitizers = {
-        "authors": [lambda x: _split_names(x)],
-        "editors": [lambda x: _split_names(x)],
+        "authors": [_split_names],
+        "editors": [_split_names],
         "end_page": [base.to_int],
-        "keywords": [lambda x: _split_keywords(x)],
+        "keywords": [_split_keywords],
         "notes": [base.to_list],
         "number_of_pages": [base.to_int],
-        "pub_month": [lambda x: _sanitize_month(x)],
+        "pub_month": [_sanitize_month],
         "pub_year": [base.to_int],
         "start_page": [base.to_int],
     }
@@ -109,44 +150,3 @@ class BibTexReader(base.BaseReader):
                     record["end_page"] = pages[1]
             del record["pages"]
         return record
-
-
-def _split_names(value: str) -> list[str]:
-    """
-    Split field into a list of "Name, Surname" values.
-    Modified from :func:`bibtexparser.customization.author()` .
-    """
-    value = value.replace("\n", " ")
-    return bibtexparser.customization.getnames(
-        [name.strip() for name in RE_NAME_SPLIT.split(value)]
-    )
-
-
-def _split_keywords(value: str, sep: str = ",|;") -> list[str]:
-    """
-    Split keyword into a list of values.
-    Modified from :func:`bibtexparser.customization.keyword()` .
-    """
-    return [kw.strip() for line in value.split("\n") for kw in re.split(sep, line)]
-
-
-def _sanitize_month(value: str) -> t.Optional[int]:
-    try:
-        return int(value)
-    except ValueError:
-        value = value.strip()[:3].lower()
-        try:
-            return MONTH_TO_INT[value]
-        except KeyError:
-            return None
-
-
-def _split_pages(value: str) -> t.Optional[tuple[t.Optional[int], t.Optional[int]]]:
-    if "--" in value:
-        pages = value.split("--")
-        if len(pages) == 2:
-            start_page, end_page = pages
-            return (base.to_int(start_page), base.to_int(end_page))
-
-    LOGGER.warning("unable to sanitize pages='%s' value", value)
-    return None
