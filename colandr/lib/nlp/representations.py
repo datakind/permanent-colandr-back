@@ -212,10 +212,10 @@ class Vectorizer:
         corresponding vocabulary.
         """
         self._check_vocabulary()
+        assert self.vocabulary_terms is not None  # type guard
         if len(self.id_to_term_) != self.vocabulary_terms:
             self.id_to_term_ = {
-                term_id: term_str
-                for term_str, term_id in self.vocabulary_terms.items()  # ty: ignore[possibly-missing-attribute]
+                term_id: term_str for term_str, term_id in self.vocabulary_terms.items()
             }
         return self.id_to_term_
 
@@ -234,11 +234,11 @@ class Vectorizer:
         output doc-term-matrix, ``doc_term_matrix[:, 0]``.
         """
         self._check_vocabulary()
+        assert self.vocabulary_terms is not None  # type guard
         return [
             term_str
             for term_str, _ in sorted(
-                self.vocabulary_terms.items(),  # ty: ignore[possibly-missing-attribute]
-                key=operator.itemgetter(1),
+                self.vocabulary_terms.items(), key=operator.itemgetter(1)
             )
         ]
 
