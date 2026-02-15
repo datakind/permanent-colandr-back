@@ -143,7 +143,7 @@ def upgrade():
     max_citation_id = conn.execute(sa.text("SELECT MAX(id) FROM citations")).scalar()
     if max_citation_id is not None:
         batch_min_id = 0
-        while batch_min_id <= max_citation_id:
+        while batch_min_id < max_citation_id:
             # simple range: process IDs from batch_min_id+1 to batch_min_id+batch_size
             batch_max_id = min(batch_min_id + batch_size, max_citation_id)
             # update only citations in this ID range
@@ -186,7 +186,7 @@ def upgrade():
     max_fulltext_id = conn.execute(sa.text("SELECT MAX(id) FROM fulltexts")).scalar()
     if max_fulltext_id is not None:
         batch_min_id = 0
-        while batch_min_id <= max_fulltext_id:
+        while batch_min_id < max_fulltext_id:
             batch_max_id = min(batch_min_id + batch_size, max_fulltext_id)
             update_stmt = """
             UPDATE studies
