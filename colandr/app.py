@@ -5,6 +5,7 @@ import typing as t
 import apiflask as af
 import flask
 import flask.logging
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from colandr import cli, config, extensions
 from colandr.api import v1
@@ -28,6 +29,20 @@ def _create_app_v1_1(
     app.config.from_object(config)
     if config_overrides:
         app.config.update(config_overrides)
+
+    # Trust X-Forwarded-Proto/Host only when the sole client is our reverse proxy.
+    # See docs/proxy-security.md: never expose port 5000 to the public.
+    app.wsgi_app = t.cast(t.Any, ProxyFix(app.wsgi_app, x_proto=1, x_host=1))
+
+    @app.before_request
+    def set_openapi_servers_from_request() -> None:
+        # Ensure Swagger "Try it out" uses the current host+scheme.
+        #
+        # In production behind nginx, ProxyFix (above) + X-Forwarded-* headers
+        # make `request.url_root` resolve to `https://api.colandrapp.com/`.
+        if flask.request.endpoint in ("openapi.docs", "openapi.spec"):
+            url_root = flask.request.url_root.rstrip("/")
+            app.config["SERVERS"] = [{"url": url_root, "description": "API"}]
 
     _configure_logging(app)
     _register_extensions(app)

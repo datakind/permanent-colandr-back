@@ -126,7 +126,7 @@ services:
       - broker
     stop_signal: SIGINT
     healthcheck:
-      test: ["CMD-SHELL", "celery", "--app=make_celery.celery_app", "inspect", "ping", "--destination celery@$$HOSTNAME"]
+      test: ["CMD-SHELL", "celery --app=make_celery.celery_app inspect ping --destination celery@$$HOSTNAME"]
       interval: "30s"
       timeout: "10s"
       retries: 3

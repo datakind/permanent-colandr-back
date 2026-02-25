@@ -1,6 +1,8 @@
 # for developers
 
-Colandr's back-end system consists of multiple services defined and configured in `compose.yml` and two `Dockerfile`s, including a PostgreSQL database, Flask API server, and Redis broker+worker.
+Colandr's back-end system consists of multiple services defined and configured in `compose.yaml` and two `Dockerfile`s, including a PostgreSQL database, Flask API server, and Redis broker+worker.
+
+For production deployments behind a reverse proxy (nginx), see [Proxy security](proxy-security.md) for how to expose the API securely.
 
 ## local setup
 
@@ -139,3 +141,28 @@ To add an admin user to the database -- a user with special powers in the app, a
 ```shell
 $ docker exec -it colandr-api flask add_admin --name=[NAME] --email=[EMAIL] --password=[PASSWORD]
 ```
+
+## Database Connection
+
+### Create SSH Tunnel
+
+```
+ssh -i /path/to/colandr.pem \
+  -L 5432:colandr-db.carpklcd5jnh.us-east-1.rds.amazonaws.com:5432 \
+  ubuntu@34.232.91.109
+```
+
+### Connect via psql
+
+```
+psql -h localhost -p 5432 -U colandr
+```
+
+### Connect via GUI
+
+Host: localhost
+Port: 5432
+SSL: Disabled
+
+Credentials are stored in LastPass under:
+Colandr – Production RDS Access
