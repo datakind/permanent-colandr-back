@@ -2,6 +2,8 @@
 
 Colandr's back-end system consists of multiple services defined and configured in `compose.yaml` and two `Dockerfile`s, including a PostgreSQL database, Flask API server, and Redis broker+worker.
 
+For production deployments behind a reverse proxy (nginx), see [Proxy security](proxy-security.md) for how to expose the API securely.
+
 ## local setup
 
 These instructions describe a one-time setup, started from scratch. They assume you're on a machine running macOS or Linux.

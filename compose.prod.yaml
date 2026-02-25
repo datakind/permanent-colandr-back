@@ -31,7 +31,9 @@ services:
       - BUILD_TARGET=prod
       - FLASK_ENV=production
     ports:
-      - "5000:5000"
+      # Bind to localhost only so only the reverse proxy (e.g. nginx on this host)
+      # can reach the API. Required for ProxyFix security (see docs/proxy-security.md).
+      - "127.0.0.1:5000:5000"
     restart: unless-stopped
     volumes:
       - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}

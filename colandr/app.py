@@ -30,9 +30,8 @@ def _create_app_v1_1(
     if config_overrides:
         app.config.update(config_overrides)
 
-    # Configure ProxyFix to trust X-Forwarded-Proto header from nginx
-    # This ensures Flask detects HTTPS when behind a reverse proxy
-    # ProxyFix returns a WSGI middleware object; cast keeps type-checkers happy.
+    # Trust X-Forwarded-Proto/Host only when the sole client is our reverse proxy.
+    # See docs/proxy-security.md: never expose port 5000 to the public.
     app.wsgi_app = t.cast(t.Any, ProxyFix(app.wsgi_app, x_proto=1, x_host=1))
 
     @app.before_request
