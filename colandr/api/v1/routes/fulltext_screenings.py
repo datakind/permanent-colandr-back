@@ -9,8 +9,7 @@ from flask.views import MethodView
 
 from .... import models, tasks
 from ....extensions import db
-from ....utils import assign_status
-from .. import errors, schemas
+from .. import authz, errors, schemas
 
 
 bp = af.APIBlueprint("fulltext_screenings", __name__, url_prefix="/fulltexts")
@@ -37,15 +36,7 @@ class FulltextScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ):
+        if not authz.user_is_allowed_for_review(current_user, study.review_id):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to get fulltext screenings for this review"
             )
@@ -92,15 +83,9 @@ class FulltextScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Fulltext(id={id})> not found")
 
-        if (
-            current_user.is_admin is False
-            and db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, study.review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to screen fulltexts for this review"
             )
@@ -212,6 +197,7 @@ class FulltextScreeningAPI(MethodView):
             403: "current app user forbidden to delete fulltext screening; has not screened fulltext, so nothing to delete",
             404: "no fulltext matching id was found",
         },
+        security="TokenAuth",
     )
     @bp.output({}, 204)
     @jwtext.jwt_required(fresh=True)
@@ -222,14 +208,9 @@ class FulltextScreeningAPI(MethodView):
         if not study:
             raise errors.NotFoundError(message=f"<Study(id={id})> not found")
 
-        if (
-            db.session.execute(
-                current_user.review_user_assoc.select().filter_by(
-                    review_id=study.review_id
-                )
-            ).one_or_none()
-            is None
-        ) or study.review.status == "frozen":
+        if not authz.user_is_allowed_for_review(
+            current_user, study.review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to delete fulltext screening for this review"
             )
