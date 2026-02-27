@@ -1,8 +1,12 @@
 import csv
 import io
 import itertools
+import logging
 import typing as t
 from collections.abc import Iterable, Sequence
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def read(data: str, *, dialect: str = "excel", **kwargs) -> Iterable[list[str]]:
@@ -35,9 +39,16 @@ def write_stream(
     Reference:
         https://stackoverflow.com/questions/32608265/streaming-a-generated-csv-with-flask
     """
-    iter_rows = iter(rows)
-    first_row = next(iter_rows)
-    rows_ = itertools.chain((first_row,), iter_rows)
+    try:
+        iter_rows = iter(rows)
+        first_row = next(iter_rows)
+        rows_ = itertools.chain((first_row,), iter_rows)
+    except StopIteration:
+        LOGGER.warning("no rows available to be written as a stream")
+        writer = csv.writer(DummyWriter(), dialect, **kwargs)
+        yield writer.writerow(cols)
+        return
+
     if isinstance(first_row, dict):
         writer = csv.DictWriter(DummyWriter(), cols, dialect=dialect, **kwargs)
         yield writer.writeheader()
