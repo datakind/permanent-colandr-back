@@ -6,3 +6,4 @@
 - [ ] Consider removing async tasks (and db columns?) for text content vectors
 - [ ] Add script to train a v2 (splink-based) deduper model
 - [ ] Add notebook demonstrating functionality of various NLP models
+- [ ] Only clear minimal subset of authz caches when review status/membership changes
