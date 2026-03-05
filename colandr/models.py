@@ -746,12 +746,6 @@ class DataExtraction(db.Model):
         lazy="select",
     )
 
-    # TODO: remove this custom init when able to test data extraction workflows
-    def __init__(self, study_id, review_id, extracted_items=None):
-        self.study_id = study_id
-        self.review_id = review_id
-        self.extracted_items = extracted_items
-
     def __repr__(self):
         return f"<DataExtraction(id={self.id}, study_id={self.study_id})>"
 
