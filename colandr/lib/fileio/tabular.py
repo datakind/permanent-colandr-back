@@ -3,7 +3,7 @@ import io
 import itertools
 import logging
 import typing as t
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 
 
 LOGGER = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def write_stream(
     *,
     dialect="excel",
     **kwargs,
-) -> Iterable[str]:
+) -> Iterator[str]:
     """
     Write tabular data (rows x cols) in CSV format, in-memory, streaming row-by-row.
 
