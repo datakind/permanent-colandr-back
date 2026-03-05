@@ -762,19 +762,19 @@ class DataExtraction(db.Model):
 
 
 @sa_event.listens_for(Review, "after_insert")
-def insert_review_plan(mapper, connection, target):
+def insert_review_plan(mapper, connection: sa.Connection, target):
     review_plan = ReviewPlan(id=target.id)
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
 
 
 @sa_event.listens_for(Review, "after_update")
-def update_study_num_reviewers(mapper, connection, target):
+def update_study_num_reviewers(mapper, connection: sa.Connection, target):
     review_id = target.id
     study_id_updates = collections.defaultdict(dict)
     # randomly assign num citation reviewers for unscreened studies
     citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
-    study_ids: list[int] = (
+    study_ids: list[int] = list(
         connection.execute(
             sa.select(Study.id).filter_by(
                 review_id=review_id, citation_status="not_screened"
@@ -793,7 +793,7 @@ def update_study_num_reviewers(mapper, connection, target):
             study_id_updates[id_]["num_citation_reviewers"] = num_citation_reviewers
     # randomly assign num fulltext reviewers for unscreened studies
     fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
-    study_ids: list[int] = (
+    study_ids: list[int] = list(
         connection.execute(
             sa.select(Study.id).filter_by(
                 review_id=review_id, fulltext_status="not_screened"
@@ -812,11 +812,13 @@ def update_study_num_reviewers(mapper, connection, target):
             study_id_updates[id_]["num_fulltext_reviewers"] = num_fulltext_reviewers
     # munge updates into form required for sqlalchemy bulk update, submit all together
     if study_id_updates:
+        session = sa_orm.object_session(target)
+        assert session is not None  # type guard
         studies_to_update = [
             {"id": id_} | num_reviewers_updated
             for id_, num_reviewers_updated in study_id_updates.items()
         ]
-        _ = db.session.execute(sa.update(Study), studies_to_update)
+        _ = session.execute(sa.update(Study), studies_to_update)
         LOGGER.info(
             "updated num reviewer counts on %s studies for %s",
             len(studies_to_update),
