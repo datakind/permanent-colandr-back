@@ -6,7 +6,8 @@ import typing as t
 import apiflask as af
 import flask_jwt_extended as jwtext
 import sqlalchemy as sa
-from flask import current_app, make_response
+import sqlalchemy.orm as sa_orm
+from flask import Response, current_app, make_response, stream_with_context
 from flask.views import MethodView
 
 from .... import models
@@ -86,17 +87,17 @@ class ExportStudiesAPI(MethodView):
         else:
             extraction_label_types = None
 
-        # TODO: make this query performant and fully streamable, even with lazy-loading
-        # see: https://docs.sqlalchemy.org/en/14/errors.html#parent-instance-x-is-not-bound-to-a-session-lazy-load-deferred-load-refresh-etc-operation-cannot-proceed
-        # see: https://docs.sqlalchemy.org/en/14/errors.html#object-cannot-be-converted-to-persistent-state-as-this-identity-map-is-no-longer-valid
-        studies = db.session.execute(
+        stmt = (
             sa.select(models.Study)
             .filter_by(review_id=review_id)
-            .order_by(models.Study.id),
-            execution_options={"prebuffer_rows": True},
-        ).scalars()
-        # rows = (_study_to_row(study, extraction_label_types) for study in studies)
-        rows = [_study_to_row(study, extraction_label_types) for study in studies]
+            .options(
+                sa_orm.joinedload(models.Study.data_source),
+                sa_orm.joinedload(models.Study.data_extraction),
+            )
+            .order_by(models.Study.id)
+        )
+        studies = db.session.execute(stmt).scalars().yield_per(1000)
+        rows = (_study_to_row(study, extraction_label_types) for study in studies)
         if content_type == "text/csv":
             export_data = fileio.tabular.write_stream(
                 fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
@@ -105,12 +106,13 @@ class ExportStudiesAPI(MethodView):
             # NOTE: this can't happen owing to input schema validation
             raise NotImplementedError("only 'text/csv' content type is available")
 
-        response = make_response(export_data, 200)
-        response.headers.update(
-            {
+        response = Response(
+            stream_with_context(export_data),
+            status=200,
+            headers={
                 "Content-Type": content_type,
                 "Content-Disposition": "attachment; filename=colandr-review-studies.csv",
-            }
+            },
         )
         current_app.logger.info("%s exported studies data for %s", current_user, review)
         return response
