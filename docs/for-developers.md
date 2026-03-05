@@ -142,27 +142,51 @@ To add an admin user to the database -- a user with special powers in the app, a
 $ docker exec -it colandr-api flask add_admin --name=[NAME] --email=[EMAIL] --password=[PASSWORD]
 ```
 
-## Database Connection
+## Database Access
 
-### Create SSH Tunnel
+The production PostgreSQL database is in a **private RDS instance** and must be accessed through the EC2 host.
 
-```
+Credentials are stored in **LastPass** under:  
+**Colandr – Production RDS Access**
+
+---
+
+### Option 1 — Terminal
+
+Create an SSH tunnel:
+
+```bash
 ssh -i /path/to/colandr.pem \
   -L 5432:colandr-db.carpklcd5jnh.us-east-1.rds.amazonaws.com:5432 \
   ubuntu@34.232.91.109
 ```
 
-### Connect via psql
+Then connect:
 
+```bash
+psql -h localhost -p 5432 -U colandr -d EviProduction
 ```
-psql -h localhost -p 5432 -U colandr
-```
 
-### Connect via GUI
+---
 
-Host: localhost
-Port: 5432
-SSL: Disabled
+### Option 2 — DBeaver
+
+DBeaver can create the SSH tunnel automatically.
+
+**PostgreSQL**
+
+- Host: `colandr-db.carpklcd5jnh.us-east-1.rds.amazonaws.com`
+- Port: `5432`
+- Database: `colandr`
+- Username: `colandr`
+
+**SSH Tunnel**
+
+- Host: `34.232.91.109`
+- Port: `22`
+- User: `ubuntu`
+- Auth: Public Key
+- Key: `/path/to/colandr.pem`
 
 Credentials are stored in LastPass under:
 Colandr – Production RDS Access
