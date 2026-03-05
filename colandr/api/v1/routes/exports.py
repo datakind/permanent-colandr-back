@@ -221,11 +221,13 @@ class ExportScreeningsAPI(MethodView):
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
-        screenings = db.session.execute(
+        stmt = (
             sa.select(models.Screening)
+            .options(sa_orm.joinedload(models.Screening.user))
             .filter_by(review_id=review_id)
             .order_by(models.Screening.id)
-        ).scalars()
+        )
+        screenings = db.session.execute(stmt).scalars().yield_per(1000)
         fieldnames = [
             "study_id",
             "screening_stage",
@@ -234,8 +236,7 @@ class ExportScreeningsAPI(MethodView):
             "user_email",
             "user_name",
         ]
-        # rows = (_screening_to_row(screening) for screening in screenings)
-        rows = [_screening_to_row(screening) for screening in screenings]
+        rows = (_screening_to_row(screening) for screening in screenings)
         if content_type == "text/csv":
             export_data = fileio.tabular.write_stream(
                 fieldnames, rows, quoting=csv.QUOTE_NONNUMERIC
@@ -244,12 +245,13 @@ class ExportScreeningsAPI(MethodView):
             # NOTE: this can't happen owing to input schema validation
             raise NotImplementedError("only 'text/csv' content type is available")
 
-        response = make_response(export_data, 200)
-        response.headers.update(
-            {
+        response = Response(
+            stream_with_context(export_data),
+            status=200,
+            headers={
                 "Content-Type": content_type,
                 "Content-Disposition": "attachment; filename=colandr-review-screenings.csv",
-            }
+            },
         )
         current_app.logger.info(
             "%s exported screenings data for %s", current_user, review
