@@ -746,12 +746,6 @@ class DataExtraction(db.Model):
         lazy="select",
     )
 
-    # TODO: remove this custom init when able to test data extraction workflows
-    def __init__(self, study_id, review_id, extracted_items=None):
-        self.study_id = study_id
-        self.review_id = review_id
-        self.extracted_items = extracted_items
-
     def __repr__(self):
         return f"<DataExtraction(id={self.id}, study_id={self.study_id})>"
 
@@ -768,19 +762,19 @@ class DataExtraction(db.Model):
 
 
 @sa_event.listens_for(Review, "after_insert")
-def insert_review_plan(mapper, connection, target):
+def insert_review_plan(mapper, connection: sa.Connection, target):
     review_plan = ReviewPlan(id=target.id)
     connection.execute(sa.insert(ReviewPlan).values(id=target.id))
     LOGGER.info("inserted %s and %s", target, review_plan)
 
 
 @sa_event.listens_for(Review, "after_update")
-def update_study_num_reviewers(mapper, connection, target):
+def update_study_num_reviewers(mapper, connection: sa.Connection, target):
     review_id = target.id
     study_id_updates = collections.defaultdict(dict)
     # randomly assign num citation reviewers for unscreened studies
     citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
-    study_ids: list[int] = (
+    study_ids: list[int] = list(
         connection.execute(
             sa.select(Study.id).filter_by(
                 review_id=review_id, citation_status="not_screened"
@@ -799,7 +793,7 @@ def update_study_num_reviewers(mapper, connection, target):
             study_id_updates[id_]["num_citation_reviewers"] = num_citation_reviewers
     # randomly assign num fulltext reviewers for unscreened studies
     fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
-    study_ids: list[int] = (
+    study_ids: list[int] = list(
         connection.execute(
             sa.select(Study.id).filter_by(
                 review_id=review_id, fulltext_status="not_screened"
@@ -818,11 +812,13 @@ def update_study_num_reviewers(mapper, connection, target):
             study_id_updates[id_]["num_fulltext_reviewers"] = num_fulltext_reviewers
     # munge updates into form required for sqlalchemy bulk update, submit all together
     if study_id_updates:
+        session = sa_orm.object_session(target)
+        assert session is not None  # type guard
         studies_to_update = [
             {"id": id_} | num_reviewers_updated
             for id_, num_reviewers_updated in study_id_updates.items()
         ]
-        _ = db.session.execute(sa.update(Study), studies_to_update)
+        _ = session.execute(sa.update(Study), studies_to_update)
         LOGGER.info(
             "updated num reviewer counts on %s studies for %s",
             len(studies_to_update),
@@ -833,7 +829,7 @@ def update_study_num_reviewers(mapper, connection, target):
 @sa_event.listens_for(Screening, "after_insert")
 @sa_event.listens_for(Screening, "after_delete")
 @sa_event.listens_for(Screening, "after_update")
-def update_study_status(mapper, connection, target):
+def update_study_status(mapper, connection: sa.Connection, target):
     review_id = target.review_id
     study_id = target.study_id
     study = target.study
@@ -841,10 +837,13 @@ def update_study_status(mapper, connection, target):
     # for reasons unknown, the target here didn't have a loaded citation object
     # but this is _probably_ a bad thing, and you should find a way to fix it
     if study is None:
-        study = db.session.execute(
-            sa.select(Study).filter_by(id=study_id)
-        ).scalar_one_or_none()
-    assert isinstance(study, Study)  # type guard
+        study = connection.execute(
+            sa.select(
+                Study.num_citation_reviewers,
+                Study.num_fulltext_reviewers,
+            ).filter_by(id=study_id)
+        ).one_or_none()
+    assert study is not None  # type guard
     # prep stage-specific variables
     stage = target.stage
     if stage == "citation":
@@ -855,12 +854,13 @@ def update_study_status(mapper, connection, target):
         study_status_col_str = "fulltext_status"
     # compute the new status, and update the study accordingly
     status = utils.assign_status(
-        [
-            screening.status
-            for screening in db.session.execute(
-                sa.select(Screening).filter_by(study_id=study_id, stage=stage)
-            ).scalars()
-        ],
+        (
+            connection.execute(
+                sa.select(Screening.status).filter_by(study_id=study_id, stage=stage)
+            )
+            .scalars()
+            .all()
+        ),
         num_reviewers,
     )
     connection.execute(
@@ -874,19 +874,30 @@ def update_study_status(mapper, connection, target):
         # get rid of any contrary fulltext screenings
         if status != "included":
             connection.execute(
-                sa.delete(Screening)
-                .where(Screening.study_id == study_id)
-                .where(Screening.stage == "fulltext")
+                sa.delete(Screening).where(
+                    Screening.study_id == study_id,
+                    Screening.stage == "fulltext",
+                )
             )
             LOGGER.info(
                 "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
             )
-        review = (
-            db.session.execute(sa.select(Review).filter_by(id=review_id))
-            .scalars()
-            .one()
-        )
-        status_counts = review.num_citations_by_status(["included", "excluded"])
+        # review = (
+        #     db.session.execute(sa.select(Review).filter_by(id=review_id))
+        #     .scalars()
+        #     .one()
+        # )
+        # status_counts = review.num_citations_by_status(["included", "excluded"])
+        status_counts = {"included": 0, "excluded": 0}
+        status_counts |= {
+            row.citation_status: row.count
+            for row in connection.execute(
+                sa.select(Study.citation_status, sa.func.count())
+                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+                .where(Study.citation_status.in_(["included", "excluded"]))
+                .group_by(Study.citation_status)
+            )
+        }
         n_included = status_counts.get("included", 0)
         n_excluded = status_counts.get("excluded", 0)
         # if at least 25 citations have been included AND excluded
@@ -922,12 +933,22 @@ def update_study_status(mapper, connection, target):
             LOGGER.info("deleted <DataExtraction(study_id=%s)>", study_id)
             data_extraction_inserted_or_deleted = True
         if data_extraction_inserted_or_deleted is True:
-            review = (
-                db.session.execute(sa.select(Review).filter_by(id=review_id))
-                .scalars()
-                .one()
-            )
-            status_counts = review.num_fulltexts_by_status(["included", "excluded"])
+            # review = (
+            #     db.session.execute(sa.select(Review).filter_by(id=review_id))
+            #     .scalars()
+            #     .one()
+            # )
+            # status_counts = review.num_fulltexts_by_status(["included", "excluded"])
+            status_counts = {"included": 0, "excluded": 0}
+            status_counts |= {
+                row.fulltext_status: row.count
+                for row in connection.execute(
+                    sa.select(Study.fulltext_status, sa.func.count())
+                    .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+                    .where(Study.fulltext_status.in_(["included", "excluded"]))
+                    .group_by(Study.fulltext_status)
+                )
+            }
             n_incl_excl = status_counts.get("included", 0) + status_counts.get(
                 "excluded", 0
             )
