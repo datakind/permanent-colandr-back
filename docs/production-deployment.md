@@ -221,6 +221,7 @@ docker compose -f compose.prod.yaml logs -f
 
 # Update application
 git pull
+docker compose -f compose.prod.yaml pull
 docker compose -f compose.prod.yaml build
 docker compose -f compose.prod.yaml up -d
 

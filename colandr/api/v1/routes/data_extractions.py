@@ -68,7 +68,9 @@ class DataExtractionAPI(MethodView):
             )
 
         review_id = extracted_data.review_id
-        if not authz.user_is_allowed_for_review(current_user, id, if_frozen=False):
+        if not authz.user_is_allowed_for_review(
+            current_user, review_id, if_frozen=False
+        ):
             raise errors.ForbiddenError(
                 message=f"{current_user} forbidden to modify extracted data for this study"
             )
