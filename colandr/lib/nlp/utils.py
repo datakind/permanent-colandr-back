@@ -21,6 +21,7 @@ LANG_DETECTOR = (
     # and run that in "high-accuracy" mode; unclear if this is worth the trade-off
     # .from_languages(Language.CHINESE, Language.ENGLISH, Language.FRENCH, Language.JAPANESE, Language.SPANISH)
     .with_minimum_relative_distance(0.8)
+    .with_preloaded_language_models()
     .build()
 )
 
