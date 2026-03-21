@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
     services:
@@ -84,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
     steps:
@@ -105,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12", "3.13"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
     steps:

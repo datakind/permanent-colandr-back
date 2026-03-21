@@ -9,10 +9,10 @@ classifiers = [
   "Intended Audience :: Science/Research",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
-requires-python = ">= 3.11"
+requires-python = ">= 3.12"
 dependencies = [
   "alembic~=1.18.0",
   "apiflask~=3.0.0",
@@ -32,7 +32,7 @@ dependencies = [
   "gunicorn~=23.0",
   "jinja2~=3.1.0",
   "joblib~=1.5.0",
-  "lingua-language-detector~=2.1.0",
+  "lingua-language-detector~=2.2.0",
   "markupsafe~=3.0.0",
   "marshmallow~=4.1.0",
   "numpy~=2.4.1",
@@ -66,7 +66,7 @@ dev = [
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
   # TODO: update ty once officially out of beta
-  "ty~=0.0.17",
+  "ty~=0.0.24",
   "ruff~=0.15.0",
 ]
 
