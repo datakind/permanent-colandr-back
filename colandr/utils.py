@@ -46,7 +46,10 @@ def get_boolean_search_query(keyterms: Iterable[dict]) -> str:
 
 
 def _boolify_term_set(term_set: dict) -> str:
-    if term_set.get("synonyms"):
+    synonyms = term_set.get("synonyms")
+    if isinstance(synonyms, str):  # corrupted data guard
+        synonyms = [s.strip() for s in synonyms.split(",") if s.strip()]
+    if synonyms:
         return (
             "("
             + " OR ".join(
