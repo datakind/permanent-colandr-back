@@ -104,7 +104,7 @@ def sanitize(references: list[dict]) -> list[dict]:
     return references
 
 
-def _sanitize_reference(reference: dict) -> dict:
+def _sanitize_reference(reference: dict[str, t.Any]) -> dict:
     # rename certain tags with their type-specific names
     if reference["type_of_reference"] in REF_TYPE_TAG_OVERRIDES:
         tag_overrides = REF_TYPE_TAG_OVERRIDES[reference["type_of_reference"]]
@@ -132,19 +132,19 @@ def _sanitize_reference(reference: dict) -> dict:
                     break
     # handle authors specified all together on one line
     if "authors" in reference:
-        reference["authors"] = _split_up_authors(reference["authors"])
+        reference["authors"] = _split_up_authors(reference["authors"])  # type: ignore[invalid-argument-type]
     # clean notes text, which may contain html tags and markup
     if "notes" in reference:
-        reference["notes"] = _strip_tags_from_notes(reference["notes"])
+        reference["notes"] = _strip_tags_from_notes(reference["notes"])  # type: ignore[invalid-argument-type]
     # split date key into year (if needed) and month
     if reference.get("date"):
-        reference["pub_month"] = reference["date"].month
+        reference["pub_month"] = reference["date"].month  # type: ignore[unresolved-attribute]
         if "pub_year" not in reference:
-            reference["pub_year"] = reference["date"].year
+            reference["pub_year"] = reference["date"].year  # type: ignore[unresolved-attribute]
     # HACK: cast dttms to dt strings to avoid json encoding error
     reference.update(
         {
-            key: reference[key].strftime("%Y-%m-%d")
+            key: reference[key].strftime("%Y-%m-%d")  # type: ignore[unresolved-attribute]
             for key in DTTM_KEYS
             if reference.get(key)
         }
@@ -154,7 +154,7 @@ def _sanitize_reference(reference: dict) -> dict:
         if "start_page" in reference and "end_page" in reference:
             try:
                 reference["number_of_pages"] = (
-                    reference["end_page"] - reference["start_page"]
+                    reference["end_page"] - reference["start_page"]  # type: ignore[unsupported-operator]
                 )
             except TypeError:
                 pass
