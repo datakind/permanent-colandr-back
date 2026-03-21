@@ -11,6 +11,7 @@ Example:
 python scripts/populate_full_texts.py -a pdfestrian/json/aidSeq.json -i pdfestrian/json/id_map.tsv \
     -f pdfestrian/json/fulltextids.txt -d /path/to/pdfs -t YOUR_AUTH_TOKEN
 """
+
 import argparse
 import csv
 import json
@@ -18,7 +19,7 @@ import logging
 import os
 import sys
 
-import requests
+import httpx
 
 
 def add_and_parse_args() -> argparse.Namespace:
@@ -95,19 +96,21 @@ def put_pdf(record_id: int, filename: str, pdf_dir: str, host: str, token: str) 
         logging.warning("PDF file not found: %s", pdf_path)
         return False
     with open(pdf_path, "rb") as pdf_file:
-        response = requests.post(
+        response = httpx.post(
             f"{host}/api/fulltexts/{record_id}/upload",
             files={"uploaded_file": (filename + ".pdf", pdf_file, "application/pdf")},
-            headers={"Authorization": f"Bearer {token}"}
+            headers={"Authorization": f"Bearer {token}"},
         )
-        if not response.ok:
-            logging.error("Failed to upload PDF for record %s: %s", record_id, response.text)
+        if not response.is_success:
+            logging.error(
+                "Failed to upload PDF for record %s: %s", record_id, response.text
+            )
             return False
         try:
             data = response.json()
             return bool(data.get("extracted_items"))
         except Exception:
-            return response.ok
+            return response.is_success
 
 
 def main():
