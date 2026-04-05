@@ -86,13 +86,6 @@ class ReviewPlanPICO(af.Schema):
     comparison = af.fields.String(validate=af.validators.Length(max=300))
     outcome = af.fields.String(validate=af.validators.Length(max=300))
 
-    @ma.pre_load
-    def coerce_synonyms_to_list(self, data: dict, **kwargs) -> dict:
-        synonyms = data.get("synonyms")
-        if isinstance(synonyms, str):
-            data["synonyms"] = [s.strip() for s in synonyms.split(",") if s.strip()]
-        return data
-
 
 class ReviewPlanKeyterm(af.Schema):
     group = af.fields.String(required=True, validate=af.validators.Length(max=100))
@@ -100,6 +93,13 @@ class ReviewPlanKeyterm(af.Schema):
     synonyms = af.fields.List(
         af.fields.String(validate=af.validators.Length(max=100)), load_default=[]
     )
+
+    @ma.pre_load
+    def coerce_synonyms_to_list(self, data: dict, **kwargs) -> dict:
+        synonyms = data.get("synonyms")
+        if isinstance(synonyms, str):
+            data["synonyms"] = [s.strip() for s in synonyms.split(",") if s.strip()]
+        return data
 
 
 class ReviewPlanSelectionCriterion(af.Schema):
