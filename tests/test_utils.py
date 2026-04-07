@@ -25,6 +25,14 @@ from colandr import utils
             ],
             '("foo" OR ("bar" OR "bat" OR "baz"))\nAND\n("spam" OR "eggs")',
         ),
+        (
+            [
+                {"term": "TERM1", "group": "GROUP1"},
+                {"term": "TERM2", "group": "GROUP2"},
+                {"term": "TERM3", "group": "GROUP1"},
+            ],
+            '("TERM1" OR "TERM3")\nAND\n"TERM2"',
+        ),
     ],
 )
 def test_get_boolean_search_query(keyterms, exp_result):

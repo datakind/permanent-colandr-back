@@ -39,6 +39,7 @@ def get_boolean_search_query(keyterms: Iterable[dict]) -> str:
     Args:
         keyterms
     """
+    keyterms = sorted(keyterms, key=itemgetter("group"))
     return "\nAND\n".join(
         _boolify_group_terms(group_terms)
         for _, group_terms in itertools.groupby(keyterms, key=itemgetter("group"))
