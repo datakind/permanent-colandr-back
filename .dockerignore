@@ -1,0 +1,13 @@
+*
+!colandr
+!colandr_data
+!scripts
+!tests
+!pyproject.toml
+!uv.lock
+!README.md
+!LICENSE
+!restart_service.sh
+!gunicorn.conf.py
+!make_celery.py
+!migrations

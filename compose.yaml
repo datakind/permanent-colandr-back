@@ -1,0 +1,173 @@
+services:
+  db:
+    container_name: colandr-db
+    image: "postgres:17"
+    restart: unless-stopped
+    stop_grace_period: 5s
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file: .env
+    environment:
+      - POSTGRES_USER=${COLANDR_DB_USER}
+      - POSTGRES_PASSWORD=${COLANDR_DB_PASSWORD}
+      - POSTGRES_DB=${COLANDR_DB_NAME}
+      - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_HOST_AUTH_METHOD=md5
+      - POSTGRES_INITDB_ARGS="--auth-host=md5"
+    healthcheck:
+      test: "pg_isready -U ${COLANDR_DB_USER} -d ${COLANDR_DB_NAME}"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  gcs:
+    container_name: colandr-gcs
+    image: "fsouza/fake-gcs-server:1.52"
+    ports:
+      - "4443:4443"
+    command:
+      [
+        "-scheme", "http",
+        "-public-host", "colandr-gcs:4443",
+        "-external-url", "http://colandr-gcs:4443",
+        "-data", "/storage",
+      ]
+    volumes:
+      - gcs-data:/storage
+    profiles:
+      - dev
+  email:
+    container_name: colandr-email
+    image: "axllent/mailpit:v1.24"
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # web ui
+      - "1025:1025" # smtp
+    environment:
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+      - MP_VERBOSE=1
+      - MP_MAX_MESSAGES=100
+    profiles:
+      - dev
+  broker:
+    container_name: colandr-broker
+    image: "redis:8.0"
+    restart: unless-stopped
+    stop_grace_period: 5s
+    volumes:
+      - broker-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: "redis-cli ping"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  api:
+    container_name: colandr-api
+    build:
+      context: "."
+      dockerfile: Dockerfile.api
+      target: ${BUILD_TARGET}
+    platform: linux/amd64
+    depends_on:
+      - db
+      - broker
+      - worker
+    stop_signal: SIGINT
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "localhost:5000/api/health"]
+      interval: "30s"
+      timeout: "5s"
+      start_period: "15s"
+      retries: 3
+    ports:
+      - 5001:5000
+    env_file: ".env"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
+      - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
+    volumes:
+      - file-data:/app/data
+    develop:
+      watch:
+        # sync working directory with container's `/app` directory
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+            - .git/
+            - .vscode/
+            - __pycache__/
+            - .mypy_cache/
+            - .pytest_cache/
+        # sync+restart if app config changes
+        - action: sync+restart
+          path: ./colandr/config.py
+          target: /app/colandr/config.py
+        # rebuild image if dependencies change in uv.lock
+        - action: rebuild
+          path: ./uv.lock
+          target: /app/uv.lock
+  worker:
+    container_name: colandr-worker
+    build:
+      context: "."
+      dockerfile: Dockerfile.worker
+      target: ${BUILD_TARGET}
+    platform: linux/amd64
+    depends_on:
+      - db
+      - broker
+    stop_signal: SIGINT
+    healthcheck:
+      test: ["CMD-SHELL", "celery --app=make_celery.celery_app inspect ping --destination celery@$$HOSTNAME"]
+      interval: "30s"
+      timeout: "10s"
+      retries: 3
+    ports:
+      - "8000:8000"
+    env_file: ".env"
+    environment:
+      - COLANDR_DATABASE_URI=postgresql+psycopg://${COLANDR_DB_USER}:${COLANDR_DB_PASSWORD}@colandr-db:5432/${COLANDR_DB_NAME}
+      - COLANDR_CELERY_BROKER_URL=redis://colandr-broker:6379/0
+      - COLANDR_CELERY_RESULT_BACKEND=redis://colandr-broker:6379/0
+      - COLANDR_REDIS_HOST=colandr-broker
+    volumes:
+      - file-data:/app/data
+    develop:
+      watch:
+        # sync working directory with container's `/app` directory
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+            - .git/
+            - .vscode/
+            - __pycache__/
+            - .mypy_cache/
+            - .pytest_cache/
+        # sync+restart if app config changes
+        - action: sync+restart
+          path: ./colandr/config.py
+          target: /app/colandr/config.py
+        # rebuild image if dependencies change in uv.lock
+        - action: rebuild
+          path: ./uv.lock
+          target: /app/uv.lock
+
+networks:
+  default:
+    name: "colandr-back"
+
+volumes:
+  db-data: {}
+  file-data: {}
+  gcs-data: {}
+  broker-data: {}

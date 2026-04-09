@@ -1,0 +1,120 @@
+name: checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:  # run on all PRs
+  schedule:  # run weekly
+    - cron: "0 12 * * 0"
+
+# HACK: let's add fake colandr envvars so tests can run
+# TODO (burton): figure out a better way of configuring the app!
+env:
+  COLANDR_DB_USER: "colandr_app"
+  COLANDR_DB_PASSWORD: "password"
+  COLANDR_DB_HOST: "localhost"
+  COLANDR_DB_NAME: "colandr"
+  COLANDR_DATABASE_URI: "postgresql+psycopg://colandr_app:password@localhost:5432/colandr"
+  COLANDR_SECRET_KEY: "colandr_secret_key"
+  COLANDR_APP_DIR: "/tmp"
+  COLANDR_FILESYSTEM_ROOT_DIR: "/tmp/data"
+  COLANDR_MAIL_USERNAME: "colandr_mail_username"
+  COLANDR_MAIL_PASSWORD: "colandr_mail_password"
+  # COLANDR_FILESYSTEM_GCS_ENDPOINT_URL: "http://colandr-gcs:4443"
+  # COLANDR_FILESYSTEM_ROOT_DIR: "test-bucket"
+
+jobs:
+
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+        # TODO: also run on macos-latest pending docker/colima issue
+        os: [ubuntu-latest]
+    services:
+      # NOTE: these containers should match those in app's docker compose file
+      colandr_db:
+        image: "postgres:17"
+        env:
+          POSTGRES_USER: ${{ env.COLANDR_DB_USER }}
+          POSTGRES_PASSWORD: ${{ env.COLANDR_DB_PASSWORD }}
+          POSTGRES_DB: ${{ env.COLANDR_DB_NAME }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      colandr_broker:
+        image: "redis:8.0"
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      # - name: Set up fake GCS server
+      #   uses: fsouza/fake-gcs-action@v0.4.1
+      #   with:
+      #     version: "1.52.3"
+      #     backend: "memory"
+      #     data: "colandr_data"
+      #     # public-host: "storage.gcs.127.0.0.1.nip.io:4443"
+      #     # external-url: "http://storage.gcs.127.0.0.1.nip.io:4443"
+      #     public-host: "colandr-gcs:4443"
+      #     external-url: "http://colandr-gcs:4443"
+      #     scheme: "http"
+      #     port: "4443"
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Test with pytest
+        run: |
+          uv run python -m pytest tests --verbose
+  style:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+        # TODO: also run on macos-latest pending docker/colima issue
+        os: [ubuntu-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run formatter
+        run: |
+          uv run python -m ruff format --diff colandr
+      - name: Run linter
+        run: |
+          uv run python -m ruff check --exit-zero colandr
+  types:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+        # TODO: also run on macos-latest pending docker/colima issue
+        os: [ubuntu-latest]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: ./.github/actions/setup-python-env
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Check types with ty
+        run: |
+          uv run python -m ty check

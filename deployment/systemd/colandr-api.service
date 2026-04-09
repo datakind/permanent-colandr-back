@@ -1,0 +1,18 @@
+[Unit]
+Description=Colandr API
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ubuntu/permanent-colandr-back
+ExecStart=/usr/bin/docker compose -f compose.prod.yaml up -d
+ExecStop=/usr/bin/docker compose -f compose.prod.yaml down
+User=ubuntu
+Group=ubuntu
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

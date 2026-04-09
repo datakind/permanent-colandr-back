@@ -1,1059 +1,987 @@
-import bcrypt
+import collections
+import datetime
 import itertools
+import logging
+import random
+import typing as t
 
-from flask import current_app
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer,
-                          BadSignature, SignatureExpired)
-from sqlalchemy import event, false, text, ForeignKey
+import sqlalchemy as sa
+import sqlalchemy.orm as sa_orm
+import werkzeug.security
+from sqlalchemy import event as sa_event
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapped as M
+from sqlalchemy.orm import WriteOnlyMapped as WOM
+from sqlalchemy.orm import mapped_column as mapcol
 
-from . import db
-from .api.utils import assign_status, get_boolean_search_query
-from .lib.utils import get_console_logger
+from . import utils
+from .extensions import db
 
 
-logger = get_console_logger(__name__)
-
-
-# association table for users-reviews many-to-many relationship
-users_reviews = db.Table(
-    'users_to_reviews',
-    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), index=True),
-    db.Column('review_id', db.Integer, db.ForeignKey('reviews.id'), index=True)
-    )
+LOGGER = logging.getLogger(__name__)
 
 
 class User(db.Model):
-
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     # columns
-    id = db.Column(
-        db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    name = db.Column(
-        db.Unicode(length=200), nullable=False)
-    email = db.Column(
-        db.Unicode(length=200), unique=True, nullable=False,
-        index=True)
-    password = db.Column(
-        db.Unicode(length=60), nullable=False)
-    is_confirmed = db.Column(
-        db.Boolean, nullable=False, server_default=false())
-    is_admin = db.Column(
-        db.Boolean, nullable=False, server_default=false())
+    id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    name: M[str] = mapcol(sa.String(length=200))
+    email: M[str] = mapcol(sa.String(length=200), unique=True, index=True)
+    _password: M[str] = mapcol("password", sa.String(length=256))
+    is_confirmed: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
+    is_admin: M[bool] = mapcol(sa.Boolean, server_default=sa.false())
 
     # relationships
-    owned_reviews = db.relationship(
-        'Review', back_populates='owner',
-        lazy='dynamic', passive_deletes=True)
-    reviews = db.relationship(
-        'Review', secondary=users_reviews, back_populates='users',
-        lazy='dynamic')
-    imports = db.relationship(
-        'Import', back_populates='user',
-        lazy='dynamic', passive_deletes=True)
-    studies = db.relationship(
-        'Study', back_populates='user',
-        lazy='dynamic', passive_deletes=True)
-    citation_screenings = db.relationship(
-        'CitationScreening', back_populates='user',
-        lazy='dynamic')
-    fulltext_screenings = db.relationship(
-        'FulltextScreening', back_populates='user',
-        lazy='dynamic')
-
-    def __init__(self, name, email, password):
-        self.name = name
-        self.email = email
-        self.password = self.hash_password(password)
+    review_user_assoc: WOM["ReviewUserAssoc"] = sa_orm.relationship(
+        "ReviewUserAssoc",
+        back_populates="user",
+        cascade="all, delete",
+        lazy="write_only",
+        order_by="ReviewUserAssoc.review_id",
+        passive_deletes=True,
+    )
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
+    )
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
+    )
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="user",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
+    )
 
     def __repr__(self):
-        return "<User(id={})>".format(self.id)
+        return f"<User(id={self.id})>"
 
-    def generate_auth_token(self, expiration=1800):
-        """
-        Generate an authentication token for user that automatically expires
-        after ``expiration`` seconds.
-        """
-        s = Serializer(current_app.config['SECRET_KEY'], expires_in=expiration)
-        return s.dumps({'id': self.id}).decode('ascii')
+    @property
+    def reviews(self) -> list["Review"]:
+        return [
+            rua.review
+            for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        ]
 
-    def verify_password(self, plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.checkpw(plaintext_password, self.password.encode('utf8'))
+    @property
+    def owned_reviews(self) -> list["Review"]:
+        return [
+            rua.review
+            for rua in db.session.execute(
+                self.review_user_assoc.select().filter_by(user_role="owner")
+            ).scalars()
+        ]
 
-    @staticmethod
-    def hash_password(plaintext_password):
-        if isinstance(plaintext_password, str):
-            plaintext_password = plaintext_password.encode('utf8')
-        return bcrypt.hashpw(
-            plaintext_password,
-            bcrypt.gensalt(rounds=current_app.config['BCRYPT_LOG_ROUNDS'])
-            ).decode('utf8')
-
-    @staticmethod
-    def verify_auth_token(token):
-        s = Serializer(current_app.config['SECRET_KEY'])
-        try:
-            data = s.loads(token)
-        except (SignatureExpired, BadSignature):
-            return None  # valid token, but expired
-        return db.session.query(User).get(data['id'])
-
-
-class DataSource(db.Model):
-
-    __tablename__ = 'data_sources'
-    __table_args__ = (
-        db.UniqueConstraint('source_type', 'source_name',
-                            name='source_type_source_name_uc'),
+    @property
+    def collaborators(self) -> list["User"]:
+        review_ids_cte = (
+            sa.select(ReviewUserAssoc.review_id)
+            .filter_by(user_id=self.id)
+            .cte(name="review_ids")
         )
+        user_ids_cte = (
+            sa.select(ReviewUserAssoc.user_id)
+            .join(
+                review_ids_cte, ReviewUserAssoc.review_id == review_ids_cte.c.review_id
+            )
+            .group_by(ReviewUserAssoc.user_id)
+            .cte(name="user_ids")
+        )
+        stmt = (
+            sa.select(User)
+            .join(user_ids_cte, User.id == user_ids_cte.c.user_id)
+            .order_by(User.id)
+        )
+        return [user for user in db.session.execute(stmt).scalars() if user != self]
+        # return sorted(
+        #     set(
+        #         user
+        #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+        #         for user in rua.review.users
+        #         if user != self
+        #     ),
+        #     key=lambda x: x.id,
+        # )
 
-    # columns
-    id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    source_type = db.Column(
-        db.Unicode(length=20),
-        nullable=False, index=True)
-    source_name = db.Column(
-        db.Unicode(length=100),
-        index=True)
-    source_url = db.Column(db.Unicode(length=500))
+    @property
+    def password(self) -> str:
+        """User's (automatically hashed) password."""
+        return self._password
 
-    @hybrid_property
-    def source_type_and_name(self):
-        if self.source_name:
-            return '{}: {}'.format(self.source_type, self.source_name)
-        else:
-            return self.source_type
+    @password.setter
+    def password(self, value):
+        """Hash and set user password."""
+        self._password = self.hash_password(value)
 
-    # relationships
-    imports = db.relationship(
-        'Import', back_populates='data_source',
-        lazy='dynamic', passive_deletes=True)
-    studies = db.relationship(
-        'Study', back_populates='data_source',
-        lazy='dynamic', passive_deletes=True)
+    def check_password(self, password: str) -> bool:
+        return werkzeug.security.check_password_hash(self._password, password)
 
-    def __init__(self, source_type, source_name=None, source_url=None):
-        self.source_type = source_type
-        self.source_name = source_name
-        self.source_url = source_url
-
-    def __repr__(self):
-        return "<DataSource(id={})>".format(self.id)
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return werkzeug.security.generate_password_hash(
+            password, method="scrypt", salt_length=16
+        )
 
 
 class Review(db.Model):
-
-    __tablename__ = 'reviews'
+    __tablename__ = "reviews"
 
     # columns
-    id = db.Column(
-        db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    owner_user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    name = db.Column(
-        db.Unicode(length=500), nullable=False)
-    description = db.Column(db.UnicodeText)
-    status = db.Column(
-        db.Unicode(length=25), server_default='active', nullable=False)
-    num_citation_screening_reviewers = db.Column(
-        db.SmallInteger, server_default='1', nullable=False)
-    num_fulltext_screening_reviewers = db.Column(
-        db.SmallInteger, server_default='1', nullable=False)
-    num_citations_included = db.Column(
-        db.Integer, server_default='0', nullable=False)
-    num_citations_excluded = db.Column(
-        db.Integer, server_default='0', nullable=False)
-    num_fulltexts_included = db.Column(
-        db.Integer, server_default='0', nullable=False)
-    num_fulltexts_excluded = db.Column(
-        db.Integer, server_default='0', nullable=False)
+    id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    name: M[str] = mapcol(sa.String(length=500))
+    description: M[t.Optional[str]] = mapcol(sa.Text)
+    status: M[str] = mapcol(sa.String(length=25), server_default="active")
+    citation_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
+    )
+    fulltext_reviewer_num_pcts: M[list[dict[str, int]]] = mapcol(
+        postgresql.JSONB, server_default=sa.text('\'[{"num": 1, "pct": 100}]\'::json')
+    )
 
     # relationships
-    owner = db.relationship(
-        'User', foreign_keys=[owner_user_id], back_populates='owned_reviews',
-        lazy='select')
-    users = db.relationship(
-        'User', secondary=users_reviews, back_populates='reviews',
-        lazy='dynamic')
-    review_plan = db.relationship(
-        'ReviewPlan', uselist=False, back_populates='review',
-        lazy='select', passive_deletes=True)
-    imports = db.relationship(
-        'Import', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    studies = db.relationship(
-        'Study', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    dedupes = db.relationship(
-        'Dedupe', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    citations = db.relationship(
-        'Citation', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    citation_screenings = db.relationship(
-        'CitationScreening', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    fulltexts = db.relationship(
-        'Fulltext', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    fulltext_screenings = db.relationship(
-        'FulltextScreening', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
-    data_extractions = db.relationship(
-        'DataExtraction', back_populates='review',
-        lazy='dynamic', passive_deletes=True)
+    review_user_assoc = sa_orm.relationship(
+        "ReviewUserAssoc",
+        back_populates="review",
+        cascade="all, delete",
+        # TODO: we should make this write-only, replace assoc proxy w/ users property
+        lazy="dynamic",
+        order_by="ReviewUserAssoc.user_id",
+    )
+    users = association_proxy("review_user_assoc", "user")
 
-    def __init__(self, name, owner_user_id, description=None):
-        self.name = name
-        self.owner_user_id = owner_user_id
-        self.description = description
+    review_plan: M["ReviewPlan"] = sa_orm.relationship(
+        "ReviewPlan", back_populates="review", lazy="select", passive_deletes=True
+    )
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Import.id",
+        passive_deletes=True,
+    )
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Study.id",
+        passive_deletes=True,
+    )
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Screening.id",
+        passive_deletes=True,
+    )
+    dedupes: WOM["Dedupe"] = sa_orm.relationship(
+        "Dedupe",
+        back_populates="review",
+        lazy="write_only",
+        order_by="Dedupe.id",
+        passive_deletes=True,
+    )
+    data_extractions: WOM["DataExtraction"] = sa_orm.relationship(
+        "DataExtraction",
+        back_populates="review",
+        lazy="write_only",
+        order_by="DataExtraction.id",
+        passive_deletes=True,
+    )
 
     def __repr__(self):
-        return "<Review(id={})>".format(self.id)
+        return f"<Review(id={self.id})>"
+
+    # @property
+    # def users(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in db.session.execute(self.review_user_assoc.select()).scalars()
+    #     ]
+
+    # @property
+    # def owners(self) -> list[User]:
+    #     return [
+    #         rua.user
+    #         for rua in self.review_user_assoc.select().filter_by(user_role="owner").scalars()
+    #     ]
+
+    @property
+    def owners(self) -> list[User]:
+        return [
+            rua.user
+            for rua in db.session.execute(
+                sa.select(ReviewUserAssoc)
+                .filter_by(review_id=self.id, user_role="owner")
+                .order_by(ReviewUserAssoc.user_id)
+            ).scalars()
+        ]
+
+    def num_citations_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.citation_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.citation_status.in_(statuses))
+            .group_by(Study.citation_status)
+        )
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.citation_status: row.count for row in db.session.execute(stmt)}
+        return result
+
+    def num_fulltexts_by_status(self, statuses: str | list[str]) -> dict[str, int]:
+        if isinstance(statuses, str):
+            statuses = [statuses]
+        stmt = (
+            sa.select(Study.fulltext_status, sa.func.count())
+            .filter_by(review_id=self.id, dedupe_status="not_duplicate")
+            .where(Study.fulltext_status.in_(statuses))
+            .group_by(Study.fulltext_status)
+        )
+        # ensure every status is in result, with default value (0)
+        result = {status: 0 for status in statuses}
+        result |= {row.fulltext_status: row.count for row in db.session.execute(stmt)}
+        return result
+
+
+class ReviewUserAssoc(db.Model):
+    __tablename__ = "review_user_assoc"
+
+    review_id: M[int] = mapcol(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: M[int] = mapcol(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_role: M[t.Optional[str]] = mapcol(
+        sa.Text, nullable=False, server_default=sa.text("'member'")
+    )
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+
+    review: M["Review"] = sa_orm.relationship(
+        "Review", back_populates="review_user_assoc"
+    )
+    user: M["User"] = sa_orm.relationship("User", back_populates="review_user_assoc")
+
+    def __init__(self, review: Review, user: User, user_role: t.Optional[str] = None):
+        self.review = review
+        self.user = user
+        self.user_role = user_role
+
+    def __repr__(self):
+        return f"<ReviewUserAssoc(review_id={self.review_id}, user_id={self.user_id})>"
 
 
 class ReviewPlan(db.Model):
-
-    __tablename__ = 'review_plans'
+    __tablename__ = "review_plans"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey('reviews.id', ondelete='CASCADE'),
-        primary_key=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    objective = db.Column(db.UnicodeText)
-    research_questions = db.Column(
-        postgresql.ARRAY(db.Unicode(length=300)), server_default='{}')
-    pico = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
-    keyterms = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
-    selection_criteria = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
-    data_extraction_form = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
-    suggested_keyterms = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
+    # TODO: move this into separate review_id col, as was done for study_id elsewhere
+    id: M[int] = mapcol(
+        sa.BigInteger, sa.ForeignKey("reviews.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    objective: M[t.Optional[str]] = mapcol(sa.Text)
+    research_questions = mapcol(
+        postgresql.ARRAY(sa.String(length=300)),
+        server_default="{}",
+    )
+    pico: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    keyterms: M[list[dict[str, t.Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    selection_criteria: M[list[dict[str, t.Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    data_extraction_form: M[list[dict[str, t.Any]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
+    suggested_keyterms: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
 
     @hybrid_property
     def boolean_search_query(self):
         if not self.keyterms:
-            return ''
+            return ""
         else:
-            return get_boolean_search_query(self.keyterms)
+            return utils.get_boolean_search_query(self.keyterms)
 
     # relationships
-    review = db.relationship(
-        'Review', foreign_keys=[id], back_populates='review_plan',
-        lazy='select')
-
-    def __init__(self, id_,
-                 objective=None, research_questions=None, pico=None,
-                 keyterms=None, selection_criteria=None,
-                 data_extraction_form=None):
-        self.id = id_
-        self.objective = objective
-        self.research_questions = research_questions
-        self.pico = pico
-        self.keyterms = keyterms
-        self.selection_criteria = selection_criteria
-        self.data_extraction_form = data_extraction_form
+    review: M["Review"] = sa_orm.relationship(
+        "Review", foreign_keys=[id], back_populates="review_plan", lazy="select"
+    )
 
     def __repr__(self):
-        return "<ReviewPlan(review_id={})>".format(self.id)
+        return f"<ReviewPlan(review_id={self.id})>"
+
+
+class DataSource(db.Model):
+    __tablename__ = "data_sources"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "source_type",
+            "source_name",
+            "source_url",
+            name="uq_source_type_name_url",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
+
+    # columns
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    source_type: M[str] = mapcol(sa.String(length=20), index=True)
+    source_name: M[t.Optional[str]] = mapcol(sa.String(length=100), index=True)
+    source_url: M[t.Optional[str]] = mapcol(sa.String(length=500))
+
+    @hybrid_property
+    def source_type_and_name(self):
+        if self.source_name:
+            return f"{self.source_type}: {self.source_name}"
+        else:
+            return self.source_type
+
+    # relationships
+    imports: WOM["Import"] = sa_orm.relationship(
+        "Import", back_populates="data_source", lazy="write_only", passive_deletes=True
+    )
+    studies: WOM["Study"] = sa_orm.relationship(
+        "Study", back_populates="data_source", lazy="write_only", passive_deletes=True
+    )
+
+    def __repr__(self):
+        return f"<DataSource(id={self.id})>"
 
 
 class Import(db.Model):
-
-    __tablename__ = 'imports'
+    __tablename__ = "imports"
 
     # columns
-    id = db.Column(
-        db.Integer, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
-        nullable=False, index=True)
-    data_source_id = db.Column(
-        db.BigInteger, ForeignKey('data_sources.id', ondelete='SET NULL'),
-        nullable=False)
-    record_type = db.Column(
-        db.Unicode(length=10), nullable=False)
-    num_records = db.Column(
-        db.Integer, nullable=False)
-    status = db.Column(
-        db.Unicode(length=20), server_default='not_screened')
+    id: M[int] = mapcol(sa.Integer, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    user_id: M[t.Optional[int]] = mapcol(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    data_source_id: M[t.Optional[int]] = mapcol(
+        sa.BigInteger, sa.ForeignKey("data_sources.id", ondelete="SET NULL")
+    )
+    record_type: M[str] = mapcol(sa.String(length=10))
+    num_records: M[int] = mapcol(sa.Integer)
+    status: M[t.Optional[str]] = mapcol(
+        sa.String(length=20), server_default="not_screened"
+    )
 
     # relationships
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='imports',
-        lazy='select')
-    user = db.relationship(
-        'User', foreign_keys=[user_id], back_populates='imports',
-        lazy='subquery')  # TODO: change to 'selectin' when sqlalchemy>=1.2.0 ?
-    data_source = db.relationship(
-        'DataSource', foreign_keys=[data_source_id], back_populates='imports',
-        lazy='subquery')  # TODO: change to 'selectin' when sqlalchemy>=1.2.0 ?
-
-    def __init__(self, review_id, user_id, data_source_id, record_type, num_records,
-                 status=None):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.data_source_id = data_source_id
-        self.record_type = record_type
-        self.num_records = num_records
-        self.status = status
+    review: M["Review"] = sa_orm.relationship(
+        "Review", foreign_keys=[review_id], back_populates="imports", lazy="select"
+    )
+    user: M["User"] = sa_orm.relationship(
+        "User", foreign_keys=[user_id], back_populates="imports", lazy="select"
+    )
+    data_source: M["DataSource"] = sa_orm.relationship(
+        "DataSource",
+        foreign_keys=[data_source_id],
+        back_populates="imports",
+        lazy="select",
+    )
 
     def __repr__(self):
-        return "<Import(id={})>".format(self.id)
+        return f"<Import(id={self.id}, review_id={self.review_id})>"
 
 
 class Study(db.Model):
-
-    __tablename__ = 'studies'
+    __tablename__ = "studies"
 
     # columns
-    id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
-        nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    tags = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)), server_default='{}',
-        index=False)
-    data_source_id = db.Column(
-        db.Integer, ForeignKey('data_sources.id', ondelete='SET NULL'),
-        nullable=False, index=True)
-    dedupe_status = db.Column(
-        db.Unicode(length=20), server_default='not_duplicate',
-        nullable=True, index=True)
-    citation_status = db.Column(
-        db.Unicode(length=20), server_default='not_screened',
-        nullable=False, index=True)
-    fulltext_status = db.Column(
-        db.Unicode(length=20), server_default='not_screened',
-        nullable=False, index=True)
-    data_extraction_status = db.Column(
-        db.Unicode(length=20), server_default='not_started',
-        nullable=False, index=True)
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    citation: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True),
+        nullable=True,  # TODO: False?
+    )
+    citation_text_content_vector_rep = mapcol(
+        postgresql.ARRAY(sa.Float), server_default="{}"
+    )
+    fulltext: M[dict[str, t.Any]] = mapcol(
+        postgresql.JSONB(none_as_null=True), nullable=True
+    )
+    user_id: M[t.Optional[int]] = mapcol(
+        sa.Integer, sa.ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    tags = mapcol(
+        postgresql.ARRAY(sa.String(length=64)), server_default="{}", index=False
+    )
+    data_source_id: M[t.Optional[int]] = mapcol(
+        sa.Integer, sa.ForeignKey("data_sources.id", ondelete="SET NULL"), index=True
+    )
+    dedupe_status: M[t.Optional[str]] = mapcol(
+        sa.String(length=20), server_default="not_duplicate", index=True
+    )
+    citation_status: M[str] = mapcol(
+        sa.String(length=20), server_default="not_screened", index=True
+    )
+    fulltext_status: M[str] = mapcol(
+        sa.String(length=20), server_default="not_screened", index=True
+    )
+    data_extraction_status: M[str] = mapcol(
+        sa.String(length=20), server_default="not_started", index=True
+    )
+    num_citation_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
+    num_fulltext_reviewers: M[int] = mapcol(sa.SmallInteger, server_default="1")
 
     # relationships
-    user = db.relationship(
-        'User', foreign_keys=[user_id], back_populates='studies',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='studies',
-        lazy='select')
-    data_source = db.relationship(
-        'DataSource', foreign_keys=[data_source_id], back_populates='studies',
-        lazy='select')
-    dedupe = db.relationship(
-        'Dedupe', uselist=False, back_populates='study',
-        lazy='joined', passive_deletes=True)
-    citation = db.relationship(
-        'Citation', uselist=False, back_populates='study',
-        lazy='joined', passive_deletes=True)
-    fulltext = db.relationship(
-        'Fulltext', uselist=False, back_populates='study',
-        lazy='joined', passive_deletes=True)
-    data_extraction = db.relationship(
-        'DataExtraction', uselist=False, back_populates='study',
-        lazy='joined', passive_deletes=True)
-
-    def __init__(self, user_id, review_id, data_source_id):
-        self.user_id = user_id
-        self.review_id = review_id
-        self.data_source_id = data_source_id
+    user: M["User"] = sa_orm.relationship(
+        "User", foreign_keys=[user_id], back_populates="studies", lazy="select"
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review", foreign_keys=[review_id], back_populates="studies", lazy="select"
+    )
+    data_source: M["DataSource"] = sa_orm.relationship(
+        "DataSource",
+        foreign_keys=[data_source_id],
+        back_populates="studies",
+        lazy="select",
+    )
+    # TODO: maybe change lazy to "select" here? there will always be 0-3 screenings...
+    screenings: WOM["Screening"] = sa_orm.relationship(
+        "Screening",
+        back_populates="study",
+        lazy="write_only",
+        passive_deletes=True,
+        order_by="Screening.id",
+    )
+    dedupe: M["Dedupe"] = sa_orm.relationship(
+        "Dedupe", back_populates="study", lazy="select", passive_deletes=True
+    )
+    data_extraction: M["DataExtraction"] = sa_orm.relationship(
+        "DataExtraction", back_populates="study", lazy="select", passive_deletes=True
+    )
 
     def __repr__(self):
-        return "<Study(id={})>".format(self.id)
+        return f"<Study(id={self.id}, review_id={self.review_id})>"
+
+    @hybrid_property
+    def citation_text_content(self):
+        parts = (
+            self.citation.get("title", ""),
+            self.citation.get("abstract", ""),
+            ", ".join(self.citation.get("keywords", [])),
+        )
+        return "\n\n".join(part for part in parts if part)
+
+    @citation_text_content.inplace.expression
+    @classmethod
+    def _citation_text_content_expression(cls):
+        # NOTE: i can't convince sqlalchemy to convert the keywords jsonb array
+        # into a concatenated string; i have LOOKED, this shit is BONKERS
+        # no, db.func.array_to_string(cls.citation["keywords"], ", ") does not work
+        return sa.func.concat_ws(
+            "\n\n",
+            cls.citation["title"].astext,
+            cls.citation["abstract"].astext,
+            sa.func.trim(cls.citation["keywords"].astext, "[]"),
+        )
+
+    # @citation_text_content.expression
+    # def citation_text_content(cls):
+    #     return (
+    #         db.func.concat_ws(
+    #             "\n\n",
+    #             cls.citation["title"],
+    #             cls.citation["abstract"],
+    #             db.func.array_to_string(
+    #                 db.func.array_agg(
+    #                     db.func.jsonb_array_elements_text(
+    #                         cls.citation["keywords"]
+    #                     ).column_valued("kw")
+    #                 ),
+    #                 ", ",
+    #             ),
+    #         ),
+    #     )
+
+    @hybrid_property
+    def citation_exclude_reasons(self):
+        return self._exclude_reasons("citation")
+
+    @hybrid_property
+    def fulltext_exclude_reasons(self):
+        return self._exclude_reasons("fulltext")
+
+    def _exclude_reasons(self, stage: str):
+        return sorted(
+            set(
+                itertools.chain.from_iterable(
+                    screening.exclude_reasons or []
+                    for screening in db.session.execute(
+                        self.screenings.select().filter_by(stage=stage)
+                    ).scalars()
+                )
+            )
+        )
+
+
+class Screening(db.Model):
+    __tablename__ = "screenings"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "user_id",
+            "review_id",
+            "study_id",
+            "stage",
+            name="uq_screenings_user_review_study_stage",
+        ),
+        db.Index("ix_screenings_study_id_stage", "study_id", "stage"),
+    )
+
+    # columns
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    user_id: M[t.Optional[int]] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
+        index=True,
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
+        index=True,
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+    )
+    stage: M[str] = mapcol(sa.String(length=16))
+    status: M[str] = mapcol(sa.String(length=20), index=True)
+    exclude_reasons: M[list[str]] = mapcol(
+        postgresql.ARRAY(sa.String(length=64)), nullable=True
+    )
+
+    # relationships
+    user: M["User"] = sa_orm.relationship(
+        "User",
+        foreign_keys=[user_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review",
+        foreign_keys=[review_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+    study: M["Study"] = sa_orm.relationship(
+        "Study",
+        foreign_keys=[study_id],
+        back_populates="screenings",
+        lazy="select",
+    )
+
+    def __repr__(self):
+        return (
+            f"<Screening(id={self.id}, study_id={self.study_id}, stage={self.stage})>"
+        )
 
 
 class Dedupe(db.Model):
-
-    __tablename__ = 'dedupes'
-
-    # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        primary_key=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    duplicate_of = db.Column(
-        db.BigInteger,  # ForeignKey('studies.id', ondelete='SET NULL'),
-        nullable=True)
-    duplicate_score = db.Column(
-        db.Float,
-        nullable=True)
-
-    # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[id], back_populates='dedupe',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='dedupes',
-        lazy='select')
-
-    def __init__(self, id_, review_id, duplicate_of, duplicate_score):
-        self.id = id_
-        self.review_id = review_id
-        self.duplicate_of = duplicate_of
-        self.duplicate_score = duplicate_score
-
-    def __repr__(self):
-        return "<Dedupe(study_id={})>".format(self.id)
-
-
-class Citation(db.Model):
-
-    __tablename__ = 'citations'
-    # indexing doesn't work here — we'd need to specify the config e.g. 'english'
-    # but we can't guarantee that is correct in all cases -- oh well!
-    # __table_args__ = (
-    #     db.Index('citations_title_fulltext_idx',
-    #              db.func.to_tsvector('title'), postgresql_using='gin'),
-    #     db.Index('citations_abstract_fulltext_idx',
-    #              db.func.to_tsvector('abstract'), postgresql_using='gin'),
-    #     )
+    __tablename__ = "dedupes"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        primary_key=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    type_of_work = db.Column(db.Unicode(length=25))
-    title = db.Column(
-        db.Unicode(length=300), server_default='untitled',
-        nullable=False)
-    secondary_title = db.Column(db.Unicode(length=300))
-    abstract = db.Column(db.UnicodeText)
-    pub_year = db.Column(db.SmallInteger)
-    pub_month = db.Column(db.SmallInteger)
-    authors = db.Column(
-        postgresql.ARRAY(db.Unicode(length=100)))
-    keywords = db.Column(
-        postgresql.ARRAY(db.Unicode(length=100)))
-    type_of_reference = db.Column(db.Unicode(length=50))
-    journal_name = db.Column(db.Unicode(length=100))
-    volume = db.Column(db.Unicode(length=20))
-    issue_number = db.Column(db.Unicode(length=20))
-    doi = db.Column(db.Unicode(length=100))
-    issn = db.Column(db.Unicode(length=20))
-    publisher = db.Column(db.Unicode(length=100))
-    language = db.Column(db.Unicode(length=50))
-    other_fields = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
-    text_content_vector_rep = db.Column(
-        postgresql.ARRAY(db.Float), server_default='{}')
-
-    @hybrid_property
-    def text_content(self):
-        return '\n\n'.join(
-            (self.title or '', self.abstract or '',
-             ', '.join(self.keywords or []))
-            ).strip()
-
-    @text_content.expression
-    def text_content(cls):
-        return db.func.concat_ws(
-            '\n\n', cls.title, cls.abstract,
-            db.func.array_to_string(cls.keywords, ', ')
-            )
-
-    @hybrid_property
-    def exclude_reasons(self):
-        return sorted(set(itertools.chain.from_iterable(
-            scrn.exclude_reasons or [] for scrn in self.screenings)))
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+        index=True,
+        unique=True,
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer, sa.ForeignKey("reviews.id", ondelete="CASCADE"), index=True
+    )
+    duplicate_of: M[t.Optional[int]] = mapcol(
+        sa.BigInteger,  # sa.ForeignKey('studies.id', ondelete='SET NULL'),
+    )
+    duplicate_score: M[t.Optional[float]] = mapcol(sa.Float)
 
     # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[id], back_populates='citation',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='citations',
-        lazy='select')
-    screenings = db.relationship(
-        'CitationScreening', back_populates='citation',
-        lazy='dynamic', passive_deletes=True)
-
-    def __init__(self, id_, review_id,
-                 type_of_work=None, title=None, secondary_title=None, abstract=None,
-                 pub_year=None, pub_month=None, authors=None, keywords=None,
-                 type_of_reference=None, journal_name=None, volume=None,
-                 issue_number=None, doi=None, issn=None, publisher=None,
-                 language=None, other_fields=None):
-        self.id = id_
-        self.review_id = review_id
-        self.type_of_work = type_of_work
-        self.title = title
-        self.secondary_title = secondary_title
-        self.abstract = abstract
-        self.pub_year = pub_year
-        self.pub_month = pub_month
-        self.authors = authors
-        self.keywords = keywords
-        self.type_of_reference = type_of_reference
-        self.journal_name = journal_name
-        self.volume = volume
-        self.issue_number = issue_number
-        self.doi = doi
-        self.issn = issn
-        self.publisher = publisher
-        self.language = language
-        self.other_fields = other_fields
+    study: M["Study"] = sa_orm.relationship(
+        "Study", foreign_keys=[study_id], back_populates="dedupe", lazy="select"
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review", foreign_keys=[review_id], back_populates="dedupes", lazy="select"
+    )
 
     def __repr__(self):
-        return "<Citation(study_id={})>".format(self.id)
-
-
-class Fulltext(db.Model):
-
-    __tablename__ = 'fulltexts'
-
-    # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        primary_key=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    filename = db.Column(
-        db.Unicode(length=30), unique=True, nullable=True)
-    original_filename = db.Column(
-        db.Unicode, unique=False, nullable=True)
-    text_content = db.Column(
-        db.UnicodeText, nullable=True)
-    text_content_vector_rep = db.Column(
-        postgresql.ARRAY(db.Float), server_default='{}')
-
-    @hybrid_property
-    def exclude_reasons(self):
-        return sorted(set(itertools.chain.from_iterable(
-            scrn.exclude_reasons or [] for scrn in self.screenings)))
-
-    # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[id], back_populates='fulltext',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='fulltexts',
-        lazy='select')
-    screenings = db.relationship(
-        'FulltextScreening', back_populates='fulltext',
-        lazy='dynamic', passive_deletes=True)
-
-    def __init__(self, id_, review_id,
-                 filename=None, original_filename=None):
-        self.id = id_
-        self.review_id = review_id
-        self.filename = filename
-        self.original_filename = original_filename
-
-    def __repr__(self):
-        return "<Fulltext(study_id={})>".format(self.id)
-
-
-class CitationScreening(db.Model):
-
-    __tablename__ = 'citation_screenings'
-    __table_args__ = (
-        db.UniqueConstraint('review_id', 'user_id', 'citation_id',
-                            name='review_user_citation_uc'),
-        )
-
-    # columns
-    id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
-        nullable=False, index=True)
-    citation_id = db.Column(
-        db.BigInteger, ForeignKey('citations.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    status = db.Column(
-        db.Unicode(length=20),
-        nullable=False, index=True)
-    exclude_reasons = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)),
-        nullable=True)
-
-    # relationships
-    user = db.relationship(
-        'User', foreign_keys=[user_id], back_populates='citation_screenings',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='citation_screenings',
-        lazy='select')
-    citation = db.relationship(
-        'Citation', foreign_keys=[citation_id], back_populates='screenings',
-        lazy='select')
-
-    def __init__(self, review_id, user_id, citation_id, status,
-                 exclude_reasons=None):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.citation_id = citation_id
-        self.status = status
-        self.exclude_reasons = exclude_reasons
-
-    def __repr__(self):
-        return "<CitationScreening(citation_id={})>".format(self.citation_id)
-
-
-class FulltextScreening(db.Model):
-
-    __tablename__ = 'fulltext_screenings'
-    __table_args__ = (
-        db.UniqueConstraint('review_id', 'user_id', 'fulltext_id',
-                            name='review_user_fulltext_uc'),
-        )
-
-    # columns
-    id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    user_id = db.Column(
-        db.Integer, ForeignKey('users.id', ondelete='SET NULL'),
-        nullable=False, index=True)
-    fulltext_id = db.Column(
-        db.BigInteger, ForeignKey('fulltexts.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    status = db.Column(
-        db.Unicode(length=20),
-        nullable=False, index=True)
-    exclude_reasons = db.Column(
-        postgresql.ARRAY(db.Unicode(length=25)),
-        nullable=True)
-
-    # relationships
-    user = db.relationship(
-        'User', foreign_keys=[user_id], back_populates='fulltext_screenings',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='fulltext_screenings',
-        lazy='select')
-    fulltext = db.relationship(
-        'Fulltext', foreign_keys=[fulltext_id], back_populates='screenings',
-        lazy='select')
-
-    def __init__(self, review_id, user_id, fulltext_id, status,
-                 exclude_reasons=None):
-        self.review_id = review_id
-        self.user_id = user_id
-        self.fulltext_id = fulltext_id
-        self.status = status
-        self.exclude_reasons = exclude_reasons
-
-    def __repr__(self):
-        return "<FulltextScreening(fulltext_id={})>".format(self.fulltext_id)
+        return f"<Dedupe(id={self.id}, study_id={self.study_id})>"
 
 
 class DataExtraction(db.Model):
-
-    __tablename__ = 'data_extractions'
+    __tablename__ = "data_extractions"
 
     # columns
-    id = db.Column(
-        db.BigInteger, ForeignKey('studies.id', ondelete='CASCADE'),
-        primary_key=True)
-    created_at = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    last_updated = db.Column(
-        db.TIMESTAMP(timezone=False), nullable=False,
-        server_default=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"),
-        server_onupdate=text("(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')"))
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    extracted_items = db.Column(
-        postgresql.JSONB(none_as_null=True), server_default='{}')
+    id: M[int] = mapcol(sa.BigInteger, primary_key=True, autoincrement=True)
+    created_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        server_default=sa.func.now(),
+    )
+    updated_at: M[datetime.datetime] = mapcol(
+        sa.DateTime(timezone=True),
+        onupdate=sa.func.now(),
+        server_default=sa.func.now(),
+        server_onupdate=sa.FetchedValue(),
+    )
+    study_id: M[int] = mapcol(
+        sa.BigInteger,
+        sa.ForeignKey("studies.id", ondelete="CASCADE"),
+        index=True,
+        unique=True,
+    )
+    review_id: M[int] = mapcol(
+        sa.Integer,
+        sa.ForeignKey("reviews.id", ondelete="CASCADE"),
+        index=True,
+    )
+    extracted_items: M[t.Optional[list[dict[str, t.Any]]]] = mapcol(
+        postgresql.JSONB(none_as_null=True), server_default="{}"
+    )
 
     # relationships
-    study = db.relationship(
-        'Study', foreign_keys=[id], back_populates='data_extraction',
-        lazy='select')
-    review = db.relationship(
-        'Review', foreign_keys=[review_id], back_populates='data_extractions',
-        lazy='select')
-
-    def __init__(self, id_, review_id, extracted_items=None):
-        self.id = id_
-        self.review_id = review_id
-        self.extracted_items = extracted_items
+    study: M["Study"] = sa_orm.relationship(
+        "Study",
+        foreign_keys=[study_id],
+        back_populates="data_extraction",
+        lazy="select",
+    )
+    review: M["Review"] = sa_orm.relationship(
+        "Review",
+        foreign_keys=[review_id],
+        back_populates="data_extractions",
+        lazy="select",
+    )
 
     def __repr__(self):
-        return "<DataExtraction(study_id={})>".format(self.id)
-
-
-# tables for citation deduplication
-
-class DedupeBlockingMap(db.Model):
-
-    __tablename__ = 'dedupe_blocking_map'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        ForeignKey('citations.id', ondelete='CASCADE'),
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        primary_key=True, nullable=False, index=True)
-    block_key = db.Column(
-        db.UnicodeText,
-        primary_key=True, nullable=False, index=True)
-
-    def __init__(self, citation_id, review_id, block_key):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralKey(db.Model):
-
-    __tablename__ = 'dedupe_plural_key'
-    __table_args__ = (
-        db.UniqueConstraint('review_id', 'block_key',
-                            name='review_id_block_key_uc'),
-        )
-
-    # columns
-    block_id = db.Column(
-        db.BigInteger, primary_key=True, autoincrement=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    block_key = db.Column(
-        db.UnicodeText, nullable=False, index=True)
-
-    def __init__(self, block_id, review_id, block_key):
-        self.block_id = block_id
-        self.review_id = review_id
-        self.block_key = block_key
-
-
-class DedupePluralBlock(db.Model):
-
-    __tablename__ = 'dedupe_plural_block'
-    # __table_args__ = (
-    #     db.UniqueConstraint('block_id', 'citation_id',
-    #                         name='block_id_citation_id_uc'),
-    #     )
-
-    # columns
-    block_id = db.Column(
-        db.BigInteger,
-        primary_key=True)
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-
-    def __init__(self, block_id, citation_id, review_id):
-        self.block_id = block_id
-        self.citation_id = citation_id
-        self.review_id = review_id
-
-
-class DedupeCoveredBlocks(db.Model):
-
-    __tablename__ = 'dedupe_covered_blocks'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer, ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    sorted_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger),
-        nullable=False, server_default='{}')
-
-    def __init__(self, citation_id, review_id, sorted_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.sorted_ids = sorted_ids
-
-
-class DedupeSmallerCoverage(db.Model):
-
-    __tablename__ = 'dedupe_smaller_coverage'
-
-    # columns
-    citation_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False, index=True)
-    review_id = db.Column(
-        db.Integer,
-        ForeignKey('reviews.id', ondelete='CASCADE'),
-        nullable=False, index=True)
-    block_id = db.Column(
-        db.BigInteger,
-        primary_key=True, nullable=False)
-    smaller_ids = db.Column(
-        postgresql.ARRAY(db.BigInteger),
-        nullable=True, server_default='{}')
-
-    def __init__(self, citation_id, review_id, block_id, smaller_ids):
-        self.citation_id = citation_id
-        self.review_id = review_id
-        self.block_id = block_id
-        self.smaller_ids = smaller_ids
+        return f"<DataExtraction(id={self.id}, study_id={self.study_id})>"
 
 
 # EVENTS
 
-@event.listens_for(CitationScreening, 'after_insert')
-@event.listens_for(CitationScreening, 'after_delete')
-@event.listens_for(CitationScreening, 'after_update')
-def update_citation_status(mapper, connection, target):
-    citation_id = target.citation_id
-    review_id = target.review_id
-    citation = target.citation
-    # get the current (soon to be *old*) citation_status of the study
-    with connection.begin():
-        old_status = connection.execute(
-            db.select([Study.citation_status]).where(Study.id == citation_id)
-            ).fetchone()[0]
-    # now compute the new status, and update the study accordingly
-    status = assign_status(
-        [cs.status for cs in db.session.query(CitationScreening).filter_by(citation_id=citation_id)],
-        citation.review.num_citation_screening_reviewers)
-    with connection.begin():
-        connection.execute(
-            db.update(Study).where(Study.id == citation_id).values(citation_status=status))
-    logger.info('%s => %s with status = %s', target, citation, status)
-    # we may have to insert or delete a corresponding fulltext record
-    with connection.begin():
-        fulltext = connection.execute(
-            db.select([Fulltext]).where(Fulltext.id == citation_id)).first()
-    fulltext_inserted_or_deleted = False
-    if status == 'included' and fulltext is None:
-        with connection.begin():
-            connection.execute(
-                db.insert(Fulltext).values(id=citation_id, review_id=review_id))
-        logger.info('inserted <Fulltext(study_id=%s)>', citation_id)
-        fulltext_inserted_or_deleted = True
-    elif status != 'included' and fulltext is not None:
-        with connection.begin():
-            connection.execute(
-                db.delete(Fulltext).where(Fulltext.id == citation_id))
-        logger.info('deleted <Fulltext(study_id=%s)>', citation_id)
-        fulltext_inserted_or_deleted = True
-    # we may have to update our counts for review num_citations_included / excluded
-    if old_status != status:
-        if old_status == 'included':  # decrement num_citations_included
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_citations_included=Review.num_citations_included - 1))
-        elif status == 'included':  # increment num_citations_included
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_citations_included=Review.num_citations_included + 1))
-        elif old_status == 'excluded':  # decrement num_citations_excluded
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_citations_included=Review.num_citations_excluded - 1))
-        elif status == 'excluded':  # increment num_citations_excluded
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_citations_included=Review.num_citations_excluded + 1))
-    if fulltext_inserted_or_deleted is True:
-        with connection.begin():
-            status_counts = connection.execute(
-                db.select([Review.num_citations_included, Review.num_citations_excluded])\
-                .where(Review.id == review_id)
-                ).fetchone()
-            logger.info(
-                '<Review(id=%s)> citation_status counts = %s',
-                review_id, status_counts)
-            n_included, n_excluded = status_counts
-            # if at least 25 citations have been included AND excluded
-            # and only once every 25 included citations
-            # (re-)compute the suggested keyterms
-            if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
-                from .tasks import suggest_keyterms
-                sample_size = min(n_included, n_excluded)
-                suggest_keyterms.apply_async(args=[review_id, sample_size])
-            # if at least 100 citations have been included AND excluded
-            # and only once ever 50 included citations
-            # (re-)train a citation ranking model
-            if n_included >= 100 and n_excluded >= 100 and n_included % 50 == 0:
-                from .tasks import train_citation_ranking_model
-                train_citation_ranking_model.apply_async(args=[review_id])
+# NOTE: apparently this does not work in sqlalchemy v2 :/
+# @sa_event.listens_for(db.Model, "after_update")
+# def update_updated_at(mapper, connection, target):
+#     updated_at = connection.execute(sa.select(sa.func.now())).scalar()
+#     LOGGER.warning("%s.updated_at = %s", target, updated_at)
+#     if hasattr(target, "updated_at"):
+#         target.updated_at = updated_at
 
 
-@event.listens_for(FulltextScreening, 'after_insert')
-@event.listens_for(FulltextScreening, 'after_delete')
-@event.listens_for(FulltextScreening, 'after_update')
-def update_fulltext_status(mapper, connection, target):
-    fulltext_id = target.fulltext_id
-    review_id = target.review_id
-    fulltext = target.fulltext
-    # get the current (soon to be *old*) citation_status of the study
-    with connection.begin():
-        old_status = connection.execute(
-            db.select([Study.fulltext_status]).where(Study.id == fulltext_id)
-            ).fetchone()[0]
-    # now compute the new status, and update the study accordingly
-    status = assign_status(
-        [fs.status for fs in db.session.query(FulltextScreening).filter_by(fulltext_id=fulltext_id)],
-        fulltext.review.num_fulltext_screening_reviewers)
-    with connection.begin():
+@sa_event.listens_for(Review, "after_insert")
+def insert_review_plan(mapper, connection: sa.Connection, target):
+    review_plan = ReviewPlan(id=target.id)
+    connection.execute(sa.insert(ReviewPlan).values(id=target.id))
+    LOGGER.info("inserted %s and %s", target, review_plan)
+
+
+@sa_event.listens_for(Review, "after_update")
+def update_study_num_reviewers(mapper, connection: sa.Connection, target):
+    review_id = target.id
+    study_id_updates = collections.defaultdict(dict)
+    # randomly assign num citation reviewers for unscreened studies
+    citation_reviewer_num_pcts = target.citation_reviewer_num_pcts
+    study_ids: list[int] = list(
         connection.execute(
-            db.update(Study).where(Study.id == fulltext_id).values(fulltext_status=status))
-    logger.info('%s => %s with status = %s', target, fulltext, status)
-    # we may have to insert or delete a corresponding data extraction record
-    with connection.begin():
+            sa.select(Study.id).filter_by(
+                review_id=review_id, citation_status="not_screened"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if study_ids:
+        study_num_citation_reviewers: list[int] = random.choices(
+            [num_pct["num"] for num_pct in citation_reviewer_num_pcts],
+            weights=[num_pct["pct"] for num_pct in citation_reviewer_num_pcts],
+            k=len(study_ids),
+        )
+        for id_, num_citation_reviewers in zip(study_ids, study_num_citation_reviewers):
+            study_id_updates[id_]["num_citation_reviewers"] = num_citation_reviewers
+    # randomly assign num fulltext reviewers for unscreened studies
+    fulltext_reviewer_num_pcts = target.fulltext_reviewer_num_pcts
+    study_ids: list[int] = list(
+        connection.execute(
+            sa.select(Study.id).filter_by(
+                review_id=review_id, fulltext_status="not_screened"
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if study_ids:
+        study_num_fulltext_reviewers: list[int] = random.choices(
+            [num_pct["num"] for num_pct in fulltext_reviewer_num_pcts],
+            weights=[num_pct["pct"] for num_pct in fulltext_reviewer_num_pcts],
+            k=len(study_ids),
+        )
+        for id_, num_fulltext_reviewers in zip(study_ids, study_num_fulltext_reviewers):
+            study_id_updates[id_]["num_fulltext_reviewers"] = num_fulltext_reviewers
+    # munge updates into form required for sqlalchemy bulk update, submit all together
+    if study_id_updates:
+        session = sa_orm.object_session(target)
+        assert session is not None  # type guard
+        studies_to_update = [
+            {"id": id_} | num_reviewers_updated
+            for id_, num_reviewers_updated in study_id_updates.items()
+        ]
+        _ = session.execute(sa.update(Study), studies_to_update)
+        LOGGER.info(
+            "updated num reviewer counts on %s studies for %s",
+            len(studies_to_update),
+            target,
+        )
+
+
+@sa_event.listens_for(Screening, "after_insert")
+@sa_event.listens_for(Screening, "after_delete")
+@sa_event.listens_for(Screening, "after_update")
+def update_study_status(mapper, connection: sa.Connection, target):
+    review_id = target.review_id
+    study_id = target.study_id
+    study = target.study
+    # TODO(burton): you added this so that conftest populate_db func would work
+    # for reasons unknown, the target here didn't have a loaded citation object
+    # but this is _probably_ a bad thing, and you should find a way to fix it
+    if study is None:
+        study = connection.execute(
+            sa.select(
+                Study.num_citation_reviewers,
+                Study.num_fulltext_reviewers,
+            ).filter_by(id=study_id)
+        ).one_or_none()
+    assert study is not None  # type guard
+    # prep stage-specific variables
+    stage = target.stage
+    if stage == "citation":
+        num_reviewers = study.num_citation_reviewers
+        study_status_col_str = "citation_status"
+    else:
+        num_reviewers = study.num_fulltext_reviewers
+        study_status_col_str = "fulltext_status"
+    # compute the new status, and update the study accordingly
+    status = utils.assign_status(
+        (
+            connection.execute(
+                sa.select(Screening.status).filter_by(study_id=study_id, stage=stage)
+            )
+            .scalars()
+            .all()
+        ),
+        num_reviewers,
+    )
+    connection.execute(
+        sa.update(Study)
+        .where(Study.id == study_id)
+        .values({study_status_col_str: status})
+    )
+    LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
+
+    if stage == "citation":
+        # get rid of any contrary fulltext screenings
+        if status != "included":
+            connection.execute(
+                sa.delete(Screening).where(
+                    Screening.study_id == study_id,
+                    Screening.stage == "fulltext",
+                )
+            )
+            LOGGER.info(
+                "deleted all <Screening(study_id=%s, stage='fulltext')>", study_id
+            )
+        # review = (
+        #     db.session.execute(sa.select(Review).filter_by(id=review_id))
+        #     .scalars()
+        #     .one()
+        # )
+        # status_counts = review.num_citations_by_status(["included", "excluded"])
+        status_counts = {"included": 0, "excluded": 0}
+        status_counts |= {
+            row.citation_status: row.count
+            for row in connection.execute(
+                sa.select(Study.citation_status, sa.func.count())
+                .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+                .where(Study.citation_status.in_(["included", "excluded"]))
+                .group_by(Study.citation_status)
+            )
+        }
+        n_included = status_counts.get("included", 0)
+        n_excluded = status_counts.get("excluded", 0)
+        # if at least 25 citations have been included AND excluded
+        # and only once every 25 included citations
+        # (re-)compute the suggested keyterms
+        if n_included >= 25 and n_excluded >= 25 and n_included % 25 == 0:
+            from . import tasks
+
+            sample_size = min(n_included, n_excluded)
+            tasks.suggest_keyterms.apply_async(args=[review_id, sample_size])
+        # once every 100 fully screened citations, (re-)train a study ranker model
+        n_incl_excl = n_included + n_excluded
+        if n_incl_excl > 0 and n_incl_excl % 100 == 0:
+            from . import tasks
+
+            tasks.train_study_ranker_model.apply_async(args=[review_id])
+    elif stage == "fulltext":
+        # we may have to insert or delete a corresponding data extraction record
         data_extraction = connection.execute(
-            db.select([DataExtraction]).where(DataExtraction.id == fulltext_id)).first()
-    data_extraction_inserted_or_deleted = False
-    if status == 'included' and data_extraction is None:
-        with connection.begin():
+            sa.select(DataExtraction).where(DataExtraction.study_id == study_id)
+        ).first()
+        data_extraction_inserted_or_deleted = False
+        if status == "included" and data_extraction is None:
             connection.execute(
-                db.insert(DataExtraction).values(
-                    id=fulltext_id, review_id=review_id))
-        logger.info('inserted <DataExtraction(study_id=%s)>', fulltext_id)
-        data_extraction_inserted_or_deleted = True
-    elif status != 'included' and data_extraction is None:
-        with connection.begin():
+                sa.insert(DataExtraction).values(study_id=study_id, review_id=review_id)
+            )
+            LOGGER.info("inserted <DataExtraction(study_id=%s)>", study_id)
+            data_extraction_inserted_or_deleted = True
+        elif status != "included" and data_extraction is not None:
             connection.execute(
-                db.delete(DataExtraction).where(
-                    DataExtraction.id == fulltext_id))
-        logger.info('deleted <DataExtraction(study_id=%s)>', fulltext_id)
-        data_extraction_inserted_or_deleted = True
-    # we may have to update our counts for review num_fulltexts_included / excluded
-    if old_status != status:
-        if old_status == 'included':  # decrement num_fulltexts_included
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_fulltexts_included=Review.num_fulltexts_included - 1))
-        elif status == 'included':  # increment num_fulltexts_included
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_fulltexts_included=Review.num_fulltexts_included + 1))
-        elif old_status == 'excluded':  # decrement num_fulltexts_excluded
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_fulltexts_included=Review.num_fulltexts_included - 1))
-        elif status == 'excluded':  # increment num_fulltexts_excluded
-            with connection.begin():
-                connection.execute(
-                    db.update(Review).where(Review.id == review_id)\
-                        .values(num_fulltexts_included=Review.num_fulltexts_included + 1))
-    # TODO: should we do something now?
-    # if data_extraction_inserted_or_deleted is True:
-    #     with connection.begin():
-    #         status_counts = connection.execute(
-    #             db.select([Review.num_fulltexts_included, Review.num_fulltexts_excluded])\
-    #             .where(Review.id == review_id)
-    #             ).fetchone()
-    #         logger.info(
-    #             '<Review(id=%s)> fulltext_status counts = %s',
-    #             review_id, status_counts)
-    #         n_included, n_excluded = status_counts
+                sa.delete(DataExtraction).where(DataExtraction.study_id == study_id)
+            )
+            LOGGER.info("deleted <DataExtraction(study_id=%s)>", study_id)
+            data_extraction_inserted_or_deleted = True
+        if data_extraction_inserted_or_deleted is True:
+            # review = (
+            #     db.session.execute(sa.select(Review).filter_by(id=review_id))
+            #     .scalars()
+            #     .one()
+            # )
+            # status_counts = review.num_fulltexts_by_status(["included", "excluded"])
+            status_counts = {"included": 0, "excluded": 0}
+            status_counts |= {
+                row.fulltext_status: row.count
+                for row in connection.execute(
+                    sa.select(Study.fulltext_status, sa.func.count())
+                    .filter_by(review_id=review_id, dedupe_status="not_duplicate")
+                    .where(Study.fulltext_status.in_(["included", "excluded"]))
+                    .group_by(Study.fulltext_status)
+                )
+            }
+            n_incl_excl = status_counts.get("included", 0) + status_counts.get(
+                "excluded", 0
+            )
+            # once every 100 fully screened fulltexts, (re-)train a study ranker model
+            if n_incl_excl > 0 and n_incl_excl % 100 == 0:
+                from . import tasks
+
+                tasks.train_study_ranker_model.apply_async(args=[review_id])
 
 
-@event.listens_for(Review, 'after_insert')
-def insert_review_plan(mapper, connection, target):
-    review_plan = ReviewPlan(target.id)
-    with connection.begin():
-        connection.execute(
-            db.insert(ReviewPlan).values(id=target.id))
-    logger.info('inserted %s and %s', target, review_plan)
+def model_to_dict(
+    model, fields: t.Optional[list[str]] = None, include_hybrid: bool = False
+) -> dict[str, object]:
+    """
+    Convert a db model into a dictionary, optionally filtered to only certain fields.
+
+    Args:
+        model
+        fields
+        include_hybrid
+    """
+    if fields is None:
+        mapper = sa.inspect(model).mapper
+        # columns
+        fields = [col.key for col in mapper.column_attrs]
+        # hybrid properties?
+        if include_hybrid is True:
+            fields.extend(
+                [
+                    name
+                    for name, descriptor in mapper.all_orm_descriptors.items()
+                    if isinstance(descriptor, hybrid_property)
+                ]
+            )
+
+    return {field: getattr(model, field) for field in fields}

@@ -1,0 +1,83 @@
+TY  - JOUR
+AB  - ABSTRACT1
+AU  - LAST_NAME1_1, FIRST_NAME1_1
+AU  - LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2.
+A2  - LAST_NAME1_3, FIRST_NAME1_3
+CY  - PLACE1
+DA  - 2001/01/11
+DO  - 10.5555/111111111
+EP  - 11
+IS  - 1
+KW  - KEYWORD1_1
+KW  - KEYWORD1_2
+L1  - https://example.com/title1.pdf
+L2  - https://example.com/title1/content.html
+LA  - English
+PB  - PUBLISHER1
+PY  - 2001
+SN  - 5555-111X
+SP  - 1
+T2  - JOURNAL1
+TI  - TITLE1
+UR  - https://example.com/title1
+VL  - 1
+ER  - 
+TY  - JOUR
+AB  - ABSTRACT2
+AU  - LAST_NAME2_1, FIRST_NAME2_1
+DA  - 2002/02/22
+JO  - JOURNAL2
+KW  - KEYWORD2
+LA  - Spanish
+PB  - PUBLISHER2
+PY  - 2002
+TI  - TITLE2
+UR  - https://example.com/title2
+ER  - 
+TY  - BOOK
+AB  - ABSTRACT3
+AU  - LAST_NAME3_1, FIRST_NAME3_1
+A3  - LAST_NAME3_2, FIRST_NAME3_2
+A4  - LAST_NAME3_3, FIRST_NAME3_3
+CY  - PLACE3
+DA  - 2003/03/03
+ET  - 3
+KW  - KEYWORD3
+LA  - English
+M1  - 3
+NV  - 33
+PB  - PUBLISHER3
+PY  - 2003
+SN  - 555-3-33-333333-0
+SP  - 330
+ST  - SHORT_TITLE3
+T2  - SERIES_TITLE3
+TI  - TITLE3
+UR  - https://example.com/title3
+VL  - 3
+Y2  - 2013/03/03
+N1  - NOTE3
+ER  - 
+TY  - NEWS
+AB  - ABSTRACT4
+AU  - LAST_NAME4, FIRST_NAME4
+C1  - COLUMN4
+C2  - 4
+CY  - PLACE4
+EP  - 44
+ET  - 4
+KW  - KEYWORD4
+LA  - French
+N1  - NOTE4
+NV  - FREQUENCY4
+PB  - PUBLISHER4
+PY  - 2004
+SE  - SECTION4
+SN  - 5555-444X
+SP  - 4
+ST  - SHORT_TITLE4
+T2  - NEWSPAPER4
+TI  - TITLE4
+UR  - https://example.com/title4
+Y2  - 2014/04/04
+ER  - 

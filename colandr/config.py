@@ -1,101 +1,105 @@
-# config options taken from environment variables: see .env.example
-# - COLANDR_DATABASE_URI
-#     - format: 'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-# - COLANDR_SECRET_KEY
-#     - treat it like a password, can be whatever, just make it hard to guess
-# - COLANDR_PASSWORD_SALT
-#     - also like a password, can be whatever, just make it hard to guess
-# - COLANDR_MAIL_USERNAME
-# - COLANDR_MAIL_PASSWORD
-# - COLANDR_APP_DIR
-#     - path on disk of colandr, i.e. the permanent-colandr-back repo
-
+import datetime
 import os
 
-
-class Config(object):
-    SECRET_KEY = os.environ['COLANDR_SECRET_KEY']
-    PASSWORD_SALT = os.environ['COLANDR_PASSWORD_SALT']
-    BCRYPT_LOG_ROUNDS = 12
-    SSL_DISABLE = False
-    LOGGER_NAME = 'colandr'
-    JSON_AS_ASCII = False
-    CONFIRM_TOKEN_EXPIRATION = 3600
-    APP_URL_DOMAIN = 'http://localhost:5000/api'
-
-    # celery+redis config
-    CELERY_BROKER_URL = 'redis://localhost:6379/0'
-    CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-    CELERY_ACCEPT_CONTENT = ['json']
-    CELERY_TASK_SERIALIZER = 'json'
-    CELERY_RESULT_SERIALIZER = 'json'
-    CELERYD_LOG_COLOR = False
-
-    # sql db config
-    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
-    SQLALCHEMY_ECHO = False
-    SQLALCHEMY_RECORD_QUERIES = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
-
-    RESTPLUS_VALIDATE = False
-
-    # files-on-disk config
-    COLANDR_APP_DIR = os.environ['COLANDR_APP_DIR']
-    LOGS_DIR = os.path.join(COLANDR_APP_DIR, 'colandr_data', 'logs')
-    LOG_FILENAME = 'colandr.log'
-    DEDUPE_MODELS_DIR = os.path.join(
-        COLANDR_APP_DIR, 'colandr_data', 'dedupe')
-    RANKING_MODELS_DIR = os.path.join(
-        COLANDR_APP_DIR, 'colandr_data', 'ranking_models')
-    CITATIONS_DIR = os.path.join(
-        COLANDR_APP_DIR, 'colandr_data', 'citations')
-    FULLTEXT_UPLOADS_DIR = os.path.join(
-        COLANDR_APP_DIR, 'colandr_data', 'fulltexts')
-    ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {'.txt', '.pdf'}
-    MAX_CONTENT_LENGTH = 40 * 1024 * 1024  # 40MB file upload limit
-
-    # email server config
-    MAIL_SERVER = 'smtp.gmail.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
-    MAIL_USERNAME = os.environ['COLANDR_MAIL_USERNAME']
-    MAIL_PASSWORD = os.environ['COLANDR_MAIL_PASSWORD']
-    MAIL_DEFAULT_SENDER = 'colandr <{}>'.format(MAIL_USERNAME)
-    MAIL_SUBJECT_PREFIX = '[colandr]'
-    MAIL_ADMINS = ['burtdewilde@gmail.com']
-
-    @staticmethod
-    def init_app(app):
-        pass
+from dotenv import load_dotenv
 
 
-class DevelopmentConfig(Config):
-    DEBUG = True
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
-    LOGGER_NAME = 'dev-colandr'
-    LOG_FILENAME = 'dev-colandr.log'
+# load `.env` file based on `.env.example` containing config values
+basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+load_dotenv(os.path.join(basedir, ".env"))
 
 
-class TestingConfig(Config):
-    DEBUG = False
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ['DEV_COLANDR_DATABASE_URI']
-    LOGGER_NAME = 'test-colandr'
-    LOG_FILENAME = 'test-colandr.log'
-    SQLALCHEMY_ECHO = True
+# flask config
+TESTING = False
+SECRET_KEY = os.environ["COLANDR_SECRET_KEY"]
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB file upload limit
+LOG_LEVEL = os.environ.get("COLANDR_LOG_LEVEL", "info").upper()
+# PROPAGATE_EXCEPTIONS = True  # may be needed for error handlers to work
 
+# sql database config
+SQLALCHEMY_DATABASE_URI = os.environ["COLANDR_DATABASE_URI"]
+SQLALCHEMY_ENGINE_OPTIONS = {}
+SQLALCHEMY_ECHO = False
 
-class ProductionConfig(Config):
-    DEBUG = False
-    TESTING = False
-    SQLALCHEMY_DATABASE_URI = os.environ['COLANDR_DATABASE_URI']
+# celery+redis config
+CELERY = {
+    "broker_url": os.environ.get(
+        "COLANDR_CELERY_BROKER_URL", "redis://localhost:6379/0"
+    ),
+    "result_backend": os.environ.get(
+        "COLANDR_CELERY_RESULT_BACKEND", "redis://localhost:6379/0"
+    ),
+    "accept_content": ["json"],
+    "task_serializer": "json",
+    "result_serializer": "json",
+    # ref: https://steve.dignam.xyz/2023/05/20/many-problems-with-celery
+    "worker_prefetch_multiplier": 1,
+    "task_acks_late": True,
+    "task_create_missing_queues": True,
+}
 
+# cache config
+CACHE_TYPE = "SimpleCache"
+# TODO: figure out if/how we want to use redis for caching
+# CACHE_TYPE = "RedisCache",
+# CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
 
-configs = {
-    'dev': DevelopmentConfig,
-    'test': TestingConfig,
-    'prod': ProductionConfig,
-    'default': ProductionConfig,
-    }
+# api auth keys config
+FE_APP_SITE = os.environ.get("COLANDR_FE_APP_SITE")
+JWT_SECRET_KEY = os.environ.get("COLANDR_JWT_SECRET_KEY")
+JWT_ACCESS_TOKEN_EXPIRES = datetime.timedelta(hours=4)
+JWT_REFRESH_TOKEN_EXPIRES = datetime.timedelta(days=3)
+JWT_TOKEN_LOCATION = "headers"
+# configure auth header structure: "{JWT_HEADER_NAME}: {JWT_HEADER_TYPE} {JWT_TOKEN}"
+JWT_HEADER_NAME = "Authorization"
+JWT_HEADER_TYPE = "Bearer"
+
+# email server config
+MAIL_SERVER = os.environ.get("COLANDR_MAIL_SERVER")
+MAIL_PORT = os.environ.get("COLANDR_MAIL_PORT")
+MAIL_USE_TLS = (
+    bool(int(os.environ["COLANDR_MAIL_USE_TLS"]))
+    if os.environ.get("COLANDR_MAIL_USE_TLS")
+    else None
+)
+MAIL_USE_SSL = (
+    bool(int(os.environ["COLANDR_MAIL_USE_SSL"]))
+    if os.environ.get("COLANDR_MAIL_USE_SSL")
+    else None
+)
+MAIL_USERNAME = os.environ.get("COLANDR_MAIL_USERNAME")
+MAIL_PASSWORD = os.environ.get("COLANDR_MAIL_PASSWORD")
+MAIL_DEFAULT_SENDER = f"colandr <{MAIL_USERNAME}>"
+MAIL_SUBJECT_PREFIX = "[colandr]"
+MAIL_ADMINS = ["burtdewilde@gmail.com"]
+
+# file storage config
+FILESYSTEM_PROTOCOL = os.environ.get("COLANDR_FILESYSTEM_PROTOCOL", "file")
+FILESYSTEM_STORAGE_OPTIONS = {
+    "file": {"auto_mkdir": False},
+    "gcs": {
+        "project": os.environ.get("COLANDR_FILESYSTEM_GCS_PROJECT"),
+        "token": os.environ.get("COLANDR_FILESYSTEM_GCS_TOKEN"),
+        "endpoint_url": os.environ.get("COLANDR_FILESYSTEM_GCS_ENDPOINT_URL"),
+        "access": "read_write",
+        "cache_timeout": 3600,
+    },
+}
+FILESYSTEM_ROOT_DIR = os.environ.get("COLANDR_FILESYSTEM_ROOT_DIR", "/app/data")
+RANKER_MODELS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "ranker_models")
+CITATION_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "citations")
+FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "fulltexts")
+ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
+ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
+
+COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/app")
+DEDUPE_MODELS_DIR = os.path.join(
+    COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
+)
+
+# metadata extraction config
+METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
+METADATA_INCREASE_TO_RETRAIN = int(
+    os.environ.get("COLANDR_METADATA_INCREASE_TO_RETRAIN", "5")
+)
+METADATA_MIN_TO_TRAIN = int(os.environ.get("COLANDR_METADATA_MIN_TO_TRAIN", "40"))

@@ -1,0 +1,53 @@
+TY  - JOUR
+AB  - ABSTRACT1
+AU  - LAST_NAME1_1, FIRST_NAME1_1
+AU  - LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2.
+DA  - 2001/1/11/
+DO  - 10.5555/111111111
+IS  - 1
+PB  - PUBLISHER1
+PY  - 2001
+SP  - 1
+EP  - 11
+TI  - TITLE1
+T2  - JOURNAL1
+UR  - https://example.com/title1
+VL  - 1
+ER  - 
+TY  - JOUR
+AB  - ABSTRACT2
+AU  - LAST_NAME2_1, FIRST_NAME2_1
+DA  - 2002/2/22/
+PY  - 2002
+TI  - TITLE2
+T2  - JOURNAL2
+UR  - https://example.com/title2
+ER  - 
+TY  - BOOK
+AB  - ABSTRACT3
+AU  - LAST_NAME3_1, FIRST_NAME3_1
+CY  - PLACE3
+DA  - 2003/3/3/
+ED  - LAST_NAME3_2, FIRST_NAME3_2
+ET  - 3
+PB  - PUBLISHER3
+PY  - 2003
+SN  - 555-3-33-333333-0
+SP  - 3
+EP  - 333
+TI  - TITLE3
+UR  - https://example.com/title3
+VL  - 3
+ER  - 
+TY  - GEN
+AB  - ABSTRACT4
+AU  - LAST_NAME4, FIRST_NAME4
+CY  - PLACE4
+DA  - 2004/4/4/
+PY  - 2004
+SP  - 4
+EP  - 44
+TI  - TITLE4
+T2  - PUBLISHER4
+UR  - https://example.com/title4
+ER  - 
