@@ -134,10 +134,7 @@ def deduplicate_citations(review_id: int):
     results = (dict(row) for row in db.session.execute(stmt).mappings())
 
     settings_fpath = os.path.join(
-        current_app.config["COLANDR_APP_DIR"],
-        "colandr_data",
-        "dedupe-v2",
-        "dedupe-splink-model.json",
+        current_app.config["DEDUPE_MODELS_DIR"], "dedupe-splink-model.json"
     )
     deduper = DeduperV2.from_records(
         results, id_col="record_id", settings=settings_fpath

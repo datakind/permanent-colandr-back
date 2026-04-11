@@ -92,10 +92,9 @@ FULLTEXT_UPLOADS_DIR = os.path.join(FILESYSTEM_ROOT_DIR, "fulltexts")
 ALLOWED_CITATION_UPLOAD_EXTENSIONS = {".ris", ".txt", ".bib", ".csv", ".tsv"}
 ALLOWED_FULLTEXT_UPLOAD_EXTENSIONS = {".txt", ".pdf"}
 
+# (internal) data only
 COLANDR_APP_DIR = os.environ.get("COLANDR_APP_DIR", "/app")
-DEDUPE_MODELS_DIR = os.path.join(
-    COLANDR_APP_DIR, "colandr_data", "dedupe-v2", "model_202407"
-)
+DEDUPE_MODELS_DIR = os.path.join(COLANDR_APP_DIR, "colandr_data", "dedupe-v2")
 
 # metadata extraction config
 METADATA_THRESHOLD = float(os.environ.get("COLANDR_METADATA_THRESHOLD", "0.65"))
