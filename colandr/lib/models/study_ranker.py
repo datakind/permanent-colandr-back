@@ -114,6 +114,11 @@ class StudyRanker:
     def learn_one(self, record: dict[str, t.Any]) -> None:
         x = record[self.text_col]
         y = record[self.target_col]
+        if not x:
+            LOGGER.warning(
+                "StudyRanker.learn_one() can't learn from empty record text; skipping ..."
+            )
+            return
         self.model.learn_one(x, y)
 
     def predict_one(
