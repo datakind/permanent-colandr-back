@@ -136,6 +136,17 @@ def test_process_text_into_doc(text, max_len, fallback_lang, app):
             None,
             None,
         ),
+        # interleaved languages: en, es, en, es
+        (
+            [
+                "This is an English sentence about medicine and public health.",
+                "Esta es una frase en español sobre medicina y salud pública.",
+                "Here is another English sentence about clinical trials.",
+                "Aquí hay otra frase en español sobre ensayos clínicos.",
+            ],
+            1000,
+            "en",
+        ),
     ],
 )
 def test_process_texts_into_docs(texts, max_len, fallback_lang, app):
@@ -150,6 +161,11 @@ def test_process_texts_into_docs(texts, max_len, fallback_lang, app):
     assert len(docs) == len(texts)
     assert all(isinstance(doc, Doc) or doc is None for doc in docs)
     assert any(isinstance(doc, Doc) for doc in docs)
+    # Each doc's text must match its corresponding input (ordering preserved)
+    for doc, text in zip(docs, texts):
+        truncated = text.strip().replace("\n", " ")[:max_len]
+        if doc is not None:
+            assert doc.text == truncated
     # sanity-check vector value for first text only
     spacy_lang = utils.load_spacy_lang(
         utils.get_lang_to_models()["en"], exclude=("parser", "ner")
