@@ -59,7 +59,7 @@ def remove_unconfirmed_user(email: str):
         db.session.commit()
 
 
-@shared_task
+@shared_task(soft_time_limit=300)
 def deduplicate_citations(review_id: int):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
@@ -236,7 +236,7 @@ def deduplicate_citations(review_id: int):
     lock.release()
 
 
-@shared_task
+@shared_task(soft_time_limit=300)
 def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
