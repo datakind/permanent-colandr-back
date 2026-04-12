@@ -244,7 +244,7 @@ def get_citations_text_content_vectors(review_id: int):
     stmt = (
         sa.select(models.Study.id, models.Study.citation_text_content)
         .where(models.Study.review_id == review_id)
-        .where(models.Study.citation_text_content_vector_rep == [])
+        .where(sa.func.cardinality(models.Study.citation_text_content_vector_rep) == 0)
         .order_by(models.Study.id)
     )
     results = db.session.execute(stmt).all()
