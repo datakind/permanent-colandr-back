@@ -244,11 +244,20 @@ def get_citations_text_content_vectors(review_id: int):
     stmt = (
         sa.select(models.Study.id, models.Study.citation_text_content)
         .where(models.Study.review_id == review_id)
-        .where(sa.func.cardinality(models.Study.citation_text_content_vector_rep) == 0)
+        .where(
+            sa.func.cardinality(models.Study.citation_text_content_vector_rep) == 0,
+            sa.func.length(models.Study.citation_text_content) > 0,
+        )
         .order_by(models.Study.id)
     )
     results = db.session.execute(stmt).all()
-    if not results:
+    if results:
+        LOGGER.info(
+            "found %s studies for <Review(id=%s)> in need of text content vectors",
+            len(results),
+            review_id,
+        )
+    else:
         LOGGER.warning("no citation text content found for <Review(id=%s)>", review_id)
         lock.release()
         return
