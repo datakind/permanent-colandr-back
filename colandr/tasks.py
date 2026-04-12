@@ -243,10 +243,13 @@ def get_citations_text_content_vectors(review_id: int):
 
     stmt = (
         sa.select(models.Study.id, models.Study.citation_text_content)
-        .where(models.Study.review_id == review_id)
         .where(
+            models.Study.review_id == review_id,
             sa.func.cardinality(models.Study.citation_text_content_vector_rep) == 0,
-            sa.func.length(models.Study.citation_text_content) > 0,
+            sa.or_(
+                models.Study.citation["title"].astext != "",
+                models.Study.citation["abstract"].astext != "",
+            ),
         )
         .order_by(models.Study.id)
     )

@@ -226,9 +226,11 @@ class CitationImportsAPI(MethodView):
             f.write(uploaded_data)
 
         # lastly, don't forget to deduplicate the citations and get their word2vecs
-        tasks.get_citations_text_content_vectors.apply_async(
-            args=[review_id], countdown=3
-        )
+        # HACK: let's skip this for now; it isn't *currently* used, since ranker model
+        # got streamlined to a BoW model
+        # tasks.get_citations_text_content_vectors.apply_async(
+        #     args=[review_id], countdown=3
+        # )
         if dedupe is True:
             tasks.deduplicate_citations.apply_async(args=[review_id], countdown=3)
 
