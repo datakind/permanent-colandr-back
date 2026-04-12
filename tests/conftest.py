@@ -6,6 +6,7 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
+import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
 import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
@@ -38,7 +39,7 @@ def app(tmp_path_factory):
             f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
             f"@{os.environ.get('COLANDR_DB_HOST', 'colandr-db')}:5432/{TEST_DBNAME}"
         ),
-        "SQLALCHEMY_ECHO": True,
+        "SQLALCHEMY_ECHO": False,
         "SQLALCHEMY_RECORD_QUERIES": True,
         # local filesystem
         "FILESYSTEM_PROTOCOL": "file",
@@ -137,40 +138,72 @@ def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
 
 
 @pytest.fixture
-def db_session(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
-    """
-    Automatically roll back database changes occurring within tests,
-    so side-effects of one test don't affect another.
-    """
-    # this no longer works in sqlalchemy v2.0 :/
-    # db.session.begin_nested()
-    # yield db.session
-    # db.session.rollback()
-    # but this more complex setup apparently works in v2.0
-    # which is a recurring theme ... sqlalchemy v2.0 is harder to use somehow
-    conn = db.engine.connect()
-    transaction = conn.begin()
-    orig_session = db.session
-    session_factory = sa_orm.sessionmaker(
-        bind=conn, join_transaction_mode="create_savepoint"
-    )
-    session = sa_orm.scoped_session(session_factory)
-    db.session = session
+def db_session(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask):
+    with app.app_context():
+        connection = db.engine.connect()
+        transaction = connection.begin()
+        # flask-sqlalchemy stores per-app engine maps in db._app_engines[app]
+        # .engines property reads from this dict but has no setter
+        # so mutate the dict in place to swap in our static-connection shim
+        app_engines = db._app_engines[app]
+        original_default_engine = app_engines[None]
+        app_engines[None] = _StaticConnEngine(connection)
+        session_factory = sa_orm.sessionmaker(
+            bind=connection, join_transaction_mode="create_savepoint"
+        )
+        session = sa_orm.scoped_session(session_factory)
+        original_session = db.session
+        db.session = session
 
-    yield db.session
-
-    session.close()
-    transaction.rollback()
-    conn.close()
-    db.session = orig_session
-
-
-@pytest.fixture(scope="session")
-def admin_user(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
-    user = db.session.get(models.User, 1)
-    return user
+        try:
+            yield session
+        finally:
+            session.remove()
+            db.session = original_session
+            app_engines[None] = original_default_engine
+            transaction.rollback()
+            connection.close()
 
 
-@pytest.fixture(scope="session")
-def admin_headers(admin_user: models.User, app_ctx):
+@pytest.fixture
+def admin_user(db_session):
+    return db_session.get(models.User, 1)
+
+
+@pytest.fixture
+def admin_headers(admin_user):
     return authn.pack_header_for_user(admin_user)
+
+
+class _StaticConnEngine:
+    """Engine shim that hands out the same connection on every .connect() call."""
+
+    def __init__(self, conn: sa.Connection):
+        self._conn = conn
+        self._static = _StaticConnection(conn)
+
+    def connect(self):
+        return self._static
+
+    def __getattr__(self, name):
+        # delegate everything else (url, dialect, name, etc.) to the real engine
+        return getattr(self._conn.engine, name)
+
+
+class _StaticConnection:
+    """Wraps a Connection so .close() is a no-op; delegates everything else."""
+
+    def __init__(self, conn: sa.Connection):
+        self._conn = conn
+
+    def close(self):  # neutralized — fixture owns the real close
+        pass
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        pass  # don't close on context-manager exit either
