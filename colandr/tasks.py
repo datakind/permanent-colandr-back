@@ -477,13 +477,15 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
         .select_from(models.Study)
         .join(models.Screening, models.Study.id == models.Screening.study_id)
         .where(
+            models.Study.review_id == review_id,
+            models.Screening.review_id == review_id,
             sa.case(
                 (
                     models.Screening.stage == "fulltext",
                     ~models.Study.fulltext_status.in_(["included", "excluded"]),
                 ),
                 else_=~models.Study.citation_status.in_(["included", "excluded"]),
-            )
+            ),
         )
     )
     # union outputs from both cases
