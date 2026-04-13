@@ -3,17 +3,48 @@ import pytest
 from colandr.api.v1 import authz
 
 from .. import helpers
+from ..fixtures.seed_ids import Reviews, Users
 
 
 @pytest.mark.parametrize(
     ["current_user_id", "review_id", "params", "exp_result"],
     # TODO: try to add frozen review cases here
     [
-        (1, 1, None, True),
-        (1, 2, {"for_roles": ["owner"]}, True),
-        (3, 1, {"for_roles": ["owner", "member"]}, True),
-        (3, 1, {"for_roles": ["owner"]}, False),
-        (2, 3, None, False),
+        pytest.param(
+            Users.ADMIN,
+            Reviews.SHARED,
+            None,
+            True,
+            id="admin_any_role_on_shared_review",
+        ),
+        pytest.param(
+            Users.ADMIN,
+            Reviews.OWNED,
+            {"for_roles": ["owner"]},
+            True,
+            id="admin_owner_role_on_owned_review",
+        ),
+        pytest.param(
+            Users.MEMBER,
+            Reviews.SHARED,
+            {"for_roles": ["owner", "member"]},
+            True,
+            id="member_owner_or_member_role_on_shared_review",
+        ),
+        pytest.param(
+            Users.MEMBER,
+            Reviews.SHARED,
+            {"for_roles": ["owner"]},
+            False,
+            id="member_lacks_owner_role_on_shared_review",
+        ),
+        pytest.param(
+            Users.OWNER,
+            Reviews.FROZEN,
+            None,
+            False,
+            id="owner_not_member_of_frozen_review",
+        ),
     ],
 )
 def test_user_is_allowed_for_review(
@@ -31,12 +62,48 @@ def test_user_is_allowed_for_review(
 @pytest.mark.parametrize(
     ["current_user_id", "user_id", "params", "exp_result"],
     [
-        (1, 1, None, True),  # self && admin
-        (1, 2, None, True),  # admin
-        (2, 2, None, True),  # self
-        (1, 3, {"if_collaborator": False}, True),  # admin &! collaborator
-        (2, 3, {"if_collaborator": True}, True),  # collaborator
-        (2, 3, {"if_collaborator": False}, False),  # != collaborator
+        pytest.param(
+            Users.ADMIN,
+            Users.ADMIN,
+            None,
+            True,
+            id="admin_self",
+        ),
+        pytest.param(
+            Users.ADMIN,
+            Users.OWNER,
+            None,
+            True,
+            id="admin_other_user",
+        ),
+        pytest.param(
+            Users.OWNER,
+            Users.OWNER,
+            None,
+            True,
+            id="non_admin_self",
+        ),
+        pytest.param(
+            Users.ADMIN,
+            Users.MEMBER,
+            {"if_collaborator": False},
+            True,
+            id="admin_other_user_collaborator_check_disabled",
+        ),
+        pytest.param(
+            Users.OWNER,
+            Users.MEMBER,
+            {"if_collaborator": True},
+            True,
+            id="collaborators_via_shared_review",
+        ),
+        pytest.param(
+            Users.OWNER,
+            Users.MEMBER,
+            {"if_collaborator": False},
+            False,
+            id="non_collaborator_check_disabled_returns_false",
+        ),
     ],
 )
 def test_user_is_allowed_for_user(
