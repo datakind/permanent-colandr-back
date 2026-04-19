@@ -250,6 +250,27 @@ bp.add_url_rule("/", view_func=CitationImportsAPI.as_view("citation_imports"))
 def _preprocess_citations(
     path_or_stream: str | pathlib.Path | t.IO[bytes], fname: str, review_id: int
 ) -> list[dict]:
+    """Parse and validate citations from an uploaded file for bulk import.
+
+    Reads records from ``path_or_stream`` using the appropriate reader for ``fname``'s
+    extension, then validates each record against ``StudyCitationSchema``.
+    Fields not declared on the schema are collected under ``other_fields``.
+
+    Args:
+        path_or_stream: File path or byte stream containing citation records
+        fname: Original filename; used to select the appropriate file reader
+            and for error messages
+        review_id: ID of the review these citations belong to. No longer
+            embedded in the citation JSON — it is stored as a top-level ``Study``
+            column instead
+
+    Returns:
+        Validated citation dicts, one per parseable record. Records that fail validation
+        are skipped with a warning.
+
+    Raises:
+        ValueError: If the file can't be parsed
+    """
     _, fext = os.path.splitext(fname)
     reader = (
         fileio.studies.RisReader()
@@ -262,7 +283,7 @@ def _preprocess_citations(
         if fext == ".tsv"
         else None
     )
-    # NOTE: we already check file extension in API, so this should never happen
+    # NOTE: extension already validated in API handler; this should never fire
     assert reader is not None
 
     try:
@@ -270,19 +291,25 @@ def _preprocess_citations(
     except Exception:
         raise ValueError(f"unable to parse citations import file: '{fname}'")
 
-    schema = schemas.CitationSchema(partial=True, unknown="include")
+    # use StudyCitationSchema — the one used for nested StudySchema.citation field —
+    # for a consistent serialization => deserialization loop
+    # fields not in the schema are bucketed into other_fields to avoid collisions
+    # with top-level fields and cause dump errors
+    schema = schemas.StudyCitationSchema(partial=True, unknown="exclude")
     declared_fields = schema.declared_fields
     citations = []
     for record in records:
-        record["review_id"] = review_id
         citation = {
-            key: value for key, value in record.items() if key in declared_fields
+            key: value
+            for key, value in record.items()
+            # exclude other_fields from the pre-filter; we build it explicitly below
+            if key in declared_fields and key != "other_fields"
         }
         citation["other_fields"] = {
             key: value for key, value in record.items() if key not in declared_fields
         }
         try:
-            citation = schema.load(record)
+            citation = schema.load(citation)
         except Exception as e:
             current_app.logger.warning(
                 "citation not compliant with schema; skipping... %s", e
