@@ -1,5 +1,6 @@
 # app config
 .env
+.env.develop
 colandr.pid
 
 # app data

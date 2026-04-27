@@ -1,0 +1,38 @@
+# compose.dev.yaml
+#
+# Usage:
+#   docker compose -f compose.prod.yaml -f compose.dev.yaml up -d
+
+services:
+  api-develop:
+    container_name: colandr-api-develop
+    build:
+      context: "."
+      dockerfile: Dockerfile.api
+      target: prod
+    platform: linux/amd64
+    depends_on:
+      - broker
+    stop_signal: SIGINT
+    healthcheck:
+      test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
+      interval: "30s"
+      timeout: "5s"
+      start_period: "15s"
+      retries: 3
+    env_file: ".env.develop"
+    environment:
+      - FLASK_APP=colandr.app:create_app()
+      - BUILD_TARGET=prod
+      - FLASK_ENV=production
+    ports:
+      - "127.0.0.1:5001:5000"
+    restart: unless-stopped
+    volumes:
+      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ./scripts:/app/scripts
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
