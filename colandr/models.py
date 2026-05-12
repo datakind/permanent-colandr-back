@@ -832,20 +832,16 @@ def update_study_num_reviewers(mapper, connection: sa.Connection, target):
 def update_study_status(mapper, connection: sa.Connection, target):
     review_id = target.review_id
     study_id = target.study_id
-    study = target.study
-    # TODO(burton): you added this so that conftest populate_db func would work
-    # for reasons unknown, the target here didn't have a loaded citation object
-    # but this is _probably_ a bad thing, and you should find a way to fix it
-    if study is None:
-        study = connection.execute(
-            sa.select(
-                Study.num_citation_reviewers,
-                Study.num_fulltext_reviewers,
-            ).filter_by(id=study_id)
-        ).one_or_none()
-    assert study is not None  # type guard
-    # prep stage-specific variables
     stage = target.stage
+    # query the Study directly -- never rely on target.study
+    # one *must* exist, given fkey constraint
+    study = connection.execute(
+        sa.select(
+            Study.num_citation_reviewers,
+            Study.num_fulltext_reviewers,
+        ).filter_by(id=study_id)
+    ).one()
+    # prep stage-specific variables
     if stage == "citation":
         num_reviewers = study.num_citation_reviewers
         study_status_col_str = "citation_status"
