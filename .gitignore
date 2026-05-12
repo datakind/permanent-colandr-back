@@ -139,7 +139,6 @@ lexicon
 .idea
 *.iml
 trainlog
-*.sh
 
 pdfestrian/config/glove.6B.50d.txt.gz
 pdfestrian/src/main/resources/glove.6B.50d.txt.gz
