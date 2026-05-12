@@ -180,7 +180,7 @@ wheels = [
 
 [[package]]
 name = "apiflask"
-version = "3.0.0"
+version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "apispec" },
@@ -191,9 +191,9 @@ dependencies = [
     { name = "pydantic", extra = ["email"] },
     { name = "webargs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ea/6a/b96d0203481dbb3b2b8c2a7cfbec11c55c1611eef4c117cccf76690aea40/apiflask-3.0.0.tar.gz", hash = "sha256:2b8420a23b93a78407ef5fe3e1f79cdfc7baa9b3c53977a06d6ab68772a7c2b7", size = 108542, upload-time = "2025-11-15T07:52:42.4Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/ef/78b445e7dfd2867651df27d478f5f1e5dce3e65dca6146d4db9719ed89d6/apiflask-3.1.0.tar.gz", hash = "sha256:44ac6de494054e6988afea9d1b9272c36e83ecc8a64c7fbab0b877c0d3820d0f", size = 113717, upload-time = "2026-03-22T02:40:59.821Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/1f/d942c90c3cea583c408dcae445c9a24045b394fbce6ab77cfe79415c4654/apiflask-3.0.0-py3-none-any.whl", hash = "sha256:b11413b55a71f15571b9884dc7231a7e598557e31d8e7fa4ebad6337aa564f52", size = 54943, upload-time = "2025-11-15T07:52:40.698Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/e2/0c5d93c68c81398b65579e2cc1e03c307c4c9f9cf0f3a34a2ec551f729a9/apiflask-3.1.0-py3-none-any.whl", hash = "sha256:d7eb6bb8565ef253f0b3898d67bb04993eda1cdefdaffde3ed78b41220645f6d", size = 57788, upload-time = "2026-03-22T02:40:58.386Z" },
 ]
 
 [[package]]
@@ -444,7 +444,7 @@ wheels = [
 
 [[package]]
 name = "colandr"
-version = "1.1.0"
+version = "1.2.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "alembic" },
@@ -501,7 +501,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "alembic", specifier = "~=1.18.0" },
-    { name = "apiflask", specifier = "~=3.0.0" },
+    { name = "apiflask", specifier = "~=3.1.0" },
     { name = "arrow", specifier = "~=1.3.0" },
     { name = "bibtexparser", specifier = "~=1.4.0" },
     { name = "celery", extras = ["redis"], specifier = "~=5.5.0" },
