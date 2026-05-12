@@ -3,16 +3,15 @@
 # Production: api, worker, broker on network `colandr-back`.
 #   docker compose -f compose.prod.yaml up -d
 #
-# Pre-production API (develop branch image, `.env.develop`, port 5001, `./colandr_data_develop`):
-#   docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
+# Pre-production API (`api-develop`, `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env`, port 5001, `./colandr_data_develop`):
+#   Compose does not run git. Set `COLANDR_DEVELOP_BUILD_CONTEXT` in `.env` to a checkout of
+#   `develop` (second clone or `git worktree add`, see README “Git worktree”), then:
+#     docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
+#   If unset, defaults to `.` (same tree and same `.env` as prod `api` — only for local experiments).
 #
-# On a host that should always run develop too, set `COMPOSE_PROFILES=develop` in `.env` (Compose reads it for profile activation).
+# On a host that should always run develop too, set `COMPOSE_PROFILES=develop` in `.env`.
 
 x-colandr-api-base: &colandr-api-base
-  build:
-    context: "."
-    dockerfile: Dockerfile.api
-    target: prod
   platform: linux/amd64
   stop_signal: SIGINT
   healthcheck:
@@ -36,6 +35,10 @@ services:
   api:
     <<: *colandr-api-base
     container_name: colandr-api
+    build:
+      context: "."
+      dockerfile: Dockerfile.api
+      target: prod
     depends_on:
       - broker
       - worker
@@ -52,16 +55,20 @@ services:
     <<: *colandr-api-base
     profiles: ["develop"]
     container_name: colandr-api-develop
+    build:
+      context: ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}
+      dockerfile: Dockerfile.api
+      target: prod
     depends_on:
       - broker
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    env_file: ".env.develop"
+    env_file: "${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/.env"
     ports:
       - "127.0.0.1:5001:5000"
     volumes:
       - ${COLANDR_DATA_DIR:-./colandr_data_develop}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
-      - ./scripts:/app/scripts
+      - ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/scripts:/app/scripts
 
   worker:
     container_name: colandr-worker
