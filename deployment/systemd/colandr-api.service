@@ -7,6 +7,7 @@ After=docker.service
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/home/ubuntu/permanent-colandr-back
+Environment=COMPOSE_PROFILES=develop
 ExecStart=/usr/bin/docker compose -f compose.prod.yaml up -d
 ExecStop=/usr/bin/docker compose -f compose.prod.yaml down
 User=ubuntu

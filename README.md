@@ -44,4 +44,4 @@ COLANDR_DEVELOP_BUILD_CONTEXT=/absolute/path/to/permanent-colandr-back-develop
 
 Copy `.env.example` to **`.env` inside the worktree** and set develop DB, Celery URLs, etc. (Compose loads that file as `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env` for `api-develop`; prod `api` / `worker` still use the **main** clone’s `.env` only.)
 
-Then build/run `api-develop` with `--profile develop` as in `compose.prod.yaml` header comments. Remove the worktree later with `git worktree remove ../permanent-colandr-back-develop` (from the main repo, after stopping containers that use that path).
+Then build/run with **`docker compose -f compose.prod.yaml --profile develop …`** from the main clone (or rely on **`COMPOSE_PROFILES=develop`** from `deployment/systemd/colandr-api.service` on boot). Remove the worktree later with `git worktree remove ../permanent-colandr-back-develop` (from the main repo, after stopping containers that use that path).

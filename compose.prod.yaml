@@ -9,7 +9,8 @@
 #     docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
 #   If unset, defaults to `.` (same tree and same `.env` as prod `api` — only for local experiments).
 #
-# On a host that should always run develop too, set `COMPOSE_PROFILES=develop` in `.env`.
+# For manual `docker compose` from a shell, pass `--profile develop` (or `export COMPOSE_PROFILES=develop`).
+# The systemd unit sets `COMPOSE_PROFILES=develop` so the stack includes `api-develop` on boot.
 
 x-colandr-api-base: &colandr-api-base
   platform: linux/amd64
