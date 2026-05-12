@@ -3,7 +3,8 @@
 # Production: api, worker, broker on network `colandr-back`.
 #   docker compose -f compose.prod.yaml up -d
 #
-# Pre-production API (`api-develop`, `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env`, port 5001, `./colandr_data_develop`):
+# Pre-production API (`api-develop`, `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env`, port 5001):
+#   Host data: `${COLANDR_DEVELOP_BUILD_CONTEXT}/colandr_data` (not `COLANDR_DATA_DIR` used by prod `api` / `worker`).
 #   Compose does not run git. Set `COLANDR_DEVELOP_BUILD_CONTEXT` in `.env` to a checkout of
 #   `develop` (second clone or `git worktree add`, see README “Git worktree”), then:
 #     docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
@@ -49,7 +50,8 @@ services:
       # can reach the API. Required for ProxyFix security (see docs/proxy-security.md).
       - "127.0.0.1:5000:5000"
     volumes:
-      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      # Container path is fixed at /app/data (image layout). Host: COLANDR_DATA_DIR (required; set in project `.env`).
+      - ${COLANDR_DATA_DIR:?}:/app/data
       - ./scripts:/app/scripts
 
   api-develop:
@@ -68,7 +70,7 @@ services:
     ports:
       - "127.0.0.1:5001:5000"
     volumes:
-      - ${COLANDR_DATA_DIR:-./colandr_data_develop}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/colandr_data:/app/data
       - ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/scripts:/app/scripts
 
   worker:
@@ -92,7 +94,7 @@ services:
       - FLASK_ENV=production
     restart: unless-stopped
     volumes:
-      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ${COLANDR_DATA_DIR:?}:/app/data
     logging:
       driver: "json-file"
       options:

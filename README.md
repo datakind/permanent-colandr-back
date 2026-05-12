@@ -39,6 +39,7 @@ You now have two directories: the original checkout on your **production** branc
 For `compose.prod.yaml`, set in the project **`.env`** (Compose reads it for variable substitution):
 
 ```bash
+COLANDR_DATA_DIR=/absolute/path/to/colandr_data
 COLANDR_DEVELOP_BUILD_CONTEXT=/absolute/path/to/permanent-colandr-back-develop
 ```
 
