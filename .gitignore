@@ -140,8 +140,6 @@ lexicon
 trainlog
 *.sh
 
-pdfestrian/config/glove.6B.50d.txt.gz
-pdfestrian/src/main/resources/glove.6B.50d.txt.gz
-pdfestrian/config/pdfestrian.conf
-pdfestrian/config/log4j.xml
-pdfestrian/target/
+# AI nonsense
+.claude
+.deepseek
