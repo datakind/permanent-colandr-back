@@ -1,50 +1,68 @@
 # compose.prod.yaml
 #
-# Standalone production Docker Compose file
-# Only includes services needed for production: api, worker, broker
-#
-# Usage:
+# Production: api, worker, broker on network `colandr-back`.
 #   docker compose -f compose.prod.yaml up -d
+#
+# Pre-production API (develop branch image, `.env.develop`, port 5001, `./colandr_data_develop`):
+#   docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
+#
+# On a host that should always run develop too, set `COMPOSE_PROFILES=develop` in `.env` (Compose reads it for profile activation).
+
+x-colandr-api-base: &colandr-api-base
+  build:
+    context: "."
+    dockerfile: Dockerfile.api
+    target: prod
+  platform: linux/amd64
+  stop_signal: SIGINT
+  healthcheck:
+    test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
+    interval: "30s"
+    timeout: "5s"
+    start_period: "15s"
+    retries: 3
+  environment:
+    - FLASK_APP=colandr.app:create_app()
+    - BUILD_TARGET=prod
+    - FLASK_ENV=production
+  restart: unless-stopped
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
-  # API service
   api:
+    <<: *colandr-api-base
     container_name: colandr-api
-    build:
-      context: "."
-      dockerfile: Dockerfile.api
-      target: prod
-    platform: linux/amd64
     depends_on:
       - broker
       - worker
-    stop_signal: SIGINT
-    healthcheck:
-      test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
-      interval: "30s"
-      timeout: "5s"
-      start_period: "15s"
-      retries: 3
     env_file: ".env"
-    environment:
-      - FLASK_APP=colandr.app:create_app()
-      - BUILD_TARGET=prod
-      - FLASK_ENV=production
     ports:
       # Bind to localhost only so only the reverse proxy (e.g. nginx on this host)
       # can reach the API. Required for ProxyFix security (see docs/proxy-security.md).
       - "127.0.0.1:5000:5000"
-    restart: unless-stopped
     volumes:
       - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
       - ./scripts:/app/scripts
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Worker service
+  api-develop:
+    <<: *colandr-api-base
+    profiles: ["develop"]
+    container_name: colandr-api-develop
+    depends_on:
+      - broker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file: ".env.develop"
+    ports:
+      - "127.0.0.1:5001:5000"
+    volumes:
+      - ${COLANDR_DATA_DIR:-./colandr_data_develop}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ./scripts:/app/scripts
+
   worker:
     container_name: colandr-worker
     build:
@@ -73,7 +91,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Broker (Redis)
   broker:
     container_name: colandr-broker
     image: "redis:8.0"
