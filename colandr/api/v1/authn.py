@@ -39,23 +39,22 @@ def _add_to_blocklist(jti: str, ttl_seconds: int) -> None:
     """Add a JWT ``jti`` to the blocklist with the given TTL."""
     try:
         redis_conn = _get_redis_client()
-    except (RuntimeError, redis.exceptions.ConnectionError) as exc:
+        redis_conn.set(_blocklist_key(jti), "1", ex=ttl_seconds)
+    except Exception as exc:
         LOGGER.error("Cannot add token to blocklist (Redis unavailable): %s", exc)
-        return
-    redis_conn.set(_blocklist_key(jti), "1", ex=ttl_seconds)
 
 
 def _is_blocklisted(jti: str) -> bool:
     """Check whether a JWT ``jti`` is in the blocklist."""
     try:
         redis_conn = _get_redis_client()
-    except (RuntimeError, redis.exceptions.ConnectionError) as exc:
+        return redis_conn.exists(_blocklist_key(jti)) == 1
+    except Exception as exc:
         LOGGER.error(
             "Cannot check token blocklist (Redis unavailable); allowing request: %s",
             exc,
         )
         return False  # fail open
-    return redis_conn.exists(_blocklist_key(jti)) == 1
 
 
 @jwt.user_identity_loader
