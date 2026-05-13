@@ -39,10 +39,17 @@ CELERY = {
 }
 
 # cache config
-CACHE_TYPE = "SimpleCache"
-# TODO: figure out if/how we want to use redis for caching
-# CACHE_TYPE = "RedisCache",
-# CACHE_REDIS_HOST = os.environ.get("COLANDR_REDIS_HOST", "localhost")
+# use RedisCache when host is configured, otherwise fall back to SimpleCache
+if os.environ.get("COLANDR_REDIS_HOST") or os.environ.get("COLANDR_REDIS_URL"):
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_URL = os.environ.get(
+        "COLANDR_REDIS_URL",
+        f"redis://{os.environ.get('COLANDR_REDIS_HOST', 'localhost')}:6379/1",
+    )
+else:
+    CACHE_TYPE = "SimpleCache"
+    CACHE_THRESHOLD = 100
+CACHE_DEFAULT_TIMEOUT = 300
 
 # api auth keys config
 FE_APP_SITE = os.environ.get("COLANDR_FE_APP_SITE")

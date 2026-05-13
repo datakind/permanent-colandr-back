@@ -17,13 +17,7 @@ class _BaseModel(sqlalchemy.orm.DeclarativeBase):
     pass
 
 
-cache = flask_caching.Cache(
-    config={
-        "CACHE_TYPE": "SimpleCache",
-        "CACHE_THRESHOLD": 50,
-        "CACHE_DEFAULT_TIMEOUT": 300,
-    }
-)
+cache = flask_caching.Cache()  # configured in app's config.py
 db = flask_sqlalchemy.SQLAlchemy(model_class=_BaseModel)
 limiter = flask_limiter.Limiter(
     flask_limiter.util.get_remote_address,
