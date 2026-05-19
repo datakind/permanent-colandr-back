@@ -53,7 +53,7 @@ def write_stream(
         writer = csv.DictWriter(DummyWriter(), cols, dialect=dialect, **kwargs)
         yield writer.writeheader()
         for row in rows_:
-            yield writer.writerow(row)
+            yield writer.writerow(row)  # type: ignore[ty:invalid-argument-type]
     else:
         writer = csv.writer(DummyWriter(), dialect, **kwargs)
         yield writer.writerow(cols)
