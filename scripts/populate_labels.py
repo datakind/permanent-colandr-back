@@ -8,6 +8,7 @@ python scripts/populate_labels.py -a <aids_file> -i <id_map_file> -t <auth_token
 Example:
 python scripts/populate_labels.py -a pdfestrian/json/aidSeq.json -i pdfestrian/json/idMap.tsv -t AT
 """
+
 import argparse
 import csv
 import json
@@ -15,7 +16,7 @@ import logging
 import sys
 from dataclasses import dataclass
 
-import requests
+import httpx
 
 
 @dataclass
@@ -122,13 +123,13 @@ def put_labels(id: int, labels: list[Label], host: str, token: str) -> bool:
     try:
         labels_dict = [{"label": label.label, "value": label.value} for label in labels]
 
-        response = requests.put(
+        response = httpx.put(
             f"{host}/api/data_extractions/{id}",
             json=labels_dict,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {token}"
-            }
+                "Authorization": f"Bearer {token}",
+            },
         )
         response.raise_for_status()
         data = response.json()

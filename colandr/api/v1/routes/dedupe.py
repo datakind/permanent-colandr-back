@@ -56,6 +56,8 @@ class DedupeAPI(MethodView):
 
 # NOTE: flask-limiter doesn't behave when applied to routes via MethodView.decorators
 # this is an ugly but serviceable work-around
-dedupe_api_view_func = DedupeAPI.as_view("dedupe")
-dedupe_api_view_func = limiter.limit("1 per 5 seconds")(dedupe_api_view_func)
-bp.add_url_rule("/", view_func=dedupe_api_view_func)
+# dedupe_api_view_func = DedupeAPI.as_view("dedupe")
+# dedupe_api_view_func = limiter.limit("1 per 5 seconds")(dedupe_api_view_func)
+# bp.add_url_rule("/", view_func=dedupe_api_view_func)
+# HACK: let's not rate-limit it, and instead kick the can down the road
+bp.add_url_rule("/", view_func=DedupeAPI.as_view("dedupe"))

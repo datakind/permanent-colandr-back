@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## v1.1 (unreleased)
+## v1.1 (2026-04-08)
 
 ### new
 

@@ -52,6 +52,19 @@ class TestReviewPlanResource:
                 },
                 200,
             ),
+            (
+                1,
+                {
+                    "keyterms": [
+                        {
+                            "group": "GROUP1",
+                            "term": "TERM1",
+                            "synonyms": "SYN1, SYN2, SYN3",
+                        },
+                    ]
+                },
+                200,
+            ),
             (999, {"objective": "NEW_OBJECTIVE999"}, 404),
         ],
     )

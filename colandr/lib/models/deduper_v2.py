@@ -332,7 +332,7 @@ class DeduperV2:
                 splink.block_on("title", "author"),
             ]
             self.model.training.estimate_probability_two_random_records_match(
-                deterministic_rules,
+                deterministic_rules,  # type: ignore
                 recall=0.7,
             )
 

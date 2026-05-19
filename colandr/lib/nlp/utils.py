@@ -21,6 +21,7 @@ LANG_DETECTOR = (
     # and run that in "high-accuracy" mode; unclear if this is worth the trade-off
     # .from_languages(Language.CHINESE, Language.ENGLISH, Language.FRENCH, Language.JAPANESE, Language.SPANISH)
     .with_minimum_relative_distance(0.8)
+    .with_preloaded_language_models()
     .build()
 )
 
@@ -147,7 +148,12 @@ def process_texts_into_docs(
         texts = (text[:max_len] for text in texts)
     # identify most probable language (w/ optional fallback) for texts
     texts = list(texts)
-    langs = detect_languages(texts)
+    LOGGER.debug("processing %s texts into docs ...", len(texts))
+    # NOTE: we can't use `detect_languages(texts)` bc when called from a celery task
+    # it leads to a post-fork deadlock, where the threads that created the lang detector
+    # aren't available to the celery task that calls the lang detector
+    langs = [detect_language(text) for text in texts]
+    LOGGER.debug("detected %s langs for docs ...", len(langs))
     text_langs = (
         (text, lang) if lang is not None else (text, fallback_lang)
         for text, lang in zip(texts, langs)

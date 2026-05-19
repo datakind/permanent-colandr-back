@@ -59,7 +59,7 @@ def remove_unconfirmed_user(email: str):
         db.session.commit()
 
 
-@shared_task
+@shared_task(soft_time_limit=300)
 def deduplicate_citations(review_id: int):
     lock = _get_redis_lock(f"deduplicate_ciations__review-{review_id}")
     lock.acquire()
@@ -134,10 +134,7 @@ def deduplicate_citations(review_id: int):
     results = (dict(row) for row in db.session.execute(stmt).mappings())
 
     settings_fpath = os.path.join(
-        current_app.config["COLANDR_APP_DIR"],
-        "colandr_data",
-        "dedupe-v2",
-        "dedupe-splink-model.json",
+        current_app.config["DEDUPE_MODELS_DIR"], "dedupe-splink-model.json"
     )
     deduper = DeduperV2.from_records(
         results, id_col="record_id", settings=settings_fpath
@@ -239,19 +236,31 @@ def deduplicate_citations(review_id: int):
     lock.release()
 
 
-@shared_task
+@shared_task(soft_time_limit=300)
 def get_citations_text_content_vectors(review_id: int):
     lock = _get_redis_lock(f"get_citations_text_content_vectors__review-{review_id}")
     lock.acquire()
 
     stmt = (
         sa.select(models.Study.id, models.Study.citation_text_content)
-        .where(models.Study.review_id == review_id)
-        .where(models.Study.citation_text_content_vector_rep == [])
+        .where(
+            models.Study.review_id == review_id,
+            sa.func.cardinality(models.Study.citation_text_content_vector_rep) == 0,
+            sa.or_(
+                models.Study.citation["title"].astext != "",
+                models.Study.citation["abstract"].astext != "",
+            ),
+        )
         .order_by(models.Study.id)
     )
     results = db.session.execute(stmt).all()
-    if not results:
+    if results:
+        LOGGER.info(
+            "found %s studies for <Review(id=%s)> in need of text content vectors",
+            len(results),
+            review_id,
+        )
+    else:
         LOGGER.warning("no citation text content found for <Review(id=%s)>", review_id)
         lock.release()
         return
@@ -262,13 +271,13 @@ def get_citations_text_content_vectors(review_id: int):
     )
     cvs = (doc.vector.tolist() if doc is not None else None for doc in docs)
     citations_to_update = [
-        {"id": id_, "text_content_vector_rep": cv}
+        {"id": id_, "citation_text_content_vector_rep": cv}
         for id_, cv in zip(ids, cvs)
         if cv is not None
     ]
     if not citations_to_update:
         LOGGER.warning(
-            "<Review(id=%s)>: no citation text_content_vector_reps to update",
+            "<Review(id=%s)>: no citation_text_content_vector_reps to update",
             review_id,
         )
         lock.release()
@@ -468,13 +477,15 @@ def _train_study_ranker_model_from_scratch(study_ranker: StudyRanker, review_id:
         .select_from(models.Study)
         .join(models.Screening, models.Study.id == models.Screening.study_id)
         .where(
+            models.Study.review_id == review_id,
+            models.Screening.review_id == review_id,
             sa.case(
                 (
                     models.Screening.stage == "fulltext",
                     ~models.Study.fulltext_status.in_(["included", "excluded"]),
                 ),
                 else_=~models.Study.citation_status.in_(["included", "excluded"]),
-            )
+            ),
         )
     )
     # union outputs from both cases
