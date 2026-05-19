@@ -1,6 +1,6 @@
 [project]
 name = "colandr"
-version = "1.2.0.dev"
+version = "1.1.1"
 description = "Back-end code for running the colandr app."
 readme = { file = "README.md", content-type = "text/markdown" }
 license-files = ["LICENSE"]
@@ -15,7 +15,7 @@ classifiers = [
 requires-python = ">= 3.12"
 dependencies = [
   "alembic~=1.18.0",
-  "apiflask~=3.1.0",
+  "apiflask~=3.0.0",
   "arrow~=1.3.0",
   "bibtexparser~=1.4.0",
   "celery[redis]~=5.5.0",
@@ -41,7 +41,7 @@ dependencies = [
   "python-dateutil~=2.9.0",
   "python-dotenv~=1.2.0",
   "rispy~=0.10.0",
-  "river~=0.24.2",
+  "river~=0.23.0",
   "scikit-learn~=1.8.0",
   "sqlalchemy~=2.0.0",
   "spacy~=3.8.0",
@@ -66,7 +66,7 @@ dev = [
   "pytest-postgresql~=7.0",
   "SQLAlchemy-Utils~=0.42.0",
   # TODO: update ty once officially out of beta
-  "ty~=0.0.35",
+  "ty~=0.0.29",
   "ruff~=0.15.0",
 ]
 
