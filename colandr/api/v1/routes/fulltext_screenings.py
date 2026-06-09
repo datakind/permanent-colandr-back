@@ -112,9 +112,7 @@ class FulltextScreeningAPI(MethodView):
             user_id = current_user.id
 
         if db.session.execute(
-            study.screenings.select().filter_by(
-                stage="fulltext", user_id=current_user.id
-            )
+            study.screenings.select().filter_by(stage="fulltext", user_id=user_id)
         ).one_or_none():
             raise errors.ForbiddenError(
                 message=f"{current_user} has already screened {study}"
