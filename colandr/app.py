@@ -94,8 +94,10 @@ def _configure_logging(app: flask.Flask) -> None:
 def _register_extensions(app: flask.Flask) -> None:
     """Register flask extensions on ``app`` ."""
     extensions.cache.init_app(app)
-    with app.app_context():
-        extensions.cache.clear()
+    # only clear the cache in dev/testing contexts, definitely *not* prod
+    if app.config.get("TESTING") or app.config.get("BUILD_TARGET") == "dev":
+        with app.app_context():
+            extensions.cache.clear()
     extensions.db.init_app(app)
     extensions.limiter.init_app(app)
     extensions.jwt.init_app(app)

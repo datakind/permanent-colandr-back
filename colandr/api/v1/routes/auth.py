@@ -82,10 +82,7 @@ class LogoutAPI(MethodView):
     def delete(self):
         current_user = jwtext.get_current_user()
         jwt_data = jwtext.get_jwt()
-        token = jwt_data["jti"]
-        # TODO: we should use redis for this
-        # authn._JWT_BLOCKLIST.set(token, "", ex=current_app.config["JWT_REFRESH_TOKEN_EXPIRES"])
-        authn._JWT_BLOCKLIST.add(token)
+        authn.revoke_token(jwt_data)
         current_app.logger.info("%s logged out", current_user)
         # TODO: do we *need* to return this message, or nah?
         return {"message": f"{current_user} logged out"}
