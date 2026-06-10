@@ -16,7 +16,7 @@ import logging
 import sys
 from dataclasses import dataclass
 
-import httpx
+import httpx2
 
 
 @dataclass
@@ -123,7 +123,7 @@ def put_labels(id: int, labels: list[Label], host: str, token: str) -> bool:
     try:
         labels_dict = [{"label": label.label, "value": label.value} for label in labels]
 
-        response = httpx.put(
+        response = httpx2.put(
             f"{host}/api/data_extractions/{id}",
             json=labels_dict,
             headers={

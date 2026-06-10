@@ -61,12 +61,12 @@ Repository = "https://github.com/datakind/permanent-colandr-back"
 
 [dependency-groups]
 dev = [
-  "httpx~=0.28.0",
+  "httpx2~=2.3.0",
   "pytest~=9.0",
-  "pytest-postgresql~=7.0",
+  "pytest-postgresql~=8.1.0",
   "SQLAlchemy-Utils~=0.42.0",
   # TODO: update ty once officially out of beta
-  "ty~=0.0.29",
+  "ty~=0.0.46",
   "ruff~=0.15.0",
 ]
 

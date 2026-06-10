@@ -19,7 +19,7 @@ import logging
 import os
 import sys
 
-import httpx
+import httpx2
 
 
 def add_and_parse_args() -> argparse.Namespace:
@@ -96,7 +96,7 @@ def put_pdf(record_id: int, filename: str, pdf_dir: str, host: str, token: str) 
         logging.warning("PDF file not found: %s", pdf_path)
         return False
     with open(pdf_path, "rb") as pdf_file:
-        response = httpx.post(
+        response = httpx2.post(
             f"{host}/api/fulltexts/{record_id}/upload",
             files={"uploaded_file": (filename + ".pdf", pdf_file, "application/pdf")},
             headers={"Authorization": f"Bearer {token}"},
