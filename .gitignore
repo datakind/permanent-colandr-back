@@ -138,7 +138,6 @@ lexicon
 .idea
 *.iml
 trainlog
-*.sh
 
 # AI nonsense
 .claude

@@ -20,4 +20,29 @@ For more details, see the instructions [here](docs/dev-setup.md).
 
 (todo: basics here)
 
-For more details, see the instructions [here](docs/app-management.md)
+For more details, see the instructions [here](docs/app-management.md).
+
+## Git worktree (prod + `develop` on one machine)
+
+A normal repo has **one** working tree: one directory, one checked-out branch. **`git worktree add`** adds **another** directory that shares the same `.git` object database but can sit on a **different branch** (e.g. `develop`) while your main clone stays on `main`.
+
+Typical flow from the **production** clone (paths are examples — use your own):
+
+```bash
+cd /path/to/permanent-colandr-back
+git fetch origin
+git worktree add ../permanent-colandr-back-develop develop
+```
+
+You now have two directories: the original checkout on your **production** branch, the worktree on **`develop`**. Both share the same Git objects; commits in one are visible to the other after `git fetch`.
+
+For `compose.prod.yaml`, set in the project **`.env`** (Compose reads it for variable substitution):
+
+```bash
+COLANDR_DATA_DIR=/absolute/path/to/colandr_data
+COLANDR_DEVELOP_BUILD_CONTEXT=/absolute/path/to/permanent-colandr-back-develop
+```
+
+Copy `.env.example` to **`.env` inside the worktree** and set develop DB, Celery URLs, etc. (Compose loads that file as `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env` for `api-develop`; prod `api` / `worker` still use the **main** clone’s `.env` only.)
+
+Then build/run with **`docker compose -f compose.prod.yaml --profile develop …`** from the main clone (or rely on **`COMPOSE_PROFILES=develop`** from `deployment/systemd/colandr-api.service` on boot). Remove the worktree later with `git worktree remove ../permanent-colandr-back-develop` (from the main repo, after stopping containers that use that path).
