@@ -420,11 +420,9 @@ class StudySchema(af.Schema):
     dedupe_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.DEDUPE_STATUSES)
     )
-    citation = af.fields.Nested(CitationSchema, dump_only=True)
     citation_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
     )
-    fulltext = af.fields.Nested(FulltextSchema, dump_only=True)
     fulltext_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
     )
