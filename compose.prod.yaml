@@ -1,50 +1,78 @@
 # compose.prod.yaml
 #
-# Standalone production Docker Compose file
-# Only includes services needed for production: api, worker, broker
-#
-# Usage:
+# Production: api, worker, broker on network `colandr-back`.
 #   docker compose -f compose.prod.yaml up -d
+#
+# Pre-production API (`api-develop`, `${COLANDR_DEVELOP_BUILD_CONTEXT}/.env`, port 5001):
+#   Host data: `${COLANDR_DEVELOP_BUILD_CONTEXT}/colandr_data` (not `COLANDR_DATA_DIR` used by prod `api` / `worker`).
+#   Compose does not run git. Set `COLANDR_DEVELOP_BUILD_CONTEXT` in `.env` to a checkout of
+#   `develop` (second clone or `git worktree add`, see README “Git worktree”), then:
+#     docker compose -f compose.prod.yaml --profile develop up -d --build api-develop
+#   If unset, defaults to `.` (same tree and same `.env` as prod `api` — only for local experiments).
+#
+# For manual `docker compose` from a shell, pass `--profile develop` (or `export COMPOSE_PROFILES=develop`).
+# The systemd unit sets `COMPOSE_PROFILES=develop` so the stack includes `api-develop` on boot.
+
+x-colandr-api-base: &colandr-api-base
+  platform: linux/amd64
+  stop_signal: SIGINT
+  healthcheck:
+    test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
+    interval: "30s"
+    timeout: "5s"
+    start_period: "15s"
+    retries: 3
+  environment:
+    - FLASK_APP=colandr.app:create_app()
+    - BUILD_TARGET=prod
+    - FLASK_ENV=production
+  restart: unless-stopped
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
-  # API service
   api:
+    <<: *colandr-api-base
     container_name: colandr-api
     build:
       context: "."
       dockerfile: Dockerfile.api
       target: prod
-    platform: linux/amd64
     depends_on:
       - broker
       - worker
-    stop_signal: SIGINT
-    healthcheck:
-      test: [ "CMD", "curl", "--fail", "--silent", "localhost:5000/api/health" ]
-      interval: "30s"
-      timeout: "5s"
-      start_period: "15s"
-      retries: 3
     env_file: ".env"
-    environment:
-      - FLASK_APP=colandr.app:create_app()
-      - BUILD_TARGET=prod
-      - FLASK_ENV=production
     ports:
       # Bind to localhost only so only the reverse proxy (e.g. nginx on this host)
       # can reach the API. Required for ProxyFix security (see docs/proxy-security.md).
       - "127.0.0.1:5000:5000"
-    restart: unless-stopped
     volumes:
-      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      # Container path is fixed at /app/data (image layout). Host: COLANDR_DATA_DIR (required; set in project `.env`).
+      - ${COLANDR_DATA_DIR:?}:/app/data
       - ./scripts:/app/scripts
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
 
-  # Worker service
+  api-develop:
+    <<: *colandr-api-base
+    profiles: ["develop"]
+    container_name: colandr-api-develop
+    build:
+      context: ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}
+      dockerfile: Dockerfile.api
+      target: prod
+    depends_on:
+      - broker
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file: "${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/.env"
+    ports:
+      - "127.0.0.1:5001:5000"
+    volumes:
+      - ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/colandr_data:/app/data
+      - ${COLANDR_DEVELOP_BUILD_CONTEXT:-.}/scripts:/app/scripts
+
   worker:
     container_name: colandr-worker
     build:
@@ -66,14 +94,13 @@ services:
       - FLASK_ENV=production
     restart: unless-stopped
     volumes:
-      - ${COLANDR_DATA_DIR:-./colandr_data}:${COLANDR_FILESYSTEM_ROOT_DIR:-/app/data}
+      - ${COLANDR_DATA_DIR:?}:/app/data
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # Broker (Redis)
   broker:
     container_name: colandr-broker
     image: "redis:8.0"

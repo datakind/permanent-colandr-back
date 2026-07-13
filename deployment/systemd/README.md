@@ -38,10 +38,14 @@ sudo systemctl restart colandr-api
 sudo systemctl status colandr-api
 ```
 
+### Compose profile
+
+The unit sets **`Environment=COMPOSE_PROFILES=develop`** so **`api-develop`** starts with **`api`**, **`worker`**, and **`broker`**. You still need **`COLANDR_DEVELOP_BUILD_CONTEXT`** and the worktree **`.env`** (see repo README).
+
 View application logs:
 ```bash
 cd /home/ubuntu/permanent-colandr-back
-docker compose -f compose.yaml -f compose.prod.yaml logs -f
+docker compose -f compose.prod.yaml --profile develop logs -f
 ```
 
 **Note:** This service uses Docker Compose V2 (`docker compose` with space). Ensure Docker Compose plugin is installed:

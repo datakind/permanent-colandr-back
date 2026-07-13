@@ -1,8 +1,13 @@
 import functools
+import logging
+import time
 import typing as t
 
 import apiflask as af
+import celery
 import flask_jwt_extended as jwtext
+import redis.client
+import redis.exceptions
 import sqlalchemy as sa
 from flask import current_app
 
@@ -11,11 +16,45 @@ from ...extensions import db, jwt
 from . import errors
 
 
-# TODO: we should use redis for this
-# import celery
-# import redis.client
-# _JWT_BLOCKLIST = celery.current_app.backend.client
-_JWT_BLOCKLIST = set()
+LOGGER = logging.getLogger(__name__)
+
+JWT_BLOCKLIST_KEY_PREFIX = "jwt_blocklist:"
+
+
+def _get_redis_client() -> redis.client.Redis:
+    """Return the shared Redis client from Celery's result backend."""
+    redis_conn = celery.current_app.backend.client
+    if not isinstance(redis_conn, redis.client.Redis):
+        raise RuntimeError(
+            f"Expected Redis backend client, got {type(redis_conn).__name__}"
+        )
+    return redis_conn
+
+
+def _blocklist_key(jti: str) -> str:
+    return f"{JWT_BLOCKLIST_KEY_PREFIX}{jti}"
+
+
+def _add_to_blocklist(jti: str, ttl_seconds: int) -> None:
+    """Add a JWT ``jti`` to the blocklist with the given TTL."""
+    try:
+        redis_conn = _get_redis_client()
+        redis_conn.set(_blocklist_key(jti), "1", ex=ttl_seconds)
+    except Exception as exc:
+        LOGGER.error("Cannot add token to blocklist (Redis unavailable): %s", exc)
+
+
+def _is_blocklisted(jti: str) -> bool:
+    """Check whether a JWT ``jti`` is in the blocklist."""
+    try:
+        redis_conn = _get_redis_client()
+        return redis_conn.exists(_blocklist_key(jti)) == 1
+    except Exception as exc:
+        LOGGER.error(
+            "Cannot check token blocklist (Redis unavailable); allowing request: %s",
+            exc,
+        )
+        return False  # fail open
 
 
 @jwt.user_identity_loader
@@ -64,14 +103,21 @@ def additional_claims_loader(user: models.User | str) -> dict[str, object]:
 
 @jwt.token_in_blocklist_loader
 def token_in_blocklist_loader(jwt_header, jwt_data: dict) -> bool:
+    """Callback that checks if a JWT's ``jti`` is in the blocklist, i.e. has been revoked."""
+    return _is_blocklisted(jwt_data["jti"])
+
+
+def revoke_token(jwt_data: dict) -> None:
+    """Revoke the JWT for ``jwt_data`` by adding its ``jti`` to the blocklist.
+
+    Blocklist entry expires when the token itself would have expired.
     """
-    Callback function that checks if a JWT is in the blocklist, i.e. has been revoked.
-    """
-    token = jwt_data["jti"]
-    # TODO: we should use redis for this
-    # token_in_blocklist = _JWT_BLOCKLIST.get(token)
-    token_in_blocklist = token in _JWT_BLOCKLIST
-    return token_in_blocklist
+    jti = jwt_data["jti"]
+    exp = jwt_data["exp"]
+    now = time.time()
+    ttl_seconds = max(int(exp - now), 0)
+    if ttl_seconds > 0:
+        _add_to_blocklist(jti, ttl_seconds)
 
 
 def authenticate_user(email: str, password: str) -> models.User:

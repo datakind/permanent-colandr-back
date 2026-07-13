@@ -557,8 +557,8 @@ class Vectorizer:
         used to determine values in the vectorized matrix, depending on the
         params used to initialize the :class:`Vectorizer`.
         """
-        w = []
-        tf_types = {
+        w: list[str] = []
+        tf_types: dict[str, str | dict[bool, str]] = {
             "binary": "1",
             "linear": "tf",
             "sqrt": "sqrt(tf)",
@@ -581,7 +581,7 @@ class Vectorizer:
         if self.tf_type == "bm25":
             w.append(tf_types[self.tf_type][bool(self.dl_type)])
         else:
-            w.append(tf_types[self.tf_type])
+            w.append(tf_types[self.tf_type])  # type: ignore
         if self.idf_type:
             w.append(idf_types[self.idf_type])
         if self.dl_type and self.tf_type != "bm25":

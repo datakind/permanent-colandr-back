@@ -91,6 +91,13 @@ def clear_cache(
         user: app user for which authorization has changed
         review_id: if specified, only clear cache for corresponding user-review authz
         user_id: if specified, only clear cache for corresponding user-user authz
+
+    Notes:
+        This function enumerates every combination of ``for_roles`` and ``if_frozen``
+        (or ``if_collaborator``) args that :func:`user_is_allowed_for_review()` and
+        :func:`user_is_allowed_for_user()` accept. If either function's signature adds
+        a new cached parameter, the loop here must be updated to match.
+        This is a known brittleness.
     """
     if review_id is None:
         cache.delete_memoized(user_is_allowed_for_review)
