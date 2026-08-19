@@ -1,11 +1,7 @@
 name: checks
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:  # run on all PRs
-  schedule:  # run weekly
-    - cron: "0 12 * * 0"
+  workflow_call:
 
 # HACK: let's add fake colandr envvars so tests can run
 # TODO (burton): figure out a better way of configuring the app!

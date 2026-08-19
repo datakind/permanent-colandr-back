@@ -29,20 +29,11 @@ jobs:
       pull-requests: read
     uses: datakind/.github/.github/workflows/pre-release.yml@main
 
-  # lint:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - run: echo "Add your lint command here"
-
-  # test:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v6
-  #     - run: echo "Add your test command here"
+  checks:
+    uses: ./.github/workflows/checks.yml
 
   ci:
-    needs: [pr-title, asana, dependency-review, enforce-targets, pre-release]
+    needs: [pr-title, asana, dependency-review, enforce-targets, pre-release, checks]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
