@@ -1,0 +1,10 @@
+# Copy to your repo as .github/workflows/post-release.yml.
+name: Post-release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  post-release:
+    uses: datakind/.github/.github/workflows/post-release.yml@main
