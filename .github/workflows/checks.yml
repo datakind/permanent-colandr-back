@@ -95,7 +95,7 @@ jobs:
           uv run python -m ruff format --diff colandr
       - name: Run linter
         run: |
-          uv run python -m ruff check --exit-zero colandr
+          uv run python -m ruff check colandr
   types:
     runs-on: ${{ matrix.os }}
     strategy:
