@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -17,10 +16,8 @@ class TestFulltextAPI:
             (999, None, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_API_ENDPOINT, id=id_, **(params or {}))
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, params, status_code, api):
+        response = api.get(FULLTEXT_API_ENDPOINT, id=id_, **(params or {}))
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -33,13 +30,11 @@ class TestFulltextAPI:
                 assert sorted(data.keys()) == sorted(fields)
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_API_ENDPOINT, id=id_)
-        response = client.delete(url, headers=admin_headers)
+    def test_delete(self, id_, api):
+        response = api.delete(FULLTEXT_API_ENDPOINT, id=id_)
         assert response.status_code == 204
         # TODO: decide on delete behavior for study.fulltext
         # get_response = client.get(url, headers=admin_headers)
         # assert get_response.status_code == 404  # not found!
-        get_response = client.get(url, headers=admin_headers)
+        get_response = api.get(FULLTEXT_API_ENDPOINT, id=id_)
         assert get_response.json == {}  # empty!

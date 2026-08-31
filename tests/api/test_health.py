@@ -1,13 +1,8 @@
-import flask
-
-
 HEALTH_API_ENDPOINT = "health.health"
 
 
 class TestHealthAPI:
-    def test_get(self, app, client):
-        with app.test_request_context():
-            url = flask.url_for(HEALTH_API_ENDPOINT, id=id)
-        response = client.get(url, headers=None)
+    def test_get(self, api):
+        response = api.get(HEALTH_API_ENDPOINT)
         assert response.status_code == 200
         assert response.json == {"message": "OK"}
