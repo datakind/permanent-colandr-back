@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import flask
 import pytest
 
 from colandr.lib.extractors.metadata import Metadata
@@ -22,16 +21,12 @@ class TestFulltextMetadataAPI:
         ],
     )
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get(
-        self, mock_get_model, id_, params, status_code, app, client, admin_headers
-    ):
+    def test_get(self, mock_get_model, id_, params, status_code, app, api):
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model if status_code == 200 else None
         mock_model.extract_metadata.return_value = []
 
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_METADATA_API_ENDPOINT, id=id_, **params)
-        response = client.get(url, headers=admin_headers)
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=id_, **params)
         assert response.status_code == status_code
 
         if 200 <= status_code < 300:
@@ -47,7 +42,7 @@ class TestFulltextMetadataAPI:
                     )
 
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get_with_mock(self, mock_get_model, app, client, admin_headers):
+    def test_get_with_mock(self, mock_get_model, app, api):
         """Test getting metadata with mocked extraction."""
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
@@ -74,9 +69,7 @@ class TestFulltextMetadataAPI:
         ]
         mock_model.extract_metadata.return_value = mock_metadata
 
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_METADATA_API_ENDPOINT, id=1)
-        response = client.get(url, headers=admin_headers)
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=1)
         assert response.status_code == 200
 
         metadata_data = response.json
@@ -97,7 +90,7 @@ class TestFulltextMetadataAPI:
         )
 
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get_filtered_with_mock(self, mock_get_model, app, client, admin_headers):
+    def test_get_filtered_with_mock(self, mock_get_model, app, api):
         """Test getting filtered metadata with mocked extraction."""
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
@@ -115,10 +108,8 @@ class TestFulltextMetadataAPI:
         ]
         mock_model.extract_metadata.return_value = mock_metadata
 
-        with app.test_request_context():
-            params = {"meta": "biome"}
-            url = flask.url_for(FULLTEXT_METADATA_API_ENDPOINT, id=1, **params)
-        response = client.get(url, headers=admin_headers)
+        params = {"meta": "biome"}
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=1, **params)
         assert response.status_code == 200
 
         metadata_data = response.json
