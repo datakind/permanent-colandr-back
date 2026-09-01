@@ -2,10 +2,6 @@ import flask
 import pytest
 import sqlalchemy as sa
 
-from colandr.api.v1 import authn
-
-from .. import helpers
-
 
 REVIEW_API_ENDPOINT = "reviews.review"
 REVIEWS_API_ENDPOINT = "reviews.reviews"
@@ -33,15 +29,10 @@ class TestReviewAPI:
             (1, 1, {"fields": "description"}, {"description": "DESCRIPTION1"}),
         ],
     )
-    def test_get(
-        self, current_user_id, review_id, params, exp_data, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.get(url, headers=headers)
+    def test_get(self, current_user_id, review_id, params, exp_data, api):
+        response = api.as_user(current_user_id).get(
+            REVIEW_API_ENDPOINT, id=review_id, **(params or {})
+        )
         assert response.status_code == 200
         data = response.json
         assert "id" in data and data["id"] == review_id
@@ -54,15 +45,10 @@ class TestReviewAPI:
             (2, 3, None, 403),
         ],
     )
-    def test_get_errors(
-        self, current_user_id, review_id, params, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id, **(params or {}))
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.get(url, headers=headers)
+    def test_get_errors(self, current_user_id, review_id, params, status_code, api):
+        response = api.as_user(current_user_id).get(
+            REVIEW_API_ENDPOINT, id=review_id, **(params or {})
+        )
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -75,14 +61,10 @@ class TestReviewAPI:
             (1, 2, {"num_fulltext_screening_reviewers": 3}),
         ],
     )
-    def test_put(self, current_user_id, review_id, data, app, client, db_session):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.put(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_put(self, current_user_id, review_id, data, api):
+        response = api.as_user(current_user_id).put(
+            REVIEW_API_ENDPOINT, id=review_id, json=data
+        )
         assert response.status_code == 200
         obs_data = response.json
         assert "id" in obs_data and obs_data["id"] == review_id
@@ -95,16 +77,10 @@ class TestReviewAPI:
             (1, 999, {"name": "NEW_NAME999"}, 404),
         ],
     )
-    def test_put_errors(
-        self, current_user_id, review_id, data, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.put(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_put_errors(self, current_user_id, review_id, data, status_code, api):
+        response = api.as_user(current_user_id).put(
+            REVIEW_API_ENDPOINT, id=review_id, json=data
+        )
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -114,17 +90,15 @@ class TestReviewAPI:
             (2, 2),
         ],
     )
-    def test_delete(
-        self, current_user_id, review_id, app, client, db_session, admin_headers
-    ):
-        with app.test_request_context():
+    def test_delete(self, current_user_id, review_id, api, admin_headers, client):
+        del_response = api.as_user(current_user_id).delete(
+            REVIEW_API_ENDPOINT, id=review_id
+        )
+        assert del_response.status_code == 204
+        # hack: verify as admin using raw fixtures (since api is still in user mode)
+        with client.application.test_request_context():
             url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.delete(url, headers=headers)
-                assert response.status_code == 204
-        assert client.get(url, headers=admin_headers).status_code == 404  # not found!
+        assert client.get(url, headers=admin_headers).status_code == 404
 
     @pytest.mark.parametrize(
         ["current_user_id", "review_id", "status_code"],
@@ -133,16 +107,11 @@ class TestReviewAPI:
             (3, 1, 403),  # only admins and owners can delete reviews
         ],
     )
-    def test_delete_errors(
-        self, current_user_id, review_id, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_API_ENDPOINT, id=review_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.delete(url, headers=headers)
-                assert response.status_code == status_code
+    def test_delete_errors(self, current_user_id, review_id, status_code, api):
+        response = api.as_user(current_user_id).delete(
+            REVIEW_API_ENDPOINT, id=review_id
+        )
+        assert response.status_code == status_code
 
     @pytest.mark.parametrize(
         "data",
@@ -156,15 +125,13 @@ class TestReviewAPI:
             },
         ],
     )
-    def test_post(self, data, app, client, db_session, admin_headers):
+    def test_post(self, data, api, db_session):
         # NOTE: we specify ids in the seed data, but apparently the auto-increment
         # sequence isn't made aware of it; so, we need to manually bump the start value
         # so that the created record isn't assigned id=1, which is already in use
         # and so violates a unique constraint
         db_session.execute(sa.text("ALTER SEQUENCE reviews_id_seq RESTART WITH 4"))
-        with app.test_request_context():
-            url = flask.url_for(REVIEWS_API_ENDPOINT)
-        response = client.post(url, json=data, headers=admin_headers)
+        response = api.post(REVIEWS_API_ENDPOINT, json=data)
         assert response.status_code == 200
         response_data = response.json
         assert data["name"] == response_data["name"]
@@ -176,14 +143,6 @@ class TestReviewAPI:
             (1, {"name": "NAMEX", "foo": "bar"}, 422),
         ],
     )
-    def test_post_errors(
-        self, current_user_id, data, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(REVIEWS_API_ENDPOINT)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.post(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_post_errors(self, current_user_id, data, status_code, api):
+        response = api.as_user(current_user_id).post(REVIEWS_API_ENDPOINT, json=data)
         assert response.status_code == status_code
