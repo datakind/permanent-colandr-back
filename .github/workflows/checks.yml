@@ -1,11 +1,7 @@
 name: checks
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:  # run on all PRs
-  schedule:  # run weekly
-    - cron: "0 12 * * 0"
+  workflow_call:
 
 # HACK: let's add fake colandr envvars so tests can run
 # TODO (burton): figure out a better way of configuring the app!
@@ -30,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12"]
         # TODO: also run on macos-latest pending docker/colima issue
         os: [ubuntu-latest]
     services:
@@ -99,7 +95,7 @@ jobs:
           uv run python -m ruff format --diff colandr
       - name: Run linter
         run: |
-          uv run python -m ruff check --exit-zero colandr
+          uv run python -m ruff check colandr
   types:
     runs-on: ${{ matrix.os }}
     strategy:

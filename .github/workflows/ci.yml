@@ -1,0 +1,47 @@
+# Copy to your repo as .github/workflows/ci.yml and customize.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, ready_for_review, synchronize]
+    branches: [main, develop]
+
+jobs:
+  # Validates conventional-commit PR titles
+  pr-title:
+    uses: datakind/.github/.github/workflows/pr-title.yml@main
+
+  # Requires an Asana task URL and links the PR via the GitHub integration
+  asana:
+    uses: datakind/.github/.github/workflows/link-asana-task.yml@main
+    secrets:
+      ASANA_SECRET: ${{ secrets.ASANA_SECRET }}
+
+  # Flags vulnerable dependency changes on the PR
+  dependency-review:
+    uses: datakind/.github/.github/workflows/dependency-review.yml@main
+
+  # Apps with GitFlow-inspired branching: PRs into main must come from release/* or hotfix/*
+  enforce-targets:
+    uses: datakind/.github/.github/workflows/enforce-pr-targets.yml@main
+
+  # Release repos: require CHANGELOG.md and matching app version on PRs to main
+  pre-release:
+    if: github.base_ref == 'main'
+    permissions:
+      pull-requests: read
+    uses: datakind/.github/.github/workflows/pre-release.yml@main
+
+  # Repo tests, ruff format/lint, and type checks
+  checks:
+    uses: ./.github/workflows/checks.yml
+
+  # Required status checks: fails if any needed job failed or was cancelled
+  ci:
+    needs: [pr-title, asana, dependency-review, enforce-targets, pre-release, checks]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
+      - run: echo "ci passed"
