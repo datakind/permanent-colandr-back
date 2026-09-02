@@ -1,0 +1,11 @@
+# Copy to your repo as .github/workflows/post-release.yml.
+name: Post-release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # After merge to main: tag the release and open a PR to sync main into develop
+  post-release:
+    uses: datakind/.github/.github/workflows/post-release.yml@main
