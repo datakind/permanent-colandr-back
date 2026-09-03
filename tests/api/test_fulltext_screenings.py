@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -18,14 +17,8 @@ class TestFulltextScreeningAPI:
             (999, None, 404, 0),
         ],
     )
-    def test_get(
-        self, id_, params, status_code, num_exp, app, client, admin_headers, seed_data
-    ):
-        with app.test_request_context():
-            url = flask.url_for(
-                FULLTEXT_SCREENING_API_ENDPOINT, id=id_, **(params or {})
-            )
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, params, status_code, num_exp, api):
+        response = api.get(FULLTEXT_SCREENING_API_ENDPOINT, id=id_, **(params or {}))
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             records = response.json
@@ -56,10 +49,8 @@ class TestFulltextScreeningAPI:
             (999, {"status": "included"}, 422),
         ],
     )
-    def test_put(self, id_, data, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=id_)
-        response = client.put(url, json=data, headers=admin_headers)
+    def test_put(self, id_, data, status_code, api):
+        response = api.put(FULLTEXT_SCREENING_API_ENDPOINT, id=id_, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -67,10 +58,8 @@ class TestFulltextScreeningAPI:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=id_)
-        response = client.delete(url, headers=admin_headers)
+    def test_delete(self, id_, api):
+        response = api.delete(FULLTEXT_SCREENING_API_ENDPOINT, id=id_)
         # NOTE: this operation is currently only allowed for the screener themself
         assert response.status_code == 403
         # get_response = client.get(url, headers=admin_headers)
@@ -83,10 +72,8 @@ class TestFulltextScreeningAPI:
             (999, {"status": "included"}, 404),
         ],
     )
-    def test_post(self, fulltext_id, data, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_SCREENING_API_ENDPOINT, id=fulltext_id)
-        response = client.post(url, json=data, headers=admin_headers)
+    def test_post(self, fulltext_id, data, status_code, api):
+        response = api.post(FULLTEXT_SCREENING_API_ENDPOINT, id=fulltext_id, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -105,10 +92,8 @@ class TestFulltextScreeningsAPI:
             ({"review_id": 1, "user_id": 3}, 1),
         ],
     )
-    def test_get(self, params, num_exp, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_SCREENINGS_API_ENDPOINT, **params)
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, params, num_exp, api):
+        response = api.get(FULLTEXT_SCREENINGS_API_ENDPOINT, **params)
         assert response.status_code == 200
         response_data = response.json
         assert isinstance(response_data, list)

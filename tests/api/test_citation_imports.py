@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -28,15 +27,13 @@ class TestCitationsImportsResource:
             ),
         ],
     )
-    def test_post(
-        self, params, file_name, app, client, db_session, admin_headers, request
-    ):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_IMPORTS_API_ENDPOINT, **(params or {}))
+    def test_post(self, params, file_name, db_session, api, request):
         dir_path = request.config.rootpath
         file_path = dir_path / "tests" / "fixtures" / "citations" / file_name
         files = {"uploaded_file": (open(file_path, mode="rb"), file_path)}
-        response = client.post(url, data=files, headers=admin_headers)
+        response = api.post(
+            CITATION_IMPORTS_API_ENDPOINT, files=files, **(params or {})
+        )
         assert response.status_code == 200
 
     @pytest.mark.parametrize(
@@ -45,10 +42,8 @@ class TestCitationsImportsResource:
             ({"review_id": 1}, 2),
         ],
     )
-    def test_get(self, params, num_exp, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_IMPORTS_API_ENDPOINT, **(params or {}))
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, params, num_exp, api):
+        response = api.get(CITATION_IMPORTS_API_ENDPOINT, **(params or {}))
         assert response.status_code == 200
         data = response.json
         assert data

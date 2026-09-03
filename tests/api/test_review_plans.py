@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -16,10 +15,8 @@ class TestReviewPlanResource:
             (1, {"fields": "boolean_search_query"}, 200),
         ],
     )
-    def test_get(self, id, params, status_code, app, client, admin_headers, seed_data):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id, **(params or {}))
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id, params, status_code, api, seed_data):
+        response = api.get(REVIEW_PLAN_API_ENDPOINT, id=id, **(params or {}))
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -68,10 +65,8 @@ class TestReviewPlanResource:
             (999, {"objective": "NEW_OBJECTIVE999"}, 404),
         ],
     )
-    def test_put(self, id, data, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id)
-        response = client.put(url, json=data, headers=admin_headers)
+    def test_put(self, id, data, status_code, api):
+        response = api.put(REVIEW_PLAN_API_ENDPOINT, id=id, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -79,12 +74,10 @@ class TestReviewPlanResource:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id", [1])
-    def test_delete(self, id, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_PLAN_API_ENDPOINT, id=id)
-        response = client.delete(url, headers=admin_headers)
+    def test_delete(self, id, api):
+        response = api.delete(REVIEW_PLAN_API_ENDPOINT, id=id)
         assert response.status_code == 204
-        get_response = client.get(url, headers=admin_headers)
+        get_response = api.get(REVIEW_PLAN_API_ENDPOINT, id=id)
         get_data = get_response.json
         # "deleted" review plan is just emptied out
         for key in [
