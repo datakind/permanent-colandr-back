@@ -6,6 +6,7 @@ import typing as t
 import flask
 import flask_sqlalchemy
 import pytest
+import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
 import sqlalchemy_utils as sa_utils
 from pytest_postgresql import factories as psql_factories
@@ -13,6 +14,7 @@ from pytest_postgresql import factories as psql_factories
 from colandr import cli, extensions, models
 from colandr.api.v1 import authn
 from colandr.app import create_app
+from tests import factories
 
 
 TEST_DBNAME = "colandr_test"
@@ -86,14 +88,7 @@ def cli_runner(app: flask.Flask):
 
 
 @pytest.fixture(scope="session")
-def db(
-    app: flask.Flask,
-    cli_runner,
-    seed_data_fpath: pathlib.Path,
-    seed_data: dict[str, t.Any],
-    psql_noproc,
-    request,
-):
+def db(app: flask.Flask, psql_noproc):
     with app.app_context():
         # create test database if it doesn't already exist
         if not sa_utils.database_exists(extensions.db.engine.url):
@@ -102,9 +97,6 @@ def db(
         extensions.db.drop_all()
         extensions.db.create_all()
 
-    _store_upload_files(app, seed_data, request)
-    cli_runner.invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
-
     yield extensions.db
 
     # NOTE: none of these cleanup commands work :/ it just hangs, and if you cancel it,
@@ -112,6 +104,51 @@ def db(
     # so, let's leave test data in place, it's small and causes no harm
     # extensions.db.drop_all()
     # sa_utils.drop_database(extensions.db.engine.url)
+
+
+def _reset_db_world(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask) -> None:
+    """Reset the DB to a known-empty state: no rows, sequences at 1, no uploads.
+
+    The uploads directory is cleared too, because ``RESTART IDENTITY`` recycles
+    review/study ids: without this, a later world that recreates review id 1
+    would read fulltext files left behind by the seeded world.
+    """
+    with app.app_context():
+        table_names = ", ".join(table.name for table in db.metadata.sorted_tables)
+        db.session.execute(sa.text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
+        db.session.commit()
+        uploads_dir = app.config["FULLTEXT_UPLOADS_DIR"]
+        filesystem = app.extensions["filesystem"]
+        if filesystem.exists(uploads_dir):
+            filesystem.rm(uploads_dir, recursive=True)
+        filesystem.makedirs(uploads_dir, exist_ok=True)
+
+
+@pytest.fixture(scope="module")
+def db_empty(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask):
+    """World: all tables present, zero rows, exactly one admin user.
+
+    The admin is part of the world contract rather than a side effect of the
+    ``api`` fixture, so every module starts from the same documented state and
+    "the DB holds only what I created" stays true apart from that one row.
+    """
+    _reset_db_world(db, app)
+    with app.app_context():
+        factories.create_user(db.session, name="Admin User", is_admin=True)
+        db.session.commit()  # tests run in savepoints on another connection
+
+
+@pytest.fixture(scope="module")
+def db_seeded(db, app, cli_runner, seed_data_fpath, seed_data, request):
+    """World: the full seed dataset, plus its uploaded fulltext files.
+
+    Only ``tests/api/test_smoke.py`` keeps this world; every other module
+    migrates to ``db_empty``. ``db-seed`` resyncs the id sequences itself
+    (``cli.py``), so creating rows in this world is safe too.
+    """
+    _reset_db_world(db, app)
+    cli_runner.invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
+    _store_upload_files(app, seed_data, request)
 
 
 def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
@@ -165,13 +202,25 @@ def db_session(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
     db.session = orig_session
 
 
-@pytest.fixture(scope="session")
-def admin_user(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
-    user = db.session.get(models.User, 1)
-    return user
+@pytest.fixture
+def admin_user(db_session):
+    """The current world's admin: `db_empty` created one, `db_seeded` has user 1."""
+    admin = (
+        db_session.execute(
+            sa.select(models.User).filter_by(is_admin=True).order_by(models.User.id)
+        )
+        .scalars()
+        .first()
+    )
+    if admin is None:
+        raise LookupError(
+            "no admin in this world -- is the module missing its world marker "
+            '(pytest.mark.usefixtures("db_empty") or "db_seeded")?'
+        )
+    return admin
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def admin_headers(admin_user: models.User, app_ctx):
     return authn.pack_header_for_user(admin_user)
 
@@ -182,3 +231,13 @@ def api(client, app, db_session, admin_headers):
     from .helpers import APIClient
 
     return APIClient(client, app, db_session, admin_headers)
+
+
+@pytest.fixture(autouse=True)
+def clear_app_caches(app, app_ctx):
+    """Clear app-level caches around each test; ids repeat across worlds."""
+    for cache in (extensions.cache, extensions.review_model_cache):
+        cache.clear()
+    yield
+    for cache in (extensions.cache, extensions.review_model_cache):
+        cache.clear()
