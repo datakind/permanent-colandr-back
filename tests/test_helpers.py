@@ -1,5 +1,10 @@
 """Tests for `helpers.APIClient`."""
 
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 
 class TestAPIClient:
     def test_admin_get(self, api):

@@ -8,6 +8,9 @@ from colandr import models
 from colandr.api.v1 import authn
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
+
 @pytest.mark.parametrize("user_id", [2, 3])
 def test_get_user_from_token(user_id, db_session):
     orig_user = db_session.get(models.User, user_id)

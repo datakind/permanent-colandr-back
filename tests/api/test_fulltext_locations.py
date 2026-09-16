@@ -5,6 +5,8 @@ import pytest
 from colandr.lib.extractors.metadata import Metadata
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 FULLTEXT_LOCATIONS_API_ENDPOINT = "fulltext_locations.fulltext_locations"
 PATCH_FUNC_PATH = "colandr.api.v1.routes.fulltext_locations"
 

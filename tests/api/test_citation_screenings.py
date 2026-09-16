@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 # TODO: figure out why cli seed command errors when screening records have "id" fields
 
 CITATION_SCREENING_API_ENDPOINT = "citation_screenings.citation_screening"

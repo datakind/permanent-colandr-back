@@ -5,6 +5,9 @@ from colandr.api.v1 import authz
 from .. import helpers
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
+
 @pytest.mark.parametrize(
     ["current_user_id", "review_id", "params", "exp_result"],
     # TODO: try to add frozen review cases here

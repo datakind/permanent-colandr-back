@@ -4,6 +4,9 @@ import sqlalchemy as sa
 from colandr import models
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
+
 class TestUser:
     @pytest.mark.parametrize(
         [

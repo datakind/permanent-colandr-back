@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 STUDY_API_ENDPOINT = "studies.study"
 STUDIES_API_ENDPOINT = "studies.studies"
 

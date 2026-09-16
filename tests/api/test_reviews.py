@@ -3,6 +3,8 @@ import pytest
 import sqlalchemy as sa
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 REVIEW_API_ENDPOINT = "reviews.review"
 REVIEWS_API_ENDPOINT = "reviews.reviews"
 

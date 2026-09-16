@@ -2,6 +2,8 @@ import pytest
 import sqlalchemy as sa
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 GET_REVIEWS_API_ENDPOINT = "admin.get_reviews"
 POST_USERS_API_ENDPOINT = "admin.post_users"
 

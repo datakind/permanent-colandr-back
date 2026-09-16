@@ -2,6 +2,8 @@ import flask
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 USER_API_ENDPOINT = "users.user"
 USERS_API_ENDPOINT = "users.users"
 
