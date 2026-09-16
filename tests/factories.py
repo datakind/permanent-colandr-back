@@ -398,6 +398,10 @@ def create_screened_review(
     return review, created
 
 
+# TODO: add factory func like `create_study_with_screenings()` that combines
+# 1 study and 1+ screening factory calls, analogous to `create_review_with_team`
+
+
 def store_fulltext_file(
     app: flask.Flask,
     review_id: int,
