@@ -27,9 +27,8 @@ class TestAPIClient:
         assert resp.json["id"] == user.id
 
     def test_as_user_gets_403_for_others(self, api, db_session):
-        user = factories.create_user(db_session)
-        other = factories.create_user(db_session)
-        resp = api.as_user(user).get("users.user", id=other.id)
+        user, other_user = factories.create_users(db_session, n=2)
+        resp = api.as_user(user).get("users.user", id=other_user.id)
         assert resp.status_code == 403
 
     def test_admin_put(self, api, db_session):
@@ -45,8 +44,7 @@ class TestAPIClient:
         assert resp.status_code == 204
 
     def test_user_mode_is_sticky(self, api, db_session):
-        user = factories.create_user(db_session)
-        other_user = factories.create_user(db_session)
+        user, other_user = factories.create_users(db_session, n=2)
         api.as_user(user)
         resp1 = api.get("users.user", id=user.id)  # self => ok
         assert resp1.status_code == 200

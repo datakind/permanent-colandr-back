@@ -25,7 +25,7 @@ def test_get_user_from_token(db_session):
 
 
 def test_pack_header_for_user(db_session):
-    for user in (factories.create_user(db_session), factories.create_user(db_session)):
+    for user in factories.create_users(db_session, n=2):
         header = authn.pack_header_for_user(user)
         assert isinstance(header, dict)
         assert "Authorization" in header

@@ -38,7 +38,6 @@ from colandr import models
 
 
 # TODO: add more factory funcs
-# - `create_users(session, n: int)` that creates 1+ users w/ default attributes
 # - `create_study_with_screenings()` that combines 1 study and 1+ screening factory calls
 #   analogous to `create_review_with_team`
 
@@ -86,6 +85,27 @@ def create_user(
 def _unique_email(name: str) -> str:
     slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name)
     return f"{slug or 'user'}-{next(_AUTO_NUM)}@test.local"
+
+
+def create_users(session: sa_orm.Session, *, n: int) -> list[models.User]:
+    """Create ``n`` users with auto-incrementing name/email, default attributes otherwise.
+
+    Call `:func:`create_user()` for more configurable user creation.
+    """
+    users = []
+    for _ in range(n):
+        i = next(_AUTO_NUM)
+        user = models.User(
+            name=f"User{i}",
+            email=f"user{i}@test.local",
+            is_admin=False,
+            is_confirmed=True,
+        )
+        user._password = UNUSABLE_PASSWORD
+        session.add(user)
+        users.append(user)
+    session.flush()
+    return users
 
 
 def create_review(
