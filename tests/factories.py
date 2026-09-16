@@ -37,6 +37,11 @@ import sqlalchemy.orm as sa_orm
 from colandr import models
 
 
+# TODO: add more factory funcs
+# - `create_users(session, n: int)` that creates 1+ users w/ default attributes
+# - `create_study_with_screenings()` that combines 1 study and 1+ screening factory calls
+#   analogous to `create_review_with_team`
+
 DEFAULT_REVIEWER_PCTS = [{"num": 1, "pct": 100}]
 UNUSABLE_PASSWORD = "!"  # werkzeug sentinel: satisfies NOT NULL, hashing-free
 _AUTO_NUM = itertools.count(1)  # deterministic default names, unique per session
@@ -396,10 +401,6 @@ def create_screened_review(
             exclude_reasons=exclude_reasons,
         )
     return review, created
-
-
-# TODO: add factory func like `create_study_with_screenings()` that combines
-# 1 study and 1+ screening factory calls, analogous to `create_review_with_team`
 
 
 def store_fulltext_file(
