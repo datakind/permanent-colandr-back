@@ -1,18 +1,13 @@
 import flask
 import pytest
 
-from colandr.api.v1 import authn
-
-from .. import helpers
-
 
 USER_API_ENDPOINT = "users.user"
 USERS_API_ENDPOINT = "users.users"
 
 
-def test_api_path(client, admin_headers):
-    url = "/api/users/1"
-    response = client.get(url, headers=admin_headers)
+def test_api_path(api):
+    response = api.get(USER_API_ENDPOINT, id=1)
     assert response.status_code == 200
 
 
@@ -68,16 +63,10 @@ class TestUserAPI:
             ),
         ],
     )
-    def test_get(
-        self, current_user_id, user_id, params, exp_data, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(USER_API_ENDPOINT, id=user_id, **(params or {}))
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.get(
-                    url, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_get(self, current_user_id, user_id, params, exp_data, api):
+        response = api.as_user(current_user_id).get(
+            USER_API_ENDPOINT, id=user_id, **(params or {})
+        )
         assert response.status_code == 200
         data = response.json
         assert "id" in data and data["id"] == user_id
@@ -91,16 +80,10 @@ class TestUserAPI:
             (4, 1, None, 403),
         ],
     )
-    def test_get_errors(
-        self, current_user_id, user_id, params, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(USER_API_ENDPOINT, id=user_id, **(params or {}))
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.get(
-                    url, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_get_errors(self, current_user_id, user_id, params, status_code, api):
+        response = api.as_user(current_user_id).get(
+            USER_API_ENDPOINT, id=user_id, **(params or {})
+        )
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -110,16 +93,14 @@ class TestUserAPI:
             (3, 3),
         ],
     )
-    def test_delete(
-        self, current_user_id, user_id, app, client, db_session, admin_headers
-    ):
-        with app.test_request_context():
+    def test_delete(self, current_user_id, user_id, api, admin_headers, client):
+        del_response = api.as_user(current_user_id).delete(
+            USER_API_ENDPOINT, id=user_id
+        )
+        assert del_response.status_code == 204
+        # verify as admin using raw fixtures (api is still in user mode)
+        with client.application.test_request_context():
             url = flask.url_for(USER_API_ENDPOINT, id=user_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.delete(url, headers=headers)
-                assert response.status_code == 204
         assert client.get(url, headers=admin_headers).status_code == 404  # not found!
 
     @pytest.mark.parametrize(
@@ -129,16 +110,8 @@ class TestUserAPI:
             (2, 3, 403),
         ],
     )
-    def test_delete_errors(
-        self, current_user_id, user_id, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(USER_API_ENDPOINT, id=user_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.delete(
-                    url, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_delete_errors(self, current_user_id, user_id, status_code, api):
+        response = api.as_user(current_user_id).delete(USER_API_ENDPOINT, id=user_id)
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -150,14 +123,10 @@ class TestUserAPI:
             (1, 2, {"is_admin": True}),
         ],
     )
-    def test_put(self, current_user_id, user_id, data, app, client, db_session):
-        with app.test_request_context():
-            url = flask.url_for(USER_API_ENDPOINT, id=user_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.put(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_put(self, current_user_id, user_id, data, api):
+        response = api.as_user(current_user_id).put(
+            USER_API_ENDPOINT, id=user_id, json=data
+        )
         assert response.status_code == 200
         obs_data = response.json
         assert "id" in obs_data and obs_data["id"] == user_id
@@ -175,16 +144,10 @@ class TestUserAPI:
             # (999, 999, {"name": "NEW_NAME999"}, 404),
         ],
     )
-    def test_put_errors(
-        self, current_user_id, user_id, data, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(USER_API_ENDPOINT, id=user_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.put(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_put_errors(self, current_user_id, user_id, data, status_code, api):
+        response = api.as_user(current_user_id).put(
+            USER_API_ENDPOINT, id=user_id, json=data
+        )
         assert response.status_code == status_code
 
 
@@ -199,12 +162,10 @@ class TestUsersAPI:
             (None, None, True, [1]),
         ],
     )
-    def test_get(self, email, review_id, admins, user_ids, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(
-                USERS_API_ENDPOINT, email=email, review_id=review_id, admins=admins
-            )
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, email, review_id, admins, user_ids, api):
+        response = api.get(
+            USERS_API_ENDPOINT, email=email, review_id=review_id, admins=admins
+        )
         assert response.status_code == 200
         data = response.json
         assert data
@@ -235,17 +196,9 @@ class TestUsersAPI:
         review_id,
         admins,
         status_code,
-        app,
-        client,
-        db_session,
+        api,
     ):
-        with app.test_request_context():
-            url = flask.url_for(
-                USERS_API_ENDPOINT, email=email, review_id=review_id, admins=admins
-            )
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.get(
-                    url, headers=authn.pack_header_for_user(current_user)
-                )
+        response = api.as_user(current_user_id).get(
+            USERS_API_ENDPOINT, email=email, review_id=review_id, admins=admins
+        )
         assert response.status_code == status_code

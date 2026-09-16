@@ -174,3 +174,11 @@ def admin_user(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
 @pytest.fixture(scope="session")
 def admin_headers(admin_user: models.User, app_ctx):
     return authn.pack_header_for_user(admin_user)
+
+
+@pytest.fixture
+def api(client, app, db_session, admin_headers):
+    """Pre-configured APIClient for API-level tests."""
+    from .helpers import APIClient
+
+    return APIClient(client, app, db_session, admin_headers)

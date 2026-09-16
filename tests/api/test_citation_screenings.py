@@ -1,9 +1,4 @@
-import flask
 import pytest
-
-from colandr.api.v1 import authn
-
-from .. import helpers
 
 
 # TODO: figure out why cli seed command errors when screening records have "id" fields
@@ -57,17 +52,10 @@ class TestCitationScreeningAPI:
             ),
         ],
     )
-    def test_get(
-        self, current_user_id, study_id, params, exp_data, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(
-                CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
-            )
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.get(url, headers=headers)
+    def test_get(self, current_user_id, study_id, params, exp_data, api):
+        response = api.as_user(current_user_id).get(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
+        )
         assert response.status_code == 200
         data = response.json
         assert isinstance(data, list)
@@ -82,18 +70,10 @@ class TestCitationScreeningAPI:
             (4, 1, None, 403),
         ],
     )
-    def test_get_errors(
-        self, current_user_id, study_id, params, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(
-                CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
-            )
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.get(
-                    url, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_get_errors(self, current_user_id, study_id, params, status_code, api):
+        response = api.as_user(current_user_id).get(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id, **(params or {})
+        )
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -107,13 +87,10 @@ class TestCitationScreeningAPI:
             ),
         ],
     )
-    def test_put(self, current_user_id, study_id, data, app, client, db_session):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.put(url, json=data, headers=headers)
+    def test_put(self, current_user_id, study_id, data, api):
+        response = api.as_user(current_user_id).put(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id, json=data
+        )
         assert response.status_code == 200
         obs_data = response.json
         assert "id" in obs_data and obs_data["id"] == study_id
@@ -127,16 +104,10 @@ class TestCitationScreeningAPI:
             (1, 999, {"user_id": 1, "status": "included"}, 404),
         ],
     )
-    def test_put_errors(
-        self, current_user_id, study_id, data, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                response = client.put(
-                    url, json=data, headers=authn.pack_header_for_user(current_user)
-                )
+    def test_put_errors(self, current_user_id, study_id, data, status_code, api):
+        response = api.as_user(current_user_id).put(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id, json=data
+        )
         assert response.status_code == status_code
 
     @pytest.mark.parametrize(
@@ -146,18 +117,13 @@ class TestCitationScreeningAPI:
             (3, 4),
         ],
     )
-    def test_delete(self, current_user_id, study_id, app, client, db_session):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.delete(url, headers=headers)
-                assert response.status_code == 204
-                assert not any(
-                    item["user_id"] == current_user_id
-                    for item in client.get(url, headers=headers).json
-                )  # not found!
+    def test_delete(self, current_user_id, study_id, api):
+        response = api.as_user(current_user_id).delete(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id
+        )
+        assert response.status_code == 204
+        remaining = api.get(CITATION_SCREENING_API_ENDPOINT, id=study_id).json
+        assert not any(item["user_id"] == current_user_id for item in remaining)
 
     @pytest.mark.parametrize(
         ["current_user_id", "study_id", "status_code"],
@@ -166,16 +132,11 @@ class TestCitationScreeningAPI:
             (4, 1, 403),  # only reviewers can delete their own screenings
         ],
     )
-    def test_delete_errors(
-        self, current_user_id, study_id, status_code, app, client, db_session
-    ):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=study_id)
-        with app.app_context():
-            with helpers.set_current_user(current_user_id, db_session) as current_user:
-                headers = authn.pack_header_for_user(current_user)
-                response = client.delete(url, headers=headers)
-                assert response.status_code == status_code
+    def test_delete_errors(self, current_user_id, study_id, status_code, api):
+        response = api.as_user(current_user_id).delete(
+            CITATION_SCREENING_API_ENDPOINT, id=study_id
+        )
+        assert response.status_code == status_code
 
     @pytest.mark.parametrize(
         ["citation_id", "data", "status_code"],
@@ -193,10 +154,8 @@ class TestCitationScreeningAPI:
             (999, {"status": "included"}, 404),
         ],
     )
-    def test_post(self, citation_id, data, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENING_API_ENDPOINT, id=citation_id)
-        response = client.post(url, json=data, headers=admin_headers)
+    def test_post(self, citation_id, data, status_code, api):
+        response = api.post(CITATION_SCREENING_API_ENDPOINT, id=citation_id, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -215,10 +174,8 @@ class TestCitationScreeningsResource:
             ({"review_id": 2, "user_id": 3}, 1),
         ],
     )
-    def test_get(self, params, num_exp, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENINGS_API_ENDPOINT, **params)
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, params, num_exp, api):
+        response = api.get(CITATION_SCREENINGS_API_ENDPOINT, **params)
         assert response.status_code == 200
         response_data = response.json
         assert isinstance(response_data, list)
@@ -236,10 +193,8 @@ class TestCitationScreeningsResource:
             ),
         ],
     )
-    def test_get_status_counts(self, params, exp_data, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_SCREENINGS_API_ENDPOINT, **params)
-        response = client.get(url, headers=admin_headers)
+    def test_get_status_counts(self, params, exp_data, api):
+        response = api.get(CITATION_SCREENINGS_API_ENDPOINT, **params)
         assert response.status_code == 200
         response_data = response.json
         assert response_data and isinstance(response_data, dict)

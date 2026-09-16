@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -17,10 +16,8 @@ class TestReviewTeamAPI:
             (999, None, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_TEAM_API_ENDPOINT, id=id_, **(params or {}))
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, params, status_code, api, seed_data):
+        response = api.get(REVIEW_TEAM_API_ENDPOINT, id=id_, **(params or {}))
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -58,10 +55,8 @@ class TestReviewTeamAPI:
             (1, {"action": "add", "user_id": 4}, 200),
         ],
     )
-    def test_put(self, id_, params, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_TEAM_API_ENDPOINT, id=id_, **params)
-        response = client.put(url, json=params, headers=admin_headers)
+    def test_put(self, id_, params, status_code, api):
+        response = api.put(REVIEW_TEAM_API_ENDPOINT, id=id_, **params)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json

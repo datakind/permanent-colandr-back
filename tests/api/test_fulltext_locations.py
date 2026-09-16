@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-import flask
 import pytest
 
 from colandr.lib.extractors.metadata import Metadata
@@ -19,10 +18,8 @@ class TestFulltextLocationsAPI:
             (999, 404),
         ],
     )
-    def test_get(self, id_, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_LOCATIONS_API_ENDPOINT, id=id_)
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, status_code, api):
+        response = api.get(FULLTEXT_LOCATIONS_API_ENDPOINT, id=id_)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -37,7 +34,7 @@ class TestFulltextLocationsAPI:
                 assert "confidence_level" in location
 
     @patch(f"{PATCH_FUNC_PATH}.get_locations")
-    def test_get_with_mock(self, mock_get_locations, app, client, admin_headers):
+    def test_get_with_mock(self, mock_get_locations, api):
         """Test getting locations with mocked extraction."""
         mock_locations = [
             Metadata(
@@ -59,9 +56,7 @@ class TestFulltextLocationsAPI:
         ]
         mock_get_locations.return_value = mock_locations
 
-        with app.test_request_context():
-            url = flask.url_for(FULLTEXT_LOCATIONS_API_ENDPOINT, id=1)
-        response = client.get(url, headers=admin_headers)
+        response = api.get(FULLTEXT_LOCATIONS_API_ENDPOINT, id=1)
         assert response.status_code == 200
 
         locations_data = response.json

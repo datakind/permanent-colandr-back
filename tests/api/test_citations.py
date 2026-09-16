@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -18,10 +17,8 @@ class TestCitationAPI:
             (999, None, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, app, client, admin_headers, seed_data):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_API_ENDPOINT, id=id_, **(params or {}))
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, params, status_code, api, seed_data):
+        response = api.get(CITATION_API_ENDPOINT, id=id_, **(params or {}))
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -46,10 +43,8 @@ class TestCitationAPI:
             (999, {"title": "NEW_TITLE999"}, 404),
         ],
     )
-    def test_put(self, id_, params, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_API_ENDPOINT, id=id_)
-        response = client.put(url, json=params, headers=admin_headers)
+    def test_put(self, id_, params, status_code, api):
+        response = api.put(CITATION_API_ENDPOINT, id=id_, json=params)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -57,15 +52,13 @@ class TestCitationAPI:
                 assert data.get(key) == val
 
     @pytest.mark.parametrize("id_", [1, 2])
-    def test_delete(self, id_, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATION_API_ENDPOINT, id=id_)
-        response = client.delete(url, headers=admin_headers)
+    def test_delete(self, id_, api):
+        response = api.delete(CITATION_API_ENDPOINT, id=id_)
         assert response.status_code == 204
         # TODO: decide on delete behavior for study.citation
         # get_response = client.get(url, headers=admin_headers)
         # assert get_response.status_code == 404  # not found!
-        get_response = client.get(url, headers=admin_headers)
+        get_response = api.get(CITATION_API_ENDPOINT, id=id_)
         assert get_response.json == {}  # empty!
 
 
@@ -86,10 +79,8 @@ class TestCitationsAPI:
             ),
         ],
     )
-    def test_post(self, params, data, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(CITATIONS_API_ENDPOINT, **params)
-        response = client.post(url, json=data, headers=admin_headers)
+    def test_post(self, params, data, api):
+        response = api.post(CITATIONS_API_ENDPOINT, json=data, **params)
         assert response.status_code == 200
         response_data = response.json
         assert {k: response_data[k] for k in data.keys()} == data

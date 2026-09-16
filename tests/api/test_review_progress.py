@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 
@@ -17,10 +16,8 @@ class TestReviewProgressAPI:
             (999, {}, 404),
         ],
     )
-    def test_get(self, id_, params, status_code, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_PROGRESS_API_ENDPOINT, id=id_, **params)
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, id_, params, status_code, api):
+        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=id_, **params)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -102,10 +99,8 @@ class TestReviewProgressAPI:
             ),
         ],
     )
-    def test_exp_result(self, id_, exp_data, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(REVIEW_PROGRESS_API_ENDPOINT, id=id_)
-        response = client.get(url, headers=admin_headers)
+    def test_exp_result(self, id_, exp_data, api):
+        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=id_)
         assert response.status_code == 200
         data = response.json
         assert data == exp_data

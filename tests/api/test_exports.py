@@ -1,4 +1,3 @@
-import flask
 import pytest
 
 from colandr.lib.fileio import tabular
@@ -18,23 +17,10 @@ class TestExportStudiesAPI:
             (2, "text/csv", 2, 19),
         ],
     )
-    def test_get(
-        self,
-        review_id,
-        content_type,
-        num_rows_exp,
-        num_cols_exp,
-        app,
-        client,
-        admin_headers,
-    ):
-        with app.test_request_context():
-            url = flask.url_for(
-                EXPORT_STUDIES_API_ENDPOINT,
-                review_id=review_id,
-                content_type=content_type,
-            )
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, review_id, content_type, num_rows_exp, num_cols_exp, api):
+        response = api.get(
+            EXPORT_STUDIES_API_ENDPOINT, review_id=review_id, content_type=content_type
+        )
         assert response.status_code == 200
         data = response.text
         assert data
@@ -101,14 +87,12 @@ class TestExportScreeningsAPI:
             ),
         ],
     )
-    def test_get(self, review_id, content_type, exp_data, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(
-                EXPORT_SCREENINGS_API_ENDPOINT,
-                review_id=review_id,
-                content_type=content_type,
-            )
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, review_id, content_type, exp_data, api):
+        response = api.get(
+            EXPORT_SCREENINGS_API_ENDPOINT,
+            review_id=review_id,
+            content_type=content_type,
+        )
         assert response.status_code == 200
         data = response.text
         assert data
@@ -152,10 +136,8 @@ class TestReviewExportPrismaAPI:
             ),
         ],
     )
-    def test_get(self, review_id, exp_data, app, client, admin_headers):
-        with app.test_request_context():
-            url = flask.url_for(EXPORT_PRISMA_API_ENDPOINT, review_id=review_id)
-        response = client.get(url, headers=admin_headers)
+    def test_get(self, review_id, exp_data, api):
+        response = api.get(EXPORT_PRISMA_API_ENDPOINT, review_id=review_id)
         assert response.status_code == 200
         data = response.json
         assert data
