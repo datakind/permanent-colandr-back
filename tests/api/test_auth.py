@@ -1,30 +1,35 @@
+"""Auth helper tests."""
+
 import datetime
 import os
 
 import flask_jwt_extended as jwtext
 import pytest
 
-from colandr import models
 from colandr.api.v1 import authn
 
-
-@pytest.mark.parametrize("user_id", [2, 3])
-def test_get_user_from_token(user_id, db_session):
-    orig_user = db_session.get(models.User, user_id)
-    token = jwtext.create_access_token(
-        identity=orig_user, fresh=True, expires_delta=datetime.timedelta(seconds=30)
-    )
-    user = authn.get_user_from_token(token)
-    assert user is orig_user
+from .. import factories
 
 
-@pytest.mark.parametrize("user_id", [2, 3])
-def test_pack_header_for_user(user_id, db_session):
-    user = db_session.get(models.User, user_id)
-    header = authn.pack_header_for_user(user)
-    assert isinstance(header, dict)
-    assert "Authorization" in header
-    assert header["Authorization"].startswith("Bearer")
+pytestmark = pytest.mark.usefixtures("db_empty")
+
+
+def test_get_user_from_token(db_session):
+    user1 = factories.create_user(db_session)
+    user2 = factories.create_user(db_session, is_admin=True)
+    for user in (user1, user2):
+        token = jwtext.create_access_token(
+            identity=user, fresh=True, expires_delta=datetime.timedelta(seconds=30)
+        )
+        assert authn.get_user_from_token(token) is user
+
+
+def test_pack_header_for_user(db_session):
+    for user in factories.create_users(db_session, n=2):
+        header = authn.pack_header_for_user(user)
+        assert isinstance(header, dict)
+        assert "Authorization" in header
+        assert header["Authorization"].startswith("Bearer")
 
 
 @pytest.mark.skipif(

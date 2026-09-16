@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 CITATION_API_ENDPOINT = "citations.citation"
 CITATIONS_API_ENDPOINT = "citations.citations"
 

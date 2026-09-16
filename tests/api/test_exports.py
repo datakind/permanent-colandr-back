@@ -3,6 +3,8 @@ import pytest
 from colandr.lib.fileio import tabular
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 EXPORT_STUDIES_API_ENDPOINT = "exports.studies"
 EXPORT_SCREENINGS_API_ENDPOINT = "exports.screenings"
 EXPORT_PRISMA_API_ENDPOINT = "exports.prisma"

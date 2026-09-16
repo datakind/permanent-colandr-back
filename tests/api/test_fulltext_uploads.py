@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 FULLTEXT_UPLOAD_API_ENDPOINT = "fulltext_uploads.fulltext_upload"
 
 
