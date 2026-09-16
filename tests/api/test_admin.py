@@ -1,67 +1,57 @@
+"""Tests for the admin API."""
+
 import pytest
-import sqlalchemy as sa
+
+from .. import factories
 
 
-pytestmark = pytest.mark.usefixtures("db_seeded")
+pytestmark = pytest.mark.usefixtures("db_empty")
 
 GET_REVIEWS_API_ENDPOINT = "admin.get_reviews"
 POST_USERS_API_ENDPOINT = "admin.post_users"
+NOT_FOUND_ID = 999_999
 
 
-@pytest.mark.usefixtures("db_session")
 class TestGetReviewsAPI:
-    @pytest.mark.parametrize(
-        ["review_ids", "num_exp"],
-        [("1", 1), ("1,2", 2), ("1,2,99", 2)],
-    )
-    def test_get(self, review_ids, num_exp, api):
-        response = api.get(GET_REVIEWS_API_ENDPOINT, review_ids=review_ids)
-        assert response.status_code == 200
-        data = response.json
-        assert data
-        assert len(data) == num_exp
+    def test_get(self, api, db_session):
+        """Get one or more reviews by id; ids with no match are ignored."""
+        review1, review2 = factories.create_reviews(db_session, n=2)
+        for review_ids, num_exp in [
+            (f"{review1.id}", 1),
+            (f"{review1.id},{review2.id}", 2),
+            (f"{review1.id},{review2.id},{NOT_FOUND_ID}", 2),
+        ]:
+            response = api.get(GET_REVIEWS_API_ENDPOINT, review_ids=review_ids)
+            assert response.status_code == 200
+            assert len(response.json) == num_exp
 
 
-@pytest.mark.usefixtures("db_session")
 class TestPostUsersAPI:
-    @pytest.mark.parametrize(
-        "data",
-        [
-            {
-                "name": "NAMEX",
-                "email": "namex@example.net",
-                "password": "PASSWORDX",
-            },
-        ],
-    )
-    def test_post(self, data, api, db_session):
-        # NOTE: we specify user ids in the seed data, but apparently the auto-increment
-        # sequence isn't made aware of it; so, we need to manually bump the start value
-        # so that this created user isn't assigned id=1, which is already in use
-        # and so violates a unique constraint. seems crazy, but here we are
-        db_session.execute(sa.text("ALTER SEQUENCE users_id_seq RESTART WITH 6"))
+    def test_post(self, api):
+        """Create a user."""
+        data = {"name": "NAMEX", "email": "namex@example.com", "password": "PASSWORDX"}
         response = api.post(POST_USERS_API_ENDPOINT, json=data)
         assert response.status_code == 200
-        response_data = response.json
-        assert data["email"] == response_data["email"]
+        assert response.json["name"] == data["name"]
+        assert response.json["email"] == data["email"]
 
     @pytest.mark.parametrize(
-        ["current_user_id", "data", "status_code"],
+        "json_data",
         [
-            (1, {"name": "NAMEX", "email": "namex@example.net"}, 422),
-            (1, {"email": "namex@example.net", "password": "PASSWORDX"}, 422),
-            (1, {"name": "NAMEX", "password": "PASSWORDX"}, 422),
-            (
-                2,
-                {
-                    "name": "NAMEX",
-                    "email": "namex@example.net",
-                    "password": "PASSWORDX",
-                },
-                422,
-            ),
+            {"name": "NAMEX", "email": "namex@example.com"},
+            {"email": "namex@example.com", "password": "PASSWORDX"},
+            {"name": "NAMEX", "password": "PASSWORDX"},
         ],
+        ids=["no-password", "no-name", "no-email"],
     )
-    def test_post_errors(self, current_user_id, data, status_code, api):
-        response = api.as_user(current_user_id).post(POST_USERS_API_ENDPOINT, data=data)
-        assert response.status_code == status_code
+    def test_post_invalid(self, json_data, api):
+        """Post an incomplete user record, as an admin."""
+        response = api.post(POST_USERS_API_ENDPOINT, json=json_data)
+        assert response.status_code == 422
+
+    def test_post_forbidden(self, api, db_session):
+        """Post a user record, as a regular user."""
+        user = factories.create_user(db_session, is_admin=False)
+        data = {"name": "NAMEX", "email": "namex@example.com", "password": "PASSWORDX"}
+        response = api.as_user(user).post(POST_USERS_API_ENDPOINT, json=data)
+        assert response.status_code == 403
