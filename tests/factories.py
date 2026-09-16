@@ -142,6 +142,27 @@ def create_review(
     return review
 
 
+def create_reviews(session: sa_orm.Session, *, n: int) -> list[models.Review]:
+    """Create ``n`` reviews with auto-incrementing name, default attributes otherwise.
+
+    Call `:func:`create_review()` for more configurable review creation.
+    """
+    reviews = []
+    for _ in range(n):
+        i = next(_AUTO_NUM)
+        review = models.Review(
+            name=f"Review{i}",
+            description=None,
+            status="active",
+            citation_reviewer_num_pcts=DEFAULT_REVIEWER_PCTS,
+            fulltext_reviewer_num_pcts=DEFAULT_REVIEWER_PCTS,
+        )
+        session.add(review)
+        reviews.append(review)
+    session.flush()
+    return reviews
+
+
 def add_review_user(
     session: sa_orm.Session,
     review: models.Review,
