@@ -38,8 +38,9 @@ def graph(db_session):
     *is* the test's dict, shared with the endpoint under test.
     """
     review = factories.create_review(db_session)
-    s1 = factories.create_study(db_session, review, citation=CITATION1)
-    s2 = factories.create_study(db_session, review, citation=CITATION2)
+    s1, s2 = factories.create_studies(
+        db_session, review, n=2, citations=[CITATION1, CITATION2]
+    )
     return {
         "s1": s1,
         "s2": s2,

@@ -19,9 +19,9 @@ def graph(db_session):
     review1, review2 = factories.create_reviews(
         db_session, n=2, names=["NAME1", "NAME2"]
     )
-    factories.create_study(db_session, review1, tags=["TAG2", "TAG1"])
-    factories.create_study(db_session, review1, tags=["TAG1", "TAG3"])
-    factories.create_study(db_session, review1)  # untagged: contributes nothing
+    factories.create_studies(
+        db_session, review1, n=3, tagss=[["TAG2", "TAG1"], ["TAG1", "TAG3"], []]
+    )
     factories.create_study(db_session, review2, tags=["TAG4"])
     return {"review1": review1, "review2": review2}
 

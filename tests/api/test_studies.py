@@ -44,44 +44,33 @@ def graph(db_session, admin_user):
     review2 = factories.create_review_with_team(
         db_session, owner=admin_user, name="NAME2"
     )
-    s1 = factories.create_study(
+    s1, s2, s3 = factories.create_studies(
         db_session,
         review1,
-        user=member,
-        data_source=data_source,
-        tags=["TAG1"],
-        citation={
-            "type_of_reference": "journal",
-            "title": "TITLE1 study one",
-            "abstract": "ABSTRACT1",
-            "keywords": ["KW1"],
-        },
-    )
-    s2 = factories.create_study(
-        db_session,
-        review1,
-        user=member,
-        data_source=data_source,
-        tags=["TAG2"],
-        citation={
-            "type_of_reference": "journal",
-            "title": "TITLE2 study two",
-            "abstract": "ABSTRACT2",
-            "keywords": ["KW2"],
-        },
-    )
-    s3 = factories.create_study(
-        db_session,
-        review1,
-        user=member,
-        data_source=data_source,
-        tags=["TAG3"],
-        citation={
-            "type_of_reference": "journal",
-            "title": "TITLE3 study three",
-            "abstract": "ABSTRACT3",
-            "keywords": ["KW3"],
-        },
+        n=3,
+        users=[member, member, member],
+        data_sources=[data_source, data_source, data_source],
+        tagss=[["TAG1"], ["TAG2"], ["TAG3"]],
+        citations=[
+            {
+                "type_of_reference": "journal",
+                "title": "TITLE1 study one",
+                "abstract": "ABSTRACT1",
+                "keywords": ["KW1"],
+            },
+            {
+                "type_of_reference": "journal",
+                "title": "TITLE2 study two",
+                "abstract": "ABSTRACT2",
+                "keywords": ["KW2"],
+            },
+            {
+                "type_of_reference": "journal",
+                "title": "TITLE3 study three",
+                "abstract": "ABSTRACT3",
+                "keywords": ["KW3"],
+            },
+        ],
     )
     s4 = factories.create_study(
         db_session,
