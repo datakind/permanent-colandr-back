@@ -46,8 +46,8 @@ def graph(db_session, admin_user):
     )
     s1, s2, s3 = factories.create_studies(
         db_session,
-        review1,
-        n=3,
+        3,
+        review=review1,
         users=[member, member, member],
         data_sources=[data_source, data_source, data_source],
         tagss=[["TAG1"], ["TAG2"], ["TAG3"]],
@@ -74,7 +74,7 @@ def graph(db_session, admin_user):
     )
     s4 = factories.create_study(
         db_session,
-        review2,
+        review=review2,
         user=admin_user,
         data_source=data_source,
         tags=["TAG4"],

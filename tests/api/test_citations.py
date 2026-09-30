@@ -39,7 +39,7 @@ def graph(db_session):
     """
     review = factories.create_review(db_session)
     s1, s2 = factories.create_studies(
-        db_session, review, n=2, citations=[CITATION1, CITATION2]
+        db_session, 2, review=review, citations=[CITATION1, CITATION2]
     )
     return {
         "s1": s1,

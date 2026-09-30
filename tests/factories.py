@@ -88,11 +88,10 @@ def create_user(
 
 def create_users(
     session: sa_orm.Session,
-    *,
     n: int,
+    *,
     names: t.Optional[Sequence[str]] = None,
     emails: t.Optional[Sequence[str]] = None,
-    passwords: t.Optional[Sequence[str]] = None,
 ) -> list[models.User]:
     """Create ``n`` users with auto-incrementing name/email, default attributes otherwise.
 
@@ -106,10 +105,9 @@ def create_users(
     emails = (
         emails if emails is not None else [f"user{i}@test.local" for i in auto_nums]
     )
-    passwords = passwords if passwords is not None else [None] * n  # type: ignore
     users = [
-        _new_user(name=name, email=email, password=password)
-        for name, email, password in zip(names, emails, passwords, strict=True)
+        _new_user(name=name, email=email)
+        for name, email in zip(names, emails, strict=True)
     ]
     session.add_all(users)
     session.flush()
@@ -181,28 +179,21 @@ def create_review(
 
 def create_reviews(
     session: sa_orm.Session,
-    *,
     n: int,
+    *,
     names: t.Optional[Sequence[str]] = None,
-    descriptions: t.Optional[Sequence[str]] = None,
 ) -> list[models.Review]:
     """Create ``n`` reviews with auto-incrementing name, default attributes otherwise.
 
     Each argument is either omitted, in which case every review gets the default
-    (``Review{i}`` name, null description), or specifies exactly ``n`` values, the
-    i-th of which belongs to the i-th review. Call :func:`create_review()` for a
-    single review with more options.
+    (``Review{i}`` name,), or specifies exactly ``n`` values, the i-th of which
+    belongs to the i-th review. Call :func:`create_review()` for a single review
+    with more options.
     """
     # one auto-increment per review, always, to avoid coupling between factory calls
     auto_nums = [next(_AUTO_NUM) for _ in range(n)]
     names = names if names is not None else [f"Review{i}" for i in auto_nums]
-    descriptions = (
-        descriptions if descriptions is not None else [None] * n  # type: ignore
-    )
-    reviews = [
-        _new_review(name=name, description=description)
-        for name, description in zip(names, descriptions, strict=True)
-    ]
+    reviews = [_new_review(name=name) for name in names]
     session.add_all(reviews)
     session.flush()
     return reviews
@@ -316,8 +307,8 @@ def create_import(
 
 def create_study(
     session: sa_orm.Session,
-    review: models.Review,
     *,
+    review: models.Review,
     user: t.Optional[models.User] = None,
     data_source: t.Optional[models.DataSource] = None,
     citation: t.Optional[dict[str, t.Any]] = None,
@@ -358,9 +349,9 @@ def create_study(
 
 def create_studies(
     session: sa_orm.Session,
-    review: models.Review,
-    *,
     n: int,
+    *,
+    review: models.Review,
     users: t.Optional[Sequence[models.User]] = None,
     data_sources: t.Optional[Sequence[models.DataSource]] = None,
     citations: t.Optional[Sequence[dict[str, t.Any]]] = None,
@@ -564,7 +555,7 @@ def create_screened_review(
     review = create_review(session, **review_kwargs)
     add_review_user(session, review, owner, role="owner")
     created = {
-        label: create_study(session, review, **kwargs)
+        label: create_study(session, review=review, **kwargs)
         for label, kwargs in studies.items()
     }
     for label, user, stage, status, exclude_reasons in decisions:

@@ -46,7 +46,7 @@ def test_create_screening_updates_study_status(db_session):
     # passes because the factory expires the study after the listener's Core UPDATE
     review = factories.create_review(db_session)
     user = factories.create_user(db_session)
-    study = factories.create_study(db_session, review, user=user)
+    study = factories.create_study(db_session, review=review, user=user)
     assert study.citation_status == "not_screened"
     factories.create_screening(db_session, study, user=user, status="included")
     assert study.citation_status == "included"
@@ -57,7 +57,7 @@ def test_create_screening_rejects_fulltext_before_citation_inclusion(db_session)
     listener never cleans it up, so the factory refuses to build the state."""
     review = factories.create_review(db_session)
     user = factories.create_user(db_session)
-    study = factories.create_study(db_session, review, user=user)
+    study = factories.create_study(db_session, review=review, user=user)
     factories.create_screening(db_session, study, user=user, status="excluded")
     with pytest.raises(ValueError, match="citation_status is 'excluded'"):
         factories.create_screening(
@@ -74,7 +74,7 @@ def test_later_citation_exclusion_deletes_existing_fulltext_screening(db_session
     """
     review = factories.create_review(db_session)
     user = factories.create_user(db_session)
-    study = factories.create_study(db_session, review, user=user)
+    study = factories.create_study(db_session, review=review, user=user)
     factories.create_screening(db_session, study, user=user, status="included")
     factories.create_screening(
         db_session, study, user=user, stage="fulltext", status="included"
@@ -134,8 +134,8 @@ def test_default_values_are_deterministic(db_session):
     assert first.email != second.email
     assert first.email.endswith("@test.local")
     review = factories.create_review(db_session)
-    title1 = factories.create_study(db_session, review).citation["title"]
-    title2 = factories.create_study(db_session, review).citation["title"]
+    title1 = factories.create_study(db_session, review=review).citation["title"]
+    title2 = factories.create_study(db_session, review=review).citation["title"]
     assert title1 != title2
     assert title1.startswith("Test Study ")
 

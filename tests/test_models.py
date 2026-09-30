@@ -34,7 +34,7 @@ class TestUser:
         other_review = factories.create_review_with_team(
             db_session, owner=owner, members=[collaborator]
         )
-        study = factories.create_study(db_session, review, user=owner)
+        study = factories.create_study(db_session, review=review, user=owner)
         screening = factories.create_screening(db_session, study, user=owner)
 
         assert [r.id for r in owner.reviews] == [review.id, other_review.id]
@@ -75,7 +75,7 @@ class TestReview:
         review = factories.create_review_with_team(
             db_session, owner=owner, members=[member]
         )
-        study = factories.create_study(db_session, review, user=owner)
+        study = factories.create_study(db_session, review=review, user=owner)
         import_record = factories.create_import(db_session, review, user=owner)
 
         assert [u.id for u in review.users] == [owner.id, member.id]
@@ -96,9 +96,9 @@ class TestReview:
     def test_num_studies_by_status(self, db_session):
         review = factories.create_review(db_session)
         user = factories.create_user(db_session)
-        included = factories.create_study(db_session, review, user=user)
-        excluded = factories.create_study(db_session, review, user=user)
-        unscreened = factories.create_study(db_session, review, user=user)
+        included = factories.create_study(db_session, review=review, user=user)
+        excluded = factories.create_study(db_session, review=review, user=user)
+        unscreened = factories.create_study(db_session, review=review, user=user)
         factories.create_screening(db_session, included, user=user, status="included")
         factories.create_screening(db_session, excluded, user=user, status="excluded")
 
@@ -116,7 +116,7 @@ class TestStudy:
         data_source = factories.create_data_source(db_session, source_name="PubMed")
         study = factories.create_study(
             db_session,
-            review,
+            review=review,
             user=user,
             data_source=data_source,
             tags=["TAG1"],
@@ -132,7 +132,7 @@ class TestStudy:
         review = factories.create_review(db_session)
         data_source = factories.create_data_source(db_session)
         study = factories.create_study(
-            db_session, review, user=user, data_source=data_source
+            db_session, review=review, user=user, data_source=data_source
         )
         screening = factories.create_screening(db_session, study, user=user)
 
@@ -149,7 +149,7 @@ class TestStudy:
         review = factories.create_review(db_session)
         study = factories.create_study(
             db_session,
-            review,
+            review=review,
             citation={
                 "type_of_reference": "journal",
                 "title": "TITLE",
@@ -171,7 +171,7 @@ class TestStudy:
     def test_exclude_reasons(self, db_session):
         user = factories.create_user(db_session)
         review = factories.create_review(db_session)
-        study = factories.create_study(db_session, review, user=user)
+        study = factories.create_study(db_session, review=review, user=user)
         factories.create_screening(
             db_session,
             study,
@@ -184,7 +184,7 @@ class TestStudy:
     def test_fulltext_exclude_reasons(self, db_session):
         user = factories.create_user(db_session)
         review = factories.create_review(db_session)
-        study = factories.create_study(db_session, review, user=user)
+        study = factories.create_study(db_session, review=review, user=user)
         factories.create_screening(db_session, study, user=user, status="included")
         factories.create_screening(
             db_session,
