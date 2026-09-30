@@ -49,7 +49,7 @@ _AUTO_NUM = itertools.count(1)  # deterministic default names, unique per sessio
 def create_user(
     session: sa_orm.Session,
     *,
-    name: str = "Test User",
+    name: t.Optional[str] = None,
     email: t.Optional[str] = None,
     password: t.Optional[str] = None,
     is_admin: bool = False,
@@ -59,53 +59,85 @@ def create_user(
 
     Args:
         session
-        name: User's display name. Seeds the generated email when omitted.
-        email: User's email address; generated (unique) when omitted.
-        password: Plaintext password, hashed via the model's setter. When omitted,
-            an unusable sentinel is stored instead.
+        name: User's display name, default "User{i}".
+        email: User's email address, generated from ``name`` when omitted,
+            like "user{i}@test.local".
+        password: Plaintext password, hashed via the model's setter.
+            When omitted, an unusable sentinel is stored instead.
         is_admin: Whether the user has admin privileges.
         is_confirmed: Whether the user has confirmed their account.
     """
-    user = models.User(
+    i = next(_AUTO_NUM)
+    if name is None:
+        name = f"User{i}"
+    if email is None:
+        email = _user_email_from_name(name)
+    user = _new_user(
         name=name,
-        email=email or _unique_email(name),
+        email=email,
+        password=password,
         is_admin=is_admin,
         is_confirmed=is_confirmed,
     )
-    if password is None:
-        user._password = UNUSABLE_PASSWORD  # sentinel value, skips scrypt
-    else:
-        user.password = password  # => property setter hashes it
     session.add(user)
     session.flush()
     return user
 
 
-# TODO: don't bother with the slug, just use numbered users
-def _unique_email(name: str) -> str:
-    slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name)
-    return f"{slug or 'user'}-{next(_AUTO_NUM)}@test.local"
-
-
-def create_users(session: sa_orm.Session, *, n: int) -> list[models.User]:
+def create_users(
+    session: sa_orm.Session,
+    *,
+    n: int,
+    names: t.Optional[Sequence[str]] = None,
+    emails: t.Optional[Sequence[str]] = None,
+    passwords: t.Optional[Sequence[str]] = None,
+) -> list[models.User]:
     """Create ``n`` users with auto-incrementing name/email, default attributes otherwise.
 
-    Call `:func:`create_user()` for more configurable user creation.
+    Each argument is either omitted -- values are generated, one per user --
+    or specifies exactly ``n`` values, the i-th of which belongs to the i-th user.
+    Call :func:`create_user()` for a single user with more options.
     """
-    users = []
-    for _ in range(n):
-        i = next(_AUTO_NUM)
-        user = models.User(
-            name=f"User{i}",
-            email=f"user{i}@test.local",
-            is_admin=False,
-            is_confirmed=True,
-        )
-        user._password = UNUSABLE_PASSWORD
-        session.add(user)
-        users.append(user)
+    # one auto-increment per user, always, to avoid coupling between factory calls
+    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
+    names = names if names is not None else [f"User{i}" for i in auto_nums]
+    emails = (
+        emails if emails is not None else [f"user{i}@test.local" for i in auto_nums]
+    )
+    passwords = passwords if passwords is not None else [None] * n  # type: ignore
+    users = [
+        _new_user(name=name, email=email, password=password)
+        for name, email, password in zip(names, emails, passwords, strict=True)
+    ]
+    session.add_all(users)
     session.flush()
     return users
+
+
+def _new_user(
+    *,
+    name: str,
+    email: str,
+    password: t.Optional[str] = None,
+    is_admin: bool = False,
+    is_confirmed: bool = True,
+) -> models.User:
+    """Create a new user without adding it to the session, shared by both single-
+    and multi-user creation factories.
+    """
+    user = models.User(
+        name=name, email=email, is_admin=is_admin, is_confirmed=is_confirmed
+    )
+    if password is None:
+        user._password = UNUSABLE_PASSWORD  # sentinel value, skips scrypt
+    else:
+        user.password = password  # => property setter hashes it
+    return user
+
+
+def _user_email_from_name(name: str) -> str:
+    slug = "".join(ch.lower() if ch.isalnum() else "-" for ch in name)
+    return f"{slug}@test.local"
 
 
 def create_review(
