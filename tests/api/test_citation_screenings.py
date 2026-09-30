@@ -11,7 +11,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 CITATION_SCREENING_API_ENDPOINT = "citation_screenings.citation_screening"
 CITATION_SCREENINGS_API_ENDPOINT = "citation_screenings.citation_screenings"
-NOT_FOUND_ID = 999_999
 
 
 def _with_ids(graph: dict[str, t.Any], record: dict[str, t.Any]) -> dict[str, t.Any]:
@@ -137,7 +136,7 @@ class TestCitationScreeningAPI:
         ],
     )
     def test_get_errors(self, actor, study_key, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).get(
             CITATION_SCREENING_API_ENDPOINT, id=study_id
         )
@@ -191,7 +190,7 @@ class TestCitationScreeningAPI:
         ],
     )
     def test_put_errors(self, actor, study_key, data, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).put(
             CITATION_SCREENING_API_ENDPOINT, id=study_id, json=_with_ids(graph, data)
         )
@@ -224,7 +223,7 @@ class TestCitationScreeningAPI:
         ],
     )
     def test_delete_errors(self, actor, study_key, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).delete(
             CITATION_SCREENING_API_ENDPOINT, id=study_id
         )
@@ -256,7 +255,7 @@ class TestCitationScreeningAPI:
     )
     def test_post(self, study_key, data, status_code, graph, api):
         """Create a citation screening, as an admin naming the screening reviewer."""
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         json_data = _with_ids(graph, data)
         response = api.post(
             CITATION_SCREENING_API_ENDPOINT, id=study_id, json=json_data

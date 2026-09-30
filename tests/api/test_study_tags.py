@@ -8,7 +8,6 @@ from .. import factories
 pytestmark = pytest.mark.usefixtures("db_empty")
 
 STUDY_TAGS_API_ENDPOINT = "study_tags.study_tags"
-NOT_FOUND_ID = 999_999
 
 
 @pytest.fixture
@@ -38,7 +37,9 @@ class TestStudyTagsAPI:
     )
     def test_get(self, review_key, status_code, exp_tags, graph, api):
         """Get the distinct tags assigned to a review's studies."""
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.get(STUDY_TAGS_API_ENDPOINT, review_id=review_id)
         assert response.status_code == status_code
         if 200 <= status_code < 300:

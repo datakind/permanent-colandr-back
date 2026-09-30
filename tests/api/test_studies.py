@@ -11,7 +11,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 STUDY_API_ENDPOINT = "studies.study"
 STUDIES_API_ENDPOINT = "studies.studies"
-NOT_FOUND_ID = 999_999
 
 
 def _with_ids(graph: dict[str, t.Any], exp_data: dict[str, t.Any]) -> dict[str, t.Any]:
@@ -179,7 +178,7 @@ class TestStudyAPI:
         ],
     )
     def test_get_errors(self, actor, study_key, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).get(STUDY_API_ENDPOINT, id=study_id)
         assert response.status_code == status_code
 
@@ -221,7 +220,7 @@ class TestStudyAPI:
         ],
     )
     def test_put_errors(self, actor, study_key, data, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).put(
             STUDY_API_ENDPOINT, id=study_id, json=data
         )
@@ -253,7 +252,7 @@ class TestStudyAPI:
         ],
     )
     def test_delete_errors(self, actor, study_key, status_code, graph, api):
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.as_user(graph[actor]).delete(STUDY_API_ENDPOINT, id=study_id)
         assert response.status_code == status_code
 
@@ -315,7 +314,9 @@ class TestStudiesResource:
         ],
     )
     def test_get_errors(self, actor, review_key, status_code, graph, api):
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.as_user(graph[actor]).get(
             STUDIES_API_ENDPOINT, review_id=review_id
         )

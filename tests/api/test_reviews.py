@@ -10,7 +10,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 REVIEW_API_ENDPOINT = "reviews.review"
 REVIEWS_API_ENDPOINT = "reviews.reviews"
-NOT_FOUND_ID = 999_999
 
 
 def _review_url(client, review_id: int) -> str:
@@ -110,7 +109,9 @@ class TestReviewAPI:
         ],
     )
     def test_get_errors(self, actor, review_key, status_code, graph, api):
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.as_user(graph[actor]).get(REVIEW_API_ENDPOINT, id=review_id)
         assert response.status_code == status_code
 
@@ -149,7 +150,9 @@ class TestReviewAPI:
         ],
     )
     def test_put_errors(self, actor, review_key, data, status_code, graph, api):
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.as_user(graph[actor]).put(
             REVIEW_API_ENDPOINT, id=review_id, json=data
         )
@@ -186,7 +189,9 @@ class TestReviewAPI:
         ],
     )
     def test_delete_errors(self, actor, review_key, status_code, graph, api):
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.as_user(graph[actor]).delete(REVIEW_API_ENDPOINT, id=review_id)
         assert response.status_code == status_code
 

@@ -45,6 +45,8 @@ DEFAULT_REVIEWER_PCTS = [{"num": 1, "pct": 100}]
 UNUSABLE_PASSWORD = "!"  # werkzeug sentinel: satisfies NOT NULL, hashing-free
 _AUTO_NUM = itertools.count(1)  # deterministic default names, unique per session
 
+NOT_FOUND_ID = 999_999
+
 
 def create_user(
     session: sa_orm.Session,

@@ -10,7 +10,6 @@ from .. import factories
 pytestmark = pytest.mark.usefixtures("db_empty")
 
 REVIEW_PLAN_API_ENDPOINT = "review_plans.review_plan"
-NOT_FOUND_ID = 999_999
 
 # seed data's review-1 plan, moved here as literals so that assertions compare
 # against known values rather than against the objects they came from
@@ -120,7 +119,9 @@ class TestReviewPlanResource:
     )
     def test_put(self, review_key, data, status_code, graph, api):
         """Modify a review plan, as an owner of the review."""
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         response = api.put(REVIEW_PLAN_API_ENDPOINT, id=review_id, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:

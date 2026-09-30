@@ -9,7 +9,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 GET_REVIEWS_API_ENDPOINT = "admin.get_reviews"
 POST_USERS_API_ENDPOINT = "admin.post_users"
-NOT_FOUND_ID = 999_999
 
 
 class TestGetReviewsAPI:
@@ -19,7 +18,7 @@ class TestGetReviewsAPI:
         for review_ids, num_exp in [
             (f"{review1.id}", 1),
             (f"{review1.id},{review2.id}", 2),
-            (f"{review1.id},{review2.id},{NOT_FOUND_ID}", 2),
+            (f"{review1.id},{review2.id},{factories.NOT_FOUND_ID}", 2),
         ]:
             response = api.get(GET_REVIEWS_API_ENDPOINT, review_ids=review_ids)
             assert response.status_code == 200

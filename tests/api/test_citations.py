@@ -9,7 +9,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 CITATION_API_ENDPOINT = "citations.citation"
 CITATIONS_API_ENDPOINT = "citations.citations"
-NOT_FOUND_ID = 999_999
 
 CITATION1 = {
     "type_of_reference": "journal",
@@ -61,7 +60,7 @@ class TestCitationAPI:
     )
     def test_get(self, study_key, fields, status_code, graph, api):
         """Get a study's citation, as the world's admin."""
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         params = {"fields": fields} if fields is not None else {}
         response = api.get(CITATION_API_ENDPOINT, id=study_id, **params)
         assert response.status_code == status_code
@@ -93,7 +92,7 @@ class TestCitationAPI:
     )
     def test_put(self, study_key, data, status_code, graph, api):
         """Modify a study's citation, merging the given fields into it."""
-        study_id = NOT_FOUND_ID if study_key is None else graph[study_key].id
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
         response = api.put(CITATION_API_ENDPOINT, id=study_id, json=data)
         assert response.status_code == status_code
         if 200 <= status_code < 300:

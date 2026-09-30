@@ -8,7 +8,6 @@ from .. import factories
 pytestmark = pytest.mark.usefixtures("db_empty")
 
 REVIEW_TEAM_API_ENDPOINT = "review_teams.review_team"
-NOT_FOUND_ID = 999_999
 
 
 @pytest.fixture
@@ -53,7 +52,9 @@ class TestReviewTeamAPI:
         ],
     )
     def test_get(self, review_key, fields, status_code, graph, api):
-        review_id = NOT_FOUND_ID if review_key is None else graph[review_key].id
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
         params = {"fields": fields} if fields is not None else {}
         response = api.get(REVIEW_TEAM_API_ENDPOINT, id=review_id, **params)
         assert response.status_code == status_code

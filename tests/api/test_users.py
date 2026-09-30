@@ -10,7 +10,6 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 USER_API_ENDPOINT = "users.user"
 USERS_API_ENDPOINT = "users.users"
-NOT_FOUND_ID = 999_999
 
 
 def _user_url(client, user_id: int) -> str:
@@ -56,7 +55,7 @@ class TestUserAPI:
         assert response.json["id"] == collaborator.id
 
     def test_get_not_found(self, api):
-        response = api.get(USER_API_ENDPOINT, id=NOT_FOUND_ID)
+        response = api.get(USER_API_ENDPOINT, id=factories.NOT_FOUND_ID)
         assert response.status_code == 404
 
     def test_get_forbidden(self, api, db_session):
@@ -87,7 +86,7 @@ class TestUserAPI:
         )  # not found!
 
     def test_delete_not_found(self, api):
-        response = api.delete(USER_API_ENDPOINT, id=NOT_FOUND_ID)
+        response = api.delete(USER_API_ENDPOINT, id=factories.NOT_FOUND_ID)
         assert response.status_code == 404
 
     def test_delete_forbidden(self, api, db_session):
@@ -124,7 +123,7 @@ class TestUserAPI:
 
     def test_put_not_found(self, api):
         response = api.put(
-            USER_API_ENDPOINT, id=NOT_FOUND_ID, json={"name": "NEW_NAME"}
+            USER_API_ENDPOINT, id=factories.NOT_FOUND_ID, json={"name": "NEW_NAME"}
         )
         assert response.status_code == 404
 
@@ -180,7 +179,10 @@ class TestUsersAPI:
         assert (
             api.get(USERS_API_ENDPOINT, email="nobody@example.com").status_code == 404
         )
-        assert api.get(USERS_API_ENDPOINT, review_id=NOT_FOUND_ID).status_code == 404
+        assert (
+            api.get(USERS_API_ENDPOINT, review_id=factories.NOT_FOUND_ID).status_code
+            == 404
+        )
         assert (
             api.as_user(outsider)
             .get(USERS_API_ENDPOINT, review_id=review.id)
