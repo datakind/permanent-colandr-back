@@ -143,7 +143,7 @@ def _user_email_from_name(name: str) -> str:
 def create_review(
     session: sa_orm.Session,
     *,
-    name: str = "Test Review",
+    name: t.Optional[str] = None,
     description: t.Optional[str] = None,
     status: str = "active",
     citation_reviewer_num_pcts: t.Optional[list[dict[str, int]]] = None,
@@ -156,43 +156,74 @@ def create_review(
 
     Args:
         session
-        name: Review name.
+        name: Reviews's display name, default "Review{i}".
         description: Review description.
         status: Review status: "active" or "frozen".
         citation_reviewer_num_pcts: Number-of-reviewers options for citation screening.
         fulltext_reviewer_num_pcts: Number-of-reviewers options for fulltext screening.
     """
-    review = models.Review(
+    i = next(_AUTO_NUM)
+    if name is None:
+        name = f"Review{i}"
+    review = _new_review(
         name=name,
         description=description,
         status=status,
-        citation_reviewer_num_pcts=citation_reviewer_num_pcts or DEFAULT_REVIEWER_PCTS,
-        fulltext_reviewer_num_pcts=fulltext_reviewer_num_pcts or DEFAULT_REVIEWER_PCTS,
+        citation_reviewer_num_pcts=citation_reviewer_num_pcts,
+        fulltext_reviewer_num_pcts=fulltext_reviewer_num_pcts,
     )
     session.add(review)
     session.flush()
     return review
 
 
-def create_reviews(session: sa_orm.Session, *, n: int) -> list[models.Review]:
+def create_reviews(
+    session: sa_orm.Session,
+    *,
+    n: int,
+    names: t.Optional[Sequence[str]] = None,
+    descriptions: t.Optional[Sequence[str]] = None,
+) -> list[models.Review]:
     """Create ``n`` reviews with auto-incrementing name, default attributes otherwise.
 
-    Call `:func:`create_review()` for more configurable review creation.
+    Each argument is either omitted, in which case every review gets the default
+    (``Review{i}`` name, null description), or specifies exactly ``n`` values, the
+    i-th of which belongs to the i-th review. Call :func:`create_review()` for a
+    single review with more options.
     """
-    reviews = []
-    for _ in range(n):
-        i = next(_AUTO_NUM)
-        review = models.Review(
-            name=f"Review{i}",
-            description=None,
-            status="active",
-            citation_reviewer_num_pcts=DEFAULT_REVIEWER_PCTS,
-            fulltext_reviewer_num_pcts=DEFAULT_REVIEWER_PCTS,
-        )
-        session.add(review)
-        reviews.append(review)
+    # one auto-increment per review, always, to avoid coupling between factory calls
+    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
+    names = names if names is not None else [f"Review{i}" for i in auto_nums]
+    descriptions = (
+        descriptions if descriptions is not None else [None] * n  # type: ignore
+    )
+    reviews = [
+        _new_review(name=name, description=description)
+        for name, description in zip(names, descriptions, strict=True)
+    ]
+    session.add_all(reviews)
     session.flush()
     return reviews
+
+
+def _new_review(
+    *,
+    name: str,
+    description: t.Optional[str] = None,
+    status: str = "active",
+    citation_reviewer_num_pcts: t.Optional[list[dict[str, int]]] = None,
+    fulltext_reviewer_num_pcts: t.Optional[list[dict[str, int]]] = None,
+) -> models.Review:
+    """Create a new review without adding it to the session, shared by both single-
+    and multi-review creation factories.
+    """
+    return models.Review(
+        name=name,
+        description=description,
+        status=status,
+        citation_reviewer_num_pcts=citation_reviewer_num_pcts or DEFAULT_REVIEWER_PCTS,
+        fulltext_reviewer_num_pcts=fulltext_reviewer_num_pcts or DEFAULT_REVIEWER_PCTS,
+    )
 
 
 def add_review_user(
