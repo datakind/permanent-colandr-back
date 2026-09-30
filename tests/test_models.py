@@ -25,9 +25,9 @@ class TestUser:
         assert user.is_confirmed is True
 
     def test_relationships(self, db_session):
-        owner = factories.create_user(db_session, name="Owner")
-        member = factories.create_user(db_session, name="Member")
-        collaborator = factories.create_user(db_session, name="Collaborator")
+        owner, member, collaborator = factories.create_users(
+            db_session, n=3, names=["Owner", "Member", "Collaborator"]
+        )
         review = factories.create_review_with_team(
             db_session, owner=owner, members=[member]
         )
@@ -71,8 +71,7 @@ class TestReview:
         assert review.fulltext_reviewer_num_pcts == [{"num": 2, "pct": 100}]
 
     def test_relationships(self, db_session):
-        owner = factories.create_user(db_session)
-        member = factories.create_user(db_session)
+        owner, member = factories.create_users(db_session, n=2)
         review = factories.create_review_with_team(
             db_session, owner=owner, members=[member]
         )
@@ -112,8 +111,8 @@ class TestReview:
 
 class TestStudy:
     def test_attrs(self, db_session):
-        review = factories.create_review(db_session)
         user = factories.create_user(db_session)
+        review = factories.create_review(db_session)
         data_source = factories.create_data_source(db_session, source_name="PubMed")
         study = factories.create_study(
             db_session,
@@ -129,8 +128,8 @@ class TestStudy:
         assert study.num_fulltext_reviewers == 1
 
     def test_relationships(self, db_session):
-        review = factories.create_review(db_session)
         user = factories.create_user(db_session)
+        review = factories.create_review(db_session)
         data_source = factories.create_data_source(db_session)
         study = factories.create_study(
             db_session, review, user=user, data_source=data_source
@@ -170,8 +169,8 @@ class TestStudy:
         assert result == 'TITLE\n\nABSTRACT\n\n"KW1", "KW2"'
 
     def test_exclude_reasons(self, db_session):
-        review = factories.create_review(db_session)
         user = factories.create_user(db_session)
+        review = factories.create_review(db_session)
         study = factories.create_study(db_session, review, user=user)
         factories.create_screening(
             db_session,
@@ -183,8 +182,8 @@ class TestStudy:
         assert study.citation_exclude_reasons == ["REASON1", "REASON2"]
 
     def test_fulltext_exclude_reasons(self, db_session):
-        review = factories.create_review(db_session)
         user = factories.create_user(db_session)
+        review = factories.create_review(db_session)
         study = factories.create_study(db_session, review, user=user)
         factories.create_screening(db_session, study, user=user, status="included")
         factories.create_screening(

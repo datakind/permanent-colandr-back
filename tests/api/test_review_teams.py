@@ -19,10 +19,9 @@ def graph(db_session):
     and the not-found branch of "set_role". The acting user is the admin, who's not on
     either team.
     """
-    owner = factories.create_user(db_session, name="Owner")
-    member1 = factories.create_user(db_session, name="Member1")
-    member2 = factories.create_user(db_session, name="Member2")
-    outsider = factories.create_user(db_session, name="Outsider")
+    owner, member1, member2, outsider = factories.create_users(
+        db_session, n=4, names=["Owner", "Member1", "Member2", "Outsider"]
+    )
     review1, review2 = factories.create_reviews(db_session, n=2)
     teams = {
         "review1": [(owner, "owner"), (member1, "member"), (member2, "member")],

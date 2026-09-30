@@ -92,8 +92,7 @@ class TestUserAPI:
 
     def test_delete_forbidden(self, api, db_session):
         """Delete another user, even one who collaborates on a shared review."""
-        current_user = factories.create_user(db_session)
-        collaborator = factories.create_user(db_session)
+        current_user, collaborator = factories.create_users(db_session, n=2)
         review = factories.create_review(db_session)
         factories.add_review_user(db_session, review, current_user, role="member")
         factories.add_review_user(db_session, review, collaborator, role="member")
@@ -148,8 +147,9 @@ class TestUserAPI:
 
 class TestUsersAPI:
     def test_get_by_email(self, api, db_session):
-        user = factories.create_user(db_session, email="user@example.com")
-        _ = factories.create_user(db_session, email="rando@example.com")
+        user, _ = factories.create_users(
+            db_session, n=2, emails=["user@example.com", "rando@example.com"]
+        )
         response = api.get(USERS_API_ENDPOINT, email=user.email)
         assert response.status_code == 200
         assert len(response.json) == 1
@@ -157,7 +157,7 @@ class TestUsersAPI:
         assert response.json[0]["email"] == user.email
 
     def test_get_by_review(self, api, db_session):
-        owner, member, other = factories.create_users(db_session, n=3)
+        owner, member, _ = factories.create_users(db_session, n=3)
         review = factories.create_review_with_team(
             db_session, owner=owner, members=[member]
         )
