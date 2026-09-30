@@ -279,10 +279,11 @@ def create_data_source(
     source_url: t.Optional[str] = None,
 ) -> models.DataSource:
     """Create a data source; the (type, name, url) triple is unique-constrained."""
+    i = next(_AUTO_NUM)
+    if source_name is None:
+        source_name = f"DataSource{i}"
     data_source = models.DataSource(
-        source_type=source_type,
-        source_name=source_name or f"source-{next(_AUTO_NUM)}",
-        source_url=source_url,
+        source_type=source_type, source_name=source_name, source_url=source_url
     )
     session.add(data_source)
     session.flush()
@@ -340,11 +341,11 @@ def create_study(
         num_citation_reviewers: Number of reviewers assigned at citation stage.
         num_fulltext_reviewers: Number of reviewers assigned at fulltext stage.
     """
-    study = models.Study(
-        review_id=review.id,
-        user_id=user.id if user is not None else None,
-        data_source_id=data_source.id if data_source is not None else None,
-        citation=citation if citation is not None else _default_citation(),
+    study = _new_study(
+        review=review,
+        user=user,
+        data_source=data_source,
+        citation=citation,
         fulltext=fulltext,
         tags=tags,
         num_citation_reviewers=num_citation_reviewers,
@@ -355,11 +356,85 @@ def create_study(
     return study
 
 
-def _default_citation() -> dict[str, t.Any]:
+def create_studies(
+    session: sa_orm.Session,
+    review: models.Review,
+    *,
+    n: int,
+    users: t.Optional[Sequence[models.User]] = None,
+    data_sources: t.Optional[Sequence[models.DataSource]] = None,
+    citations: t.Optional[Sequence[dict[str, t.Any]]] = None,
+    tagss: t.Optional[Sequence[list[str]]] = None,
+) -> list[models.Study]:
+    """Create ``n`` studies in ``review``, default attributes otherwise.
+
+    Each argument is either omitted, in which case every study gets the default (a
+    generated citation; no user, source, fulltext, or tags), or specifies exactly ``n``
+    values, the i-th of which belongs to the i-th study. Call :func:`create_study()` for
+    a single study with more options.
+    """
+    # one auto-increment per study, always, to avoid coupling between factory calls
+    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
+    citations = (
+        citations
+        if citations is not None
+        else [_default_citation(num) for num in auto_nums]
+    )
+    users = users if users is not None else [None] * n  # type: ignore
+    data_sources = (
+        data_sources if data_sources is not None else [None] * n  # type: ignore
+    )
+    tagss = tagss if tagss is not None else [None] * n  # type: ignore
+    studies = [
+        _new_study(
+            review=review,
+            user=user,
+            data_source=data_source,
+            citation=citation,
+            tags=tags,
+        )
+        for user, data_source, citation, tags in zip(
+            users, data_sources, citations, tagss, strict=True
+        )
+    ]
+    session.add_all(studies)
+    session.flush()
+    return studies
+
+
+def _new_study(
+    *,
+    review: models.Review,
+    user: t.Optional[models.User] = None,
+    data_source: t.Optional[models.DataSource] = None,
+    citation: t.Optional[dict[str, t.Any]] = None,
+    fulltext: t.Optional[dict[str, t.Any]] = None,
+    tags: t.Optional[list[str]] = None,
+    num_citation_reviewers: int = 1,
+    num_fulltext_reviewers: int = 1,
+) -> models.Study:
+    """Create a new study without adding it to the session, shared by both single-
+    and multi-study creation factories.
+    """
+    if citation is None:
+        citation = _default_citation(next(_AUTO_NUM))
+    return models.Study(
+        review_id=review.id,
+        user_id=user.id if user is not None else None,
+        data_source_id=data_source.id if data_source is not None else None,
+        citation=citation,
+        fulltext=fulltext,
+        tags=tags,
+        num_citation_reviewers=num_citation_reviewers,
+        num_fulltext_reviewers=num_fulltext_reviewers,
+    )
+
+
+def _default_citation(num: int) -> dict[str, t.Any]:
     """Return a minimal, valid journal-style citation with a unique title."""
     return {
         "type_of_reference": "journal",
-        "title": f"Test Study {next(_AUTO_NUM)}",
+        "title": f"Test Study {num}",
         "abstract": "Test abstract.",
         "pub_year": 2026,
         "authors": ["Lastname, Firstname"],
