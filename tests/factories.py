@@ -69,11 +69,6 @@ def create_user(
         is_admin: Whether the user has admin privileges.
         is_confirmed: Whether the user has confirmed their account.
     """
-    i = next(_AUTO_NUM)
-    if name is None:
-        name = f"User{i}"
-    if email is None:
-        email = _user_email_from_name(name)
     user = _new_user(
         name=name,
         email=email,
@@ -99,15 +94,11 @@ def create_users(
     or specifies exactly ``n`` values, the i-th of which belongs to the i-th user.
     Call :func:`create_user()` for a single user with more options.
     """
-    # one auto-increment per user, always, to avoid coupling between factory calls
-    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
-    names = names if names is not None else [f"User{i}" for i in auto_nums]
-    emails = (
-        emails if emails is not None else [f"user{i}@test.local" for i in auto_nums]
-    )
+    _names = _to_values(names, n)
+    _emails = _to_values(emails, n)
     users = [
         _new_user(name=name, email=email)
-        for name, email in zip(names, emails, strict=True)
+        for name, email in zip(_names, _emails, strict=True)
     ]
     session.add_all(users)
     session.flush()
@@ -116,8 +107,8 @@ def create_users(
 
 def _new_user(
     *,
-    name: str,
-    email: str,
+    name: t.Optional[str] = None,
+    email: t.Optional[str] = None,
     password: t.Optional[str] = None,
     is_admin: bool = False,
     is_confirmed: bool = True,
@@ -125,6 +116,12 @@ def _new_user(
     """Create a new user without adding it to the session, shared by both single-
     and multi-user creation factories.
     """
+    # always auto-increment, to avoid coupling between factory calls
+    i = next(_AUTO_NUM)
+    if name is None:
+        name = f"User{i}"
+    if email is None:
+        email = _user_email_from_name(name)
     user = models.User(
         name=name, email=email, is_admin=is_admin, is_confirmed=is_confirmed
     )
@@ -162,9 +159,6 @@ def create_review(
         citation_reviewer_num_pcts: Number-of-reviewers options for citation screening.
         fulltext_reviewer_num_pcts: Number-of-reviewers options for fulltext screening.
     """
-    i = next(_AUTO_NUM)
-    if name is None:
-        name = f"Review{i}"
     review = _new_review(
         name=name,
         description=description,
@@ -190,10 +184,8 @@ def create_reviews(
     belongs to the i-th review. Call :func:`create_review()` for a single review
     with more options.
     """
-    # one auto-increment per review, always, to avoid coupling between factory calls
-    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
-    names = names if names is not None else [f"Review{i}" for i in auto_nums]
-    reviews = [_new_review(name=name) for name in names]
+    _names = _to_values(names, n)
+    reviews = [_new_review(name=name) for name in _names]
     session.add_all(reviews)
     session.flush()
     return reviews
@@ -201,7 +193,7 @@ def create_reviews(
 
 def _new_review(
     *,
-    name: str,
+    name: t.Optional[str] = None,
     description: t.Optional[str] = None,
     status: str = "active",
     citation_reviewer_num_pcts: t.Optional[list[dict[str, int]]] = None,
@@ -210,6 +202,10 @@ def _new_review(
     """Create a new review without adding it to the session, shared by both single-
     and multi-review creation factories.
     """
+    # always auto-increment, to avoid coupling between factory calls
+    i = next(_AUTO_NUM)
+    if name is None:
+        name = f"Review{i}"
     return models.Review(
         name=name,
         description=description,
@@ -226,7 +222,7 @@ def add_review_user(
     role: str = "member",
 ) -> models.ReviewUserAssoc:
     """Associate a user with a review, as an owner or member."""
-    assoc = models.ReviewUserAssoc(review, user, role)
+    assoc = models.ReviewUserAssoc(review, user, user_role=role)
     session.add(assoc)
     session.flush()
     return assoc
@@ -352,8 +348,8 @@ def create_studies(
     n: int,
     *,
     review: models.Review,
-    users: t.Optional[Sequence[models.User]] = None,
-    data_sources: t.Optional[Sequence[models.DataSource]] = None,
+    users: t.Optional[Sequence[models.User] | models.User] = None,
+    data_sources: t.Optional[Sequence[models.DataSource] | models.DataSource] = None,
     citations: t.Optional[Sequence[dict[str, t.Any]]] = None,
     tagss: t.Optional[Sequence[list[str]]] = None,
 ) -> list[models.Study]:
@@ -364,18 +360,10 @@ def create_studies(
     values, the i-th of which belongs to the i-th study. Call :func:`create_study()` for
     a single study with more options.
     """
-    # one auto-increment per study, always, to avoid coupling between factory calls
-    auto_nums = [next(_AUTO_NUM) for _ in range(n)]
-    citations = (
-        citations
-        if citations is not None
-        else [_default_citation(num) for num in auto_nums]
-    )
-    users = users if users is not None else [None] * n  # type: ignore
-    data_sources = (
-        data_sources if data_sources is not None else [None] * n  # type: ignore
-    )
-    tagss = tagss if tagss is not None else [None] * n  # type: ignore
+    _users = _to_values(users, n)
+    _data_sources = _to_values(data_sources, n)
+    _citations = _to_values(citations, n)
+    _tagss = _to_values(tagss, n)
     studies = [
         _new_study(
             review=review,
@@ -385,7 +373,7 @@ def create_studies(
             tags=tags,
         )
         for user, data_source, citation, tags in zip(
-            users, data_sources, citations, tagss, strict=True
+            _users, _data_sources, _citations, _tagss, strict=True
         )
     ]
     session.add_all(studies)
@@ -407,8 +395,10 @@ def _new_study(
     """Create a new study without adding it to the session, shared by both single-
     and multi-study creation factories.
     """
+    # always auto-increment, to avoid coupling between factory calls
+    i = next(_AUTO_NUM)
     if citation is None:
-        citation = _default_citation(next(_AUTO_NUM))
+        citation = _default_citation(i)
     return models.Study(
         review_id=review.id,
         user_id=user.id if user is not None else None,
@@ -438,8 +428,8 @@ def _default_citation(num: int) -> dict[str, t.Any]:
 
 def create_screening(
     session: sa_orm.Session,
-    study: models.Study,
     *,
+    study: models.Study,
     user: models.User,
     stage: str = "citation",
     status: str = "included",
@@ -469,6 +459,61 @@ def create_screening(
 
     NOTE: (user, review, study, stage) is unique per screening.
     """
+    screening = _new_screening(
+        study=study,
+        user=user,
+        stage=stage,
+        status=status,
+        exclude_reasons=exclude_reasons,
+    )
+    session.add(screening)
+    session.flush()
+    session.expire(study)  # the listener's Core UPDATE is invisible to the ORM
+    return screening
+
+
+def create_screenings(
+    session: sa_orm.Session,
+    n: int,
+    *,
+    studies: Sequence[models.Study] | models.Study,
+    users: Sequence[models.User] | models.User,
+    stages: Sequence[str] | str = "citation",
+    statuses: Sequence[str] | str = "included",
+    exclude_reasonss: t.Optional[Sequence[list[str]]] = None,
+) -> list[models.Screening]:
+    _studies = _to_values(studies, n)
+    _users = _to_values(users, n)
+    _stages = _to_values(stages, n)
+    _statuses = _to_values(statuses, n)
+    _exclude_reasonss = _to_values(exclude_reasonss, n)
+    screenings = [
+        create_screening(
+            session,
+            study=study,
+            user=user,
+            stage=stage,
+            status=status,
+            exclude_reasons=exclude_reasons,
+        )
+        for study, user, stage, status, exclude_reasons in zip(
+            _studies, _users, _stages, _statuses, _exclude_reasonss, strict=True
+        )
+    ]
+    return screenings
+
+
+def _new_screening(
+    *,
+    study: models.Study,
+    user: models.User,
+    stage: str = "citation",
+    status: str = "included",
+    exclude_reasons: t.Optional[list[str]] = None,
+) -> models.Screening:
+    """Create a new screening without adding it to the session, shared by both single-
+    and multi-screening creation factories.
+    """
     if stage == "fulltext" and study.citation_status != "included":
         raise ValueError(
             f"can't create a fulltext screening for study {study.id}: "
@@ -482,9 +527,6 @@ def create_screening(
         status=status,
         exclude_reasons=exclude_reasons,
     )
-    session.add(screening)
-    session.flush()
-    session.expire(study)  # the listener's Core UPDATE is invisible to the ORM
     return screening
 
 
@@ -496,10 +538,15 @@ def create_review_with_team(
     **review_kwargs: t.Any,
 ) -> models.Review:
     """Create a review and associate an owner plus optional members."""
-    review = create_review(session, **review_kwargs)
-    add_review_user(session, review, owner, role="owner")
+    review = _new_review(**review_kwargs)
+    session.add(review)
+
+    review_users = []
+    review_users.append(models.ReviewUserAssoc(review, owner, user_role="owner"))
     for member in members:
-        add_review_user(session, review, member, role="member")
+        review_users.append(models.ReviewUserAssoc(review, member, user_role="member"))
+    session.add_all(review_users)
+    session.flush()
     return review
 
 
@@ -566,7 +613,7 @@ def create_screened_review(
             )
         create_screening(
             session,
-            created[label],
+            study=created[label],
             user=reviewer,
             stage=stage,
             status=status,
@@ -598,3 +645,37 @@ def store_fulltext_file(
     fs = app.extensions["filesystem"]
     fs.makedirs(os.path.dirname(tgt_file), exist_ok=True)
     fs.put_file(src_file, tgt_file)
+
+
+_T = t.TypeVar("_T")
+
+
+@t.overload
+def _to_values(value: None, n: int) -> list[None]: ...
+
+
+@t.overload
+def _to_values(value: str, n: int) -> list[str]: ...
+
+
+@t.overload
+def _to_values(value: Sequence[_T], n: int) -> list[_T]: ...
+
+
+@t.overload
+def _to_values(value: _T, n: int) -> list[_T]: ...
+
+
+def _to_values(value: object, n: int) -> list[object] | Sequence[object]:
+    if isinstance(value, Sequence) and not isinstance(value, str) and len(value) != n:
+        raise ValueError(f"expected {n} values, got {len(value)}")
+
+    return (
+        [None] * n
+        if value is None
+        else [value] * n
+        if isinstance(value, (str, bytes))
+        else list(value)
+        if isinstance(value, Sequence)
+        else [value] * n
+    )
