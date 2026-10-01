@@ -48,8 +48,8 @@ def graph(db_session, admin_user):
         db_session,
         3,
         review=review1,
-        users=[member, member, member],
-        data_sources=[data_source, data_source, data_source],
+        users=member,
+        data_sources=data_source,
         tagss=[["TAG1"], ["TAG2"], ["TAG3"]],
         citations=[
             {
@@ -88,13 +88,15 @@ def graph(db_session, admin_user):
     )
     # screen citation stages before fulltext ones: a citation decision other than
     # "included" forbids a fulltext screening from existing at all
-    factories.create_screening(db_session, s1, user=member, status="included")
-    factories.create_screening(
-        db_session, s1, user=member, stage="fulltext", status="included"
+    factories.create_screenings(
+        db_session,
+        4,
+        studies=[s1, s1, s2, s3],
+        users=member,
+        stages=["citation", "fulltext", "citation", "citation"],
+        statuses=["included", "included", "included", "excluded"],
     )
-    factories.create_screening(db_session, s2, user=member, status="included")
-    factories.create_screening(db_session, s3, user=member, status="excluded")
-    factories.create_screening(db_session, s4, user=admin_user, status="included")
+    factories.create_screening(db_session, study=s4, user=admin_user, status="included")
     return {
         "admin": admin_user,
         "member": member,

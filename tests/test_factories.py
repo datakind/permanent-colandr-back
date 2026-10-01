@@ -48,7 +48,7 @@ def test_create_screening_updates_study_status(db_session):
     user = factories.create_user(db_session)
     study = factories.create_study(db_session, review=review, user=user)
     assert study.citation_status == "not_screened"
-    factories.create_screening(db_session, study, user=user, status="included")
+    factories.create_screening(db_session, study=study, user=user, status="included")
     assert study.citation_status == "included"
 
 
@@ -58,10 +58,10 @@ def test_create_screening_rejects_fulltext_before_citation_inclusion(db_session)
     review = factories.create_review(db_session)
     user = factories.create_user(db_session)
     study = factories.create_study(db_session, review=review, user=user)
-    factories.create_screening(db_session, study, user=user, status="excluded")
+    factories.create_screening(db_session, study=study, user=user, status="excluded")
     with pytest.raises(ValueError, match="citation_status is 'excluded'"):
         factories.create_screening(
-            db_session, study, user=user, stage="fulltext", status="included"
+            db_session, study=study, user=user, stage="fulltext", status="included"
         )
 
 
@@ -75,9 +75,9 @@ def test_later_citation_exclusion_deletes_existing_fulltext_screening(db_session
     review = factories.create_review(db_session)
     user = factories.create_user(db_session)
     study = factories.create_study(db_session, review=review, user=user)
-    factories.create_screening(db_session, study, user=user, status="included")
+    factories.create_screening(db_session, study=study, user=user, status="included")
     factories.create_screening(
-        db_session, study, user=user, stage="fulltext", status="included"
+        db_session, study=study, user=user, stage="fulltext", status="included"
     )
     assert study.fulltext_status == "included"  # fresh: the factory expired it
     # retract the citation decision; the listener deletes the fulltext row

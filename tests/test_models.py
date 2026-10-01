@@ -35,7 +35,7 @@ class TestUser:
             db_session, owner=owner, members=[collaborator]
         )
         study = factories.create_study(db_session, review=review, user=owner)
-        screening = factories.create_screening(db_session, study, user=owner)
+        screening = factories.create_screening(db_session, study=study, user=owner)
 
         assert [r.id for r in owner.reviews] == [review.id, other_review.id]
         assert [r.id for r in owner.owned_reviews] == [review.id, other_review.id]
@@ -99,8 +99,12 @@ class TestReview:
         included = factories.create_study(db_session, review=review, user=user)
         excluded = factories.create_study(db_session, review=review, user=user)
         unscreened = factories.create_study(db_session, review=review, user=user)
-        factories.create_screening(db_session, included, user=user, status="included")
-        factories.create_screening(db_session, excluded, user=user, status="excluded")
+        factories.create_screening(
+            db_session, study=included, user=user, status="included"
+        )
+        factories.create_screening(
+            db_session, study=excluded, user=user, status="excluded"
+        )
 
         assert review.num_citations_by_status(["included", "excluded"]) == {
             "included": 1,
@@ -134,7 +138,7 @@ class TestStudy:
         study = factories.create_study(
             db_session, review=review, user=user, data_source=data_source
         )
-        screening = factories.create_screening(db_session, study, user=user)
+        screening = factories.create_screening(db_session, study=study, user=user)
 
         assert study.user is user
         assert study.review is review
@@ -174,7 +178,7 @@ class TestStudy:
         study = factories.create_study(db_session, review=review, user=user)
         factories.create_screening(
             db_session,
-            study,
+            study=study,
             user=user,
             status="excluded",
             exclude_reasons=["REASON2", "REASON1"],
@@ -185,10 +189,12 @@ class TestStudy:
         user = factories.create_user(db_session)
         review = factories.create_review(db_session)
         study = factories.create_study(db_session, review=review, user=user)
-        factories.create_screening(db_session, study, user=user, status="included")
+        factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
         factories.create_screening(
             db_session,
-            study,
+            study=study,
             user=user,
             stage="fulltext",
             status="excluded",
