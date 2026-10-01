@@ -109,19 +109,20 @@ def db(app: flask.Flask, psql_noproc):
 def _reset_db_world(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask) -> None:
     """Reset the DB to a known-empty state: no rows, sequences at 1, no uploads.
 
-    The uploads directory is cleared too, because ``RESTART IDENTITY`` recycles
-    review/study ids: without this, a later world that recreates review id 1
-    would read fulltext files left behind by the seeded world.
+    The uploads directories are cleared too, because ``RESTART IDENTITY`` recycles
+    review/study ids: without this, a later world that recreates review id 1 could
+    read or clobber fulltext files and citation imports left behind by an earlier one.
     """
     with app.app_context():
         table_names = ", ".join(table.name for table in db.metadata.sorted_tables)
         db.session.execute(sa.text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
         db.session.commit()
-        uploads_dir = app.config["FULLTEXT_UPLOADS_DIR"]
         filesystem = app.extensions["filesystem"]
-        if filesystem.exists(uploads_dir):
-            filesystem.rm(uploads_dir, recursive=True)
-        filesystem.makedirs(uploads_dir, exist_ok=True)
+        for dirkey in ("FULLTEXT_UPLOADS_DIR", "CITATION_UPLOADS_DIR"):
+            uploads_dir = app.config[dirkey]
+            if filesystem.exists(uploads_dir):
+                filesystem.rm(uploads_dir, recursive=True)
+            filesystem.makedirs(uploads_dir, exist_ok=True)
 
 
 @pytest.fixture(scope="module")
