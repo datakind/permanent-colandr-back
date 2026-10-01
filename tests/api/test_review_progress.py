@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 REVIEW_PROGRESS_API_ENDPOINT = "review_progress.review_progress"
 
 

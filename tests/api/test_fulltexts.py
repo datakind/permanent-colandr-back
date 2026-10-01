@@ -1,6 +1,8 @@
 import pytest
 
 
+pytestmark = pytest.mark.usefixtures("db_seeded")
+
 FULLTEXT_API_ENDPOINT = "fulltexts.fulltext"
 
 

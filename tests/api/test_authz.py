@@ -1,51 +1,54 @@
+"""Test authz role-graph."""
+
 import pytest
 
 from colandr.api.v1 import authz
 
-from .. import helpers
+from .. import factories, helpers
 
 
-@pytest.mark.parametrize(
-    ["current_user_id", "review_id", "params", "exp_result"],
-    # TODO: try to add frozen review cases here
-    [
-        (1, 1, None, True),
-        (1, 2, {"for_roles": ["owner"]}, True),
-        (3, 1, {"for_roles": ["owner", "member"]}, True),
-        (3, 1, {"for_roles": ["owner"]}, False),
-        (2, 3, None, False),
-    ],
-)
-def test_user_is_allowed_for_review(
-    current_user_id, review_id, params, exp_result, app, db_session
-):
+pytestmark = pytest.mark.usefixtures("db_empty")
+
+
+def test_user_is_allowed_for_review(app, db_session):
+    admin = factories.create_user(db_session, is_admin=True)
+    owner, member, outsider = factories.create_users(db_session, n=3)
+    review = factories.create_review_with_team(
+        db_session, owner=owner, members=[member]
+    )
+
     with app.app_context():
-        with helpers.set_current_user(current_user_id, db_session) as current_user:
-            assert current_user is not None  # type guard
-            obs_result = authz.user_is_allowed_for_review(
-                current_user, review_id, **(params or {})
+        with helpers.set_current_user(admin.id, db_session) as user:
+            assert authz.user_is_allowed_for_review(user, review.id) is True
+        with helpers.set_current_user(owner.id, db_session) as user:
+            assert authz.user_is_allowed_for_review(user, review.id) is True
+        with helpers.set_current_user(member.id, db_session) as user:
+            assert authz.user_is_allowed_for_review(user, review.id) is True
+            assert (
+                authz.user_is_allowed_for_review(user, review.id, for_roles=["owner"])
+                is False
             )
-    assert obs_result == exp_result
+        with helpers.set_current_user(outsider.id, db_session) as user:
+            assert authz.user_is_allowed_for_review(user, review.id) is False
 
 
-@pytest.mark.parametrize(
-    ["current_user_id", "user_id", "params", "exp_result"],
-    [
-        (1, 1, None, True),  # self && admin
-        (1, 2, None, True),  # admin
-        (2, 2, None, True),  # self
-        (1, 3, {"if_collaborator": False}, True),  # admin &! collaborator
-        (2, 3, {"if_collaborator": True}, True),  # collaborator
-        (2, 3, {"if_collaborator": False}, False),  # != collaborator
-    ],
-)
-def test_user_is_allowed_for_user(
-    current_user_id, user_id, params, exp_result, app, db_session
-):
+def test_user_is_allowed_for_user(app, db_session):
+    admin = factories.create_user(db_session, is_admin=True)
+    user, collaborator, outsider = factories.create_users(db_session, n=3)
+    review = factories.create_review_with_team(
+        db_session, owner=user, members=[collaborator]
+    )
+
     with app.app_context():
-        with helpers.set_current_user(current_user_id, db_session) as current_user:
-            assert current_user is not None  # type guard
-            obs_result = authz.user_is_allowed_for_user(
-                current_user, user_id, **(params or {})
+        with helpers.set_current_user(admin.id, db_session) as current:
+            assert authz.user_is_allowed_for_user(current, user.id) is True  # admin
+        with helpers.set_current_user(user.id, db_session) as current:
+            assert authz.user_is_allowed_for_user(current, user.id) is True  # self
+            assert authz.user_is_allowed_for_user(current, collaborator.id) is True
+            assert (
+                authz.user_is_allowed_for_user(
+                    current, collaborator.id, if_collaborator=False
+                )
+                is False
             )
-    assert obs_result == exp_result
+            assert authz.user_is_allowed_for_user(current, outsider.id) is False
