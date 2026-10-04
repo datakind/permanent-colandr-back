@@ -140,8 +140,34 @@ def test_default_values_are_deterministic(db_session):
     assert title1.startswith("Test Study ")
 
 
+def test_create_study_populates_fulltext_filename(db_session):
+    """The upload routes find a study's file by id, so the factory names it by id.
+
+    The name has to survive the flush to be useful -- the delete route reads it back
+    off the study, and the get route scans the filesystem for it.
+    """
+    review = factories.create_review(db_session)
+    study = factories.create_study(
+        db_session, review=review, fulltext={"text_content": "TEXT"}
+    )
+    assert study.fulltext["filename"] == f"{study.id}.pdf"
+    assert study.fulltext["text_content"] == "TEXT"
+    stored_fulltext = db_session.execute(
+        sa.select(models.Study.fulltext).where(models.Study.id == study.id)
+    ).scalar_one()
+    assert stored_fulltext["filename"] == f"{study.id}.pdf"
+
+
 def test_store_fulltext_file(app, db_session):
     review = factories.create_review(db_session)
-    factories.store_fulltext_file(app, review.id, "1.pdf")
+    study = factories.create_study(
+        db_session, review=review, fulltext={"text_content": "TEXT"}
+    )
+    factories.store_fulltext_file(app, study)
     fs = app.extensions["filesystem"]
-    assert fs.exists(f"{app.config['FULLTEXT_UPLOADS_DIR']}/{review.id}/1.pdf")
+    filepath = (
+        f"{app.config['FULLTEXT_UPLOADS_DIR']}"
+        f"/{study.review_id}/{study.fulltext['filename']}"
+    )
+    assert fs.exists(filepath)
+    assert fs.size(filepath) > 0

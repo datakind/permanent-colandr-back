@@ -322,8 +322,9 @@ def create_study(
         data_source: Source the study came from, if any.
         citation: Full citation dict; a minimal journal-style citation is generated
             with a unique title, when omitted.
-        fulltext: Fulltext dict; no fulltext when omitted. On-disk files must be stored
-            separately via :func:`store_fulltext_file()`.
+        fulltext: Fulltext dict; no fulltext when omitted. Its filename is filled in
+            as "{study.id}.pdf" when not given, consistent with the upload endpoints.
+            On-disk files must be stored separately via :func:`store_fulltext_file()`.
         tags: Tag strings for the study.
         num_citation_reviewers: Number of reviewers assigned at citation stage.
         num_fulltext_reviewers: Number of reviewers assigned at fulltext stage.
@@ -340,6 +341,8 @@ def create_study(
     )
     session.add(study)
     session.flush()
+    _populate_fulltext_filename(study)
+    session.flush()
     return study
 
 
@@ -351,18 +354,21 @@ def create_studies(
     users: t.Optional[Sequence[models.User] | models.User] = None,
     data_sources: t.Optional[Sequence[models.DataSource] | models.DataSource] = None,
     citations: t.Optional[Sequence[dict[str, t.Any]]] = None,
+    fulltexts: t.Optional[Sequence[t.Optional[dict[str, t.Any]]]] = None,
     tagss: t.Optional[Sequence[list[str]]] = None,
 ) -> list[models.Study]:
     """Create ``n`` studies in ``review``, default attributes otherwise.
 
     Each argument is either omitted, in which case every study gets the default (a
     generated citation; no user, source, fulltext, or tags), or specifies exactly ``n``
-    values, the i-th of which belongs to the i-th study. Call :func:`create_study()` for
-    a single study with more options.
+    values, the i-th of which belongs to the i-th study; pass None as a study's fulltext
+    value to leave it without a fulltext. Call :func:`create_study()`
+    for a single study with more options.
     """
     _users = _to_values(users, n)
     _data_sources = _to_values(data_sources, n)
     _citations = _to_values(citations, n)
+    _fulltexts = _to_values(fulltexts, n)
     _tagss = _to_values(tagss, n)
     studies = [
         _new_study(
@@ -370,13 +376,18 @@ def create_studies(
             user=user,
             data_source=data_source,
             citation=citation,
+            fulltext=fulltext,
             tags=tags,
         )
-        for user, data_source, citation, tags in zip(
-            _users, _data_sources, _citations, _tagss, strict=True
+        for user, data_source, citation, fulltext, tags in zip(
+            _users, _data_sources, _citations, _fulltexts, _tagss, strict=True
         )
     ]
     session.add_all(studies)
+    session.flush()
+    # study id exists only after flushing, and its fulltext filename is derived from it
+    for study in studies:
+        _populate_fulltext_filename(study)
     session.flush()
     return studies
 
@@ -424,6 +435,14 @@ def _default_citation(num: int) -> dict[str, t.Any]:
         "language": "English",
         "other_fields": {},
     }
+
+
+def _populate_fulltext_filename(study: models.Study, ext: str = ".pdf") -> None:
+    """Fill in a study's fulltext filename, if it has a fulltext and no name yet."""
+    fulltext = study.fulltext
+    if not fulltext or fulltext.get("filename"):
+        return
+    study.fulltext = fulltext | {"filename": f"{study.id}{ext}"}
 
 
 def create_screening(
@@ -623,24 +642,32 @@ def create_screened_review(
 
 
 def store_fulltext_file(
-    app: flask.Flask,
-    review_id: int,
-    filename: str,
-    # TODO: should filename be uniquely generated, like user emails and such?
-    source_filename: str = "example-journal.pdf",
+    app: flask.Flask, study: models.Study, source_filename: str = "example-journal.pdf"
 ) -> None:
-    """Copy a fixture PDF into the app's fulltext uploads dir for a review.
+    """Copy a fixture PDF into the app's fulltext uploads dir for a study.
 
     Intentionally takes ``app`` rather than ``session`` -- this touches the filesystem,
     not the database. Kept next to the DB factories because the DB and the on-disk file
     must agree (``db_empty``/``db_seeded`` clear the uploads dir on setup, so nothing here
     leaks into another world).
+
+    Review and file name come from ``study`` itself, so the record and the file agree.
+
+    Raises:
+        ValueError: If ``study`` has no fulltext, or its fulltext has no filename
+            to store a file under
     """
+    fulltext = study.fulltext
+    if not fulltext or not fulltext.get("filename"):
+        raise ValueError(
+            f"study {study.id} has no fulltext filename to store a file under; "
+            "create it with a fulltext, e.g. create_study(..., fulltext={...})"
+        )
     src_file = (
         pathlib.Path(__file__).parent / "fixtures" / "fulltexts" / source_filename
     )
     tgt_file = os.path.join(
-        app.config["FULLTEXT_UPLOADS_DIR"], str(review_id), filename
+        app.config["FULLTEXT_UPLOADS_DIR"], str(study.review_id), fulltext["filename"]
     )
     fs = app.extensions["filesystem"]
     fs.makedirs(os.path.dirname(tgt_file), exist_ok=True)
