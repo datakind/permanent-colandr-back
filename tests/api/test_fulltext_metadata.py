@@ -1,57 +1,74 @@
+"""Tests for the fulltext metadata API."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from colandr.lib.extractors.metadata import Metadata
+from colandr.lib.extractors.review_model import RecordType, SingleValue, TrainingData
+
+from .. import factories
 
 
-pytestmark = pytest.mark.usefixtures("db_seeded")
+pytestmark = pytest.mark.usefixtures("db_empty")
 
 FULLTEXT_METADATA_API_ENDPOINT = "fulltext_metadata.fulltext_metadata"
 PATCH_FUNC_PATH = "colandr.api.v1.routes.fulltext_metadata"
 
+FULLTEXT_TEXT = "This is a factory-provided example text."
 
-@pytest.mark.usefixtures("db_session")
+
+@pytest.fixture
+def graph(db_session):
+    """A review with two studies, each carrying an explicit fulltext text.
+
+    The acting user is the world's admin, who needs no team association.
+    The route only reads ``study.fulltext["text_content"]``, so no on-disk file is needed.
+    """
+    review = factories.create_review(db_session)
+    fulltexts = [{"text_content": FULLTEXT_TEXT}, {"text_content": FULLTEXT_TEXT}]
+    s1, s2 = factories.create_studies(db_session, 2, review=review, fulltexts=fulltexts)
+    return {"s1": s1, "s2": s2}
+
+
 class TestFulltextMetadataAPI:
     @pytest.mark.parametrize(
-        ["id_", "params", "status_code"],
+        ["study_key", "params", "status_code"],
         [
-            (1, {}, 200),
-            (2, {}, 200),
-            (1, {"meta": "biome"}, 200),
-            (999, {}, 404),
+            ("s1", {}, 200),
+            ("s2", {}, 200),
+            ("s1", {"meta": "biome"}, 200),
+            (None, {}, 404),
         ],
     )
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get(self, mock_get_model, id_, params, status_code, app, api):
+    def test_get(self, mock_get_model, study_key, params, status_code, app, api, graph):
+        """Get metadata extracted from a study's fulltext text."""
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model if status_code == 200 else None
         mock_model.extract_metadata.return_value = []
 
-        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=id_, **params)
+        study_id = factories.NOT_FOUND_ID if study_key is None else graph[study_key].id
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=study_id, **params)
         assert response.status_code == status_code
 
         if 200 <= status_code < 300:
-            data = response.json
-            assert isinstance(data, list)
-
-            if status_code == 200 and id_ in (1, 2):
-                if id_ == 1:
-                    mock_model.extract_metadata.assert_called_with(
-                        id_,
-                        "This is an example text in English. Second sentence.",
-                        threshold=app.config.get("METADATA_THRESHOLD"),
-                    )
+            assert response.json == []
+            mock_model.extract_metadata.assert_called_with(
+                study_id,
+                FULLTEXT_TEXT,
+                threshold=app.config.get("METADATA_THRESHOLD"),
+            )
 
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get_with_mock(self, mock_get_model, app, api):
-        """Test getting metadata with mocked extraction."""
+    def test_get_with_mock(self, mock_get_model, app, api, graph):
+        """Get metadata extracted from one study by a mocked model."""
+        study = graph["s1"]
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
-
-        mock_metadata = [
+        mock_model.extract_metadata.return_value = [
             Metadata(
-                record=1,
+                record=study.id,
                 metadata="biome",
                 value="forest",
                 sentence="This study was conducted in a tropical forest.",
@@ -60,7 +77,7 @@ class TestFulltextMetadataAPI:
                 confidence_level=2,
             ),
             Metadata(
-                record=1,
+                record=study.id,
                 metadata="species",
                 value="lion",
                 sentence="We observed several lion populations.",
@@ -69,37 +86,40 @@ class TestFulltextMetadataAPI:
                 confidence_level=3,
             ),
         ]
-        mock_model.extract_metadata.return_value = mock_metadata
 
-        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=1)
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=study.id)
         assert response.status_code == 200
 
         metadata_data = response.json
         assert len(metadata_data) == 2
-
-        assert metadata_data[0]["record"] == 1
-        assert "metadata" in metadata_data[0]
-        assert "value" in metadata_data[0]
-        assert "sentence" in metadata_data[0]
-        assert "sentence_location" in metadata_data[0]
-        assert "confidence" in metadata_data[0]
-        assert "confidence_level" in metadata_data[0]
+        # the extracted records name the study they came from, and nothing else
+        assert [record["record"] for record in metadata_data] == [study.id, study.id]
+        for record in metadata_data:
+            assert record["metadata"] in {"biome", "species"}
+            for field in (
+                "value",
+                "sentence",
+                "sentence_location",
+                "confidence",
+                "confidence_level",
+            ):
+                assert field in record
 
         mock_model.extract_metadata.assert_called_with(
-            1,
-            "This is an example text in English. Second sentence.",
+            study.id,
+            FULLTEXT_TEXT,
             threshold=app.config.get("METADATA_THRESHOLD"),
         )
 
     @patch(f"{PATCH_FUNC_PATH}._get_model_for_review")
-    def test_get_filtered_with_mock(self, mock_get_model, app, api):
-        """Test getting filtered metadata with mocked extraction."""
+    def test_get_filtered_with_mock(self, mock_get_model, app, api, graph):
+        """Get metadata filtered to one metadata type, from a mocked model."""
+        study = graph["s1"]
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
-
-        mock_metadata = [
+        mock_model.extract_metadata.return_value = [
             Metadata(
-                record=1,
+                record=study.id,
                 metadata="biome",
                 value="forest",
                 sentence="This study was conducted in a tropical forest.",
@@ -108,10 +128,8 @@ class TestFulltextMetadataAPI:
                 confidence_level=2,
             )
         ]
-        mock_model.extract_metadata.return_value = mock_metadata
 
-        params = {"meta": "biome"}
-        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=1, **params)
+        response = api.get(FULLTEXT_METADATA_API_ENDPOINT, id=study.id, meta="biome")
         assert response.status_code == 200
 
         metadata_data = response.json
@@ -119,8 +137,8 @@ class TestFulltextMetadataAPI:
         assert metadata_data[0]["metadata"] == "biome"
 
         mock_model.extract_metadata.assert_called_with(
-            1,
-            "This is an example text in English. Second sentence.",
+            study.id,
+            FULLTEXT_TEXT,
             threshold=app.config.get("METADATA_THRESHOLD"),
         )
 
@@ -129,7 +147,6 @@ class TestFulltextMetadataAPI:
     def test_get_model_for_review(self, mock_get_training_data, app):
         """Test the get_model_for_review function."""
         from colandr.apis.resources.fulltext_metadata import _get_model_for_review
-        from colandr.lib.extractors.review_model import SingleValue, TrainingData
 
         mock_training = [
             TrainingData(
@@ -195,7 +212,6 @@ class TestFulltextMetadataAPI:
     ):
         """Test get_training_data function properly filters labels based on field types."""
         from colandr.apis.resources.fulltext_metadata import _get_training_data
-        from colandr.lib.extractors.review_model import RecordType
 
         mock_field_defs = [
             RecordType(
