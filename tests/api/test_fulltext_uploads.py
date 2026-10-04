@@ -13,6 +13,7 @@ FULLTEXT_UPLOAD_API_ENDPOINT = "fulltext_uploads.fulltext_upload"
 FULLTEXTS_FIXTURES_DIR = pathlib.Path(__file__).parent.parent / "fixtures" / "fulltexts"
 
 FULLTEXT_TEXT1 = "This is an example text in English. Second sentence."
+FULLTEXT1_SOURCE = "example-journal-short.pdf"
 
 
 def _upload_file_path(app, study) -> pathlib.Path:
@@ -32,20 +33,20 @@ def _upload_file_path(app, study) -> pathlib.Path:
 def graph(db_session, app):
     """A review with two studies: ``s1`` has an uploaded fulltext, ``s2`` has none.
 
-    The acting user is the world's admin, who needs no team association.
-    ``s1``'s fulltext is set after creation because its filename has to be the study's id.
+    The acting user is the world's admin, who needs no team association. ``s1`` fulltext
+    filename is created automatically by the factory function, derived from the study id.
     """
     review = factories.create_review(db_session)
-    s1, s2 = factories.create_studies(db_session, 2, review=review)
-    s1.fulltext = {
-        "filename": f"{s1.id}.pdf",
-        "original_filename": "example-journal-short.pdf",
-        "text_content": FULLTEXT_TEXT1,
-    }
-    db_session.flush()
-    factories.store_fulltext_file(
-        app, review.id, s1.fulltext["filename"], "example-journal-short.pdf"
+    s1 = factories.create_study(
+        db_session,
+        review=review,
+        fulltext={
+            "original_filename": FULLTEXT1_SOURCE,
+            "text_content": FULLTEXT_TEXT1,
+        },
     )
+    s2 = factories.create_study(db_session, review=review)
+    factories.store_fulltext_file(app, s1, FULLTEXT1_SOURCE)
     return {"review": review, "s1": s1, "s2": s2}
 
 

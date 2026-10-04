@@ -9,15 +9,12 @@ pytestmark = pytest.mark.usefixtures("db_empty")
 
 FULLTEXT_API_ENDPOINT = "fulltexts.fulltext"
 
-# sibling endpoints (uploads, metadata, locations) read those files off disk
-# so they're stored here too, even though this endpoint serves the study's DB dict
+# NOTE: fulltext names are automatically derived in-factory from the created study's id
 FULLTEXT1 = {
-    "filename": "1.pdf",
     "original_filename": "example-journal-short.pdf",
     "text_content": "This is an example text in English. Second sentence.",
 }
 FULLTEXT2 = {
-    "filename": "2.pdf",
     "original_filename": "example-journal.pdf",
     "text_content": "This is another example text in English.",
 }
@@ -33,19 +30,16 @@ def graph(db_session, app):
     ``study.fulltext`` in-place.
     """
     review = factories.create_review(db_session)
-    s1 = factories.create_study(db_session, review=review, fulltext=dict(FULLTEXT1))
-    s2 = factories.create_study(db_session, review=review, fulltext=dict(FULLTEXT2))
-    factories.store_fulltext_file(
-        app, review.id, FULLTEXT1["filename"], FULLTEXT1["original_filename"]
+    s1, s2 = factories.create_studies(
+        db_session, 2, review=review, fulltexts=[dict(FULLTEXT1), dict(FULLTEXT2)]
     )
-    factories.store_fulltext_file(
-        app, review.id, FULLTEXT2["filename"], FULLTEXT2["original_filename"]
-    )
+    factories.store_fulltext_file(app, s1, FULLTEXT1["original_filename"])
+    factories.store_fulltext_file(app, s2, FULLTEXT2["original_filename"])
     return {
         "review": review,
         "s1": s1,
         "s2": s2,
-        "fulltexts": {"s1": dict(FULLTEXT1), "s2": dict(FULLTEXT2)},
+        "fulltexts": {"s1": dict(s1.fulltext), "s2": dict(s2.fulltext)},
     }
 
 
