@@ -693,16 +693,11 @@ def _to_values(value: Sequence[_T], n: int) -> list[_T]: ...
 def _to_values(value: _T, n: int) -> list[_T]: ...
 
 
-def _to_values(value: object, n: int) -> list[object] | Sequence[object]:
+def _to_values(value: object, n: int) -> Sequence[object]:
     if isinstance(value, Sequence) and not isinstance(value, str) and len(value) != n:
         raise ValueError(f"expected {n} values, got {len(value)}")
-
-    return (
-        [None] * n
-        if value is None
-        else [value] * n
-        if isinstance(value, (str, bytes))
-        else list(value)
-        if isinstance(value, Sequence)
-        else [value] * n
-    )
+    if value is None:
+        return [None] * n
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        return [value] * n
+    return list(value)
