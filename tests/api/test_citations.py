@@ -116,25 +116,44 @@ class TestCitationAPI:
         assert get_response.json == {}  # empty!
 
 
-@pytest.mark.skip(reason="doesn't play nicely with other resource tests")
-@pytest.mark.usefixtures("db_session")
 class TestCitationsAPI:
+    @pytest.fixture
+    def review(self, db_session):
+        """A review to add citations to; the world's admin needs no team association."""
+        return factories.create_review(db_session)
+
     @pytest.mark.parametrize(
         ["params", "data"],
         [
             (
                 {
-                    "review_id": 1,
                     "source_type": "database",
                     "source_name": "SOURCE_NAMEX",
                     "source_url": "http://www.example.com/SOURCEX",
                 },
                 {"title": "TITLEX", "abstract": "ABSTRACTX"},
             ),
+            (
+                {
+                    "source_type": "database",
+                    "source_name": "SOURCE_NAMEY",
+                    "status": "included",
+                },
+                {"title": "TITLEY", "abstract": "ABSTRACTY"},
+            ),
         ],
     )
-    def test_post(self, params, data, api):
-        response = api.post(CITATIONS_API_ENDPOINT, json=data, **params)
+    def test_post(self, params, data, review, api):
+        """Create a citation in a review, naming the data source it came from."""
+        response = api.post(
+            CITATIONS_API_ENDPOINT, json=data, review_id=review.id, **params
+        )
         assert response.status_code == 200
         response_data = response.json
         assert {k: response_data[k] for k in data.keys()} == data
+        assert response_data["review_id"] == review.id
+
+        # citation is stored on a new study, which the read endpoints can see
+        study = api.get("studies.study", id=response_data["id"]).json
+        assert {k: study["citation"][k] for k in data} == data
+        assert study["citation_status"] == params.get("status", "not_screened")
