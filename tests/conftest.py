@@ -1,7 +1,5 @@
-import json
 import os
 import pathlib
-import typing as t
 
 import flask
 import flask_sqlalchemy
@@ -40,7 +38,7 @@ def app(tmp_path_factory):
             f"{os.environ['COLANDR_DB_USER']}:{os.environ['COLANDR_DB_PASSWORD']}"
             f"@{os.environ.get('COLANDR_DB_HOST', 'colandr-db')}:5432/{TEST_DBNAME}"
         ),
-        "SQLALCHEMY_ECHO": True,
+        "SQLALCHEMY_ECHO": False,
         "SQLALCHEMY_RECORD_QUERIES": True,
         # local filesystem
         "FILESYSTEM_PROTOCOL": "file",
@@ -68,13 +66,6 @@ def app_ctx(app):
 @pytest.fixture(scope="session")
 def seed_data_fpath() -> pathlib.Path:
     return pathlib.Path(__file__).parent / "fixtures" / "seed_data.json"
-
-
-@pytest.fixture(scope="session")
-def seed_data(seed_data_fpath: pathlib.Path) -> dict[str, t.Any]:
-    with seed_data_fpath.open(mode="r") as f:
-        seed_data = json.load(f)
-    return seed_data
 
 
 @pytest.fixture(scope="session")
@@ -110,10 +101,14 @@ def _reset_db_world(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask) -> None:
     """Reset the DB to a known-empty state: no rows, sequences at 1, no uploads.
 
     The uploads directories are cleared too, because ``RESTART IDENTITY`` recycles
-    review/study ids: without this, a later world that recreates review id 1 could
+    review/study ids: without this, a module that recreates review id 1 could
     read or clobber fulltext files and citation imports left behind by an earlier one.
     """
     with app.app_context():
+        # TRUNCATE needs an exclusive lock on every table, and this runs in its own
+        # app context, so a read transaction left open by an earlier test would block it
+        # indefinitely -- time out instead, and fail loudly with a lock error
+        db.session.execute(sa.text("SET LOCAL lock_timeout = '10s'"))
         table_names = ", ".join(table.name for table in db.metadata.sorted_tables)
         db.session.execute(sa.text(f"TRUNCATE {table_names} RESTART IDENTITY CASCADE"))
         db.session.commit()
@@ -140,38 +135,15 @@ def db_empty(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask):
 
 
 @pytest.fixture(scope="module")
-def db_seeded(db, app, cli_runner, seed_data_fpath, seed_data, request):
-    """World: the full seed dataset, plus its uploaded fulltext files.
+def db_seeded(db, app, cli_runner, seed_data_fpath):
+    """World: the full seed dataset, loaded through ``flask db-seed``.
 
-    Only ``tests/api/test_smoke.py`` keeps this world; every other module
-    migrates to ``db_empty``. ``db-seed`` resyncs the id sequences itself
-    (``cli.py``), so creating rows in this world is safe too.
+    Only ``tests/api/test_smoke.py`` uses this world; every other module builds its
+    own state with factories in ``db_empty``. This only seeds db rows (no on-disk files).
+    ``db-seed`` resyncs the id sequences itself, so creating rows in this world is safe.
     """
     _reset_db_world(db, app)
     cli_runner.invoke(cli.db_seed, ["--fpath", str(seed_data_fpath)])
-    _store_upload_files(app, seed_data, request)
-
-
-def _store_upload_files(app: flask.Flask, seed_data: dict[str, t.Any], request):
-    for record in seed_data["studies"]:
-        if not record.get("fulltext"):
-            continue
-
-        src_file_path = (
-            request.config.rootpath
-            / "tests"
-            / "fixtures"
-            / "fulltexts"
-            / record["fulltext"]["original_filename"]
-        )
-        tgt_file_path = os.path.join(
-            app.config["FULLTEXT_UPLOADS_DIR"],
-            str(record.get("review_id", 1)),
-            record["fulltext"]["filename"],
-        )
-        fs = app.extensions["filesystem"]
-        fs.makedirs(os.path.dirname(tgt_file_path), exist_ok=True)
-        fs.put_file(src_file_path, tgt_file_path)
 
 
 @pytest.fixture
@@ -180,12 +152,6 @@ def db_session(db: flask_sqlalchemy.SQLAlchemy, app_ctx):
     Automatically roll back database changes occurring within tests,
     so side-effects of one test don't affect another.
     """
-    # this no longer works in sqlalchemy v2.0 :/
-    # db.session.begin_nested()
-    # yield db.session
-    # db.session.rollback()
-    # but this more complex setup apparently works in v2.0
-    # which is a recurring theme ... sqlalchemy v2.0 is harder to use somehow
     conn = db.engine.connect()
     transaction = conn.begin()
     orig_session = db.session
@@ -235,10 +201,15 @@ def api(client, app, db_session, admin_headers):
 
 
 @pytest.fixture(autouse=True)
-def clear_app_caches(app, app_ctx):
-    """Clear app-level caches around each test; ids repeat across worlds."""
+def clear_app_state(app, app_ctx):
+    """Clear app-level caches around each test, and close the app-context session after.
+
+    Caches must go because ids repeat across worlds. The db session must go to avoid
+    locks that could block the next world's TRUNCATE statement.
+    """
     for cache in (extensions.cache, extensions.review_model_cache):
         cache.clear()
     yield
     for cache in (extensions.cache, extensions.review_model_cache):
         cache.clear()
+    extensions.db.session.remove()
