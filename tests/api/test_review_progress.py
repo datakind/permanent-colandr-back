@@ -1,23 +1,102 @@
+"""Tests for the review progress API."""
+
 import pytest
 
+from .. import factories
+
+
+pytestmark = pytest.mark.usefixtures("db_empty")
 
 REVIEW_PROGRESS_API_ENDPOINT = "review_progress.review_progress"
 
+REASONS = ["REASON1", "REASON2"]
 
-@pytest.mark.usefixtures("db_session")
-class TestReviewProgressAPI:
-    @pytest.mark.parametrize(
-        ["id_", "params", "status_code"],
-        [
-            (1, {}, 200),
-            (1, {"step": "planning"}, 200),
-            (2, {}, 200),
-            (1, {"user_view": True}, 200),
-            (999, {}, 404),
+
+@pytest.fixture
+def graph(db_session):
+    """Two reviews: one fully screened, one only part-way.
+
+    Review 1's three studies have citation included/excluded then fulltext included/excluded
+    and its plan has every field the planning step reports on. Review 2 has a single study
+    screened once at the citation stage, so its fulltext stage still has an unscreened study
+    in it, and its plan has only the objective and pico set. The acting user is the world's
+    admin, who needs no team association.
+    """
+    owner, reviewer = factories.create_users(db_session, 2, names=["OWNER", "REVIEWER"])
+
+    review1, _ = factories.create_screened_review(
+        db_session,
+        owner=owner,
+        studies={
+            "s1": {
+                "fulltext": {
+                    "text_content": "This is an example text in English. Second sentence."
+                }
+            },
+            "s2": {
+                "fulltext": {"text_content": "This is another example text in English."}
+            },
+            "s3": {},
+        },
+        screening_reviewer=reviewer,
+        decisions=[
+            # citation rows come first: create_screening() refuses a fulltext row on a
+            # study whose citation stage isn't included yet
+            ("s1", None, "citation", "included", None),
+            ("s2", None, "citation", "included", None),
+            # s3 is excluded at citation, and so never gets a fulltext row at all
+            ("s3", None, "citation", "excluded", REASONS),
+            ("s1", None, "fulltext", "included", None),
+            ("s2", None, "fulltext", "excluded", REASONS),
         ],
     )
-    def test_get(self, id_, params, status_code, api):
-        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=id_, **params)
+    factories.update_review_plan(
+        db_session,
+        review1,
+        objective="OBJECTIVE",
+        research_questions=["RESEARCH_QUESTION1"],
+        pico={"population": "POPULATION", "intervention": "INTERVENTION"},
+        keyterms=[{"term": "TERM1", "group": "GROUP1"}],
+        selection_criteria=[{"label": "LABEL1", "description": "DESCRIPTION1"}],
+        data_extraction_form=[{"label": "LABEL1", "field_type": "str"}],
+    )
+
+    review2, _ = factories.create_screened_review(
+        db_session,
+        owner=owner,
+        studies={"s4": {}},
+        screening_reviewer=reviewer,
+        decisions=[
+            ("s4", None, "citation", "included", None),
+        ],
+    )
+    factories.update_review_plan(
+        db_session,
+        review2,
+        objective="OBJECTIVE",
+        pico={"population": "POPULATION", "intervention": "INTERVENTION"},
+    )
+
+    return {"review1": review1, "review2": review2}
+
+
+class TestReviewProgressAPI:
+    @pytest.mark.parametrize(
+        ["review_key", "params", "status_code"],
+        [
+            ("review1", {}, 200),
+            ("review1", {"step": "planning"}, 200),
+            ("review2", {}, 200),
+            ("review1", {"user_view": True}, 200),
+            (None, {}, 404),
+        ],
+    )
+    def test_get(self, review_key, params, status_code, graph, api):
+        """Get progress on one or all steps of a review."""
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
+        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=review_id, **params)
         assert response.status_code == status_code
         if 200 <= status_code < 300:
             data = response.json
@@ -39,10 +118,10 @@ class TestReviewProgressAPI:
                 )
 
     @pytest.mark.parametrize(
-        ["id_", "exp_data"],
+        ["review_key", "exp_data"],
         [
             (
-                1,
+                "review1",
                 {
                     "planning": {
                         "objective": True,
@@ -70,7 +149,7 @@ class TestReviewProgressAPI:
                 },
             ),
             (
-                2,
+                "review2",
                 {
                     "planning": {
                         "objective": True,
@@ -99,8 +178,9 @@ class TestReviewProgressAPI:
             ),
         ],
     )
-    def test_exp_result(self, id_, exp_data, api):
-        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=id_)
+    def test_exp_result(self, review_key, exp_data, graph, api):
+        """Get a review's full progress, matching the seeded world's counts."""
+        response = api.get(REVIEW_PROGRESS_API_ENDPOINT, id=graph[review_key].id)
         assert response.status_code == 200
         data = response.json
         assert data == exp_data

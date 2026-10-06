@@ -247,7 +247,7 @@ def _make_pseudo_fulltext_record(study: models.Study) -> dict:
     # pretend that fulltexts are still separate records for api consistency
     fulltext = study.fulltext
     if fulltext:
-        fulltext |= {
+        fulltext = fulltext | {
             "id": study.id,
             "review_id": study.review_id,
             "created_at": study.created_at,

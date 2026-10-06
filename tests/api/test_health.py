@@ -1,3 +1,8 @@
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("db_empty")
+
 HEALTH_API_ENDPOINT = "health.health"
 
 
