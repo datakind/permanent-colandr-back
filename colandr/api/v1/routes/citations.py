@@ -151,7 +151,7 @@ class CitationsAPI(MethodView):
         source_type = query_data["source_type"]
         source_name = query_data.get("source_name")
         source_url = query_data.get("source_url")
-        status = query_data["status"]
+        status = query_data.get("status")
         current_user = jwtext.get_current_user()
         if not authz.user_is_allowed_for_review(
             current_user, review_id, if_frozen=False
