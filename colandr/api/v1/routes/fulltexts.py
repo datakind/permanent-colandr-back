@@ -88,7 +88,10 @@ def _make_pseudo_fulltext_record(study: models.Study) -> dict:
     # pretend that fulltexts are still separate records for api consistency
     fulltext = study.fulltext
     if fulltext:
-        fulltext |= {
+        # create a copy of the model's fulltext dict and mutate that!
+        # merging these fields in-place leaks them into the model attrs
+        # and from there into a later PUT's persisted value -- unwanted behavior
+        fulltext = fulltext | {
             "id": study.id,
             "review_id": study.review_id,
             "created_at": study.created_at,

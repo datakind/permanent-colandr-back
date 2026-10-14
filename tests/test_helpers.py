@@ -1,5 +1,12 @@
 """Tests for `helpers.APIClient`."""
 
+import pytest
+
+from . import factories
+
+
+pytestmark = pytest.mark.usefixtures("db_empty")
+
 
 class TestAPIClient:
     def test_admin_get(self, api):
@@ -7,52 +14,39 @@ class TestAPIClient:
         assert resp.status_code == 200
         assert resp.json == {"message": "OK"}
 
-    def test_admin_get_with_params(self, api):
-        resp = api.get("reviews.review", id=1)
+    def test_admin_get_review(self, api, db_session):
+        review = factories.create_review(db_session)
+        resp = api.get("reviews.review", id=review.id)
         assert resp.status_code == 200
-        assert resp.json["id"] == 1
+        assert resp.json["id"] == review.id
 
-    def test_as_user_get_own_profile(self, api):
-        resp = api.as_user(1).get("users.user", id=1)
+    def test_as_user_get_own_profile(self, api, db_session):
+        user = factories.create_user(db_session)
+        resp = api.as_user(user).get("users.user", id=user.id)
         assert resp.status_code == 200
-        assert resp.json["id"] == 1
+        assert resp.json["id"] == user.id
 
-    def test_as_user_gets_403_for_others(self, api):
-        resp = api.as_user(4).get("users.user", id=1)
+    def test_as_user_gets_403_for_others(self, api, db_session):
+        user, other_user = factories.create_users(db_session, n=2)
+        resp = api.as_user(user).get("users.user", id=other_user.id)
         assert resp.status_code == 403
 
-    def test_admin_put(self, api):
-        resp = api.put(
-            "reviews.review",
-            id=1,
-            json={"name": "TEST_RENAME"},
-        )
+    def test_admin_put(self, api, db_session):
+        review = factories.create_review(db_session)
+        resp = api.put("reviews.review", id=review.id, json={"name": "RENAME"})
         assert resp.status_code == 200
-        assert resp.json["name"] == "TEST_RENAME"
+        assert resp.json["name"] == "RENAME"
 
-    def test_as_user_put(self, api):
-        resp = api.as_user(1).put(
-            "reviews.review",
-            id=1,
-            json={"name": "TEST_RENAME2"},
-        )
-        assert resp.status_code == 200
-        assert resp.json["name"] == "TEST_RENAME2"
-
-    def test_admin_delete(self, api):
-        resp = api.delete("reviews.review", id=1)
-        # Only owners can delete; admin id 1 is owner of review 1
+    def test_as_user_delete_own_review(self, api, db_session):
+        owner = factories.create_user(db_session)
+        review = factories.create_review_with_team(db_session, owner=owner)
+        resp = api.as_user(owner).delete("reviews.review", id=review.id)
         assert resp.status_code == 204
 
-    def test_as_user_delete_own_review(self, api):
-        # User 2 owns review 2
-        resp = api.as_user(2).delete("reviews.review", id=2)
-        assert resp.status_code == 204
-
-    def test_user_mode_is_sticky(self, api):
-        """as_user() persists across multiple requests on the same instance."""
-        api.as_user(4)
-        resp1 = api.get("users.user", id=4)  # self — ok
+    def test_user_mode_is_sticky(self, api, db_session):
+        user, other_user = factories.create_users(db_session, n=2)
+        api.as_user(user)
+        resp1 = api.get("users.user", id=user.id)  # self => ok
         assert resp1.status_code == 200
-        resp2 = api.get("users.user", id=1)  # still user 4 — should 403
+        resp2 = api.get("users.user", id=other_user.id)  # still user => 403
         assert resp2.status_code == 403

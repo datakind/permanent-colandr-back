@@ -8,8 +8,9 @@ from colandr.api.v1 import authn
 
 
 @contextlib.contextmanager
-def set_current_user(user_id: int, db_session: sa_orm.scoped_session):
+def set_current_user(user: int | models.User, db_session: sa_orm.scoped_session):
     orig_user = getattr(flask.g, "current_user", None)
+    user_id = user.id if isinstance(user, models.User) else user
     new_user = db_session.get(models.User, user_id)
     flask.g.current_user = new_user
 
@@ -36,11 +37,11 @@ class APIClient:
         self._app = app
         self._db_session = db_session
         self._admin_headers = admin_headers
-        self._user_id = None
+        self._user = None
 
-    def as_user(self, user_id: int):
+    def as_user(self, user: int | models.User):
         """Switch to "user mode" for the next request(s)."""
-        self._user_id = user_id
+        self._user = user
         return self
 
     def get(self, endpoint, **url_params):
@@ -59,13 +60,19 @@ class APIClient:
         with self._app.test_request_context():
             url = flask.url_for(endpoint, **url_params)
 
-        if self._user_id is not None:
-            with self._app.app_context():
-                with set_current_user(self._user_id, self._db_session) as user:
-                    headers = authn.pack_header_for_user(user)
-                    return self._send(method, url, headers, json, files)
-        else:
+        if self._user is None:
             return self._send(method, url, self._admin_headers, json, files)
+
+        with contextlib.ExitStack() as stack:
+            # NOTE: a nested app context triggers flask-sqlalchemy's teardown_appcontext
+            # -> db.session.remove(), which closes the test's savepoint session
+            # and rolls back factory-created rows; so only push one when we're not
+            # already inside a (fixture-provided) app context
+            if not flask.has_app_context():
+                stack.enter_context(self._app.app_context())
+            with set_current_user(self._user, self._db_session) as user:
+                headers = authn.pack_header_for_user(user)
+                return self._send(method, url, headers, json, files)
 
     def _send(self, method, url, headers, json_body, files):
         kwargs = {"headers": headers}

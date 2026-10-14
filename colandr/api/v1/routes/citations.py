@@ -151,7 +151,7 @@ class CitationsAPI(MethodView):
         source_type = query_data["source_type"]
         source_name = query_data.get("source_name")
         source_url = query_data.get("source_url")
-        status = query_data["status"]
+        status = query_data.get("status")
         current_user = jwtext.get_current_user()
         if not authz.user_is_allowed_for_review(
             current_user, review_id, if_frozen=False
@@ -207,7 +207,10 @@ def _make_pseudo_citation_record(study: models.Study) -> dict:
     # pretend that citations are still separate records for api consistency
     citation = study.citation
     if citation:
-        citation |= {
+        # create a copy of the model's citation dict and mutate that!
+        # merging these fields in-place leaks them into the model attrs
+        # and from there into a later PUT's persisted value -- unwanted behavior
+        citation = citation | {
             "id": study.id,
             "review_id": study.review_id,
             "created_at": study.created_at,
