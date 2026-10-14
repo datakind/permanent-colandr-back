@@ -138,7 +138,7 @@ def db_empty(db: flask_sqlalchemy.SQLAlchemy, app: flask.Flask):
 def db_seeded(db, app, cli_runner, seed_data_fpath):
     """World: the full seed dataset, loaded through ``flask db-seed``.
 
-    Only ``tests/api/test_smoke.py`` uses this world; every other module builds its
+    Only ``tests/api/test_db_seed.py`` uses this world; every other module builds its
     own state with factories in ``db_empty``. This only seeds db rows (no on-disk files).
     ``db-seed`` resyncs the id sequences itself, so creating rows in this world is safe.
     """
