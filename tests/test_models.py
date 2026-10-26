@@ -174,6 +174,47 @@ class TestReviewUserAssoc:
         assert count_rows(db_session, models.ReviewUserAssoc) == 0
 
 
+class TestReviewPlan:
+    def test_created_for_each_review_with_defaults(self, db_session):
+        review = factories.create_review(db_session)
+        plan = db_session.get(models.ReviewPlan, review.id)
+
+        assert plan is not None
+        assert plan.id == review.id
+        assert plan.objective is None
+        assert plan.research_questions == []
+        assert plan.pico == {}
+        assert plan.suggested_keyterms == {}
+        # FIXME: keyterms annotated as lists but defaulting to a JSONB object
+        assert plan.keyterms == {}
+        assert plan.selection_criteria == {}
+        assert plan.data_extraction_form == {}
+        assert plan.boolean_search_query == ""
+
+    def test_boolean_search_query(self, db_session):
+        review = factories.create_review(db_session)
+        plan = factories.update_review_plan(
+            db_session,
+            review,
+            keyterms=[
+                {"term": "TERM1", "group": "GROUP2", "synonyms": []},
+                {"term": "TERM2", "group": "GROUP1", "synonyms": ["SYN2"]},
+            ],
+        )
+
+        assert plan.boolean_search_query == '("TERM2" OR "SYN2")\nAND\n"TERM1"'
+
+    def test_relationships_and_cascade(self, db_session):
+        review = factories.create_review(db_session)
+        plan = db_session.get(models.ReviewPlan, review.id)
+        assert plan.review is review
+
+        db_session.delete(review)
+        db_session.flush()
+
+        assert count_rows(db_session, models.ReviewPlan) == 0
+
+
 class TestStudy:
     def test_attrs(self, db_session):
         user = factories.create_user(db_session)
