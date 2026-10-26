@@ -1,17 +1,32 @@
 """Tests for `colandr/models.py`.
 
-Model attribute, relationship, and derived-property tests, built from factories.
+Model attribute, relationship, derived-property, and event-listener tests,
+
+Notes:
+
+- The ORM layer's validation is limited to database non-null/foreign-key/unique constraints.
+- Model event listeners are part of the contract and thus tested here, not directly
+  in factory/API tests, which only have to deal with their side-effects.
+- `update_study_status` writes study status with a Core UPDATE, so a study held
+  in the session is stale after any screening insert/update/delete => expire before asserting.
 """
+
+import random
 
 import pytest
 import sqlalchemy as sa
 
-from colandr import models
+from colandr import models, tasks
 
 from . import factories
 
 
 pytestmark = pytest.mark.usefixtures("db_empty")
+
+
+def count_rows(session, model) -> int:
+    """Count ``model`` rows in the database, bypassing stale session objects."""
+    return session.execute(sa.select(sa.func.count()).select_from(model)).scalar_one()
 
 
 class TestUser:
@@ -111,6 +126,52 @@ class TestReview:
             "excluded": 1,
         }
         assert review.num_fulltexts_by_status(["not_screened"]) == {"not_screened": 3}
+
+
+class TestReviewUserAssoc:
+    def test_init_defaults_and_repr(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        assoc = models.ReviewUserAssoc(review, user)
+        db_session.add(assoc)
+        db_session.flush()
+
+        assert assoc.review_id == review.id and assoc.user_id == user.id
+        assert assoc.user_role == "member"  # filled in by server default
+        assert repr(assoc) == (
+            f"<ReviewUserAssoc(review_id={review.id}, user_id={user.id})>"
+        )
+
+    @pytest.mark.parametrize("user_role", ["owner", "member", "OWNER", "typo"])
+    def test_user_role_is_unconstrained(self, db_session, user_role):
+        # FIXME: any string is accepted; only "owner" is load-bearing for authz
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        assoc = models.ReviewUserAssoc(review, user, user_role=user_role)
+        db_session.add(assoc)
+        db_session.flush()
+
+        assert assoc.user_role == user_role
+
+    def test_composite_primary_key_is_unique(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        factories.add_review_user(db_session, review, user, role="owner")
+
+        db_session.add(models.ReviewUserAssoc(review, user))
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    @pytest.mark.parametrize("parent", ["review", "user"])
+    def test_delete_parent_cascades(self, db_session, parent):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        factories.add_review_user(db_session, review, user)
+
+        db_session.delete(review if parent == "review" else user)
+        db_session.flush()
+
+        assert count_rows(db_session, models.ReviewUserAssoc) == 0
 
 
 class TestStudy:
