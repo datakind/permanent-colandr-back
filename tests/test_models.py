@@ -266,6 +266,61 @@ class TestDataSource:
         assert db_session.get(models.Import, import_record.id).data_source_id is None
 
 
+class TestImport:
+    def test_server_defaults(self, db_session):
+        review = factories.create_review(db_session)
+        record = models.Import(
+            review_id=review.id, record_type="citation", num_records=3
+        )
+        db_session.add(record)
+        db_session.flush()
+
+        assert record.num_records == 3
+        assert record.status == "not_screened"
+        assert record.user_id is None
+        assert record.data_source_id is None
+
+    def test_relationships(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        source = factories.create_data_source(db_session)
+        record = factories.create_import(
+            db_session, review, user=user, data_source=source, num_records=5
+        )
+
+        assert record.review is review
+        assert record.user is user
+        assert record.data_source is source
+        assert record.num_records == 5
+        assert repr(record) == f"<Import(id={record.id}, review_id={review.id})>"
+
+    def test_delete_user_and_source_null_references(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        source = factories.create_data_source(db_session)
+        record = factories.create_import(
+            db_session, review, user=user, data_source=source
+        )
+
+        db_session.delete(user)
+        db_session.delete(source)
+        db_session.flush()
+        db_session.refresh(record)
+
+        assert record.user_id is None
+        assert record.data_source_id is None
+        assert count_rows(db_session, models.Import) == 1
+
+    def test_delete_review_cascades(self, db_session):
+        review = factories.create_review(db_session)
+        factories.create_import(db_session, review)
+
+        db_session.delete(review)
+        db_session.flush()
+
+        assert count_rows(db_session, models.Import) == 0
+
+
 class TestStudy:
     def test_attrs(self, db_session):
         user = factories.create_user(db_session)
