@@ -215,6 +215,57 @@ class TestReviewPlan:
         assert count_rows(db_session, models.ReviewPlan) == 0
 
 
+class TestDataSource:
+    def test_attrs(self, db_session):
+        source = factories.create_data_source(
+            db_session,
+            source_type="database",
+            source_name="PubMed",
+            source_url="https://pubmed.ncbi.nlm.nih.gov",
+        )
+
+        assert source.source_type == "database"
+        assert source.source_name == "PubMed"
+        assert source.source_url == "https://pubmed.ncbi.nlm.nih.gov"
+        assert repr(source) == f"<DataSource(id={source.id})>"
+
+    @pytest.mark.parametrize(
+        ["source_name", "exp_label"],
+        [("PubMed", "database: PubMed"), (None, "database"), ("", "database")],
+    )
+    def test_source_type_and_name(self, source_name, exp_label):
+        source = models.DataSource(source_type="database", source_name=source_name)
+        assert source.source_type_and_name == exp_label
+
+    def test_unique_type_name_url(self, db_session):
+        """NULL urls compare equal here: the constraint is NULLS NOT DISTINCT."""
+        source = factories.create_data_source(db_session, source_name="PubMed")
+
+        db_session.add(
+            models.DataSource(source_type=source.source_type, source_name="PubMed")
+        )
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    def test_delete_nulls_references(self, db_session):
+        source = factories.create_data_source(db_session)
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(
+            db_session, review=review, user=user, data_source=source
+        )
+        import_record = factories.create_import(
+            db_session, review, user=user, data_source=source
+        )
+
+        db_session.delete(source)
+        db_session.flush()
+        db_session.expire_all()
+
+        assert db_session.get(models.Study, study.id).data_source_id is None
+        assert db_session.get(models.Import, import_record.id).data_source_id is None
+
+
 class TestStudy:
     def test_attrs(self, db_session):
         user = factories.create_user(db_session)
