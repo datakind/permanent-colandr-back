@@ -53,10 +53,7 @@ def _boolify_term_set(term_set: dict) -> str:
     if synonyms:
         return (
             "("
-            + " OR ".join(
-                '"{}"'.format(term)
-                for term in [term_set["term"]] + term_set["synonyms"]
-            )
+            + " OR ".join(f'"{term}"' for term in [term_set["term"], *synonyms])
             + ")"
         )
     else:
