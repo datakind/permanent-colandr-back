@@ -243,7 +243,7 @@ def update_review_plan(
             review,
             objective="OBJECTIVE",
             pico={"population": "POPULATION"},
-            keyterms={"term1": ["TERM1"]},
+            keyterms=[{"term": "TERM1", "group": "GROUP1"}]
         )
     """
     plan = session.get(models.ReviewPlan, review.id)

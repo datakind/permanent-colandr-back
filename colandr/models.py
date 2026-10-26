@@ -286,6 +286,8 @@ class ReviewUserAssoc(db.Model):
     user_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
+    # FIXME: user_role is a free text string instead of a proper enum
+    # but "owner" is load-bearing for authz, and a mistyped role is silently accepted
     user_role: M[t.Optional[str]] = mapcol(
         sa.Text, nullable=False, server_default=sa.text("'member'")
     )
@@ -340,6 +342,9 @@ class ReviewPlan(db.Model):
     pico: M[dict[str, t.Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
+    # FIXME: keyterms, selection_criteria, data_extraction_form are annotated as lists
+    # but default to a JSONB object; default them to '[]'::jsonb instead
+    # so callers can always iterate them as sequences
     keyterms: M[list[dict[str, t.Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
@@ -635,6 +640,8 @@ class Screening(db.Model):
         sa.BigInteger,
         sa.ForeignKey("studies.id", ondelete="CASCADE"),
     )
+    # FIXME: stage, status are free text strings instead of proper enums, and update_study_status
+    # treats any stage other than "citation" as "fulltext" => data corruption
     stage: M[str] = mapcol(sa.String(length=16))
     status: M[str] = mapcol(sa.String(length=20), index=True)
     exclude_reasons: M[list[str]] = mapcol(
@@ -728,6 +735,8 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
+    # FIXME: extracted_items annotated as a list but defaults to a JSONB object
+    # default it to '[]'::jsonb instead, so callers can always iterate it as a sequence
     extracted_items: M[t.Optional[list[dict[str, t.Any]]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
@@ -969,6 +978,8 @@ def model_to_dict(
     if fields is None:
         mapper = sa.inspect(model).mapper
         # columns
+        # FIXME: includes the private password column!
+        # safe only because every caller serializes through a schema that omits it
         fields = [col.key for col in mapper.column_attrs]
         # hybrid properties?
         if include_hybrid is True:
