@@ -546,3 +546,59 @@ class TestDedupe:
         db_session.flush()
 
         assert count_rows(db_session, models.Dedupe) == 0
+
+
+class TestDataExtraction:
+    def test_defaults_and_relationships(self, db_session):
+        review = factories.create_review(db_session)
+        study = factories.create_study(db_session, review=review)
+        extraction = models.DataExtraction(study_id=study.id, review_id=review.id)
+        db_session.add(extraction)
+        db_session.flush()
+
+        # FIXME: annotated as a list but defaults to a JSONB object
+        assert extraction.extracted_items == {}
+        assert extraction.study is study
+        assert extraction.review is review
+        assert extraction.created_at is not None
+        assert repr(extraction) == (
+            f"<DataExtraction(id={extraction.id}, study_id={study.id})>"
+        )
+
+    @pytest.mark.parametrize(
+        "extracted_items",
+        [[], [{"label": "LABEL", "value": "VALUE"}]],
+    )
+    def test_extracted_items_roundtrip(self, db_session, extracted_items):
+        review = factories.create_review(db_session)
+        study = factories.create_study(db_session, review=review)
+        extraction = models.DataExtraction(
+            study_id=study.id, review_id=review.id, extracted_items=extracted_items
+        )
+        db_session.add(extraction)
+        db_session.flush()
+
+        db_session.expire(extraction)
+        assert extraction.extracted_items == extracted_items
+
+    def test_one_per_study(self, db_session):
+        review = factories.create_review(db_session)
+        study = factories.create_study(db_session, review=review)
+        db_session.add(models.DataExtraction(study_id=study.id, review_id=review.id))
+        db_session.flush()
+
+        db_session.add(models.DataExtraction(study_id=study.id, review_id=review.id))
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    @pytest.mark.parametrize("parent", ["study", "review"])
+    def test_delete_parent_cascades(self, db_session, parent):
+        review = factories.create_review(db_session)
+        study = factories.create_study(db_session, review=review)
+        db_session.add(models.DataExtraction(study_id=study.id, review_id=review.id))
+        db_session.flush()
+
+        db_session.delete(study if parent == "study" else review)
+        db_session.flush()
+
+        assert count_rows(db_session, models.DataExtraction) == 0
