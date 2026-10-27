@@ -409,3 +409,90 @@ class TestStudy:
             exclude_reasons=["REASON2", "REASON1"],
         )
         assert study.fulltext_exclude_reasons == ["REASON1", "REASON2"]
+
+
+class TestScreening:
+    def test_attrs(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        screening = models.Screening(
+            user_id=user.id,
+            review_id=review.id,
+            study_id=study.id,
+            stage="citation",
+            status="included",
+        )
+        db_session.add(screening)
+        db_session.flush()
+
+        assert screening.exclude_reasons is None
+        assert screening.user is user
+        assert screening.review is review
+        assert screening.study is study
+        assert repr(screening) == (
+            f"<Screening(id={screening.id}, study_id={study.id}, stage='citation')>"
+        )
+
+    @pytest.mark.parametrize("missing", ["stage", "status", "review_id", "study_id"])
+    def test_required_columns(self, db_session, missing):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        kwargs = {
+            "user_id": user.id,
+            "review_id": review.id,
+            "study_id": study.id,
+            "stage": "citation",
+            "status": "included",
+        }
+        del kwargs[missing]
+
+        db_session.add(models.Screening(**kwargs))
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    def test_unique_per_user_study_stage(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
+
+        db_session.add(
+            models.Screening(
+                user_id=user.id,
+                review_id=review.id,
+                study_id=study.id,
+                stage="citation",
+                status="excluded",
+            )
+        )
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    def test_delete_user_nulls_user_id(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        screening = factories.create_screening(db_session, study=study, user=user)
+
+        db_session.delete(user)
+        db_session.flush()
+        db_session.refresh(screening)
+
+        assert screening.user_id is None
+        assert screening.status == "included"  # the decision outlives the reviewer!
+
+    @pytest.mark.parametrize("parent", ["review", "study"])
+    def test_delete_parent_cascades(self, db_session, parent):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        factories.create_screening(db_session, study=study, user=user)
+
+        db_session.delete(review if parent == "review" else study)
+        db_session.flush()
+
+        assert count_rows(db_session, models.Screening) == 0

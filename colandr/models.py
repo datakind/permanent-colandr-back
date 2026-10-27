@@ -670,7 +670,7 @@ class Screening(db.Model):
 
     def __repr__(self):
         return (
-            f"<Screening(id={self.id}, study_id={self.study_id}, stage={self.stage})>"
+            f"<Screening(id={self.id}, study_id={self.study_id}, stage='{self.stage}')>"
         )
 
 
