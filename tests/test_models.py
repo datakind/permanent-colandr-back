@@ -496,3 +496,53 @@ class TestScreening:
         db_session.flush()
 
         assert count_rows(db_session, models.Screening) == 0
+
+
+class TestDedupe:
+    def test_attrs_and_relationships(self, db_session):
+        review = factories.create_review(db_session)
+        study, duplicate = factories.create_studies(db_session, 2, review=review)
+        dedupe = models.Dedupe(
+            study_id=study.id,
+            review_id=review.id,
+            duplicate_of=duplicate.id,
+            duplicate_score=0.75,
+        )
+        db_session.add(dedupe)
+        db_session.flush()
+
+        assert dedupe.study is study
+        assert dedupe.review is review
+        assert dedupe.duplicate_of == duplicate.id
+        assert dedupe.duplicate_score == 0.75
+        assert repr(dedupe) == f"<Dedupe(id={dedupe.id}, study_id={study.id})>"
+
+    def test_one_per_study(self, db_session):
+        review = factories.create_review(db_session)
+        study, duplicate = factories.create_studies(db_session, 2, review=review)
+        db_session.add(models.Dedupe(study_id=study.id, review_id=review.id))
+        db_session.flush()
+
+        db_session.add(
+            models.Dedupe(
+                study_id=study.id, review_id=review.id, duplicate_of=duplicate.id
+            )
+        )
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
+    @pytest.mark.parametrize("parent", ["study", "review"])
+    def test_delete_parent_cascades(self, db_session, parent):
+        review = factories.create_review(db_session)
+        study, duplicate = factories.create_studies(db_session, 2, review=review)
+        db_session.add(
+            models.Dedupe(
+                study_id=study.id, review_id=review.id, duplicate_of=duplicate.id
+            )
+        )
+        db_session.flush()
+
+        db_session.delete(study if parent == "study" else review)
+        db_session.flush()
+
+        assert count_rows(db_session, models.Dedupe) == 0
