@@ -602,3 +602,60 @@ class TestDataExtraction:
         db_session.flush()
 
         assert count_rows(db_session, models.DataExtraction) == 0
+
+
+# TODO: add tests for event listeners here!
+
+
+class TestModelToDict:
+    def test_all_columns_by_default(self, db_session):
+        user = factories.create_user(db_session, name="User", email="user@example.com")
+
+        data = models.model_to_dict(user)
+
+        # FIXME: the default field set includes private password column
+        # it's safe only because callers serialize through schemas that omit it...
+        assert set(data) == {
+            "id",
+            "created_at",
+            "updated_at",
+            "name",
+            "email",
+            "_password",
+            "is_confirmed",
+            "is_admin",
+        }
+        assert data["name"] == "User"
+        assert data["email"] == "user@example.com"
+
+    def test_fields_subset(self, db_session):
+        user = factories.create_user(db_session, name="User")
+
+        assert models.model_to_dict(user, ["id", "name"]) == {
+            "id": user.id,
+            "name": "User",
+        }
+
+    def test_include_hybrid(self, db_session):
+        review = factories.create_review(db_session)
+        plan = factories.update_review_plan(db_session, review, objective="OBJECTIVE")
+
+        data = models.model_to_dict(plan, include_hybrid=True)
+
+        assert data["objective"] == "OBJECTIVE"
+        assert data["boolean_search_query"] == ""
+        assert "id" in data
+
+    def test_include_hybrid_ignored_when_fields_given(self, db_session):
+        review = factories.create_review(db_session)
+        plan = db_session.get(models.ReviewPlan, review.id)
+
+        data = models.model_to_dict(plan, fields=["id"], include_hybrid=True)
+
+        assert data == {"id": review.id}
+
+    def test_unknown_field_raises(self, db_session):
+        user = factories.create_user(db_session)
+
+        with pytest.raises(AttributeError):
+            models.model_to_dict(user, ["not_a_field"])
