@@ -1,4 +1,8 @@
-"""Self-tests for the test factories: determinism, invariants, listener side effects."""
+"""Self-tests for the test factories: determinism, invariants, listener side effects.
+
+Note: Listener behavior itself is covered in `test_models.py` -- the checks here
+only prove that the factories handle the listeners' side effects.
+"""
 
 import pytest
 import sqlalchemy as sa
