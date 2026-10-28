@@ -604,7 +604,236 @@ class TestDataExtraction:
         assert count_rows(db_session, models.DataExtraction) == 0
 
 
-# TODO: add tests for event listeners here!
+## EVENT LISTENERS! ##
+
+
+class _TaskRecorder:
+    """Stands in for a Celery task: records the args passed to ``apply_async``."""
+
+    def __init__(self, name, calls):
+        self.name = name
+        self.calls = calls
+
+    def apply_async(self, args=None, **kwargs):
+        self.calls.append((self.name, list(args)))
+
+
+class TestScreeningEvents:
+    @pytest.mark.parametrize(
+        ["num_reviewers", "statuses", "exp_status"],
+        [
+            (1, ["included"], "included"),
+            (1, ["excluded"], "excluded"),
+            (2, ["included"], "screened_once"),
+            (2, ["included", "included"], "included"),
+            (2, ["included", "excluded"], "conflict"),
+            (3, ["excluded", "excluded"], "screened_twice"),
+            (3, ["excluded", "excluded", "excluded"], "excluded"),
+        ],
+    )
+    def test_insert_recomputes_study_status(
+        self, db_session, num_reviewers, statuses, exp_status
+    ):
+        review = factories.create_review(db_session)
+        users = factories.create_users(db_session, n=num_reviewers)
+        study = factories.create_study(
+            db_session, review=review, num_citation_reviewers=num_reviewers
+        )
+
+        for user, status in zip(users, statuses, strict=False):
+            factories.create_screening(
+                db_session, study=study, user=user, status=status
+            )
+
+        assert study.citation_status == exp_status
+
+    def test_update_recomputes_study_status(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review)
+        screening = factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
+        assert study.citation_status == "included"
+
+        screening.status = "excluded"
+        db_session.flush()
+        db_session.expire(study)
+
+        assert study.citation_status == "excluded"
+
+    def test_delete_recomputes_study_status(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(
+            db_session, review=review, num_citation_reviewers=2
+        )
+        screening = factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
+        assert study.citation_status == "screened_once"
+
+        db_session.delete(screening)
+        db_session.flush()
+        db_session.expire(study)
+
+        assert study.citation_status == "not_screened"
+
+    def test_fulltext_status_creates_and_deletes_data_extraction(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review)
+        factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
+        fulltext = factories.create_screening(
+            db_session, study=study, user=user, stage="fulltext", status="included"
+        )
+        db_session.expire(study)
+
+        assert study.fulltext_status == "included"
+        (extraction,) = db_session.execute(sa.select(models.DataExtraction)).scalars()
+        assert extraction.study_id == study.id
+        assert extraction.review_id == review.id
+
+        fulltext.status = "excluded"
+        db_session.flush()
+        db_session.expire(study)
+
+        assert study.fulltext_status == "excluded"
+        assert count_rows(db_session, models.DataExtraction) == 0
+
+    def test_citation_recompute_deletes_fulltext_screenings(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review)
+        citation = factories.create_screening(
+            db_session, study=study, user=user, status="included"
+        )
+        factories.create_screening(
+            db_session, study=study, user=user, stage="fulltext", status="included"
+        )
+
+        citation.status = "excluded"
+        db_session.flush()
+        db_session.expire(study)
+
+        assert [
+            s.stage for s in db_session.execute(study.screenings.select()).scalars()
+        ] == ["citation"]
+        assert study.citation_status == "excluded"
+        # FIXME: the listener's Core DELETE fires no events, so the fulltext status
+        # goes stale and the data extraction row is orphaned; recompute both stages
+        # and delete the extraction explicitly
+        assert study.fulltext_status == "included"
+        assert count_rows(db_session, models.DataExtraction) == 1
+
+    def test_dispatches_keyterms_suggestion_at_50_screened(
+        self, db_session, monkeypatch
+    ):
+        calls = []
+        # the listener imports `colandr.tasks` lazily, so patch the module attributes
+        monkeypatch.setattr(
+            tasks, "suggest_keyterms", _TaskRecorder("suggest_keyterms", calls)
+        )
+        monkeypatch.setattr(
+            tasks,
+            "train_study_ranker_model",
+            _TaskRecorder("train_study_ranker_model", calls),
+        )
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        studies = factories.create_studies(db_session, 50, review=review)
+
+        for i, study in enumerate(studies):
+            status = "included" if i < 25 else "excluded"
+            factories.create_screening(
+                db_session, study=study, user=user, status=status
+            )
+
+        assert calls == [("suggest_keyterms", [review.id, 25])]
+
+    def test_dispatches_ranker_training_at_100_screened(self, db_session, monkeypatch):
+        calls = []
+        monkeypatch.setattr(
+            tasks, "suggest_keyterms", _TaskRecorder("suggest_keyterms", calls)
+        )
+        monkeypatch.setattr(
+            tasks,
+            "train_study_ranker_model",
+            _TaskRecorder("train_study_ranker_model", calls),
+        )
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        studies = factories.create_studies(db_session, 100, review=review)
+
+        for study in studies:
+            factories.create_screening(
+                db_session, study=study, user=user, status="included"
+            )
+
+        assert calls == [("train_study_ranker_model", [review.id])]
+
+
+class TestReviewEvents:
+    def test_update_assigns_num_reviewers_to_unscreened_studies(self, db_session):
+        review = factories.create_review(
+            db_session, citation_reviewer_num_pcts=[{"num": 3, "pct": 100}]
+        )
+        studies = factories.create_studies(db_session, 3, review=review)
+
+        review.citation_reviewer_num_pcts = [{"num": 2, "pct": 100}]
+        db_session.flush()
+
+        for study in studies:
+            db_session.refresh(study)
+            assert study.num_citation_reviewers == 2
+
+    def test_update_leaves_screened_studies_alone(self, db_session):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        screened = factories.create_study(db_session, review=review)
+        unscreened = factories.create_study(db_session, review=review)
+        factories.create_screening(
+            db_session, study=screened, user=user, status="included"
+        )
+
+        review.citation_reviewer_num_pcts = [{"num": 3, "pct": 100}]
+        db_session.flush()
+        db_session.refresh(screened)
+        db_session.refresh(unscreened)
+
+        assert screened.num_citation_reviewers == 1
+        assert unscreened.num_citation_reviewers == 3
+
+    def test_update_uses_configured_weights(self, db_session, monkeypatch):
+        review = factories.create_review(
+            db_session,
+            citation_reviewer_num_pcts=[{"num": 1, "pct": 75}, {"num": 2, "pct": 25}],
+        )
+        studies = factories.create_studies(db_session, 4, review=review)
+        calls = []
+
+        def fake_choices(population, weights=None, k=1):
+            calls.append((list(population), list(weights), k))
+            return [2] * k
+
+        monkeypatch.setattr(random, "choices", fake_choices)
+        review.name = "RENAMED"  # any review update runs the listener
+        db_session.flush()
+
+        assert calls == [([1, 2], [75, 25], 4), ([1], [100], 4)]
+        for study in studies:
+            db_session.refresh(study)
+            assert study.num_citation_reviewers == 2
+
+    def test_update_with_no_studies_is_noop(self, db_session):
+        review = factories.create_review(db_session)
+
+        review.name = "RENAMED"
+        db_session.flush()
+
+        assert count_rows(db_session, models.Study) == 0
 
 
 class TestModelToDict:
