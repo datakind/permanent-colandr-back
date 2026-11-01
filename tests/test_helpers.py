@@ -2,6 +2,8 @@
 
 import pytest
 
+from colandr.api.v1 import authn
+
 from . import factories
 
 
@@ -50,3 +52,24 @@ class TestAPIClient:
         assert resp1.status_code == 200
         resp2 = api.get("users.user", id=other_user.id)  # still user => 403
         assert resp2.status_code == 403
+
+    def test_explicit_headers_replace_the_default_auth(self, api, db_session):
+        """Explicit ``headers`` wins over admin mode, and ``{}`` is anonymous."""
+        user = factories.create_user(db_session)
+        own = api.get(
+            "users.user", id=user.id, headers=authn.pack_header_for_user(user)
+        )
+        assert own.status_code == 200
+        assert api.get("users.user", id=user.id, headers={}).status_code == 401
+
+
+class TestFakeRedis:
+    def test_blocklist_round_trip(self, fake_redis):
+        """JWT blocklist reads and writes an in-memory store, without actual Redis."""
+        assert authn._is_blocklisted("jti-001") is False
+        authn._add_to_blocklist("jti-001", ttl_seconds=60)
+        assert authn._is_blocklisted("jti-001") is True
+
+    def test_is_empty_at_start(self, fake_redis):
+        """Each test starts with an empty blocklist, whatever earlier tests revoked."""
+        assert fake_redis.store == {}

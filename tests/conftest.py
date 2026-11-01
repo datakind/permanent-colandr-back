@@ -1,3 +1,4 @@
+import collections
 import os
 import pathlib
 
@@ -7,9 +8,10 @@ import pytest
 import sqlalchemy as sa
 import sqlalchemy.orm as sa_orm
 import sqlalchemy_utils as sa_utils
+from celery import Task
 from pytest_postgresql import factories as psql_factories
 
-from colandr import cli, extensions, models
+from colandr import cli, extensions, models, tasks
 from colandr.api.v1 import authn
 from colandr.app import create_app
 from tests import factories
@@ -52,6 +54,10 @@ def app(tmp_path_factory):
         # "FILESYSTEM_GCS_TOKEN": "anon",
         # disable rate-limiting, so we can test at high speed
         "RATELIMIT_ENABLED": False,
+        # disable outbound mail and front-end links; this stops routes from enqueuing
+        # the send_email task and from confirming links on the API host
+        "MAIL_SERVER": None,
+        "FE_APP_SITE": None,
     }
     app = create_app(config_overrides)
     return app
@@ -213,3 +219,43 @@ def clear_app_state(app, app_ctx):
     for cache in (extensions.cache, extensions.review_model_cache):
         cache.clear()
     extensions.db.session.remove()
+
+
+@pytest.fixture(autouse=True)
+def fake_redis(monkeypatch):
+    """Replace Redis-backed JWT blocklist with an in-memory fake, per test.
+
+    Autouse and function-scoped since the blocklist is global mutable state,
+    and asserting a token is *not* revoked can't inherit an earlier test's entries.
+    """
+    from .helpers import FakeRedis
+
+    client = FakeRedis()
+    monkeypatch.setattr(authn, "_get_redis_client", lambda: client)
+    return client
+
+
+@pytest.fixture(autouse=True)
+def enqueued(monkeypatch):
+    """Record Celery submissions instead of sending them, per test.
+
+    Every task in ``colandr.tasks`` has its ``apply_async`` replaced by a recorder.
+    Returns a ``defaultdict`` mapping task name to the keyword arguments of each call,
+    e.g. ``{"deduplicate_citations": [{"args": [1], "countdown": 3}]}``.
+
+    Autouse because CI runs a live broker: without this, calling a route enqueues work
+    for real (``countdown=3`` jobs included) and tests end up asserting on timing.
+    """
+    calls: dict[str, list[dict]] = collections.defaultdict(list)
+
+    def _recorder(task_name: str):
+        def record(*args, **kwargs):
+            calls[task_name].append(kwargs)
+            return None
+
+        return record
+
+    for task_name, task in vars(tasks).items():
+        if isinstance(task, Task):
+            monkeypatch.setattr(task, "apply_async", _recorder(task_name))
+    return calls
