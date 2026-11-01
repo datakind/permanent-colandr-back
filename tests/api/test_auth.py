@@ -179,3 +179,168 @@ class TestRefreshTokenAPI:
         )
         response = api.get(REFRESH_API_ENDPOINT, headers=headers)
         assert response.status_code == status_code
+
+
+class TestRegisterAPI:
+    def test_post(self, api, db_session, enqueued):
+        """Register a new user: persisted, unconfirmed, no mail sent by default."""
+        data = {"name": "NAMEX", "email": "namex@example.com", "password": "PASSWORDX"}
+        response = api.post(REGISTER_API_ENDPOINT, json=data, headers={})
+        assert response.status_code == 200
+        assert response.json["name"] == data["name"]
+        assert response.json["email"] == data["email"]
+        assert "password" not in response.json
+        # FIXME: a registrant is immediately issued tokens (see TestLoginAPI), so
+        # confirmation is only advisory. Should be unusable until is_confirmed?
+        assert response.json["is_confirmed"] is False
+
+        user = (
+            db_session.execute(sa.select(models.User).filter_by(email=data["email"]))
+            .scalars()
+            .one_or_none()
+        )
+        assert user is not None
+        assert user.check_password(data["password"]) is True
+        # MAIL_SERVER is pinned to None, so the confirmation email is never enqueued
+        assert enqueued["send_email"] == []
+
+    def test_post_sends_confirmation_mail_when_configured(
+        self, api, app, monkeypatch, enqueued
+    ):
+        """With a mail server configured, registration enqueues one email."""
+        monkeypatch.setitem(app.config, "MAIL_SERVER", "smtp.example.com")
+        data = {"name": "NAMEX", "email": "namex@example.com", "password": "PASSWORDX"}
+        response = api.post(REGISTER_API_ENDPOINT, json=data, headers={})
+        assert response.status_code == 200
+        assert len(enqueued["send_email"]) == 1
+        assert enqueued["send_email"][0]["args"][0] == [data["email"]]
+
+    def test_post_duplicate_email(self, graph, api):
+        """Reject a registration whose email is already taken."""
+        data = {"name": "DUPE", "email": graph["user1"].email, "password": "PASSWORD1"}
+        response = api.post(REGISTER_API_ENDPOINT, json=data, headers={})
+        assert response.status_code == 403
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"email": "namex@example.com", "password": "PASSWORDX"},
+            {"name": "NAMEX", "password": "PASSWORDX"},
+            {"name": "NAMEX", "email": "namex@example.com"},
+            {"name": "NAMEX", "email": "namex@example.com", "password": "SHORT"},
+        ],
+        ids=["no-name", "no-email", "no-password", "short-password"],
+    )
+    def test_post_invalid(self, body, api):
+        """Reject a registration body that fails schema validation."""
+        response = api.post(REGISTER_API_ENDPOINT, json=body, headers={})
+        assert response.status_code == 422
+
+
+class TestRegisterResendAPI:
+    def test_post(self, graph, api):
+        """Re-send confirmation email for the current user."""
+        headers = authn.pack_header_for_user(graph["unconfirmed"])
+        response = api.post(REGISTER_RESEND_API_ENDPOINT, headers=headers)
+        assert response.status_code == 200
+
+    def test_post_anonymous(self, api):
+        """Route needs a token to know who to mail."""
+        response = api.post(REGISTER_RESEND_API_ENDPOINT, headers={})
+        assert response.status_code == 401
+
+
+class TestRegisterConfirmAPI:
+    def test_get(self, graph, api):
+        """A token from the confirmation email marks the user as confirmed."""
+        token = jwtext.create_access_token(identity=graph["unconfirmed"])
+        response = api.get(REGISTER_CONFIRM_API_ENDPOINT, token=token, headers={})
+        assert response.status_code == 200
+        assert set(response.json) == {"access_token"}
+        assert graph["unconfirmed"].is_confirmed is True
+
+    def test_get_garbage_token(self, api):
+        """Reject a token that isn't a decodable JWT."""
+        response = api.get(REGISTER_CONFIRM_API_ENDPOINT, token="not-a-jwt", headers={})
+        assert response.status_code == 422
+
+    def test_get_token_for_missing_user(self, api, db_session):
+        """A well-formed token whose user is missing yields a 404."""
+        user = factories.create_user(db_session)
+        token = jwtext.create_access_token(identity=user)
+        db_session.delete(user)
+        db_session.flush()
+        response = api.get(REGISTER_CONFIRM_API_ENDPOINT, token=token, headers={})
+        assert response.status_code == 404
+
+
+class TestResetPasswordAPI:
+    def test_post(self, graph, api, app, monkeypatch, enqueued):
+        """A known email gets a reset email enqueued when mail is configured."""
+        monkeypatch.setitem(app.config, "MAIL_SERVER", "smtp.example.com")
+        response = api.post(RESET_API_ENDPOINT, email=graph["user1"].email, headers={})
+        assert response.status_code == 200
+        assert len(enqueued["send_email"]) == 1
+        assert enqueued["send_email"][0]["args"][0] == [graph["user1"].email]
+
+    def test_post_unknown_email(self, api, enqueued):
+        """An unknown email gets an empty 200, so accounts can't be enumerated."""
+        response = api.post(RESET_API_ENDPOINT, email="someone@example.com", headers={})
+        assert response.status_code == 200
+        assert enqueued["send_email"] == []
+
+    def test_post_invalid_email(self, api):
+        """Request with an invalid email address is rejected."""
+        response = api.post(RESET_API_ENDPOINT, email="not-an-email", headers={})
+        assert response.status_code == 422
+
+
+class TestResetPasswordConfirmAPI:
+    def test_put(self, graph, api):
+        """A reset token sets a new password that then works for login."""
+        token = jwtext.create_access_token(identity=graph["user1"])
+        reset_response = api.put(
+            RESET_CONFIRM_API_ENDPOINT,
+            token=token,
+            json={"password": "NEW_PASSWORD"},
+            headers={},
+        )
+        assert reset_response.status_code == 200
+        login_response = api.post(
+            LOGIN_API_ENDPOINT,
+            json={"email": graph["user1"].email, "password": "NEW_PASSWORD"},
+            headers={},
+        )
+        assert login_response.status_code == 200
+
+    def test_put_unconfirmed_user(self, graph, api):
+        """An unconfirmed user must confirm the address before resetting a password."""
+        token = jwtext.create_access_token(identity=graph["unconfirmed"])
+        response = api.put(
+            RESET_CONFIRM_API_ENDPOINT,
+            token=token,
+            json={"password": "NEW_PASSWORD"},
+            headers={},
+        )
+        assert response.status_code == 403
+
+    def test_put_garbage_token(self, api):
+        """Reject a token that isn't a decodable JWT."""
+        response = api.put(
+            RESET_CONFIRM_API_ENDPOINT,
+            token="not-a-jwt",
+            json={"password": "NEW_PASSWORD"},
+            headers={},
+        )
+        assert response.status_code == 422
+
+    def test_put_short_password(self, graph, api):
+        """Reject a password shorter than the schema's floor."""
+        token = jwtext.create_access_token(identity=graph["user1"])
+        response = api.put(
+            RESET_CONFIRM_API_ENDPOINT,
+            token=token,
+            json={"password": "SHORT"},
+            headers={},
+        )
+        assert response.status_code == 422
