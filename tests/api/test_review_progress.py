@@ -22,7 +22,9 @@ def graph(db_session):
     in it, and its plan has only the objective and pico set. The acting user is the world's
     admin, who needs no team association.
     """
-    owner, reviewer = factories.create_users(db_session, 2, names=["OWNER", "REVIEWER"])
+    owner, reviewer, outsider = factories.create_users(
+        db_session, 3, names=["OWNER", "REVIEWER", "OUTSIDER"]
+    )
 
     review1, _ = factories.create_screened_review(
         db_session,
@@ -77,7 +79,7 @@ def graph(db_session):
         pico={"population": "POPULATION", "intervention": "INTERVENTION"},
     )
 
-    return {"review1": review1, "review2": review2}
+    return {"review1": review1, "review2": review2, "outsider": outsider}
 
 
 class TestReviewProgressAPI:
@@ -116,6 +118,23 @@ class TestReviewProgressAPI:
                         "data_extraction",
                     ]
                 )
+
+    @pytest.mark.parametrize(
+        ["actor", "params", "status_code"],
+        [
+            ("outsider", {}, 403),
+            ("outsider", {"step": "planning"}, 403),
+            ("admin", {"step": "not-a-step"}, 422),
+        ],
+        ids=["outsider", "outsider-planning", "invalid-step"],
+    )
+    def test_get_errors(self, actor, params, status_code, graph, api):
+        """Refuse progress the caller can't see, or asks for badly."""
+        client = api if actor == "admin" else api.as_user(graph[actor])
+        response = client.get(
+            REVIEW_PROGRESS_API_ENDPOINT, id=graph["review1"].id, **params
+        )
+        assert response.status_code == status_code
 
     @pytest.mark.parametrize(
         ["review_key", "exp_data"],
