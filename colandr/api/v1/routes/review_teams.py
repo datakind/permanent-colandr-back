@@ -240,6 +240,10 @@ class ReviewTeamConfirmationAPI(MethodView):
     )
     @bp.output(UserSchemaPlusOwner(many=True))
     def get(self, id, query_data):
+        # FIXME: invitation isn't verified, so any valid access token admitted its user,
+        # and so a confirmation link works for any signed-in user, on any review,
+        # for as long as the token lives. Persist an invitation at send time
+        # and consume it here!
         token: str = query_data["token"]
         user = authn.get_user_from_token(token)
         review = db.session.get(models.Review, id)
