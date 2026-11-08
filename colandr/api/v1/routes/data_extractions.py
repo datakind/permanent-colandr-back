@@ -82,6 +82,10 @@ class DataExtractionAPI(MethodView):
                 message=f'{extracted_data} already "finished", so can\'t be modified'
             )
 
+        # FIXME: this tests a one-column Row, which is always truthy, so the 403 below
+        # is unreachable for an existing review; an empty form yields a 400 from label
+        # validation instead. Check the form's contents, e.g. `if not data_extraction_form[0]`
+        # and return a 403 status code.
         data_extraction_form = db.session.execute(
             sa.select(models.ReviewPlan.data_extraction_form).filter_by(id=review_id)
         ).one_or_none()
@@ -151,7 +155,8 @@ class DataExtractionAPI(MethodView):
                             message=f'value "{val}" for label "{label}" invalid; must be one of {allowed_values}'
                         )
                     validated_value.append(val)
-            # TODO: implement this country validation
+            # FIXME: "country" fields always reject, so no review using one can finish
+            # data extraction. TODO: implement the validation (a country-code check)?
             elif field_type == "country":
                 raise errors.BadRequestError(
                     message='"country" validation has not yet been implemented -- sorry!'
