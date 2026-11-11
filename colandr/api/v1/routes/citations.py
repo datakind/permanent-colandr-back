@@ -164,6 +164,9 @@ class CitationsAPI(MethodView):
         if not review:
             raise errors.NotFoundError(message=f"<Review(id={review_id})> not found")
 
+        # FIXME: this lookup ignores source_url, so the first request for a (type, name)
+        # pair wins and every later request's url is discarded. Match on the url as well,
+        # or update the existing record!
         data_source = db.session.execute(
             sa.select(models.DataSource).filter_by(
                 source_type=source_type, source_name=source_name

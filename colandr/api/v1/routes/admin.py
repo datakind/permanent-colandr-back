@@ -152,6 +152,9 @@ def post_citation_screenings(json_data, query_data):
         "review_id": review_id,
         "stage": "citation",
     }
+    # FIXME: a screening carrying neither citation_id nor study_id leaves study_id NULL
+    # and raises IntegrityError at commit instead of returning a 400 error
+    # validate before inserting!
     screenings_to_insert = [screening | screenings_attrs for screening in json_data]
     for screening in screenings_to_insert:
         if "citation_id" in screening:
@@ -165,6 +168,10 @@ def post_citation_screenings(json_data, query_data):
     )
 
     # bulk update statuses
+    # FIXME: study_ids has one entry per *screening*, but results has one row per *study*
+    # so this draws a count per screening and the zip() below pairs studies with the wrong draws
+    # with the wrong draws -- and truncates when a study has multiple screenings
+    # draw k=len(results) instead?
     study_ids: list[int] = sorted(s["study_id"] for s in screenings_to_insert)
     study_num_citation_reviewers: list[int] = random.choices(
         [num_pct["num"] for num_pct in review.citation_reviewer_num_pcts],
@@ -250,6 +257,9 @@ def post_fulltext_screenings(json_data, query_data):
         "review_id": review_id,
         "stage": "fulltext",
     }
+    # FIXME: a screening carrying neither fulltext_id nor study_id leaves study_id NULL
+    # and raises IntegrityError at commit instead of returning a 400 error
+    # validate before inserting!
     screenings_to_insert = [screening | screenings_attrs for screening in json_data]
     for screening in screenings_to_insert:
         if "fulltext_id" in screening:
@@ -291,22 +301,28 @@ def post_fulltext_screenings(json_data, query_data):
     # now add data extractions for included fulltexts
     # normally this is done automatically, but not when we're hacking
     # and doing bulk changes to the database
-    results = db.session.execute(
-        sa.select(models.Study.id)
-        .filter_by(review_id=review_id, fulltext_status="included")
-        .filter(~models.Study.data_extraction.has())
-        .order_by(models.Study.id)
-    ).scalars()
-    data_extractions_to_insert = [
-        {"id": result, "review_id": review_id} for result in results
-    ]
-    db.session.execute(sa.insert(models.DataExtraction), data_extractions_to_insert)
-    db.session.commit()
-    current_app.logger.info(
-        "[ADMIN] %s inserted %s data extractions",
-        current_user,
-        len(data_extractions_to_insert),
+    study_ids_missing_extraction = (
+        db.session.execute(
+            sa.select(models.Study.id)
+            .filter_by(review_id=review_id, fulltext_status="included")
+            .filter(~models.Study.data_extraction.has())
+            .order_by(models.Study.id)
+        )
+        .scalars()
+        .all()
     )
+    if study_ids_missing_extraction:
+        data_extractions_to_insert = [
+            {"study_id": study_id, "review_id": review_id}
+            for study_id in study_ids_missing_extraction
+        ]
+        db.session.execute(sa.insert(models.DataExtraction), data_extractions_to_insert)
+        db.session.commit()
+        current_app.logger.info(
+            "[ADMIN] %s inserted %s data extractions",
+            current_user,
+            len(data_extractions_to_insert),
+        )
     # get include/exclude counts on review
     # status_counts = review.num_fulltexts_by_status(["included", "excluded"])
     # n_included = status_counts.get("included", 0)

@@ -1,5 +1,6 @@
 """Tests for the review team API."""
 
+import flask_jwt_extended as jwtext
 import pytest
 
 from .. import factories
@@ -8,6 +9,7 @@ from .. import factories
 pytestmark = pytest.mark.usefixtures("db_empty")
 
 REVIEW_TEAM_API_ENDPOINT = "review_teams.review_team"
+REVIEW_TEAM_CONFIRM_API_ENDPOINT = "review_teams.review_team_confirmation"
 
 
 @pytest.fixture
@@ -146,3 +148,64 @@ class TestReviewTeamAPI:
             user_id=graph["member1"].id,
         )
         assert response.status_code == 403
+
+
+class TestReviewTeamConfirmationAPI:
+    def test_get(self, graph, api):
+        """A confirmation token adds its user to the review team."""
+        response = api.get(
+            REVIEW_TEAM_CONFIRM_API_ENDPOINT,
+            id=graph["review1"].id,
+            token=jwtext.create_access_token(identity=graph["outsider"]),
+        )
+        assert response.status_code == 200
+        assert {record["id"] for record in response.json} == {
+            graph["owner"].id,
+            graph["member1"].id,
+            graph["member2"].id,
+            graph["outsider"].id,
+        }
+
+    def test_get_without_invitation(self, graph, api):
+        """Any signed-in user can admit themselves to any review.
+
+        FIXME: the route decodes the token and adds its user with no invitation record
+        to check, so tokens are reusable, work on any review, and don't expire with the
+        invitation. Persist an invitation at send time and consume it here.
+        """
+        token = jwtext.create_access_token(identity=graph["outsider"])
+        for review_key in ("review1", "review2"):
+            response = api.get(
+                REVIEW_TEAM_CONFIRM_API_ENDPOINT,
+                id=graph[review_key].id,
+                token=token,
+            )
+            assert response.status_code == 200
+
+    def test_get_already_member(self, graph, api):
+        """A user who is already on the team is refused."""
+        response = api.get(
+            REVIEW_TEAM_CONFIRM_API_ENDPOINT,
+            id=graph["review1"].id,
+            token=jwtext.create_access_token(identity=graph["member1"]),
+        )
+        assert response.status_code == 403
+
+    @pytest.mark.parametrize(
+        ["review_key", "token", "status_code"],
+        [(None, "valid", 404), ("review1", "not-a-jwt", 422)],
+        ids=["unknown-review", "garbage-token"],
+    )
+    def test_get_errors(self, review_key, token, status_code, graph, api):
+        """Refuse a confirmation that can't identify a review and a user."""
+        review_id = (
+            factories.NOT_FOUND_ID if review_key is None else graph[review_key].id
+        )
+        if token == "valid":
+            token = jwtext.create_access_token(identity=graph["outsider"])
+        assert (
+            api.get(
+                REVIEW_TEAM_CONFIRM_API_ENDPOINT, id=review_id, token=token
+            ).status_code
+            == status_code
+        )

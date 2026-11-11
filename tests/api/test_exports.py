@@ -305,6 +305,54 @@ class TestExportStudiesAPI:
         assert isinstance(rows, list) and len(rows) == num_rows_exp
         assert isinstance(rows[0], list) and len(rows[0]) == num_cols_exp
 
+    def test_get_values(self, graph, api):
+        """Export studies with the column values that vary, not just their count."""
+        s1 = graph["s1"]
+        assert (
+            api.put(
+                "data extractions.data_extraction",
+                id=s1.id,
+                json=[
+                    {"label": "LABEL1", "value": "TEXT1"},
+                    {"label": "LABEL2", "value": ["VALUE1", "VALUE2"]},
+                ],
+            ).status_code
+            == 200
+        )
+
+        response = api.get(
+            EXPORT_STUDIES_API_ENDPOINT,
+            review_id=graph["review1"].id,
+            content_type="text/csv",
+        )
+        assert response.status_code == 200
+        header, *data_rows = list(tabular.read(response.text))
+        rows = {
+            row[header.index("citation_title")]: dict(zip(header, row))
+            for row in data_rows
+        }
+        assert sorted(rows) == ["TITLE1", "TITLE2", "TITLE3"]
+
+        row1 = rows["TITLE1"]
+        assert row1["study_id"] == str(s1.id)
+        assert row1["study_tags"] == "TAG1"
+        assert row1["citation_screening_status"] == "included"
+        assert row1["fulltext_screening_status"] == "included"
+        assert row1["data_extraction_screening_status"] == "started"
+        assert row1["data_source_type"] == "database"
+        assert row1["data_source_name"] == "SOURCE_NAME1"
+        assert row1["citation_authors"] == (
+            "LAST_NAME1_1, FIRST_NAME1_1; LAST_NAME1_2, FIRST_NAME1_2 MIDDLE_INITIAL1_2."
+        )
+        # select_many values are joined with "; " by the export, like other list columns
+        assert row1["LABEL1"] == "TEXT1"
+        assert row1["LABEL2"] == "VALUE1; VALUE2"
+
+        row3 = rows["TITLE3"]
+        assert row3["fulltext_screening_status"] == "not_screened"
+        assert row3["data_extraction_screening_status"] == "not_started"
+        assert row3["data_source_type"] == "gray_literature"
+
 
 class TestExportScreeningsAPI:
     @pytest.mark.parametrize(

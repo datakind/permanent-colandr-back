@@ -1,6 +1,9 @@
 """Tests for the citations API."""
 
 import pytest
+import sqlalchemy as sa
+
+from colandr import models
 
 from .. import factories
 
@@ -157,3 +160,62 @@ class TestCitationsAPI:
         study = api.get("studies.study", id=response_data["id"]).json
         assert {k: study["citation"][k] for k in data} == data
         assert study["citation_status"] == params.get("status", "not_screened")
+
+    def test_post_reuses_named_source(self, review, api, db_session):
+        """Two citations from the same named source share one DataSource record.
+
+        FIXME: lookup keys on (source_type, source_name) only, so the second request's
+        source_url is silently discarded. Match on the url too, or update the existing record.
+        See colandr/api/v1/routes/citations.py.
+        """
+        params = {"source_type": "database", "source_name": "SOURCE_NAME1"}
+        first = api.post(
+            CITATIONS_API_ENDPOINT,
+            json={"title": "TITLE1"},
+            review_id=review.id,
+            source_url="http://example.com/1",
+            **params,
+        )
+        second = api.post(
+            CITATIONS_API_ENDPOINT,
+            json={"title": "TITLE2"},
+            review_id=review.id,
+            source_url="http://example.com/2",
+            **params,
+        )
+        assert first.status_code == 200 and second.status_code == 200
+
+        sources = db_session.execute(sa.select(models.DataSource)).scalars().all()
+        assert len(sources) == 1
+        assert sources[0].source_url == "http://example.com/1"
+
+    @pytest.mark.parametrize(
+        ["params", "status_code"],
+        [
+            ({"review_id": factories.NOT_FOUND_ID}, 404),
+            ({"source_type": "not-a-source-type"}, 422),
+        ],
+        ids=["unknown-review", "bad-source-type"],
+    )
+    def test_post_errors(self, params, status_code, review, api):
+        """Refuse a citation the caller can't create."""
+        query = {"review_id": review.id, "source_type": "database"} | params
+        review_id = query.pop("review_id")
+        response = api.post(
+            CITATIONS_API_ENDPOINT,
+            json={"title": "TITLEX"},
+            review_id=review_id,
+            **query,
+        )
+        assert response.status_code == status_code
+
+    def test_post_forbidden(self, review, api, db_session):
+        """Refuse a citation posted to a review the caller isn't on."""
+        outsider = factories.create_user(db_session)
+        response = api.as_user(outsider).post(
+            CITATIONS_API_ENDPOINT,
+            json={"title": "TITLEX"},
+            review_id=review.id,
+            source_type="database",
+        )
+        assert response.status_code == 403

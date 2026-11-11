@@ -44,22 +44,28 @@ class APIClient:
         self._user = user
         return self
 
-    def get(self, endpoint, **url_params):
-        return self._dispatch("get", endpoint, **url_params)
+    def get(self, endpoint, *, headers=None, **url_params):
+        return self._dispatch("get", endpoint, headers=headers, **url_params)
 
-    def put(self, endpoint, *, json=None, **url_params):
-        return self._dispatch("put", endpoint, json=json, **url_params)
+    def put(self, endpoint, *, headers=None, json=None, **url_params):
+        return self._dispatch("put", endpoint, headers=headers, json=json, **url_params)
 
-    def post(self, endpoint, *, json=None, files=None, **url_params):
-        return self._dispatch("post", endpoint, json=json, files=files, **url_params)
+    def post(self, endpoint, *, headers=None, json=None, files=None, **url_params):
+        return self._dispatch(
+            "post", endpoint, headers=headers, json=json, files=files, **url_params
+        )
 
-    def delete(self, endpoint, **url_params):
-        return self._dispatch("delete", endpoint, **url_params)
+    def delete(self, endpoint, *, headers=None, **url_params):
+        return self._dispatch("delete", endpoint, headers=headers, **url_params)
 
-    def _dispatch(self, method, endpoint, json=None, files=None, **url_params):
+    def _dispatch(
+        self, method, endpoint, *, json=None, files=None, headers=None, **url_params
+    ):
         with self._app.test_request_context():
             url = flask.url_for(endpoint, **url_params)
 
+        if headers is not None:
+            return self._send(method, url, headers, json, files)
         if self._user is None:
             return self._send(method, url, self._admin_headers, json, files)
 
@@ -81,3 +87,20 @@ class APIClient:
         elif json_body is not None:
             kwargs["json"] = json_body
         return getattr(self._client, method)(url, **kwargs)
+
+
+class FakeRedis:
+    """Minimal, in-memory stand-in for the Redis client behind the JWT blocklist.
+
+    Implements only the operations performed by authn. TTLs are ignored.
+    """
+
+    def __init__(self) -> None:
+        self.store: dict[str, str] = {}
+
+    def set(self, key: str, value: str, ex: int | None = None) -> bool:
+        self.store[key] = value
+        return True
+
+    def exists(self, key: str) -> int:
+        return int(key in self.store)
