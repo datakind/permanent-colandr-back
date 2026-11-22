@@ -757,7 +757,7 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    extracted_items: M[t.Optional[list[dict[str, t.Any]]]] = mapcol(
+    extracted_items: M[list[dict[str, t.Any]]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default=sa.text("'[]'::jsonb")
     )
 
