@@ -1,5 +1,6 @@
 import collections
 import datetime
+import enum
 import itertools
 import logging
 import random
@@ -18,6 +19,7 @@ from sqlalchemy.orm import mapped_column as mapcol
 
 from . import utils
 from .extensions import db
+from .lib import constants
 
 
 LOGGER = logging.getLogger(__name__)
@@ -286,10 +288,16 @@ class ReviewUserAssoc(db.Model):
     user_id: M[int] = mapcol(
         sa.Integer, sa.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
-    # FIXME: user_role is a free text string instead of a proper enum
-    # but "owner" is load-bearing for authz, and a mistyped role is silently accepted
-    user_role: M[t.Optional[str]] = mapcol(
-        sa.Text, nullable=False, server_default=sa.text("'member'")
+    user_role: M[constants.UserRoleDB] = mapcol(
+        sa.Enum(
+            constants.UserRoleDB,
+            native_enum=False,
+            create_constraint=True,
+            name="ck_review_user_assoc_user_role",
+            length=16,
+            values_callable=utils.enum_values,
+        ),
+        server_default=sa.text("'member'"),
     )
     created_at: M[datetime.datetime] = mapcol(
         sa.DateTime(timezone=True),
@@ -310,7 +318,7 @@ class ReviewUserAssoc(db.Model):
     def __init__(self, review: Review, user: User, user_role: t.Optional[str] = None):
         self.review = review
         self.user = user
-        self.user_role = user_role
+        self.user_role = t.cast(constants.UserRoleDB, user_role)
 
     def __repr__(self):
         return f"<ReviewUserAssoc(review_id={self.review_id}, user_id={self.user_id})>"
@@ -640,10 +648,27 @@ class Screening(db.Model):
         sa.BigInteger,
         sa.ForeignKey("studies.id", ondelete="CASCADE"),
     )
-    # FIXME: stage, status are free text strings instead of proper enums, and update_study_status
-    # treats any stage other than "citation" as "fulltext" => data corruption
-    stage: M[str] = mapcol(sa.String(length=16))
-    status: M[str] = mapcol(sa.String(length=20), index=True)
+    stage: M[constants.ScreeningStageDB] = mapcol(
+        sa.Enum(
+            constants.ScreeningStageDB,
+            native_enum=False,
+            create_constraint=True,
+            name="ck_screenings_stage",
+            length=16,
+            values_callable=utils.enum_values,
+        )
+    )
+    status: M[constants.ScreeningDecisionDB] = mapcol(
+        sa.Enum(
+            constants.ScreeningDecisionDB,
+            native_enum=False,
+            create_constraint=True,
+            name="ck_screenings_status",
+            length=20,
+            values_callable=utils.enum_values,
+        ),
+        index=True,
+    )
     exclude_reasons: M[list[str]] = mapcol(
         postgresql.ARRAY(sa.String(length=64)), nullable=True
     )
@@ -854,12 +879,15 @@ def update_study_status(mapper, connection: sa.Connection, target):
         ).filter_by(id=study_id)
     ).one()
     # prep stage-specific variables
-    if stage == "citation":
+    if stage == constants.ScreeningStageDB.CITATION:
         num_reviewers = study.num_citation_reviewers
         study_status_col_str = "citation_status"
-    else:
+    elif stage == constants.ScreeningStageDB.FULLTEXT:
         num_reviewers = study.num_fulltext_reviewers
         study_status_col_str = "fulltext_status"
+    else:
+        # should be unreachable via the ORM bc check constraint rejects other values
+        raise ValueError(f"unexpected screening stage: {stage!r}")
     # compute the new status, and update the study accordingly
     status = utils.assign_status(
         (
@@ -878,7 +906,7 @@ def update_study_status(mapper, connection: sa.Connection, target):
     )
     LOGGER.info("%s => %s with %s status = %s", target, study, stage, status)
 
-    if stage == "citation":
+    if stage == constants.ScreeningStageDB.CITATION:
         # get rid of any contrary fulltext screenings
         if status != "included":
             connection.execute(
@@ -922,7 +950,7 @@ def update_study_status(mapper, connection: sa.Connection, target):
             from . import tasks
 
             tasks.train_study_ranker_model.apply_async(args=[review_id])
-    elif stage == "fulltext":
+    elif stage == constants.ScreeningStageDB.FULLTEXT:
         # we may have to insert or delete a corresponding data extraction record
         data_extraction = connection.execute(
             sa.select(DataExtraction).where(DataExtraction.study_id == study_id)
