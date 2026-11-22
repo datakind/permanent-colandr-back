@@ -10,6 +10,7 @@ from flask.views import MethodView
 
 from .... import models, tasks
 from ....extensions import cache, db
+from ....lib import constants
 from .. import authn, authz, errors, schemas
 from . import auth
 
@@ -40,7 +41,7 @@ class ReviewTeamPutSchema(af.Schema):
         metadata={"description": "unique email address of the user on which to act"},
     )
     user_role = af.fields.String(
-        validate=af.validators.OneOf(["member", "owner"]),
+        validate=af.validators.OneOf([urole.value for urole in constants.UserRoleDB]),
         metadata={"description": "type of role to set for user on review"},
     )
 
