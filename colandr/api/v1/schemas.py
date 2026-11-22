@@ -217,7 +217,10 @@ class ScreeningSchema(af.Schema):
         load_default=None, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
     )
     status = af.fields.String(
-        required=True, validate=af.validators.OneOf(["included", "excluded"])
+        required=True,
+        validate=af.validators.OneOf(
+            [decision.value for decision in constants.ScreeningDecisionDB]
+        ),
     )
     exclude_reasons = af.fields.List(
         af.fields.String(validate=af.validators.Length(max=64)), load_default=None
@@ -238,10 +241,13 @@ class ScreeningV2Schema(af.Schema):
         load_default=None, validate=af.validators.Range(min=1, max=constants.MAX_BIGINT)
     )
     stage = af.fields.String(
-        validate=af.validators.OneOf(["citation", "fulltext"])
+        validate=af.validators.OneOf([stg.value for stg in constants.ScreeningStageDB])
     )  # TODO: required=True
     status = af.fields.String(
-        required=True, validate=af.validators.OneOf(["included", "excluded"])
+        required=True,
+        validate=af.validators.OneOf(
+            [decision.value for decision in constants.ScreeningDecisionDB]
+        ),
     )
     exclude_reasons = af.fields.List(
         af.fields.String(validate=af.validators.Length(max=64)), load_default=None

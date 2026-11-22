@@ -99,8 +99,6 @@ class DataExtractionAPI(MethodView):
             for item in data_extraction_form[0]
         }
         # manually validate inputs, given data extraction form specification
-        if isinstance(extracted_data.extracted_items, dict):
-            extracted_data.extracted_items = []
         extracted_data_map = {
             item["label"]: item["value"] for item in extracted_data.extracted_items
         }

@@ -1,3 +1,4 @@
+import enum
 import itertools
 from collections.abc import Iterable, Sequence
 from operator import itemgetter
@@ -70,3 +71,10 @@ def _boolify_group_terms(group_terms: Iterable[dict]) -> str:
         )
     else:
         return " OR ".join(_boolify_term_set(term_set) for term_set in group_terms)
+
+
+def enum_values(enum_cls: type[enum.StrEnum]) -> list[str]:
+    """Return a `StrEnum`'s db-stored values, for `sa.Enum(values_callable=...)`,
+    without which SQLAlchemy would map members to their *names* rather than their values.
+    """
+    return [member.value for member in enum_cls]

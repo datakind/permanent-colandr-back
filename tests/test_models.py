@@ -17,6 +17,7 @@ import pytest
 import sqlalchemy as sa
 
 from colandr import models, tasks
+from colandr.lib import constants
 
 from . import factories
 
@@ -142,16 +143,26 @@ class TestReviewUserAssoc:
             f"<ReviewUserAssoc(review_id={review.id}, user_id={user.id})>"
         )
 
-    @pytest.mark.parametrize("user_role", ["owner", "member", "OWNER", "typo"])
-    def test_user_role_is_unconstrained(self, db_session, user_role):
-        # FIXME: any string is accepted; only "owner" is load-bearing for authz
+    @pytest.mark.parametrize("user_role", list(constants.UserRoleDB))
+    def test_user_role_roundtrip(self, db_session, user_role):
         review = factories.create_review(db_session)
         user = factories.create_user(db_session)
-        assoc = models.ReviewUserAssoc(review, user, user_role=user_role)
+        assoc = models.ReviewUserAssoc(review, user, user_role=user_role.value)
         db_session.add(assoc)
         db_session.flush()
+        db_session.expire(assoc)
 
-        assert assoc.user_role == user_role
+        assert assoc.user_role is user_role
+        assert assoc.user_role == user_role.value
+
+    @pytest.mark.parametrize("user_role", ["OWNER", "typo", ""])
+    def test_user_role_is_constrained(self, db_session, user_role):
+        # only "owner" is load-bearing for authz; anything else must be rejected
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        db_session.add(models.ReviewUserAssoc(review, user, user_role=user_role))
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
 
     def test_composite_primary_key_is_unique(self, db_session):
         review = factories.create_review(db_session)
@@ -185,10 +196,9 @@ class TestReviewPlan:
         assert plan.research_questions == []
         assert plan.pico == {}
         assert plan.suggested_keyterms == {}
-        # FIXME: keyterms annotated as lists but defaulting to a JSONB object
-        assert plan.keyterms == {}
-        assert plan.selection_criteria == {}
-        assert plan.data_extraction_form == {}
+        assert plan.keyterms == []
+        assert plan.selection_criteria == []
+        assert plan.data_extraction_form == []
         assert plan.boolean_search_query == ""
 
     def test_boolean_search_query(self, db_session):
@@ -434,6 +444,41 @@ class TestScreening:
             f"<Screening(id={screening.id}, study_id={study.id}, stage='citation')>"
         )
 
+    @pytest.mark.parametrize("stage", list(constants.ScreeningStageDB))
+    def test_stage_roundtrip(self, db_session, stage):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review)
+        if stage == constants.ScreeningStageDB.FULLTEXT:
+            factories.create_screening(db_session, study=study, user=user)
+        screening = factories.create_screening(
+            db_session, study=study, user=user, stage=stage.value
+        )
+        db_session.expire(screening)
+
+        assert screening.stage == stage
+        assert screening.stage == stage.value
+
+    @pytest.mark.parametrize(
+        ["stage", "status"],
+        [("screening", "included"), ("citation", "pending"), ("", "")],
+    )
+    def test_stage_and_status_are_constrained(self, db_session, stage, status):
+        review = factories.create_review(db_session)
+        user = factories.create_user(db_session)
+        study = factories.create_study(db_session, review=review, user=user)
+        db_session.add(
+            models.Screening(
+                user_id=user.id,
+                review_id=review.id,
+                study_id=study.id,
+                stage=stage,
+                status=status,
+            )
+        )
+        with pytest.raises(sa.exc.IntegrityError):
+            db_session.flush()
+
     @pytest.mark.parametrize("missing", ["stage", "status", "review_id", "study_id"])
     def test_required_columns(self, db_session, missing):
         review = factories.create_review(db_session)
@@ -556,8 +601,7 @@ class TestDataExtraction:
         db_session.add(extraction)
         db_session.flush()
 
-        # FIXME: annotated as a list but defaults to a JSONB object
-        assert extraction.extracted_items == {}
+        assert extraction.extracted_items == []
         assert extraction.study is study
         assert extraction.review is review
         assert extraction.created_at is not None
