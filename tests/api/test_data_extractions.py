@@ -113,8 +113,6 @@ class TestDataExtractionAPI:
             data = response.json
             assert data["study_id"] == study_id
             assert data["review_id"] == graph[study_key].review_id
-            # FIXME: extracted_items is created with a '{}' server default, not '[]'
-            # see corresponding comment in colandr/models.py for more details
             assert data["extracted_items"] == []
 
     @pytest.mark.parametrize(
@@ -338,12 +336,7 @@ class TestDataExtractionAPI:
         ] == [{"label": "LABEL_STR", "value": "TEXT"}]
 
     def test_delete_before_any_put(self, graph, api):
-        """Deleting labels from an untouched extraction clears it and its status.
-
-        FIXME: the row's extracted_items is the '{}' server default, not '[]'. It's empty,
-        so filtering it is a silent no-op and the status still resets; a non-empty object
-        would in fact raise. See corresponding comment in colandr/models.py.
-        """
+        """Deleting labels from an untouched extraction clears it and its status."""
         study = graph["s1"]
         response = api.delete(EXTRACTION_API_ENDPOINT, id=study.id, labels="LABEL_STR")
         assert response.status_code == 204
