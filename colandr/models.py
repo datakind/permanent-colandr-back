@@ -350,17 +350,14 @@ class ReviewPlan(db.Model):
     pico: M[dict[str, t.Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
     )
-    # FIXME: keyterms, selection_criteria, data_extraction_form are annotated as lists
-    # but default to a JSONB object; default them to '[]'::jsonb instead
-    # so callers can always iterate them as sequences
     keyterms: M[list[dict[str, t.Any]]] = mapcol(
-        postgresql.JSONB(none_as_null=True), server_default="{}"
+        postgresql.JSONB(none_as_null=True), server_default=sa.text("'[]'::jsonb")
     )
     selection_criteria: M[list[dict[str, t.Any]]] = mapcol(
-        postgresql.JSONB(none_as_null=True), server_default="{}"
+        postgresql.JSONB(none_as_null=True), server_default=sa.text("'[]'::jsonb")
     )
     data_extraction_form: M[list[dict[str, t.Any]]] = mapcol(
-        postgresql.JSONB(none_as_null=True), server_default="{}"
+        postgresql.JSONB(none_as_null=True), server_default=sa.text("'[]'::jsonb")
     )
     suggested_keyterms: M[dict[str, t.Any]] = mapcol(
         postgresql.JSONB(none_as_null=True), server_default="{}"
@@ -760,13 +757,8 @@ class DataExtraction(db.Model):
         sa.ForeignKey("reviews.id", ondelete="CASCADE"),
         index=True,
     )
-    # FIXME: extracted_items is annotated as a list but defaults to '{}' (a JSONB object)
-    # not '[]' (a JSONB array). It's empty, so iteration yields nothing and get/delete
-    # happen to work, but a non-empty object causes DataExtractionAPI.delete() to index
-    # a string and fail, and makes DataExtractionSchema serialize an object as if it were
-    # a sequence. Default this to '[]'::jsonb so callers can always iterate it as a sequence.
     extracted_items: M[t.Optional[list[dict[str, t.Any]]]] = mapcol(
-        postgresql.JSONB(none_as_null=True), server_default="{}"
+        postgresql.JSONB(none_as_null=True), server_default=sa.text("'[]'::jsonb")
     )
 
     # relationships
