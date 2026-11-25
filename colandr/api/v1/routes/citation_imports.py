@@ -158,7 +158,7 @@ class CitationImportsAPI(MethodView):
 
         try:
             citations_to_insert = _preprocess_citations(
-                io.BytesIO(uploaded_data), fname, review_id
+                io.BytesIO(uploaded_data), fname
             )
         except ValueError as e:
             current_app.logger.exception(str(e))
@@ -248,7 +248,7 @@ bp.add_url_rule("/", view_func=CitationImportsAPI.as_view("citation_imports"))
 
 
 def _preprocess_citations(
-    path_or_stream: str | pathlib.Path | t.IO[bytes], fname: str, review_id: int
+    path_or_stream: str | pathlib.Path | t.IO[bytes], fname: str
 ) -> list[dict]:
     """Parse and validate citations from an uploaded file for bulk import.
 
@@ -260,8 +260,6 @@ def _preprocess_citations(
         path_or_stream: File path or byte stream containing citation records
         fname: Original filename; used to select the appropriate file reader
             and for error messages
-        review_id: ID of the review these citations belong to. No longer embedded
-            in the citation JSON — it's stored as a top-level ``Study`` column instead
 
     Returns:
         Validated citation dicts, one per parseable record. Records that fail validation
