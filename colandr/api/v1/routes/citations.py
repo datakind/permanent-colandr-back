@@ -55,7 +55,12 @@ class CitationAPI(MethodView):
         },
         security="TokenAuth",
     )
-    @bp.input(schemas.CitationSchema(partial=True), location="json")
+    # NOTE: we use StudyCitationSchema and not CitationSchema, in case a client
+    # round-tripping a GET response sends back id/review_id/timestamps, which belong
+    # to the Study row and must not be merged into the stored citation JSON
+    @bp.input(
+        schemas.StudyCitationSchema(partial=True, unknown="exclude"), location="json"
+    )
     @bp.output(schemas.CitationSchema)
     @jwtext.jwt_required()
     def put(self, id, json_data):
@@ -143,7 +148,9 @@ class CitationsAPI(MethodView):
         },
         security="TokenAuth",
     )
-    @bp.input(schemas.CitationSchema(partial=True), location="json")
+    @bp.input(
+        schemas.StudyCitationSchema(partial=True, unknown="exclude"), location="json"
+    )
     @bp.input(CitationsPostSchema, location="query")
     @jwtext.jwt_required()
     def post(self, json_data, query_data):
