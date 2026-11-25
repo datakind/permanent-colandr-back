@@ -106,6 +106,21 @@ class TestCitationAPI:
             fetched = api.get(CITATION_API_ENDPOINT, id=study_id).json
             assert {k: v for k, v in fetched.items() if k in data} == data
 
+    def test_put_ignores_pseudo_record_fields(self, graph, api, db_session):
+        """A round-tripped citation payload must not write study fields into the blob."""
+        study = graph["s1"]
+        payload = api.get(CITATION_API_ENDPOINT, id=study.id).json
+        assert {"id", "review_id", "created_at", "updated_at"} <= set(payload)
+        payload["title"] = "NEW_TITLE1"
+
+        response = api.put(CITATION_API_ENDPOINT, id=study.id, json=payload)
+        assert response.status_code == 200
+        assert response.json["title"] == "NEW_TITLE1"
+
+        db_session.refresh(study)
+        assert study.citation["title"] == "NEW_TITLE1"
+        assert study.citation.keys().isdisjoint({"id", "review_id"})
+
     @pytest.mark.parametrize("study_key", ["s1", "s2"])
     def test_delete(self, study_key, graph, api):
         """Delete a study's citation, emptying it out."""
