@@ -248,13 +248,13 @@ class ScreeningV2Schema(af.Schema):
     )
 
 
-class CitationSchema(af.Schema):
-    id = af.fields.Integer(dump_only=True)
-    created_at = af.fields.DateTime(dump_only=True, format="iso")
-    updated_at = af.fields.DateTime(dump_only=True, format="iso")
-    review_id = af.fields.Integer(
-        required=True, validate=af.validators.Range(min=1, max=constants.MAX_INT)
-    )
+class StudyCitationSchema(af.Schema):
+    """Citation fields as stored on ``Study.citation``.
+
+    Intentionally excludes "id", "review_id", and timestamps, which belong to the parent
+    ``Study`` record. Unrecognized source fields are collected under "other_fields".
+    """
+
     type_of_work = af.fields.String(
         load_default=None, validate=af.validators.Length(max=25)
     )
@@ -292,16 +292,36 @@ class CitationSchema(af.Schema):
         load_default=None, validate=af.validators.Length(max=50)
     )
     other_fields = af.fields.Dict()
-    screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
 
 
-class FulltextSchema(af.Schema):
+class CitationSchema(StudyCitationSchema):
+    """v1 API payload for a citation: the stored shape plus pseudo-record fields.
+
+    "id", "review_id", and timestamps belong to the parent ``Study`` record; the route
+    serializing one injects these fields (see ``_make_pseudo_citation_record``).
+    They're all ``dump_only`` so a client round-tripping this payload can't write them back
+    into the stored citation JSON.
+    """
+
     id = af.fields.Integer(dump_only=True)
-    review_id = af.fields.Integer(required=True, validate=af.validators.Range(min=1))
+    created_at = af.fields.DateTime(dump_only=True, format="iso")
+    updated_at = af.fields.DateTime(dump_only=True, format="iso")
+    review_id = af.fields.Integer(dump_only=True)
+
+
+class StudyFulltextSchema(af.Schema):
+    """Fulltext fields as stored on ``Study.fulltext``."""
+
     filename = af.fields.String(validate=af.validators.Length(max=30))
     original_filename = af.fields.String(dump_only=True)
     text_content = af.fields.String(dump_only=True)
-    screenings = af.fields.Nested(ScreeningSchema, many=True, dump_only=True)
+
+
+class FulltextSchema(StudyFulltextSchema):
+    """v1 API payload for a fulltext: the stored shape plus pseudo-record fields."""
+
+    id = af.fields.Integer(dump_only=True)
+    review_id = af.fields.Integer(dump_only=True)
     created_at = af.fields.DateTime(dump_only=True, format="iso")
     updated_at = af.fields.DateTime(dump_only=True, format="iso")
 
@@ -354,52 +374,6 @@ class DataExtractionSchema(af.Schema):
     extracted_items = af.fields.Nested(ExtractedItem, many=True)
 
 
-class StudyCitationSchema(af.Schema):
-    type_of_work = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=25)
-    )
-    title = af.fields.String(validate=af.validators.Length(max=300))
-    secondary_title = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=300)
-    )
-    abstract = af.fields.String(load_default=None)
-    pub_year = af.fields.Integer(
-        load_default=None,
-        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
-    )
-    pub_month = af.fields.Integer(
-        load_default=None,
-        validate=af.validators.Range(min=1, max=constants.MAX_SMALLINT),
-    )
-    authors = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
-    keywords = af.fields.List(af.fields.String(validate=af.validators.Length(max=100)))
-    type_of_reference = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=50)
-    )
-    journal_name = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=100)
-    )
-    volume = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
-    issue_number = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=20)
-    )
-    doi = af.fields.String(load_default=None, validate=af.validators.Length(max=100))
-    issn = af.fields.String(load_default=None, validate=af.validators.Length(max=20))
-    publisher = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=100)
-    )
-    language = af.fields.String(
-        load_default=None, validate=af.validators.Length(max=50)
-    )
-    other_fields = af.fields.Dict()
-
-
-class StudyFulltextSchema(af.Schema):
-    filename = af.fields.String(validate=af.validators.Length(max=30))
-    original_filename = af.fields.String(dump_only=True)
-    text_content = af.fields.String(dump_only=True)
-
-
 class StudySchema(af.Schema):
     id = af.fields.Integer(dump_only=True)
     created_at = af.fields.DateTime(dump_only=True, format="iso")
@@ -420,11 +394,9 @@ class StudySchema(af.Schema):
     dedupe_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.DEDUPE_STATUSES)
     )
-    citation = af.fields.Nested(CitationSchema, dump_only=True)
     citation_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
     )
-    fulltext = af.fields.Nested(FulltextSchema, dump_only=True)
     fulltext_status = af.fields.String(
         dump_only=True, validate=af.validators.OneOf(constants.SCREENING_STATUSES)
     )
